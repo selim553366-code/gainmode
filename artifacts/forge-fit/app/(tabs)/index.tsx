@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { ActionTile, Card, Header, Metric, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
+import { ActionTile, AnimatedNumber, Card, Header, Metric, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 
 export default function TodayScreen() {
   const colors = useColors();
@@ -32,7 +32,7 @@ export default function TodayScreen() {
         <View style={styles.heroTop}>
           <View>
             <Text style={[styles.heroEyebrow, { color: colors.primaryForeground }]}>{t('calories').toUpperCase()}</Text>
-            <Text style={[styles.heroNumber, { color: colors.primaryForeground }]}>{calories.toLocaleString()}</Text>
+            <AnimatedNumber value={calories} style={[styles.heroNumber, { color: colors.primaryForeground }]} />
             <Text style={[styles.heroMeta, { color: `${colors.primaryForeground}A8` }]}>/ {calorieGoal?.toLocaleString() ?? '—'} {t('caloriesShort')}</Text>
           </View>
           <View style={[styles.ring, { borderColor: `${colors.primaryForeground}33` }]}>
@@ -49,9 +49,9 @@ export default function TodayScreen() {
       </View>
 
       <View style={styles.metricRow}>
-        <Metric icon="flame-outline" value={`${macros.protein} g`} label={t('protein')} color={colors.blue} />
-        <Metric icon="flash-outline" value={`${macros.carbs} g`} label={t('carbs')} color={colors.orange} />
-        <Metric icon="nutrition-outline" value={`${macros.fat} g`} label={t('fat')} color={colors.plum} />
+        <Metric icon="flame-outline" value={<AnimatedNumber value={macros.protein} suffix=" g" />} label={t('protein')} color={colors.blue} />
+        <Metric icon="flash-outline" value={<AnimatedNumber value={macros.carbs} suffix=" g" />} label={t('carbs')} color={colors.orange} />
+        <Metric icon="nutrition-outline" value={<AnimatedNumber value={macros.fat} suffix=" g" />} label={t('fat')} color={colors.plum} />
       </View>
 
       <SectionTitle title={t('todayWorkout')} action={t('viewAll')} onAction={() => router.push('/(tabs)/plan')} />

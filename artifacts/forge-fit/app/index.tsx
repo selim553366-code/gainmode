@@ -19,6 +19,7 @@ import {
 } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
+import { triggerHaptic } from '@/components/FitUI';
 
 const slides = ['onboardingIntro', 'onboardingIntro2', 'onboardingIntro3'] as const;
 const waveFrames = [
@@ -51,7 +52,7 @@ function CoachMotion({ variant, large = false }: { variant: CoachMotionVariant; 
 
 function ChoiceButton({ label, selected, onPress, icon }: { label: string; selected: boolean; onPress: () => void; icon?: React.ComponentProps<typeof Ionicons>['name'] }) {
   const colors = useColors();
-  return <Pressable onPress={onPress} style={[styles.choice, { backgroundColor: selected ? `${colors.primary}20` : colors.card, borderColor: selected ? colors.primary : colors.border }]}>
+  return <Pressable onPress={() => { triggerHaptic(); onPress(); }} style={({ pressed }) => [styles.choice, { backgroundColor: selected ? `${colors.primary}20` : colors.card, borderColor: selected ? colors.primary : colors.border, opacity: pressed ? 0.78 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}>
     {icon ? <View style={[styles.choiceIcon, { backgroundColor: selected ? colors.primary : colors.secondary }]}><Ionicons name={icon} size={19} color={selected ? colors.primaryForeground : colors.foreground} /></View> : null}
     <Text style={[styles.choiceText, { color: colors.foreground }]}>{label}</Text>
     {selected ? <Ionicons name="checkmark-circle" size={20} color={colors.primary} /> : null}
@@ -201,11 +202,23 @@ function OnboardingQuestions() {
     if (step === total - 1) return advance();
     advance();
   };
+  const goBack = () => {
+    if (step === 0) return;
+    Animated.sequence([Animated.timing(slide, { toValue: 0, duration: 120, useNativeDriver: true }), Animated.timing(slide, { toValue: 1, duration: 220, useNativeDriver: true })]).start();
+    setStep((current) => Math.max(0, current - 1));
+  };
   const skip = () => {
     setError('');
     if (step === total - 1) return advance();
     advance();
   };
+  const swipeResponder = React.useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
+    onPanResponderRelease: (_, gesture) => {
+      if (gesture.dx < -55) next();
+      if (gesture.dx > 55) goBack();
+    },
+  }), [language, step, username, equipment, gymLevel, currentAge, taken]);
   const titleKeys = ['nameFirstQuestion', 'equipmentQuestion', 'heightQuestion', 'weightQuestion', 'birthDateQuestion', 'goalQuestion', 'sexQuestion', 'activityQuestion', 'trainingDaysQuestion', 'durationQuestion', 'speedQuestion', 'dietQuestion', 'proteinQuestion', 'experienceQuestion', 'preferredDaysQuestion'] as const;
   const selectedDays = (day: string) => setPreferredDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
   const renderBody = () => {
@@ -231,7 +244,7 @@ function OnboardingQuestions() {
   const optional = step >= 6;
   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
     <View style={styles.questionTop}><View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
-    <Animated.View style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
+    <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
       <ScrollView contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false}>
         <View style={styles.coachQuestionVisual}><CoachMotion variant={step === 0 ? 'wave' : 'write'} /></View>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / {total}</Text>
@@ -241,7 +254,7 @@ function OnboardingQuestions() {
         {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       </ScrollView>
     </Animated.View>
-    <View style={styles.buttonArea}><Pressable onPress={next} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>{optional ? <Pressable onPress={skip}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('skipQuestion')}</Text></Pressable> : null}</View>
+     <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>{optional ? <Pressable onPress={() => { triggerHaptic(); skip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('skipQuestion')}</Text></Pressable> : null}</View>
   </LinearGradient>;
 }
 
@@ -252,7 +265,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
     <View style={styles.questionTop}><View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
     <View style={styles.welcomeContent}><View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18` }]}><CoachMotion variant="wave" large /></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text></View>
-    <Pressable onPress={onStart} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
+     <Pressable onPress={() => { triggerHaptic(); onStart(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
   </LinearGradient>;
 }
 
@@ -260,7 +273,7 @@ function CompletionScreen({ onContinue }: { onContinue: () => void }) {
   const colors = useColors();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.completionContent}><View style={[styles.completionCoach, { backgroundColor: `${colors.primary}18` }]}><CoachMotion variant="done" large /></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('finishQuestionsTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('finishQuestionsBody')}</Text></View><Pressable onPress={onContinue} style={[styles.nextButton, { backgroundColor: colors.primary }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continueToPlan')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></LinearGradient>;
+   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.completionContent}><View style={[styles.completionCoach, { backgroundColor: `${colors.primary}18` }]}><CoachMotion variant="done" large /></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('finishQuestionsTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('finishQuestionsBody')}</Text></View><Pressable onPress={() => { triggerHaptic(); onContinue(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continueToPlan')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></LinearGradient>;
 }
 
 function IntroScreen({ step, setStep, onDone }: { step: number; setStep: React.Dispatch<React.SetStateAction<number>>; onDone: () => void }) {
@@ -269,15 +282,25 @@ function IntroScreen({ step, setStep, onDone }: { step: number; setStep: React.D
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const appear = React.useRef(new Animated.Value(0)).current;
   React.useEffect(() => { appear.setValue(0); Animated.timing(appear, { toValue: 1, duration: 420, useNativeDriver: true }).start(); }, [appear, step]);
+  const swipeResponder = React.useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
+    onPanResponderRelease: (_, gesture) => {
+      if (gesture.dx < -55) {
+        if (step === 2) onDone();
+        else setStep((current) => Math.min(2, current + 1));
+      }
+      if (gesture.dx > 55) setStep((current) => Math.max(0, current - 1));
+    },
+  }), [onDone, setStep, step]);
   const title = step === 0 ? t('onboardingTitle') : step === 1 ? t('premiumFeature1') : t('premiumFeature2');
-  return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.introVisual}><View style={[styles.auraLarge, { backgroundColor: `${colors.primary}18` }]} /><Image source={require('@/assets/images/icon.png')} style={styles.introIcon} /></View><Animated.View style={{ opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }}><Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / 3</Text><Text style={[styles.introTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t(slides[step])}</Text></Animated.View><View style={styles.introBottom}><View style={styles.dots}>{slides.map((_, index) => <View key={index} style={[styles.dot, { backgroundColor: index === step ? colors.primary : colors.border }]} />)}</View><Pressable onPress={() => step === 2 ? onDone() : setStep((current) => current + 1)} style={[styles.nextButton, { backgroundColor: colors.primary }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === 2 ? t('continue') : t('begin')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View></LinearGradient>;
+   return <LinearGradient {...swipeResponder.panHandlers} colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.introVisual}><View style={[styles.auraLarge, { backgroundColor: `${colors.primary}18` }]} /><Image source={require('@/assets/images/icon.png')} style={styles.introIcon} /></View><Animated.View style={{ opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }}><Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / 3</Text><Text style={[styles.introTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t(slides[step])}</Text></Animated.View><View style={styles.introBottom}><View style={styles.dots}>{slides.map((_, index) => <View key={index} style={[styles.dot, { backgroundColor: index === step ? colors.primary : colors.border }]} />)}</View><Pressable onPress={() => { triggerHaptic(); if (step === 2) onDone(); else setStep((current) => current + 1); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === 2 ? t('continue') : t('begin')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View></LinearGradient>;
 }
 
 function OfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () => void }) {
   const colors = useColors();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={styles.full}><View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={30} color={colors.primaryForeground} /></View><Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('premiumSubtitle')}</Text><View style={styles.features}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3'] as const).map((key) => <View key={key} style={styles.feature}><Ionicons name="checkmark-circle" size={20} color={colors.primary} /><Text style={[styles.featureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View><Pressable onPress={onUnlock} style={[styles.nextButton, { backgroundColor: colors.primary }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable><Pressable onPress={onSkip}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('cancel')}</Text></Pressable></LinearGradient>;
+  return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={styles.full}><View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={30} color={colors.primaryForeground} /></View><Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('premiumSubtitle')}</Text><View style={styles.features}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3'] as const).map((key) => <View key={key} style={styles.feature}><Ionicons name="checkmark-circle" size={20} color={colors.primary} /><Text style={[styles.featureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View><Pressable onPress={() => { triggerHaptic(); onUnlock(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable><Pressable onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('cancel')}</Text></Pressable></LinearGradient>;
 }
 
 const styles = StyleSheet.create({

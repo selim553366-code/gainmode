@@ -1,13 +1,18 @@
 import React, { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { BlurView } from 'expo-blur';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+export function triggerHaptic(style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) {
+  Haptics.impactAsync(style).catch(() => undefined);
+}
 
 export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
   const colors = useColors();
@@ -24,7 +29,7 @@ export function Header({ eyebrow, title, subtitle, action, onAction }: { eyebrow
       <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
       {subtitle ? <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
     </View>
-    {action && onAction ? <Pressable testID="header-action" onPress={onAction} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><Ionicons name={action} size={20} color={colors.foreground} /></Pressable> : null}
+    {action && onAction ? <Pressable testID="header-action" onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><Ionicons name={action} size={20} color={colors.foreground} /></Pressable> : null}
   </View>;
 }
 
@@ -33,14 +38,17 @@ export function SectionTitle({ title, action, onAction }: { title: string; actio
   return <View style={styles.sectionTitle}><Text style={[styles.sectionText, { color: colors.foreground }]}>{title}</Text>{action && onAction ? <Pressable onPress={onAction}><Text style={[styles.link, { color: colors.primary }]}>{action}</Text></Pressable> : null}</View>;
 }
 
-export function Card({ children, style }: { children: ReactNode; style?: object }) {
+export function Card({ children, style, onPress }: { children: ReactNode; style?: object; onPress?: () => void }) {
   const colors = useColors();
-  return <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, style]}>{children}</View>;
+  const pressed = React.useRef(new Animated.Value(0)).current;
+  const setPressed = (value: number) => Animated.spring(pressed, { toValue: value, friction: 8, tension: 90, useNativeDriver: true }).start();
+  const content = <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, style, onPress ? { transform: [{ scale: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) }], shadowColor: colors.primary, shadowOpacity: pressed.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.34] }), shadowRadius: pressed.interpolate({ inputRange: [0, 1], outputRange: [8, 16] }), elevation: pressed.interpolate({ inputRange: [0, 1], outputRange: [2, 7] }) } : null]}>{children}</Animated.View>;
+  return onPress ? <Pressable onPress={() => { triggerHaptic(); onPress(); }} onPressIn={() => setPressed(1)} onPressOut={() => setPressed(0)}>{content}</Pressable> : content;
 }
 
 export function IconButton({ icon, onPress, label }: { icon: IconName; onPress?: () => void; label?: string }) {
   const colors = useColors();
-  return <Pressable accessibilityLabel={label} testID={label} onPress={onPress} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.secondary, opacity: pressed ? 0.6 : 1 }]}><Ionicons name={icon} size={20} color={colors.foreground} /></Pressable>;
+  return <Pressable accessibilityLabel={label} testID={label} onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.secondary, opacity: pressed ? 0.6 : 1 }]}><Ionicons name={icon} size={20} color={colors.foreground} /></Pressable>;
 }
 
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
@@ -48,19 +56,53 @@ export function ProgressBar({ value, color }: { value: number; color?: string })
   return <View style={[styles.progressTrack, { backgroundColor: colors.secondary }]}><View style={[styles.progressFill, { backgroundColor: color ?? colors.primary, width: `${Math.min(Math.max(value, 0), 1) * 100}%` }]} /></View>;
 }
 
-export function Metric({ icon, value, label, color }: { icon: IconName; value: string; label: string; color: string }) {
+export function Metric({ icon, value, label, color }: { icon: IconName; value: ReactNode; label: string; color: string }) {
   const colors = useColors();
   return <View style={styles.metric}><View style={[styles.metricIcon, { backgroundColor: `${color}20` }]}><Ionicons name={icon} size={16} color={color} /></View><Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text><Text style={[styles.metricLabel, { color: colors.mutedForeground }]}>{label}</Text></View>;
 }
 
+export function AnimatedNumber({ value, suffix = '', style, format = (number) => Math.round(number).toLocaleString() }: { value: number; suffix?: string; style?: StyleProp<TextStyle>; format?: (value: number) => string }) {
+  const colors = useColors();
+  const animated = React.useRef(new Animated.Value(value)).current;
+  const [display, setDisplay] = React.useState(value);
+  React.useEffect(() => {
+    const listener = animated.addListener(({ value: next }) => setDisplay(next));
+    Animated.timing(animated, { toValue: value, duration: 650, useNativeDriver: false }).start();
+    return () => animated.removeListener(listener);
+  }, [animated, value]);
+  return <Text style={[styles.metricValue, { color: colors.foreground }, style]}>{format(display)}{suffix}</Text>;
+}
+
 export function ActionTile({ icon, title, subtitle, onPress, color }: { icon: IconName; title: string; subtitle: string; onPress?: () => void; color: string }) {
   const colors = useColors();
-  return <Pressable testID={title} onPress={onPress} style={({ pressed }) => [styles.actionTile, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.72 : 1 }]}><View style={[styles.actionIcon, { backgroundColor: `${color}20` }]}><Ionicons name={icon} size={20} color={color} /></View><Text style={[styles.actionTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.actionSubtitle, { color: colors.mutedForeground }]}>{subtitle}</Text></Pressable>;
+  const pressed = React.useRef(new Animated.Value(0)).current;
+  const setPressed = (value: number) => Animated.spring(pressed, { toValue: value, friction: 8, tension: 90, useNativeDriver: true }).start();
+  return <Pressable testID={title} onPress={() => { triggerHaptic(); onPress?.(); }} onPressIn={() => setPressed(1)} onPressOut={() => setPressed(0)}><Animated.View style={[styles.actionTile, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: color, shadowOpacity: pressed.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.3] }), shadowRadius: pressed.interpolate({ inputRange: [0, 1], outputRange: [5, 14] }), elevation: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 6] }), transform: [{ translateY: pressed.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }, { scale: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) }] }]}><View style={[styles.actionIcon, { backgroundColor: `${color}20` }]}><Ionicons name={icon} size={20} color={color} /></View><Text style={[styles.actionTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.actionSubtitle, { color: colors.mutedForeground }]}>{subtitle}</Text></Animated.View></Pressable>;
 }
 
 export function Pill({ label, active, onPress }: { label: string; active?: boolean; onPress?: () => void }) {
   const colors = useColors();
-  return <Pressable onPress={onPress} style={[styles.pill, { backgroundColor: active ? colors.primary : colors.secondary }]}><Text style={[styles.pillText, { color: active ? colors.primaryForeground : colors.mutedForeground }]}>{label}</Text></Pressable>;
+  return <Pressable onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.pill, { backgroundColor: active ? colors.primary : colors.secondary, opacity: pressed ? 0.72 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}><Text style={[styles.pillText, { color: active ? colors.primaryForeground : colors.mutedForeground }]}>{label}</Text></Pressable>;
+}
+
+export function CelebrationBurst({ visible, onDone }: { visible: boolean; onDone?: () => void }) {
+  const colors = useColors();
+  const progress = React.useRef(new Animated.Value(0)).current;
+  const pieces = React.useMemo(() => Array.from({ length: 16 }, (_, index) => ({
+    angle: (index / 16) * Math.PI * 2,
+    color: [colors.primary, colors.blue, colors.orange, colors.success, colors.plum][index % 5],
+    distance: 78 + (index % 4) * 15,
+    rotate: `${(index % 2 ? 1 : -1) * (140 + index * 17)}deg`,
+  })), [colors]);
+  React.useEffect(() => {
+    if (!visible) return undefined;
+    progress.setValue(0);
+    const animation = Animated.timing(progress, { toValue: 1, duration: 900, useNativeDriver: true });
+    animation.start(({ finished }) => { if (finished) onDone?.(); });
+    return () => animation.stop();
+  }, [onDone, progress, visible]);
+  if (!visible) return null;
+  return <View pointerEvents="none" style={styles.celebrationLayer}>{pieces.map((piece, index) => <Animated.View key={index} style={[styles.confettiPiece, { backgroundColor: piece.color, transform: [{ translateX: progress.interpolate({ inputRange: [0, 1], outputRange: [0, Math.cos(piece.angle) * piece.distance] }) }, { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [0, Math.sin(piece.angle) * piece.distance + 36] }) }, { rotate: piece.rotate }, { scale: progress.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0.2, 1, 0.75] }) }], opacity: progress.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 1, 0] }) }]} />)}</View>;
 }
 
 export function EmptyState({ icon, title, text }: { icon: IconName; title: string; text: string }) {
@@ -104,6 +146,8 @@ export const styles = StyleSheet.create({
   actionSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
   pill: { paddingHorizontal: 15, paddingVertical: 10, borderRadius: 30, marginRight: 8 },
   pillText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  celebrationLayer: { ...StyleSheet.absoluteFillObject, zIndex: 30, alignItems: 'center', justifyContent: 'center' },
+  confettiPiece: { position: 'absolute', top: '42%', left: '50%', width: 8, height: 13, borderRadius: 3, marginLeft: -4, marginTop: -6 },
   empty: { alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 24 },
   emptyIcon: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 16 },
