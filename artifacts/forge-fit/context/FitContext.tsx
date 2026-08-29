@@ -4,8 +4,32 @@ import { Language, TranslationKey } from '@/lib/i18n';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
+export type GymLevel = 'basic' | 'intermediate' | 'full';
 export type FitnessGoal = 'muscle' | 'weightLoss' | 'fatLoss' | 'maintain';
-export type Profile = { equipment: Equipment; height: number; weight: number; age: number; goal: FitnessGoal };
+export type BiologicalSex = 'female' | 'male' | 'preferNot';
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'high';
+export type GoalRate = 'slow' | 'balanced' | 'fast';
+export type DietPreference = 'everything' | 'vegetarian' | 'vegan' | 'halal';
+export type ProteinPreference = 'balanced' | 'high' | 'lower';
+export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
+export type Profile = {
+  equipment: Equipment;
+  gymLevel?: GymLevel;
+  height: number;
+  weight: number;
+  age: number;
+  birthDate?: string;
+  goal: FitnessGoal;
+  sex?: BiologicalSex;
+  activity?: ActivityLevel;
+  trainingDays?: number;
+  sessionDuration?: number;
+  goalRate?: GoalRate;
+  diet?: DietPreference;
+  proteinPreference?: ProteinPreference;
+  experience?: ExperienceLevel;
+  preferredDays?: string[];
+};
 export type Workout = { id: string; day: string; name: string; duration: number; exercises: { id: string; name: string; sets: number; reps: number }[]; completed: boolean };
 export type Friend = { id: string; username: string };
 export type Challenge = { id: string; name: string; target: number; progress: number };
@@ -101,19 +125,22 @@ export function FitProvider({ children }: { children: ReactNode }) {
 
   const calculatePlan = (profile: Profile): Workout[] => {
     const names: TranslationKey[] = profile.goal === 'weightLoss' || profile.goal === 'fatLoss'
-      ? ['workoutConditioning', 'workoutStrength', 'workoutFullBody']
-      : ['workoutUpper', 'workoutPull', 'workoutLower'];
+      ? ['workoutConditioning', 'workoutStrength', 'workoutFullBody', 'workoutLower', 'workoutUpper', 'workoutPull']
+      : ['workoutUpper', 'workoutPull', 'workoutLower', 'workoutFullBody', 'workoutStrength', 'workoutConditioning'];
     const bodyweight = profile.equipment === 'bodyweight';
     const exerciseSets: TranslationKey[][] = bodyweight
-      ? [['exercisePushup', 'exerciseSquat', 'exercisePlank'], ['exerciseRow', 'exerciseLunge', 'exerciseDeadBug'], ['exerciseMountain', 'exerciseGluteBridge', 'exerciseSidePlank']]
-      : [['exerciseBench', 'exerciseShoulderPress', 'exerciseTriceps'], ['exerciseRow', 'exerciseLatPulldown', 'exerciseCurl'], ['exerciseLegPress', 'exerciseRdl', 'exerciseCalfRaise']];
-    return names.map((name, index) => ({
+      ? [['exercisePushup', 'exerciseSquat', 'exercisePlank'], ['exerciseRow', 'exerciseLunge', 'exerciseDeadBug'], ['exerciseMountain', 'exerciseGluteBridge', 'exerciseSidePlank'], ['exercisePushup', 'exerciseLunge', 'exerciseSidePlank'], ['exerciseSquat', 'exerciseGluteBridge', 'exercisePlank'], ['exerciseMountain', 'exercisePushup', 'exerciseDeadBug']]
+      : [['exerciseBench', 'exerciseShoulderPress', 'exerciseTriceps'], ['exerciseRow', 'exerciseLatPulldown', 'exerciseCurl'], ['exerciseLegPress', 'exerciseRdl', 'exerciseCalfRaise'], ['exerciseBench', 'exerciseRow', 'exerciseLegPress'], ['exerciseShoulderPress', 'exerciseCurl', 'exerciseRdl'], ['exerciseLatPulldown', 'exerciseTriceps', 'exerciseCalfRaise']];
+    const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+    const count = Math.min(Math.max(profile.trainingDays ?? 3, 2), 6);
+    const reps = profile.experience === 'advanced' ? 8 : profile.experience === 'intermediate' ? 10 : 12;
+    return names.slice(0, count).map((name, index) => ({
       id: `workout-${index}`,
-      day: ['MON', 'WED', 'FRI'][index],
+      day: profile.preferredDays?.[index] ?? days[index],
       name,
-      duration: profile.goal === 'muscle' ? 50 : 40,
+      duration: profile.sessionDuration ?? (profile.goal === 'muscle' ? 50 : 40),
       completed: false,
-      exercises: exerciseSets[index].map((exercise, exerciseIndex) => ({ id: `${index}-${exerciseIndex}`, name: exercise, sets: 3, reps: bodyweight ? 12 : 10 })),
+      exercises: exerciseSets[index].map((exercise, exerciseIndex) => ({ id: `${index}-${exerciseIndex}`, name: exercise, sets: profile.experience === 'advanced' ? 4 : 3, reps: bodyweight ? reps + 2 : reps })),
     }));
   };
 
@@ -126,10 +153,14 @@ export function FitProvider({ children }: { children: ReactNode }) {
       return { ...current, meals: current.meals.filter((item) => item.id !== id) };
     }),
     completeOnboarding: (profile, username) => setState((current) => {
-      const bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + 5;
-      const baseCalories = bmr * 1.35;
-      const calorieGoal = Math.round(baseCalories + (profile.goal === 'muscle' ? 250 : profile.goal === 'weightLoss' || profile.goal === 'fatLoss' ? -400 : 0));
-      const proteinGoal = Math.round(profile.weight * (profile.goal === 'muscle' ? 2 : 1.7));
+      const sexAdjustment = profile.sex === 'female' ? -161 : profile.sex === 'preferNot' ? -78 : 5;
+      const bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + sexAdjustment;
+      const activityMultiplier = { sedentary: 1.2, light: 1.35, moderate: 1.5, high: 1.7 }[profile.activity ?? 'light'];
+      const rateAdjustment = { slow: 200, balanced: 350, fast: 500 }[profile.goalRate ?? 'balanced'];
+      const goalAdjustment = profile.goal === 'muscle' ? rateAdjustment : profile.goal === 'weightLoss' || profile.goal === 'fatLoss' ? -rateAdjustment : 0;
+      const calorieGoal = Math.max(1200, Math.round(bmr * activityMultiplier + goalAdjustment));
+      const proteinMultiplier = profile.proteinPreference === 'high' ? 2.2 : profile.proteinPreference === 'lower' ? 1.4 : profile.goal === 'muscle' ? 2 : 1.7;
+      const proteinGoal = Math.round(profile.weight * proteinMultiplier);
       return {
         ...current,
         profile,
