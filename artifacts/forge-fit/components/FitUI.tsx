@@ -3,6 +3,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
+import { useFit } from '@/context/FitContext';
+import { translate } from '@/lib/i18n';
+import { BlurView } from 'expo-blur';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -65,6 +68,19 @@ export function EmptyState({ icon, title, text }: { icon: IconName; title: strin
   return <View style={styles.empty}><View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}><Ionicons name={icon} size={24} color={colors.primary} /></View><Text style={[styles.emptyTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{text}</Text></View>;
 }
 
+export function PremiumLock() {
+  const colors = useColors();
+  const { language, setPremium } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  return <View style={[styles.lockScreen, { backgroundColor: colors.background }]}>
+    <View style={styles.previewLayer}><View style={[styles.previewCard, { backgroundColor: colors.card }]} /><View style={[styles.previewCard, { backgroundColor: colors.card }]} /><View style={[styles.previewCard, { backgroundColor: colors.card }]} /><BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFill} /></View>
+    <View style={[styles.lockAura, { backgroundColor: `${colors.primary}18` }]} /><View style={[styles.lockIcon, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={27} color={colors.primaryForeground} /></View>
+    <Text style={[styles.lockTitle, { color: colors.foreground }]}>{t('premiumLocked')}</Text><Text style={[styles.lockText, { color: colors.mutedForeground }]}>{t('premiumLockedBody')}</Text>
+    <View style={styles.lockFeatures}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3'] as const).map((key) => <View key={key} style={styles.lockFeature}><Ionicons name="checkmark" size={17} color={colors.primary} /><Text style={[styles.lockFeatureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View>
+    <Pressable onPress={() => setPremium(true)} style={[styles.lockButton, { backgroundColor: colors.primary }]}><Text style={[styles.lockButtonText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable>
+  </View>;
+}
+
 export const styles = StyleSheet.create({
   screen: { paddingHorizontal: 20, minHeight: '100%' },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, marginBottom: 26 },
@@ -92,4 +108,16 @@ export const styles = StyleSheet.create({
   emptyIcon: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 16 },
   emptyText: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 7 },
+  lockScreen: { flex: 1, minHeight: '100%', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30, overflow: 'hidden' },
+  lockAura: { position: 'absolute', width: 270, height: 270, borderRadius: 135, top: '22%' },
+  lockIcon: { width: 68, height: 68, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  lockTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, letterSpacing: -1, textAlign: 'center' },
+  lockText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 10 },
+  lockFeatures: { alignSelf: 'stretch', gap: 15, marginVertical: 28 },
+  lockFeature: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  lockFeatureText: { fontFamily: 'Inter_500Medium', fontSize: 13 },
+  lockButton: { width: '100%', height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  lockButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
+  previewLayer: { position: 'absolute', left: 22, right: 22, top: 80, gap: 12, opacity: 0.45 },
+  previewCard: { height: 65, borderRadius: 19, borderWidth: 1, borderColor: '#1D3B5E' },
 });

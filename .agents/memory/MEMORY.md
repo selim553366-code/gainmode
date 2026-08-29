@@ -1,0 +1,1 @@
+- [Forge Fit AI and access model](forge-fit-ai.md) — local-first user state with server-side GPT-5 mini and premium usage gates.

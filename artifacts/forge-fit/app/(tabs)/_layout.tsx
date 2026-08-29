@@ -9,6 +9,7 @@ import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
 import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
+import { PremiumLock } from '@/components/FitUI';
 
 // IMPORTANT: iOS 26 uses NativeTabs for native tabs with liquid glass support.
 // NativeTabs intentionally does NOT use custom design tokens — liquid glass
@@ -42,10 +43,6 @@ function NativeTabLayout() {
       <NativeTabs.Trigger name="friends">
         <Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} />
         <Label>{t('friends')}</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="goals">
-        <Icon sf={{ default: 'target', selected: 'target' }} />
-        <Label>{t('goals')}</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -108,12 +105,13 @@ function ClassicTabLayout() {
       <Tabs.Screen name="coach" options={{ title: t('coach'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="sparkles" tintColor={color} size={22} /> : <Feather name="zap" size={21} color={color} /> }} />
       <Tabs.Screen name="progress" options={{ title: t('progress'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="chart.xyaxis.line" tintColor={color} size={22} /> : <Feather name="bar-chart-2" size={21} color={color} /> }} />
       <Tabs.Screen name="friends" options={{ title: t('friends'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="person.2" tintColor={color} size={22} /> : <Feather name="users" size={21} color={color} /> }} />
-      <Tabs.Screen name="goals" options={{ title: t('goals'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="target" tintColor={color} size={22} /> : <Feather name="target" size={21} color={color} /> }} />
     </Tabs>
   );
 }
 
 export default function TabLayout() {
+  const { isPremium } = useFit();
+  if (!isPremium) return <PremiumLock />;
   if (isLiquidGlassAvailable()) {
     return <NativeTabLayout />;
   }

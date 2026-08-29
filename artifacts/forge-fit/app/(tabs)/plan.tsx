@@ -1,39 +1,40 @@
-import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFit } from '@/context/FitContext';
-import { translate } from '@/lib/i18n';
+import { translate, TranslationKey } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { Card, Header, Pill, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
-
-const workouts = [
-  { day: 'MON', name: 'Push power', duration: '45 min', count: 6, icon: 'barbell-outline' as const, colorKey: 'orange' as const },
-  { day: 'WED', name: 'Pull strength', duration: '42 min', count: 5, icon: 'fitness-outline' as const, colorKey: 'blue' as const },
-  { day: 'FRI', name: 'Legs & core', duration: '50 min', count: 7, icon: 'flame-outline' as const, colorKey: 'plum' as const },
-];
+import { Card, EmptyState, Header, Pill, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 
 export default function PlanScreen() {
   const colors = useColors();
-  const { language } = useFit();
+  const { language, workouts, toggleWorkout, addExercise, removeExercise } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [activeDay, setActiveDay] = useState('MON');
-  const [completed, setCompleted] = useState<string[]>([]);
+  const [activeDay, setActiveDay] = React.useState('MON');
+  const [newExercise, setNewExercise] = React.useState('');
   const active = workouts.find((workout) => workout.day === activeDay) ?? workouts[0];
-  const toggle = (id: string) => setCompleted((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const label = (value: string) => translate(language, value as Parameters<typeof translate>[1]) || value;
+
+  if (!active) return <Screen><Header eyebrow="Training" title={t('planTitle')} subtitle={t('planSubtitle')} /><EmptyState icon="barbell-outline" title={t('noWorkout')} text={t('createPlan')} /></Screen>;
+  const completedCount = active.completed ? active.exercises.length : 0;
+  const addNewExercise = () => {
+    const name = newExercise.trim();
+    if (!name) return;
+    addExercise(active.id, name as TranslationKey);
+    setNewExercise('');
+    Alert.alert(t('addExercise'), t('planUpdated'));
+  };
   return <Screen>
-    <Header eyebrow="Training / 03" title={t('planTitle')} subtitle={t('planSubtitle')} action="options-outline" onAction={() => Alert.alert(t('edit'), t('planSubtitle'))} />
-    <View style={styles.dayRow}>{workouts.map((workout) => <Pressable key={workout.day} onPress={() => setActiveDay(workout.day)} style={[styles.day, { backgroundColor: activeDay === workout.day ? colors.primary : colors.card, borderColor: colors.border }]}><Text style={[styles.dayText, { color: activeDay === workout.day ? colors.primaryForeground : colors.mutedForeground }]}>{workout.day}</Text><View style={[styles.dayDot, { backgroundColor: activeDay === workout.day ? colors.primaryForeground : colors.secondary }]} /></Pressable>)}</View>
+    <Header eyebrow="Training" title={t('planTitle')} subtitle={t('planSubtitle')} action="options-outline" onAction={() => Alert.alert(t('edit'), t('planSubtitle'))} />
+    <View style={styles.dayRow}>{workouts.map((workout) => <Pressable key={workout.day} onPress={() => setActiveDay(workout.day)} style={[styles.day, { backgroundColor: activeDay === workout.day ? colors.primary : colors.card, borderColor: colors.border }]}><Text style={[styles.dayText, { color: activeDay === workout.day ? colors.primaryForeground : colors.mutedForeground }]}>{workout.day}</Text><View style={[styles.dayDot, { backgroundColor: workout.completed ? colors.success : activeDay === workout.day ? colors.primaryForeground : colors.secondary }]} /></Pressable>)}</View>
     <Card style={[styles.featureCard, { backgroundColor: colors.secondary }]}>
-      <View style={styles.featureTop}><View><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('thisWeek').toUpperCase()}</Text><Text style={[styles.featureTitle, { color: colors.foreground }]}>{active.name}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{active.duration}  •  {active.count} {t('exercises')}</Text></View><View style={[styles.featureIcon, { backgroundColor: colors[active.colorKey] }]}><Ionicons name={active.icon} size={23} color={colors.background} /></View></View>
-      <ProgressBar value={completed.length / 4} color={colors.primary} />
-      <View style={styles.featureBottom}><Text style={[styles.caption, { color: colors.mutedForeground }]}>{completed.length} / 4 {t('completed').toLowerCase()}</Text><Pill label={t('start')} active onPress={() => Alert.alert(t('startWorkout'), active.name)} /></View>
+      <View style={styles.featureTop}><View><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('thisWeek').toUpperCase()}</Text><Text style={[styles.featureTitle, { color: colors.foreground }]}>{label(active.name)}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{active.duration} min  •  {active.exercises.length} {t('exercises')}</Text></View><View style={[styles.featureIcon, { backgroundColor: colors.primary }]}><Ionicons name="barbell-outline" size={23} color={colors.primaryForeground} /></View></View>
+      <ProgressBar value={active.completed ? 1 : 0} color={colors.primary} />
+      <View style={styles.featureBottom}><Text style={[styles.caption, { color: colors.mutedForeground }]}>{completedCount} / {active.exercises.length} {t('completed').toLowerCase()}</Text><Pill label={active.completed ? t('completed') : t('start')} active onPress={() => toggleWorkout(active.id)} /></View>
     </Card>
-    <SectionTitle title={`${active.name} / ${t('exercises')}`} action={t('edit')} onAction={() => Alert.alert(t('edit'), t('planSubtitle'))} />
-    {['Incline press', 'Cable row', 'Shoulder press', 'Plank hold'].map((exercise, index) => {
-      const id = `${activeDay}-${index}`;
-      const isDone = completed.includes(id);
-      return <Pressable key={exercise} onPress={() => toggle(id)}><Card style={styles.exerciseCard}><View style={[styles.check, { borderColor: isDone ? colors.primary : colors.border, backgroundColor: isDone ? colors.primary : colors.secondary }]}>{isDone ? <Ionicons name="checkmark" size={15} color={colors.primaryForeground} /> : <Text style={[styles.index, { color: colors.mutedForeground }]}>0{index + 1}</Text>}</View><View style={{ flex: 1 }}><Text style={[styles.exerciseName, { color: isDone ? colors.mutedForeground : colors.foreground, textDecorationLine: isDone ? 'line-through' : 'none' }]}>{exercise}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>4 {t('sets')}  •  10 reps  •  90s {t('rest')}</Text></View><Ionicons name="chevron-forward" size={17} color={colors.mutedForeground} /></Card></Pressable>;
-    })}
+    <SectionTitle title={`${label(active.name)} / ${t('exercises')}`} action={t('addExercise')} onAction={() => undefined} />
+    <Card style={styles.addCard}><TextInput value={newExercise} onChangeText={setNewExercise} placeholder={t('exerciseName')} placeholderTextColor={colors.mutedForeground} style={[styles.addInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground }]} /><Pressable onPress={addNewExercise} style={[styles.addButton, { backgroundColor: colors.primary }]}><Ionicons name="add" size={19} color={colors.primaryForeground} /></Pressable></Card>
+    {active.exercises.map((exercise, index) => <Card key={exercise.id} style={styles.exerciseCard}><View style={[styles.check, { borderColor: colors.border, backgroundColor: colors.secondary }]}><Text style={[styles.index, { color: colors.mutedForeground }]}>{String(index + 1).padStart(2, '0')}</Text></View><View style={{ flex: 1 }}><Text style={[styles.exerciseName, { color: colors.foreground }]}>{label(exercise.name)}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{exercise.sets} {t('sets')}  •  {exercise.reps} reps</Text></View><Pressable onPress={() => removeExercise(active.id, exercise.id)} accessibilityLabel={t('removeExercise')}><Ionicons name="trash-outline" size={17} color={colors.mutedForeground} /></Pressable></Card>)}
   </Screen>;
 }
 
@@ -48,6 +49,9 @@ const styles = StyleSheet.create({
   featureTitle: { fontFamily: 'Inter_700Bold', fontSize: 25, letterSpacing: -0.7, marginVertical: 7 },
   featureIcon: { width: 58, height: 58, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   featureBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 },
+  addCard: { padding: 10, flexDirection: 'row', gap: 8, alignItems: 'center' },
+  addInput: { flex: 1, height: 42, borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, fontFamily: 'Inter_400Regular', fontSize: 12 },
+  addButton: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   exerciseCard: { padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
   check: { width: 38, height: 38, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   index: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
