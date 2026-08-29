@@ -36,13 +36,11 @@ export type Challenge = { id: string; name: string; target: number; progress: nu
 type FitState = {
   version: number;
   language: Language;
-  water: number;
   meals: Meal[];
   weight: number | null;
   calorieGoal: number | null;
   proteinGoal: number | null;
   goalWeight: number | null;
-  hydrationGoal: number | null;
   profile: Profile | null;
   username: string | null;
   onboardingComplete: boolean;
@@ -58,8 +56,9 @@ type FitState = {
 };
 
 type FitContextValue = FitState & {
+  coachThinking: boolean;
+  setCoachThinking: (value: boolean) => void;
   setLanguage: (language: Language) => void;
-  addWater: () => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
   removeMeal: (id: string) => void;
   completeOnboarding: (profile: Profile, username: string) => void;
@@ -78,12 +77,10 @@ type FitContextValue = FitState & {
 const initialState: FitState = {
   version: 3,
   language: 'tr',
-  water: 0,
   weight: null,
   calorieGoal: null,
   proteinGoal: null,
   goalWeight: null,
-  hydrationGoal: null,
   profile: null,
   username: null,
   onboardingComplete: false,
@@ -104,13 +101,15 @@ const FitContext = createContext<FitContextValue | null>(null);
 export function FitProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<FitState>(initialState);
   const [hydrated, setHydrated] = useState(false);
+  const [coachThinking, setCoachThinking] = useState(false);
 
   useEffect(() => {
     AsyncStorage.getItem('forge-fit-state').then((stored) => {
       if (stored) {
-        const parsed = JSON.parse(stored) as Partial<FitState>;
+        const parsed = JSON.parse(stored) as Partial<FitState> & { water?: unknown; hydrationGoal?: unknown };
         if (parsed.version === initialState.version) {
-          const merged = { ...initialState, ...parsed };
+          const { water: _legacyWater, hydrationGoal: _legacyHydrationGoal, ...storedState } = parsed;
+          const merged = { ...initialState, ...storedState };
           const today = new Date().toISOString().slice(0, 10);
           setState(merged.usageDate === today ? merged : { ...merged, usageDate: today, coachMessagesUsed: 0, photoAnalysesUsed: 0 });
         }
@@ -146,8 +145,9 @@ export function FitProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<FitContextValue>(() => ({
     ...state,
+    coachThinking,
+    setCoachThinking,
     setLanguage: (language) => setState((current) => ({ ...current, language })),
-    addWater: () => setState((current) => ({ ...current, water: Math.min(current.water + 1, current.hydrationGoal ?? 8) })),
     addMeal: (meal) => setState((current) => ({ ...current, meals: [...current.meals, { ...meal, id: `${Date.now()}-${Math.random()}` }] })),
     removeMeal: (id) => setState((current) => {
       return { ...current, meals: current.meals.filter((item) => item.id !== id) };
@@ -169,7 +169,6 @@ export function FitProvider({ children }: { children: ReactNode }) {
         calorieGoal,
         proteinGoal,
         goalWeight: profile.goal === 'muscle' || profile.goal === 'maintain' ? profile.weight : Math.max(profile.weight - 5, 1),
-        hydrationGoal: Math.min(Math.max(Math.round((profile.weight * 35) / 250), 4), 12),
         workouts: calculatePlan(profile),
         onboardingComplete: true,
       };
@@ -190,7 +189,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
     addFriend: (username) => setState((current) => current.friends.some((friend) => friend.username.toLowerCase() === username.toLowerCase()) ? current : { ...current, friends: [...current.friends, { id: `${Date.now()}-${Math.random()}`, username }] }),
     addChallenge: (name, target) => setState((current) => ({ ...current, challenges: [...current.challenges, { id: `${Date.now()}-${Math.random()}`, name, target, progress: 0 }] })),
     addWeight: (value) => setState((current) => ({ ...current, weight: value, weightLogs: [...current.weightLogs, { id: `${Date.now()}-${Math.random()}`, value, date: new Date().toISOString() }] })),
-  }), [state]);
+  }), [state, coachThinking]);
 
   return <FitContext.Provider value={value}>{children}</FitContext.Provider>;
 }

@@ -1,7 +1,6 @@
 import React from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
@@ -10,7 +9,7 @@ import { ActionTile, Card, Header, Metric, ProgressBar, Screen, SectionTitle } f
 
 export default function TodayScreen() {
   const colors = useColors();
-  const { language, meals, water, weight, username, calorieGoal, hydrationGoal, workouts, addWater } = useFit();
+  const { language, meals, weight, username, calorieGoal, workouts } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const calories = meals.reduce((sum, meal) => sum + meal.calories, 0);
   const macros = meals.reduce((totals, meal) => ({
@@ -18,22 +17,14 @@ export default function TodayScreen() {
     carbs: totals.carbs + meal.carbs,
     fat: totals.fat + meal.fat,
   }), { protein: 0, carbs: 0, fat: 0 });
-  const haptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
-
-  const handleWater = () => {
-    haptic();
-    addWater();
-    Alert.alert(t('water'), t('waterAdded'));
-  };
-
   return (
     <Screen>
       <Header
         eyebrow="Forge Fit"
             title={`${t('goodMorning')}, ${username ?? ''}`.trim()}
         subtitle={t('ready')}
-        action="notifications-outline"
-        onAction={() => Alert.alert(t('notifications'), t('online'))}
+         action="settings-outline"
+         onAction={() => router.push('/settings')}
       />
 
       <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
@@ -60,13 +51,8 @@ export default function TodayScreen() {
       <View style={styles.metricRow}>
         <Metric icon="flame-outline" value={`${macros.protein} g`} label={t('protein')} color={colors.blue} />
         <Metric icon="flash-outline" value={`${macros.carbs} g`} label={t('carbs')} color={colors.orange} />
-        <Metric icon="water-outline" value={`${macros.fat} g`} label={t('fat')} color={colors.plum} />
+        <Metric icon="nutrition-outline" value={`${macros.fat} g`} label={t('fat')} color={colors.plum} />
       </View>
-
-      <Card>
-        <View style={styles.cardHeading}><View><Text style={[styles.cardTitle, { color: colors.foreground }]}>{t('water')}</Text><Text style={[styles.cardCaption, { color: colors.mutedForeground }]}>{water} / {hydrationGoal ?? 8} {t('glasses')}</Text></View><Pressable testID="add-water" onPress={handleWater} style={({ pressed }) => [styles.addCircle, { backgroundColor: colors.primary, opacity: pressed ? 0.65 : 1 }]}><Ionicons name="add" color={colors.primaryForeground} size={20} /></Pressable></View>
-        <View style={styles.waterRow}>{Array.from({ length: hydrationGoal ?? 8 }).map((_, index) => <View key={index} style={[styles.waterDot, { backgroundColor: index < water ? colors.blue : colors.secondary, borderColor: index < water ? colors.blue : colors.border }]}><Ionicons name="water" size={14} color={index < water ? colors.background : colors.mutedForeground} /></View>)}</View>
-      </Card>
 
       <SectionTitle title={t('todayWorkout')} action={t('viewAll')} onAction={() => router.push('/(tabs)/plan')} />
       <Card style={styles.workoutCard}>
@@ -115,12 +101,8 @@ const styles = StyleSheet.create({
   heroStatus: { flexDirection: 'row', gap: 5, alignItems: 'center' },
   heroStatusText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   metricRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginBottom: 16 },
-  cardHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardCaption: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 5 },
-  addCircle: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  waterRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  waterDot: { width: 30, height: 38, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   workoutCard: { flexDirection: 'row', alignItems: 'center', gap: 13 },
   workoutIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   workoutButton: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },

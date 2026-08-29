@@ -1,115 +1,140 @@
 import React from 'react';
-import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
+import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { Feather } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
-import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
-import { SymbolView } from 'expo-symbols';
 import { PremiumLock } from '@/components/FitUI';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// IMPORTANT: iOS 26 uses NativeTabs for native tabs with liquid glass support.
-// NativeTabs intentionally does NOT use custom design tokens — liquid glass
-// is a system-level appearance provided by iOS and cannot be overridden.
-// Custom brand colors are applied only on the ClassicTabLayout path (older iOS / Android / web).
-function NativeTabLayout() {
-  const { language } = useFit();
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+const tabOrder = ['index', 'nutrition', 'coach', 'plan', 'friends'];
+
+type TabRoute = { key: string; name: string };
+type TabBarProps = {
+  state: { index: number; routes: TabRoute[] };
+  descriptors: Record<string, { options: { title?: string } }>;
+  navigation: {
+    emit: (event: { type: 'tabPress'; target: string; canPreventDefault: true }) => { defaultPrevented?: boolean };
+    navigate: (name: string) => void;
+  };
+};
+
+function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean; label: string; onPress: () => void; colors: ReturnType<typeof useColors> }) {
+  const { coachThinking } = useFit();
+  const logoScale = React.useRef(new Animated.Value(focused ? 0.8 : 1)).current;
+
+  React.useEffect(() => {
+    Animated.spring(logoScale, {
+      toValue: focused ? 0.8 : 1,
+      friction: 7,
+      tension: 70,
+      useNativeDriver: true,
+    }).start();
+  }, [focused, logoScale]);
+
   return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: 'house', selected: 'house.fill' }} />
-        <Label>{t('today')}</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="nutrition">
-        <Icon sf={{ default: 'fork.knife', selected: 'fork.knife' }} />
-        <Label>{t('nutrition')}</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="plan">
-        <Icon sf={{ default: 'figure.strengthtraining.traditional', selected: 'figure.strengthtraining.traditional' }} />
-        <Label>{t('plan')}</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="coach">
-        <Icon sf={{ default: 'sparkles', selected: 'sparkles' }} />
-        <Label>{t('coach')}</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="friends">
-        <Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} />
-        <Label>{t('friends')}</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: focused }}
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={styles.coachTabItem}
+    >
+      <View style={[styles.coachTabButton, { shadowColor: colors.primary }]}>
+        <Animated.View style={{ transform: [{ scale: logoScale }] }}>
+          <View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary }]}>
+            <Image source={coachThinking ? require('@/assets/images/coach-thinking.png') : require('@/assets/images/coach.png')} resizeMode="cover" style={styles.coachTabImage} />
+          </View>
+        </Animated.View>
+        <Text style={[styles.coachTabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
+        {focused ? <View style={[styles.coachTabDot, { backgroundColor: colors.primary }]} /> : null}
+      </View>
+    </Pressable>
   );
 }
 
-function ClassicTabLayout() {
+function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   const colors = useColors();
-  const { language } = useFit();
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  const isIOS = Platform.OS === 'ios';
-  const isWeb = Platform.OS === 'web';
+  const insets = useSafeAreaInsets();
+  const routes = tabOrder
+    .map((name) => state.routes.find((route) => route.name === name))
+    .filter((route): route is typeof state.routes[number] => Boolean(route));
+  const handlePress = (route: typeof routes[number]) => {
+    const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (!event.defaultPrevented) navigation.navigate(route.name);
+  };
+  const iconForRoute = (name: string): React.ComponentProps<typeof Feather>['name'] => {
+    if (name === 'index') return 'home';
+    if (name === 'nutrition') return 'pie-chart';
+    if (name === 'plan') return 'activity';
+    return 'users';
+  };
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        headerShown: false,
-        tabBarStyle: {
-          position: 'absolute',
-          backgroundColor: isIOS ? 'transparent' : colors.background,
-          borderTopWidth: isWeb ? 1 : 0,
-          borderTopColor: colors.border,
-          elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
-        },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={100}
-              tint={isDark ? 'dark' : 'light'}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : isWeb ? (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: colors.background },
-              ]}
-            />
-          ) : null,
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t('today'),
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="house" tintColor={color} size={24} />
-            ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen name="nutrition" options={{ title: t('nutrition'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="fork.knife" tintColor={color} size={22} /> : <Feather name="pie-chart" size={21} color={color} /> }} />
-      <Tabs.Screen name="plan" options={{ title: t('plan'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="figure.strengthtraining.traditional" tintColor={color} size={22} /> : <Feather name="activity" size={21} color={color} /> }} />
-      <Tabs.Screen name="coach" options={{ title: t('coach'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="sparkles" tintColor={color} size={22} /> : <Feather name="zap" size={21} color={color} /> }} />
-      <Tabs.Screen name="progress" options={{ href: null }} />
-      <Tabs.Screen name="friends" options={{ title: t('friends'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="person.2" tintColor={color} size={22} /> : <Feather name="users" size={21} color={color} /> }} />
-    </Tabs>
+    <View pointerEvents="box-none" style={[styles.tabBarOverlay, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+      <View style={[styles.tabBar, { backgroundColor: colors.background, borderColor: colors.border, shadowColor: colors.background }]}>
+        {routes.map((route) => {
+          const descriptor = descriptors[route.key];
+          const focused = state.index === state.routes.findIndex((item) => item.key === route.key);
+          const label = typeof descriptor.options.title === 'string' ? descriptor.options.title : route.name;
+          if (route.name === 'coach') {
+            return (
+              <CoachTabButton
+                key={route.key}
+                focused={focused}
+                label={label}
+                onPress={() => handlePress(route)}
+                colors={colors}
+              />
+            );
+          }
+          return (
+            <Pressable
+              key={route.key}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={label}
+              onPress={() => handlePress(route)}
+              style={styles.tabItem}
+            >
+              <Feather name={iconForRoute(route.name)} size={22} color={focused ? colors.primary : colors.mutedForeground} />
+              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
 export default function TabLayout() {
+  const colors = useColors();
   const { isPremium } = useFit();
+  const { language } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   if (!isPremium) return <PremiumLock />;
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
+  return (
+    <Tabs tabBar={(props) => <FloatingTabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}>
+      <Tabs.Screen name="index" options={{ title: t('today') }} />
+      <Tabs.Screen name="nutrition" options={{ title: t('nutrition') }} />
+      <Tabs.Screen name="plan" options={{ title: t('plan') }} />
+      <Tabs.Screen name="coach" options={{ title: t('coach') }} />
+      <Tabs.Screen name="progress" options={{ href: null }} />
+      <Tabs.Screen name="friends" options={{ title: t('friends') }} />
+    </Tabs>
+  );
 }
+
+const styles = StyleSheet.create({
+  tabBarOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 12, zIndex: 10 },
+  tabBar: { height: 78, borderRadius: 28, borderWidth: 1, flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 4, shadowOpacity: 0.32, shadowRadius: 18, shadowOffset: { width: 0, height: -5 }, elevation: 16 },
+  tabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 5, paddingBottom: 9, paddingTop: 12 },
+  tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
+  coachTabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
+  coachTabButton: { position: 'absolute', top: -42, alignItems: 'center', shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 4 }, elevation: 18 },
+  coachTabCircle: { width: 88, height: 88, borderRadius: 44, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.42, shadowRadius: 14, shadowOffset: { width: 0, height: 0 }, elevation: 13 },
+  coachTabImage: { width: 88, height: 88, borderRadius: 44 },
+  coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 7, letterSpacing: 0.8 },
+  coachTabDot: { width: 5, height: 5, borderRadius: 3, marginTop: 4 },
+});

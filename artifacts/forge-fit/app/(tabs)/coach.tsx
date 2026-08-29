@@ -13,7 +13,7 @@ type Message = { id: string; text: string; from: 'coach' | 'user' };
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, profile, username, meals, calorieGoal, proteinGoal, workouts, weight, coachMessagesUsed, incrementCoachUsage } = useFit();
+  const { language, profile, username, meals, calorieGoal, proteinGoal, workouts, weight, coachMessagesUsed, incrementCoachUsage, setCoachThinking } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<Message[]>([{ id: 'welcome', text: t('coachWelcome'), from: 'coach' }]);
@@ -36,6 +36,7 @@ export default function CoachScreen() {
     setMessages((current) => [...current, userMessage]);
     setText('');
     setLoading(true);
+    setCoachThinking(true);
     try {
       const context = JSON.stringify({ username, profile, weight, calorieGoal, proteinGoal, meals, workouts: workouts.map((item) => ({ name: item.name, completed: item.completed, exercises: item.exercises.length })) });
       const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/coach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: trimmed, language, context }) });
@@ -47,12 +48,13 @@ export default function CoachScreen() {
       setMessages((current) => [...current, { id: `${Date.now()}-error`, text: t('coachSubtitle'), from: 'coach' }]);
     } finally {
       setLoading(false);
+      setCoachThinking(false);
       inputRef.current?.focus();
     }
   };
   return <Screen scroll={false}>
     <Header eyebrow="Intelligence / 05" title={t('coachTitle')} subtitle={t('coachSubtitle')} action="sparkles-outline" onAction={() => undefined} />
-    <Card style={styles.coachCard}><Image source={require('@/assets/images/coach.png')} style={styles.coachAvatar} /><View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{t('coachTitle')}</Text><Text style={[styles.caption, { color: colors.success }]}>{t('online')}</Text></View><View style={styles.limit}><Text style={[styles.limitNumber, { color: colors.foreground }]}>{String(5 - coachMessagesUsed).padStart(2, '0')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>/ 05</Text></View></Card>
+     <Card style={styles.coachCard}><Image source={require('@/assets/images/coach.png')} style={styles.coachAvatar} /><View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{t('coachTitle')}</Text><Text style={[styles.caption, { color: colors.success }]}>{t('online')}</Text></View><View style={styles.limit}><Text style={[styles.limitNumber, { color: colors.foreground }]}>{String(5 - coachMessagesUsed).padStart(2, '0')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>/ 05</Text></View></Card>
     <View style={styles.suggestions}><Pill label={t('coachExample')} onPress={() => setText(t('coachExample'))} /><Pill label={t('protein')} onPress={() => setText(t('protein'))} /></View>
     <KeyboardAvoidingView style={styles.chatWrap} behavior="padding" keyboardVerticalOffset={0}>
       <FlatList data={messages} keyExtractor={(item) => item.id} renderItem={({ item }) => <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card, borderColor: colors.border }]]}><Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text></View>} contentContainerStyle={styles.messageList} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" />
