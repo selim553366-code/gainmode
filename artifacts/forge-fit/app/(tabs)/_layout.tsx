@@ -99,6 +99,7 @@ function ClassicTabLayout() {
       <Tabs.Screen name="nutrition" options={{ title: t('nutrition'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="fork.knife" tintColor={color} size={22} /> : <Feather name="pie-chart" size={21} color={color} /> }} />
       <Tabs.Screen name="plan" options={{ title: t('plan'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="figure.strengthtraining.traditional" tintColor={color} size={22} /> : <Feather name="activity" size={21} color={color} /> }} />
       <Tabs.Screen name="coach" options={{ title: t('coach'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="sparkles" tintColor={color} size={22} /> : <Feather name="zap" size={21} color={color} /> }} />
+      <Tabs.Screen name="progress" options={{ href: null }} />
       <Tabs.Screen name="friends" options={{ title: t('friends'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="person.2" tintColor={color} size={22} /> : <Feather name="users" size={21} color={color} /> }} />
     </Tabs>
   );
