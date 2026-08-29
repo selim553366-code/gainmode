@@ -119,7 +119,7 @@ export default function TabLayout() {
       <Tabs.Screen name="index" options={{ title: t('today') }} />
       <Tabs.Screen name="nutrition" options={{ title: t('nutrition') }} />
       <Tabs.Screen name="plan" options={{ title: t('plan') }} />
-      <Tabs.Screen name="coach" options={{ title: t('coach') }} />
+      <Tabs.Screen name="coach" options={{ title: t('coachTitle') }} />
       <Tabs.Screen name="progress" options={{ href: null }} />
       <Tabs.Screen name="friends" options={{ title: t('friends') }} />
     </Tabs>
