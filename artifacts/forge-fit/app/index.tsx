@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Image, PanResponder, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -232,12 +232,14 @@ function OnboardingQuestions() {
   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
     <View style={styles.questionTop}><View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
     <Animated.View style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
-      <View style={styles.coachCorner}><CoachMotion variant={step === 0 ? 'wave' : 'write'} /></View>
-      <Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / {total}</Text>
-      {optional ? <Text style={[styles.optionalLabel, { color: colors.primary }]}>{t('optionalLabel')}</Text> : null}
-      <Text style={[styles.questionTitle, { color: colors.foreground }]}>{t(titleKeys[step])}</Text>
-      {renderBody()}
-      {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
+      <ScrollView contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false}>
+        <View style={styles.coachQuestionVisual}><CoachMotion variant={step === 0 ? 'wave' : 'write'} /></View>
+        <Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / {total}</Text>
+        {optional ? <Text style={[styles.optionalLabel, { color: colors.primary }]}>{t('optionalLabel')}</Text> : null}
+        <Text style={[styles.questionTitle, { color: colors.foreground }]}>{t(titleKeys[step])}</Text>
+        {renderBody()}
+        {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
+      </ScrollView>
     </Animated.View>
     <View style={styles.buttonArea}><Pressable onPress={next} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>{optional ? <Pressable onPress={skip}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('skipQuestion')}</Text></Pressable> : null}</View>
   </LinearGradient>;
@@ -284,9 +286,10 @@ const styles = StyleSheet.create({
   brandMark: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   languageRow: { flexDirection: 'row', gap: 11 },
   language: { fontFamily: 'Inter_700Bold', fontSize: 10 },
-  questionBody: { marginTop: 18 },
-  coachCorner: { position: 'absolute', top: -25, left: -4, width: 90, height: 90, zIndex: 2 },
-  coachSmall: { width: 90, height: 90 },
+  questionBody: { flex: 1, minHeight: 0, marginTop: 10 },
+  questionScrollContent: { paddingTop: 2, paddingBottom: 12 },
+  coachQuestionVisual: { width: 158, height: 158, alignSelf: 'center', justifyContent: 'center', marginBottom: 2 },
+  coachSmall: { width: 158, height: 158 },
   coachLarge: { width: 220, height: 220 },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.5, marginBottom: 9 },
   optionalLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
