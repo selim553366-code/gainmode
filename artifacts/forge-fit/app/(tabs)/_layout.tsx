@@ -36,10 +36,6 @@ function NativeTabLayout() {
         <Icon sf={{ default: 'sparkles', selected: 'sparkles' }} />
         <Label>{t('coach')}</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="progress">
-        <Icon sf={{ default: 'chart.xyaxis.line', selected: 'chart.xyaxis.line' }} />
-        <Label>{t('progress')}</Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="friends">
         <Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} />
         <Label>{t('friends')}</Label>
@@ -103,7 +99,6 @@ function ClassicTabLayout() {
       <Tabs.Screen name="nutrition" options={{ title: t('nutrition'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="fork.knife" tintColor={color} size={22} /> : <Feather name="pie-chart" size={21} color={color} /> }} />
       <Tabs.Screen name="plan" options={{ title: t('plan'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="figure.strengthtraining.traditional" tintColor={color} size={22} /> : <Feather name="activity" size={21} color={color} /> }} />
       <Tabs.Screen name="coach" options={{ title: t('coach'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="sparkles" tintColor={color} size={22} /> : <Feather name="zap" size={21} color={color} /> }} />
-      <Tabs.Screen name="progress" options={{ title: t('progress'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="chart.xyaxis.line" tintColor={color} size={22} /> : <Feather name="bar-chart-2" size={21} color={color} /> }} />
       <Tabs.Screen name="friends" options={{ title: t('friends'), tabBarIcon: ({ color }) => isIOS ? <SymbolView name="person.2" tintColor={color} size={22} /> : <Feather name="users" size={21} color={color} /> }} />
     </Tabs>
   );
