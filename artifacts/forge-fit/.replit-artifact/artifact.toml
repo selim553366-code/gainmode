@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/"
+title = "Forge Fit"
+description = "Kişisel hedefler, günlük kalori ve makro takibi, antrenman planları, ilerleme ve yapay zekâ koçunu tek bir premium mobil deneyimde birleştiren fitness uygulaması."
+version = "1.0.0"
+id = "artifacts/forge-fit"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/" ]
+localPort = 24941
+
+[services.development]
+run = "pnpm --filter @workspace/forge-fit run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/forge-fit", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/forge-fit", "run", "serve" ]
+
+[services.env]
+PORT = "24941"
+BASE_PATH = "/"
