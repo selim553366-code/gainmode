@@ -21,12 +21,38 @@ export function triggerHaptic(style: Haptics.ImpactFeedbackStyle = Haptics.Impac
   Haptics.impactAsync(style).catch(() => undefined);
 }
 
+function blendColors(base: string, accent: string, amount: number) {
+  const parse = (value: string) => value.replace('#', '').slice(0, 6).match(/.{2}/g)?.map((channel) => parseInt(channel, 16)) ?? [0, 0, 0];
+  const baseRgb = parse(base);
+  const accentRgb = parse(accent);
+  const channels = baseRgb.map((channel, index) => Math.round(channel + (accentRgb[index] - channel) * amount));
+  return `#${channels.map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function AmbientBackdrop({ children }: { children: ReactNode }) {
+  const colors = useColors();
+  const softBlue = blendColors(colors.background, colors.blue, 0.12);
+  const blueMist = blendColors(colors.background, colors.blue, 0.2);
+  return <LinearGradient
+    colors={[colors.background, softBlue, blueMist, colors.background]}
+    locations={[0, 0.3, 0.68, 1]}
+    start={{ x: 0.05, y: 0 }}
+    end={{ x: 0.95, y: 1 }}
+    style={styles.ambientBackdrop}
+  >
+    <View pointerEvents="none" style={[styles.ambientGlowTop, { backgroundColor: `${colors.blue}1A` }]} />
+    <View pointerEvents="none" style={[styles.ambientGlowBottom, { backgroundColor: `${colors.primary}12` }]} />
+    {children}
+  </LinearGradient>;
+}
+
 export function Screen({ children, scroll = true, bottomPadding = 104 }: { children: ReactNode; scroll?: boolean; bottomPadding?: number }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topSpacing = Platform.OS === 'ios' ? 28 : 16;
-  const content = <View style={[styles.screen, { paddingTop: insets.top + topSpacing, paddingBottom: insets.bottom + bottomPadding, backgroundColor: colors.background }]}>{children}</View>;
-  return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{content}</ScrollView> : content;
+  const content = <View style={[styles.screen, { paddingTop: insets.top + topSpacing, paddingBottom: insets.bottom + bottomPadding }]}>{children}</View>;
+  const backdrop = <AmbientBackdrop>{content}</AmbientBackdrop>;
+  return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{backdrop}</ScrollView> : backdrop;
 }
 
 export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, premiumLabel, premiumAction, premiumOwned = false, streak, streakLabel, centered = false }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean }) {
@@ -145,10 +171,10 @@ export function PremiumLock() {
     { icon: 'analytics-outline', label: 'premiumGateProgress', accent: colors.blue },
     { icon: 'people-outline', label: 'premiumGateCommunity', accent: colors.plum },
   ];
-  return <View style={[styles.lockScreen, { backgroundColor: colors.background, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 22 }]}>
+  return <AmbientBackdrop><View style={[styles.lockScreen, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 22 }]}>
     <View style={[styles.lockPreviewShell, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.lockPreviewTop}><View style={[styles.lockPreviewBrand, { backgroundColor: `${colors.primary}30` }]} /><View style={styles.lockPreviewTopLines}><View style={[styles.lockPreviewLine, { backgroundColor: colors.border }]} /><View style={[styles.lockPreviewLineShort, { backgroundColor: colors.border }]} /></View><View style={[styles.lockPreviewAvatar, { backgroundColor: `${colors.primary}30` }]} /></View>
-      <View style={styles.lockPreviewTabs}>{(['premiumGateNutrition', 'premiumGateWorkout', 'premiumGateCoach', 'premiumGateProgress', 'premiumGateCommunity'] as const).map((key) => <View key={key} style={[styles.lockPreviewTab, { backgroundColor: `${colors.primary}16` }]}><Text style={[styles.lockPreviewTabText, { color: colors.mutedForeground }]}>{t(key)}</Text></View>)}</View>
+       <View style={styles.lockPreviewTabs}>{(['premiumGateNutrition', 'premiumGateWorkout', 'premiumGateCoach', 'premiumGateProgress', 'premiumGateCommunity'] as const).map((key) => <View key={key} style={[styles.lockPreviewTab, { backgroundColor: `${colors.primary}16` }]}><Text style={[styles.lockPreviewTabText, { color: colors.mutedForeground }]}>{t(key)}</Text></View>)}</View>
        <View style={styles.lockPreviewGrid}>{previewItems.map((item, index) => <View key={item.label} style={[styles.lockPreviewCard, index === 0 ? styles.lockPreviewWide : null, { backgroundColor: `${item.accent}12`, borderColor: `${item.accent}28` }]}><View style={[styles.lockPreviewIcon, { backgroundColor: `${item.accent}28` }]}>{item.logo ? <ForgeFitMark size={29} /> : <Ionicons name={item.icon!} size={17} color={item.accent} />}</View><View style={styles.lockPreviewCopy}><Text style={[styles.lockPreviewTitle, { color: colors.foreground }]}>{t(item.label)}</Text><View style={[styles.lockPreviewLine, { backgroundColor: `${colors.foreground}30` }]} /><View style={[styles.lockPreviewLineShort, { backgroundColor: `${colors.foreground}18` }]} /></View></View>)}</View>
       <BlurView intensity={45} tint="dark" pointerEvents="none" style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={styles.lockPreviewShade} />
@@ -162,7 +188,7 @@ export function PremiumLock() {
     </View>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumStart')} onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); setOfferVisible(true); }} style={({ pressed }) => [styles.lockButton, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}><Text style={[styles.lockButtonText, { color: colors.primaryForeground }]}>{t('premiumStart')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <PremiumOfferModal visible={offerVisible} onClose={() => setOfferVisible(false)} />
-  </View>;
+  </View></AmbientBackdrop>;
 }
 
 export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -266,6 +292,9 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
 }
 
 export const styles = StyleSheet.create({
+  ambientBackdrop: { flex: 1, minHeight: '100%', overflow: 'hidden' },
+  ambientGlowTop: { position: 'absolute', width: 260, height: 260, borderRadius: 140, top: -150, right: -70, opacity: 0.45 },
+  ambientGlowBottom: { position: 'absolute', width: 300, height: 300, borderRadius: 160, bottom: -190, left: -110, opacity: 0.38 },
   screen: { paddingHorizontal: 20, minHeight: '100%' },
   header: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 26 },
   headerText: { flex: 1 },

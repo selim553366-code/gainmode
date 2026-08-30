@@ -81,8 +81,8 @@ export default function TodayScreen() {
       <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
         <CalorieWaterFill progress={calorieGoal ? calories / calorieGoal : 0} color={colors.primaryForeground} />
         <View style={styles.heroGlow} />
-        <View style={styles.heroTop}>
-          <View>
+         <View style={styles.heroTop}>
+           <View style={styles.heroLead}>
             <Text style={[styles.heroEyebrow, { color: colors.primaryForeground }]}>{t('calories').toUpperCase()}</Text>
             <AnimatedNumber value={calories} style={[styles.heroNumber, { color: colors.primaryForeground }]} />
             <Text style={[styles.heroMeta, { color: `${colors.primaryForeground}A8` }]}>/ {calorieGoal?.toLocaleString() ?? '—'} {t('caloriesShort')}</Text>
@@ -94,9 +94,9 @@ export default function TodayScreen() {
           </View>
         </View>
         <View style={[styles.heroDivider, { backgroundColor: `${colors.primaryForeground}26` }]} />
-        <View style={styles.heroBottom}>
+         <View style={styles.heroBottom}>
           <View><Text style={[styles.heroSmallLabel, { color: `${colors.primaryForeground}A8` }]}>{t('remaining')}</Text><Text style={[styles.heroSmallValue, { color: colors.primaryForeground }]}>{calorieGoal ? `${Math.max(calorieGoal - calories, 0)} ${t('caloriesShort')}` : '—'}</Text></View>
-          <View style={styles.heroStatus}><Ionicons name="information-circle-outline" size={15} color={colors.primaryForeground} /><Text style={[styles.heroStatusText, { color: colors.primaryForeground }]}>{t('noData')}</Text></View>
+           <View style={styles.heroStatus}><Ionicons name="information-circle-outline" size={15} color={colors.primaryForeground} /><Text style={[styles.heroStatusText, { color: colors.primaryForeground }]}>{t('noData')}</Text></View>
         </View>
       </View>
 
@@ -132,6 +132,7 @@ const styles = StyleSheet.create({
   waterWaveSecond: { top: -8, left: '30%', opacity: 0.72 },
   heroGlow: { position: 'absolute', right: -56, top: -70, width: 180, height: 180, borderRadius: 100, backgroundColor: '#FFFFFF18' },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  heroLead: { flex: 1, minWidth: 0 },
   heroEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.3 },
   heroNumber: { fontFamily: 'Inter_700Bold', fontSize: 48, letterSpacing: -2.5, marginTop: 5 },
   heroMeta: { fontFamily: 'Inter_500Medium', fontSize: 13, marginTop: -3 },
@@ -139,11 +140,11 @@ const styles = StyleSheet.create({
   ringInner: { width: 68, height: 68, borderRadius: 35, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   ringPercent: { fontFamily: 'Inter_700Bold', fontSize: 15 },
   heroDivider: { height: 1, marginVertical: 18 },
-  heroBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  heroBottom: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   heroSmallLabel: { fontFamily: 'Inter_400Regular', fontSize: 11 },
   heroSmallValue: { fontFamily: 'Inter_700Bold', fontSize: 16, marginTop: 3 },
-  heroStatus: { flexDirection: 'row', gap: 5, alignItems: 'center' },
-  heroStatusText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  heroStatus: { flex: 1, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 },
+  heroStatusText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 11, textAlign: 'right' },
   metricRow: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginBottom: 16 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardCaption: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 5 },
