@@ -9,7 +9,7 @@ const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_AP
 let configured = false;
 
 export function initializeRevenueCat() {
-  if (configured || Platform.OS !== 'android' || !REVENUECAT_ANDROID_API_KEY) return;
+  if (configured || (Platform.OS !== 'android' && Platform.OS !== 'web') || !REVENUECAT_ANDROID_API_KEY) return;
   Purchases.setLogLevel(__DEV__ ? Purchases.LOG_LEVEL.DEBUG : Purchases.LOG_LEVEL.INFO);
   Purchases.configure({ apiKey: REVENUECAT_ANDROID_API_KEY });
   configured = true;
