@@ -2,3 +2,4 @@
 - [Forge Fit onboarding personalization](forge-fit-onboarding.md) — required profile first, optional refinements second, with native-friendly transparent coach media.
 - [Food search provider resilience](food-search-providers.md) — Open Food Facts may rate-limit the .org endpoint; keep the alternate .net source available and combine USDA for generic foods.
 - [Expo static build workflow](forge-fit-build-workflow.md) — managed preview ports can conflict with the static Expo helper’s fixed 8081 probe.
+- [Forge Fit live pose tracking](forge-fit-live-pose.md) — native MediaPipe camera flow needs a development build; previews should use an explicit fallback.

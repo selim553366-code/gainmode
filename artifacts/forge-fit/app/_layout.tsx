@@ -34,6 +34,7 @@ function RootLayoutNav() {
     <Stack screenOptions={{ headerBackTitle: 'Back' }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="live-workout" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
     </Stack>
   );

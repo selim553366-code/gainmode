@@ -57,6 +57,7 @@
   "dependencies": {
     "expo-audio": "~1.1.1",
     "lucide-react-native": "^1.37.0",
+    "react-native-pose-detection": "0.1.0",
     "react-native-purchases": "^10.8.1"
   }
 }

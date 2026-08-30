@@ -30,7 +30,14 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "react-native-pose-detection",
+        {
+          "model": "full",
+          "cameraPermissionText": "Forge Fit uses the camera to analyze your movement."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
