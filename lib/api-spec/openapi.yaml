@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: food
+    description: Food search operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /food/search:
+    get:
+      operationId: searchFood
+      tags: [food]
+      summary: Search food nutrition
+      description: Searches a broad food database and returns normalized nutrition values.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Food or drink search text
+          schema:
+            type: string
+            minLength: 2
+        - name: language
+          in: query
+          required: false
+          description: Preferred product name language
+          schema:
+            type: string
+            enum: [tr, en, de, fr, es]
+            default: en
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of results
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 12
+      responses:
+        "200":
+          description: Normalized food search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoodSearchResponse"
+        "400":
+          description: Invalid search query
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "502":
+          description: Food data provider unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +85,48 @@ components:
           type: string
       required:
         - status
+    FoodSearchItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        serving:
+          type: string
+        calories:
+          type: number
+        protein:
+          type: number
+        carbs:
+          type: number
+        fat:
+          type: number
+      required:
+        - id
+        - name
+        - serving
+        - calories
+        - protein
+        - carbs
+        - fat
+    FoodSearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FoodSearchItem"
+      required:
+        - query
+        - items
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
 
