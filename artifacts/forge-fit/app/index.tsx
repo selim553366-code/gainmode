@@ -22,7 +22,6 @@ import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { triggerHaptic } from '@/components/FitUI';
 
-const slides = ['onboardingIntro', 'onboardingIntro2', 'onboardingIntro3'] as const;
 const waveFrames = [
   require('@/assets/images/coach-wave-frames/frame-00.png'),
   require('@/assets/images/coach-wave-frames/frame-15.png'),
@@ -120,12 +119,11 @@ function getAge(day: number, month: number, year: number) {
 
 export default function EntryScreen() {
   const { onboardingComplete, introSeen, isPremium, setIntroSeen, setPremium } = useFit();
-  const [introStep, setIntroStep] = React.useState(0);
   React.useEffect(() => {
     if (onboardingComplete && introSeen && isPremium) router.replace('/(tabs)');
   }, [onboardingComplete, introSeen, isPremium]);
   if (!onboardingComplete) return <OnboardingQuestions />;
-  if (!introSeen) return <IntroScreen step={introStep} setStep={setIntroStep} onDone={setIntroSeen} />;
+  if (!introSeen) return <IntroScreen onDone={setIntroSeen} />;
   if (!isPremium) return <PremiumWelcomeOfferScreen onUnlock={() => { setPremium(true); router.replace('/(tabs)'); }} onSkip={() => router.replace('/(tabs)')} />;
   return null;
 }
@@ -277,24 +275,13 @@ function CompletionScreen({ onContinue }: { onContinue: () => void }) {
    return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.completionContent}><View style={[styles.completionCoach, { backgroundColor: `${colors.primary}18` }]}><CoachMotion variant="done" large /></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('finishQuestionsTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('finishQuestionsBody')}</Text></View><Pressable onPress={() => { triggerHaptic(); onContinue(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continueToPlan')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></LinearGradient>;
 }
 
-function IntroScreen({ step, setStep, onDone }: { step: number; setStep: React.Dispatch<React.SetStateAction<number>>; onDone: () => void }) {
+function IntroScreen({ onDone }: { onDone: () => void }) {
   const colors = useColors();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const appear = React.useRef(new Animated.Value(0)).current;
-  React.useEffect(() => { appear.setValue(0); Animated.timing(appear, { toValue: 1, duration: 420, useNativeDriver: true }).start(); }, [appear, step]);
-  const swipeResponder = React.useMemo(() => PanResponder.create({
-    onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
-    onPanResponderRelease: (_, gesture) => {
-      if (gesture.dx < -55) {
-        if (step === 2) onDone();
-        else setStep((current) => Math.min(2, current + 1));
-      }
-      if (gesture.dx > 55) setStep((current) => Math.max(0, current - 1));
-    },
-  }), [onDone, setStep, step]);
-  const title = step === 0 ? t('onboardingTitle') : step === 1 ? t('premiumFeature1') : t('premiumFeature2');
-   return <LinearGradient {...swipeResponder.panHandlers} colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.introVisual}><View style={[styles.auraLarge, { backgroundColor: `${colors.primary}18` }]} /><Image source={require('@/assets/images/icon.png')} style={styles.introIcon} /></View><Animated.View style={{ opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }}><Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / 3</Text><Text style={[styles.introTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t(slides[step])}</Text></Animated.View><View style={styles.introBottom}><View style={styles.dots}>{slides.map((_, index) => <View key={index} style={[styles.dot, { backgroundColor: index === step ? colors.primary : colors.border }]} />)}</View><Pressable onPress={() => { triggerHaptic(); if (step === 2) onDone(); else setStep((current) => current + 1); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === 2 ? t('continue') : t('begin')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View></LinearGradient>;
+  React.useEffect(() => { Animated.timing(appear, { toValue: 1, duration: 420, useNativeDriver: true }).start(); }, [appear]);
+   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.introVisual}><View style={[styles.auraLarge, { backgroundColor: `${colors.primary}18` }]} /><Image source={require('@/assets/images/icon.png')} style={styles.introIcon} /></View><Animated.View style={{ opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }}><Text style={[styles.eyebrow, { color: colors.primary }]}>3 / 3</Text><Text style={[styles.introTitle, { color: colors.foreground }]}>{t('premiumFeature2')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('onboardingIntro3')}</Text></Animated.View><View style={styles.introBottom}><Pressable onPress={() => { triggerHaptic(); onDone(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View></LinearGradient>;
 }
 
 function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () => void }) {
