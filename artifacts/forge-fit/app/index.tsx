@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   skip: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 12 },
   welcomeContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   welcomeOrb: { width: 245, height: 245, borderRadius: 122, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
-  welcomeCoachCenter: { alignItems: 'center', justifyContent: 'center', transform: [{ translateX: -5 }, { translateY: -10 }] },
+  welcomeCoachCenter: { alignItems: 'center', justifyContent: 'center', transform: [{ translateX: -14 }, { translateY: -10 }] },
   welcomeTitle: { textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 33, lineHeight: 38, letterSpacing: -1.2 },
   welcomeSubtitle: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 23, marginTop: 12, maxWidth: 310 },
   completionContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
