@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { useAudioPlayer } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
-import { translate, type Language } from '@/lib/i18n';
+import { translate, type Language, type TranslationKey } from '@/lib/i18n';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -127,14 +127,34 @@ export function EmptyState({ icon, title, text }: { icon: IconName; title: strin
 
 export function PremiumLock() {
   const colors = useColors();
-  const { language, setPremium } = useFit();
+  const insets = useSafeAreaInsets();
+  const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  return <View style={[styles.lockScreen, { backgroundColor: colors.background }]}>
-    <View style={styles.previewLayer}><View style={[styles.previewCard, { backgroundColor: colors.card }]} /><View style={[styles.previewCard, { backgroundColor: colors.card }]} /><View style={[styles.previewCard, { backgroundColor: colors.card }]} /><BlurView intensity={35} tint="dark" style={StyleSheet.absoluteFill} /></View>
-    <View style={[styles.lockAura, { backgroundColor: `${colors.primary}18` }]} /><View style={[styles.lockIcon, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={27} color={colors.primaryForeground} /></View>
-    <Text style={[styles.lockTitle, { color: colors.foreground }]}>{t('premiumLocked')}</Text><Text style={[styles.lockText, { color: colors.mutedForeground }]}>{t('premiumLockedBody')}</Text>
-    <View style={styles.lockFeatures}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3'] as const).map((key) => <View key={key} style={styles.lockFeature}><Ionicons name="checkmark" size={17} color={colors.primary} /><Text style={[styles.lockFeatureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View>
-    <Pressable onPress={() => setPremium(true)} style={[styles.lockButton, { backgroundColor: colors.primary }]}><Text style={[styles.lockButtonText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable>
+  const [offerVisible, setOfferVisible] = React.useState(false);
+  const previewItems: Array<{ icon: IconName; label: TranslationKey; accent: string }> = [
+    { icon: 'pie-chart-outline', label: 'premiumGateNutrition', accent: colors.success },
+    { icon: 'barbell-outline', label: 'premiumGateWorkout', accent: colors.orange },
+    { icon: 'sparkles-outline', label: 'premiumGateCoach', accent: colors.primary },
+    { icon: 'analytics-outline', label: 'premiumGateProgress', accent: colors.blue },
+    { icon: 'people-outline', label: 'premiumGateCommunity', accent: colors.plum },
+  ];
+  return <View style={[styles.lockScreen, { backgroundColor: colors.background, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 22 }]}>
+    <View style={[styles.lockPreviewShell, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.lockPreviewTop}><View style={[styles.lockPreviewBrand, { backgroundColor: `${colors.primary}30` }]} /><View style={styles.lockPreviewTopLines}><View style={[styles.lockPreviewLine, { backgroundColor: colors.border }]} /><View style={[styles.lockPreviewLineShort, { backgroundColor: colors.border }]} /></View><View style={[styles.lockPreviewAvatar, { backgroundColor: `${colors.primary}30` }]} /></View>
+      <View style={styles.lockPreviewTabs}>{(['premiumGateNutrition', 'premiumGateWorkout', 'premiumGateCoach', 'premiumGateProgress', 'premiumGateCommunity'] as const).map((key) => <View key={key} style={[styles.lockPreviewTab, { backgroundColor: `${colors.primary}16` }]}><Text style={[styles.lockPreviewTabText, { color: colors.mutedForeground }]}>{t(key)}</Text></View>)}</View>
+      <View style={styles.lockPreviewGrid}>{previewItems.map((item, index) => <View key={item.label} style={[styles.lockPreviewCard, index === 0 ? styles.lockPreviewWide : null, { backgroundColor: `${item.accent}12`, borderColor: `${item.accent}28` }]}><View style={[styles.lockPreviewIcon, { backgroundColor: `${item.accent}28` }]}><Ionicons name={item.icon} size={17} color={item.accent} /></View><View style={styles.lockPreviewCopy}><Text style={[styles.lockPreviewTitle, { color: colors.foreground }]}>{t(item.label)}</Text><View style={[styles.lockPreviewLine, { backgroundColor: `${colors.foreground}30` }]} /><View style={[styles.lockPreviewLineShort, { backgroundColor: `${colors.foreground}18` }]} /></View></View>)}</View>
+      <BlurView intensity={45} tint="dark" pointerEvents="none" style={StyleSheet.absoluteFill} />
+      <View pointerEvents="none" style={styles.lockPreviewShade} />
+    </View>
+    <View style={styles.lockGateContent}>
+      <View style={[styles.lockIcon, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={27} color={colors.primaryForeground} /></View>
+      <Text style={[styles.lockEyebrow, { color: colors.primary }]}>{t('premiumGateEyebrow')}</Text>
+      <Text style={[styles.lockTitle, { color: colors.foreground }]}>{t('premiumGateTitle')}</Text>
+      <Text style={[styles.lockText, { color: colors.mutedForeground }]}>{t('premiumGateBody')}</Text>
+      <Text style={[styles.lockMotivation, { color: colors.foreground }]}>{t('premiumGateHint')}</Text>
+    </View>
+    <Pressable accessibilityRole="button" accessibilityLabel={t('premiumStart')} onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); setOfferVisible(true); }} style={({ pressed }) => [styles.lockButton, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}><Text style={[styles.lockButtonText, { color: colors.primaryForeground }]}>{t('premiumStart')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
+    <PremiumOfferModal visible={offerVisible} onClose={() => setOfferVisible(false)} deferActivation />
   </View>;
 }
 
@@ -146,7 +166,7 @@ const premiumPriceByLanguage: Record<Language, { main: string; currency: string 
   es: { main: '4,99 €', currency: 'EUR' },
 };
 
-export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+export function PremiumOfferModal({ visible, onClose, deferActivation = false }: { visible: boolean; onClose: () => void; deferActivation?: boolean }) {
   const colors = useColors();
   const { language, isPremium, setPremium } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
@@ -167,13 +187,14 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   }, [appear, visible]);
 
   const finishCelebration = React.useCallback(() => {
+    if (deferActivation) setPremium(true);
     setCelebrating(false);
     onClose();
-  }, [onClose]);
+  }, [deferActivation, onClose, setPremium]);
 
   const activatePremium = () => {
     triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
-    setPremium(true);
+    if (!deferActivation) setPremium(true);
     setCelebrating(true);
     try {
       player.seekTo(0);
@@ -184,7 +205,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   };
 
   if (!visible) return null;
-  return <Modal transparent visible animationType="none" onRequestClose={onClose}>
+  return <Modal transparent visible animationType="none" onRequestClose={celebrating ? undefined : onClose}>
     <View style={styles.premiumModalRoot}>
       <Pressable onPress={celebrating ? undefined : onClose} style={StyleSheet.absoluteFill} />
       <Animated.View style={[styles.premiumSheet, { backgroundColor: colors.card, borderColor: colors.border, opacity: appear, transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }]}>
@@ -250,15 +271,31 @@ export const styles = StyleSheet.create({
   emptyIcon: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 16 },
   emptyText: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 7 },
-  lockScreen: { flex: 1, minHeight: '100%', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30, overflow: 'hidden' },
-  lockAura: { position: 'absolute', width: 270, height: 270, borderRadius: 135, top: '22%' },
-  lockIcon: { width: 68, height: 68, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  lockScreen: { flex: 1, minHeight: '100%', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, overflow: 'hidden' },
+  lockPreviewShell: { width: '100%', height: 275, borderRadius: 28, borderWidth: 1, padding: 15, overflow: 'hidden' },
+  lockPreviewTop: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 14 },
+  lockPreviewBrand: { width: 34, height: 34, borderRadius: 12 },
+  lockPreviewTopLines: { flex: 1, gap: 6 },
+  lockPreviewAvatar: { width: 28, height: 28, borderRadius: 10 },
+  lockPreviewTabs: { flexDirection: 'row', gap: 5, marginBottom: 12, overflow: 'hidden' },
+  lockPreviewTab: { borderRadius: 7, paddingHorizontal: 7, paddingVertical: 5 },
+  lockPreviewTabText: { fontFamily: 'Inter_600SemiBold', fontSize: 7 },
+  lockPreviewGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  lockPreviewCard: { width: '48%', minHeight: 66, borderRadius: 15, borderWidth: 1, padding: 9, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  lockPreviewWide: { width: '100%', minHeight: 73 },
+  lockPreviewIcon: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  lockPreviewCopy: { flex: 1, gap: 5 },
+  lockPreviewTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
+  lockPreviewLine: { height: 4, width: '82%', borderRadius: 4 },
+  lockPreviewLineShort: { height: 4, width: '54%', borderRadius: 4 },
+  lockPreviewShade: { ...StyleSheet.absoluteFillObject, backgroundColor: '#020B1859' },
+  lockGateContent: { alignItems: 'center', paddingHorizontal: 8, marginVertical: 18 },
+  lockIcon: { width: 62, height: 62, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  lockEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.5, marginBottom: 9 },
   lockTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, letterSpacing: -1, textAlign: 'center' },
   lockText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 10 },
-  lockFeatures: { alignSelf: 'stretch', gap: 15, marginVertical: 28 },
-  lockFeature: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  lockFeatureText: { fontFamily: 'Inter_500Medium', fontSize: 13 },
-  lockButton: { width: '100%', height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  lockMotivation: { fontFamily: 'Inter_600SemiBold', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 14 },
+  lockButton: { width: '100%', height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },
   lockButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   previewLayer: { position: 'absolute', left: 22, right: 22, top: 80, gap: 12, opacity: 0.45 },
   previewCard: { height: 65, borderRadius: 19, borderWidth: 1, borderColor: '#1D3B5E' },

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityLevel,
   BiologicalSex,
@@ -125,7 +126,7 @@ export default function EntryScreen() {
   }, [onboardingComplete, introSeen, isPremium]);
   if (!onboardingComplete) return <OnboardingQuestions />;
   if (!introSeen) return <IntroScreen step={introStep} setStep={setIntroStep} onDone={setIntroSeen} />;
-  if (!isPremium) return <OfferScreen onUnlock={() => { setPremium(true); router.replace('/(tabs)'); }} onSkip={() => router.replace('/(tabs)')} />;
+  if (!isPremium) return <PremiumWelcomeOfferScreen onUnlock={() => { setPremium(true); router.replace('/(tabs)'); }} onSkip={() => router.replace('/(tabs)')} />;
   return null;
 }
 
@@ -296,6 +297,37 @@ function IntroScreen({ step, setStep, onDone }: { step: number; setStep: React.D
    return <LinearGradient {...swipeResponder.panHandlers} colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.introVisual}><View style={[styles.auraLarge, { backgroundColor: `${colors.primary}18` }]} /><Image source={require('@/assets/images/icon.png')} style={styles.introIcon} /></View><Animated.View style={{ opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }}><Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / 3</Text><Text style={[styles.introTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t(slides[step])}</Text></Animated.View><View style={styles.introBottom}><View style={styles.dots}>{slides.map((_, index) => <View key={index} style={[styles.dot, { backgroundColor: index === step ? colors.primary : colors.border }]} />)}</View><Pressable onPress={() => { triggerHaptic(); if (step === 2) onDone(); else setStep((current) => current + 1); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === 2 ? t('continue') : t('begin')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View></LinearGradient>;
 }
 
+function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () => void }) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { language } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const benefits: Array<{ icon: React.ComponentProps<typeof Ionicons>['name']; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' }> = [
+    { icon: 'sparkles-outline', key: 'premiumWelcomeBenefit1' },
+    { icon: 'restaurant-outline', key: 'premiumWelcomeBenefit2' },
+    { icon: 'chatbubble-ellipses-outline', key: 'premiumWelcomeBenefit3' },
+  ];
+  return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={[styles.full, styles.offerScreen, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 18 }]}>
+    <View style={styles.offerHeader}>
+      <View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View>
+      <View style={[styles.offerProPill, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}55` }]}><Ionicons name="star" size={12} color={colors.primary} /><Text style={[styles.offerProText, { color: colors.primary }]}>PRO</Text></View>
+    </View>
+    <View style={styles.offerHero}>
+      <View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={31} color={colors.primaryForeground} /></View>
+      <Text style={[styles.offerEyebrow, { color: colors.primary }]}>{t('premiumWelcomeEyebrow')}</Text>
+      <Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumWelcomeTitle')}</Text>
+      <Text style={[styles.offerBody, { color: colors.mutedForeground }]}>{t('premiumWelcomeBody')}</Text>
+    </View>
+    <View style={[styles.offerValueCard, { backgroundColor: `${colors.card}D9`, borderColor: colors.border }]}>
+      <Text style={[styles.offerReason, { color: colors.foreground }]}>{t('premiumWelcomeReason')}</Text>
+      <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name={benefit.icon} size={17} color={colors.primary} /></View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
+    </View>
+    <View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
+    <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} onPress={() => { triggerHaptic(); onUnlock(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
+    <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeSkip')} onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('premiumWelcomeSkip')}</Text></Pressable>
+  </LinearGradient>;
+}
+
 function OfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () => void }) {
   const colors = useColors();
   const { language } = useFit();
@@ -370,8 +402,21 @@ const styles = StyleSheet.create({
   introBottom: { gap: 18 },
   dots: { flexDirection: 'row', gap: 7, justifyContent: 'center' },
   dot: { width: 28, height: 4, borderRadius: 5 },
+  offerScreen: { paddingHorizontal: 20 },
+  offerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  offerProPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 7 },
+  offerProText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1 },
+  offerHero: { alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: 205 },
   offerOrb: { alignSelf: 'center', width: 74, height: 74, borderRadius: 27, alignItems: 'center', justifyContent: 'center', marginTop: 30 },
-  offerTitle: { textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 34, letterSpacing: -1.1, marginTop: 26 },
+  offerEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.6, marginTop: 20, marginBottom: 8 },
+  offerTitle: { textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 39, lineHeight: 43, letterSpacing: -1.5 },
+  offerBody: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, marginTop: 11, maxWidth: 330 },
+  offerValueCard: { width: '100%', borderWidth: 1, borderRadius: 23, padding: 16, gap: 13 },
+  offerReason: { fontFamily: 'Inter_700Bold', fontSize: 13 },
+  offerBenefits: { gap: 12 },
+  offerBenefit: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  offerBenefitIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  offerBenefitText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17 },
   features: { gap: 17, paddingVertical: 20 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   featureText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 14 },
