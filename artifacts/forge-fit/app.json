@@ -37,7 +37,8 @@
           "model": "full",
           "cameraPermissionText": "Forge Fit uses the camera to analyze your movement."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

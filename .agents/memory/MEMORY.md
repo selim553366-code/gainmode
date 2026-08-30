@@ -3,3 +3,4 @@
 - [Food search provider resilience](food-search-providers.md) — Open Food Facts may rate-limit the .org endpoint; keep the alternate .net source available and combine USDA for generic foods.
 - [Expo static build workflow](forge-fit-build-workflow.md) — managed preview ports can conflict with the static Expo helper’s fixed 8081 probe.
 - [Forge Fit live pose tracking](forge-fit-live-pose.md) — native MediaPipe camera flow needs a development build; previews should use an explicit fallback.
+- [Forge Fit Android release builds](forge-fit-android-build.md) — local native prebuild works, but signed AAB delivery needs an Android SDK and secure production signing outside the preview workspace.
