@@ -29,11 +29,11 @@ export function Screen({ children, scroll = true, bottomPadding = 104 }: { child
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{content}</ScrollView> : content;
 }
 
-export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, premiumLabel, premiumAction, premiumOwned = false, streak, streakLabel }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumOwned?: boolean; streak?: number; streakLabel?: string }) {
+export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, premiumLabel, premiumAction, premiumOwned = false, streak, streakLabel, centered = false }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean }) {
   const colors = useColors();
   const premiumColor = premiumOwned ? colors.success : colors.primary;
   return <View style={styles.header}>
-    <View style={{ flex: 1 }}>
+    <View style={[styles.headerText, centered ? styles.headerTextCentered : null]}>
       {eyebrow ? <Text style={[styles.eyebrow, { color: colors.primary }]}>{eyebrow.toUpperCase()}</Text> : null}
       <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
       {subtitle ? <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
@@ -267,7 +267,9 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
 
 export const styles = StyleSheet.create({
   screen: { paddingHorizontal: 20, minHeight: '100%' },
-  header: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 26 },
+  header: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 26 },
+  headerText: { flex: 1 },
+  headerTextCentered: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 0 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   streakPill: { height: 38, borderRadius: 15, borderWidth: 1, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 4 },
   streakValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },

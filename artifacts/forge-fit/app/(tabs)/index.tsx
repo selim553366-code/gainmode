@@ -68,6 +68,7 @@ export default function TodayScreen() {
       <Header
         title={`${t('goodMorning')}, ${username ?? ''}`.trim()}
         subtitle={t('ready')}
+        centered
          action="settings-outline"
          onAction={() => router.push('/settings')}
          premiumLabel={SUBSCRIPTION_PURCHASE_ENABLED ? (isPremium ? t('premiumOwned') : t('premiumShort')) : undefined}
