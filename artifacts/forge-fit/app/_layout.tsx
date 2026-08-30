@@ -56,7 +56,7 @@ export default function RootLayout() {
       require('@/assets/images/coach-thinking.png'),
       require('@/assets/images/coach-writing-no-bg.png'),
       require('@/assets/images/coach-thumbs-up-no-bg.png'),
-      require('@/assets/images/coach-wave-frames/frame-60.png'),
+      require('@/assets/images/coach-wave-static-v2.png'),
     ];
     Promise.allSettled(imageSources.map((source) => Image.prefetch(Image.resolveAssetSource(source).uri))).finally(() => {
       if (mounted) setAssetsLoaded(true);
