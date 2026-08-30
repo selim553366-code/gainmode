@@ -40,7 +40,7 @@ function formatImperialHeightLabel(heightCm: number) {
 
 function CoachMotion({ variant, large = false }: { variant: CoachMotionVariant; large?: boolean }) {
   const source = variant === 'wave'
-    ? require('@/assets/images/coach-wave-static-v2.png')
+    ? require('@/assets/images/coach-wave-static-v3.png')
     : variant === 'write'
       ? require('@/assets/images/coach-writing-no-bg.png')
       : require('@/assets/images/coach-thumbs-up-no-bg.png');
