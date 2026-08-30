@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "gen-lang-client-0409707051",
+  "private_key_id": "945e262ebe5ef63c9f6a4d5bc1ddebc48f007fe8",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC26sEvx76y2Q5q\noTZltCOG6RGnyp4JZaP7fz2iva7j1zfdqm0FlXYpDsbnFiM1pgqbRY3aYyy6UehB\nEaXN7ZpWD/VlLNwtCF3XTsp/2ua6GqvFtrzIYyajeutCpBxzH38eYkgLsJivcy79\nN6MxOs6nqlfBSKhhYmPH81HZH8PwsUJ0jjFMZ83Ah/dS4nKNdmhIfxfkRRFSyfum\n0jYwNatcivtwo0SeAEEwYH0ze6erQY8MgMJ1dUqgDH+J2zHWn/dvIT+jowC7X2XX\nRSlcVjvkxj+y7QfBDeARaS9XVHJ3IoEkGIABy+ItAWVf62TvQGEgU2qifpCuppWS\nN+cwFS+lAgMBAAECggEAFPdFIRdkNcwS+XOKBc/x2dxWxY9ABwlglDVKQ3WPbsEe\nlP3xqhgEElewbRCzWh+yi91F5vgYH9u/OHoahvHgOf4b8rauHqFHXvmX1LOACmkq\niCqBFUzmwwqV8wOsLnaNPlZ7NeUjfcoWODhLhcXc+wiCL37cV0aM86sMQMwBzFGA\ns8XnJZqT0Cn5pt7IMR+OuCXJlktZN7D4TbejC5sOwuhZx4vPuYXTnLbaJdylhPyt\naXhQNT8HlyLtQf29IZbIpxF7BOI4NWA0gQ9SNs4m5DNrY6CCdqCasQwQb8rZOLjC\nXm6JWJM+6UZGUMvYACBbVY0q+B00kKCFpFg4/c1rLwKBgQDieeG/0EjUXEiTZwFV\nrSaYP3A+0LtXkY5cwL2t5jUTpzBDwfIv5y9uSqpys/tQwTGtcvCir2pOICpBkUyL\nZuXT+j3rU2iJC6clgDJjge4mKdPxJ5zbWHxiaEwmGkdVpppsGEQR6Z2bUXlaSL/C\nMwWcKzpyg5/Ha0j0Du1pa1eJ8wKBgQDOwzBBIaNGHQ6T3vWzTn/hrQmKY7ZdHplM\nxxTI4mFAoXFBODvWhkpUdH6MESLP66ySN8UJtfMC4My90UlMu8jDAsMqp9916Th3\n6jTZSRoAfJZc3gzqFExyN1AjkeB8IfoJFtFpBLrFLyI0cB5M6xOoon6Jd0uLhbog\nAmaob25uBwKBgQDJMNVnfTT10nV23Q7GeefLYK/qXavQAzKhG2hl0BheuSubRfRM\nsefk5te8xj8AYmArYex72bFqbhCb5uRFAsgxJCFVqOc4t+1o1xXsaESUCpyJo1Mp\nWNZG5bigMMAmSrbsSDJQZ2Tn0d0oY3BWqNTXA2AM0vliQuCwT4KBICbIGQKBgF/g\nlyG8rW+3zai4PQsWnapSiRgJQOlRZRj7QCIfB6XmtxPdNbI2t4UOOBhPYes0h+ON\nxOrJ2pQ9FfP3dpwEgAYd486F5dNRgIPqsPMJOOt82mTZ+vcYzpIwIBM+c/Bb+Qv5\n7sVaEhmZz6ytSP+2CnmqUC8CiJ98NWDefCgi8/xFAoGAS21Qw/dtsEuHvXFRYobZ\n/Ysuv3XbmVXNDOnWt/drOAHxuYQb8LWqYBibcQQLcgDQE+h95JlVk+u8hgVcYVu1\ndkkm6v+II8nbGgT3mxCnpeLCM3vZMCHQlw8WS3vXUQ+x7RNRm0c/NvbIyBrS0KOW\n5nD2EJ1QEfiNq2VzHXCybIo=\n-----END PRIVATE KEY-----\n",
+  "client_email": "forgefit@gen-lang-client-0409707051.iam.gserviceaccount.com",
+  "client_id": "114263248201362483503",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/forgefit%40gen-lang-client-0409707051.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
