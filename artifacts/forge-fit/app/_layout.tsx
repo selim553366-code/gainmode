@@ -15,11 +15,17 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { FitProvider } from '@/context/FitContext';
+import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
 import { setBaseUrl } from '@workspace/api-client-react';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 setBaseUrl(process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : null);
+try {
+  initializeRevenueCat();
+} catch (error) {
+  console.warn('RevenueCat could not be initialized.', error);
+}
 
 const queryClient = new QueryClient();
 
@@ -78,13 +84,15 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView>
-            <KeyboardProvider>
-              <FitProvider>
-                <RootLayoutNav />
-              </FitProvider>
-            </KeyboardProvider>
-          </GestureHandlerRootView>
+          <SubscriptionProvider>
+            <GestureHandlerRootView>
+              <KeyboardProvider>
+                <FitProvider>
+                  <RootLayoutNav />
+                </FitProvider>
+              </KeyboardProvider>
+            </GestureHandlerRootView>
+          </SubscriptionProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

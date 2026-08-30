@@ -6,6 +6,7 @@ import { useAudioPlayer } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate, type Language, type TranslationKey } from '@/lib/i18n';
+import { useSubscription } from '@/lib/revenuecat';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@/components/AppIcon';
@@ -154,26 +155,21 @@ export function PremiumLock() {
       <Text style={[styles.lockMotivation, { color: colors.foreground }]}>{t('premiumGateHint')}</Text>
     </View>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumStart')} onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); setOfferVisible(true); }} style={({ pressed }) => [styles.lockButton, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}><Text style={[styles.lockButtonText, { color: colors.primaryForeground }]}>{t('premiumStart')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
-    <PremiumOfferModal visible={offerVisible} onClose={() => setOfferVisible(false)} deferActivation />
+    <PremiumOfferModal visible={offerVisible} onClose={() => setOfferVisible(false)} />
   </View>;
 }
 
-const premiumPriceByLanguage: Record<Language, { main: string; currency: string }> = {
-  tr: { main: '€4,99', currency: 'EUR' },
-  en: { main: '$4.99', currency: 'USD' },
-  de: { main: '4,99 €', currency: 'EUR' },
-  fr: { main: '4,99 €', currency: 'EUR' },
-  es: { main: '4,99 €', currency: 'EUR' },
-};
-
-export function PremiumOfferModal({ visible, onClose, deferActivation = false }: { visible: boolean; onClose: () => void; deferActivation?: boolean }) {
+export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const colors = useColors();
-  const { language, isPremium, setPremium } = useFit();
+  const { language, isPremium } = useFit();
+  const { monthlyPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const price = premiumPriceByLanguage[language];
+  const price = monthlyPackage?.product.priceString ?? '—';
+  const currency = monthlyPackage?.product.currencyCode;
   const appear = React.useRef(new Animated.Value(0)).current;
   const player = useAudioPlayer(require('@/assets/sounds/premium-success.wav'));
   const [celebrating, setCelebrating] = React.useState(false);
+  const [actionError, setActionError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!visible) setCelebrating(false);
@@ -187,20 +183,47 @@ export function PremiumOfferModal({ visible, onClose, deferActivation = false }:
   }, [appear, visible]);
 
   const finishCelebration = React.useCallback(() => {
-    if (deferActivation) setPremium(true);
     setCelebrating(false);
     onClose();
-  }, [deferActivation, onClose, setPremium]);
+  }, [onClose]);
 
-  const activatePremium = () => {
+  const activatePremium = async () => {
     triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
-    if (!deferActivation) setPremium(true);
-    setCelebrating(true);
+    if (isSubscribed || isPremium) {
+      onClose();
+      return;
+    }
+    if (!isAvailable || !monthlyPackage) {
+      setActionError(t('premiumStoreUnavailable'));
+      return;
+    }
+    setActionError(null);
     try {
+      await purchase(monthlyPackage);
+      setCelebrating(true);
       player.seekTo(0);
       player.play();
     } catch {
-      // The visual celebration still completes when audio is unavailable.
+      setActionError(t('premiumPurchaseError'));
+    }
+  };
+
+  const restorePremium = async () => {
+    triggerHaptic();
+    setActionError(null);
+    if (!isAvailable) {
+      setActionError(t('premiumStoreUnavailable'));
+      return;
+    }
+    try {
+      const customerInfo = await restore();
+      if (customerInfo.entitlements.active.fitai_premium) {
+        setCelebrating(true);
+        return;
+      }
+      setActionError(t('premiumRestoreNoPurchase'));
+    } catch {
+      setActionError(t('premiumRestoreError'));
     }
   };
 
@@ -220,13 +243,14 @@ export function PremiumOfferModal({ visible, onClose, deferActivation = false }:
           <View style={styles.premiumBenefits}>
             {(['premiumFeature1', 'premiumFeature2', 'premiumFeature3', 'premiumBenefit4'] as const).map((key) => <View key={key} style={styles.premiumBenefit}><View style={[styles.premiumBenefitIcon, { backgroundColor: `${colors.primary}1A` }]}><Ionicons name="checkmark" size={15} color={colors.primary} /></View><Text style={[styles.premiumBenefitText, { color: colors.foreground }]}>{t(key)}</Text></View>)}
           </View>
-          <View style={[styles.premiumPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
-            <View><Text style={[styles.premiumPriceLabel, { color: colors.mutedForeground }]}>{t('premiumPriceMonthly')}</Text><View style={styles.premiumPriceLine}><Text style={[styles.premiumPrice, { color: colors.foreground }]}>{price.main}</Text><Text style={[styles.premiumPriceUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text></View></View>
-            <View style={styles.premiumPriceAside}><Text style={[styles.premiumCurrencyCode, { color: colors.primary }]}>{price.currency}</Text><Text style={[styles.premiumTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
+             <View style={[styles.premiumPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
+             <View><Text style={[styles.premiumPriceLabel, { color: colors.mutedForeground }]}>{t('premiumPriceMonthly')}</Text><View style={styles.premiumPriceLine}><Text style={[styles.premiumPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : price}</Text>{!isLoading ? <Text style={[styles.premiumPriceUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text> : null}</View></View>
+             <View style={styles.premiumPriceAside}>{currency ? <Text style={[styles.premiumCurrencyCode, { color: colors.primary }]}>{currency}</Text> : null}<Text style={[styles.premiumTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
           </View>
-          <Text style={[styles.premiumPriceOptions, { color: colors.mutedForeground }]}>{t('premiumPriceOptions')}</Text>
           <Text style={[styles.premiumTrialBody, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
-          <Pressable testID="start-premium" onPress={isPremium ? onClose : activatePremium} style={({ pressed }) => [styles.premiumCta, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}><Text style={[styles.premiumCtaText, { color: colors.primaryForeground }]}>{isPremium ? t('premiumActiveNow') : t('premiumStart')}</Text><Ionicons name={isPremium ? 'checkmark-circle' : 'arrow-forward'} size={18} color={colors.primaryForeground} /></Pressable>
+           {actionError ? <Text style={[styles.premiumActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
+           <Pressable testID="start-premium" disabled={isPurchasing || isLoading} onPress={isPremium ? onClose : activatePremium} style={({ pressed }) => [styles.premiumCta, { backgroundColor: colors.primary, opacity: pressed || isPurchasing || isLoading ? 0.58 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}><Text style={[styles.premiumCtaText, { color: colors.primaryForeground }]}>{isPremium ? t('premiumActiveNow') : isPurchasing ? t('premiumLoading') : t('premiumStart')}</Text><Ionicons name={isPremium ? 'checkmark-circle' : 'arrow-forward'} size={18} color={colors.primaryForeground} /></Pressable>
+           <Pressable testID="restore-premium" disabled={isRestoring} onPress={restorePremium} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
           <Text style={[styles.premiumTrust, { color: colors.mutedForeground }]}>{t('premiumTrust')}</Text>
         </LinearGradient>
       </Animated.View>
@@ -324,5 +348,8 @@ export const styles = StyleSheet.create({
   premiumTrialBody: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 15, textAlign: 'center', marginTop: -8, marginBottom: 14 },
   premiumCta: { height: 53, borderRadius: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },
   premiumCtaText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
+  premiumActionError: { fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, textAlign: 'center', marginBottom: 10 },
+  premiumRestoreButton: { alignItems: 'center', justifyContent: 'center', minHeight: 36 },
+  premiumRestoreText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   premiumTrust: { fontFamily: 'Inter_400Regular', fontSize: 10, textAlign: 'center', marginTop: 12 },
 });

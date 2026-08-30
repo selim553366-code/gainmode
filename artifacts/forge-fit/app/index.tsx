@@ -22,6 +22,7 @@ import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { triggerHaptic } from '@/components/FitUI';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
+import { useSubscription } from '@/lib/revenuecat';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
@@ -131,13 +132,13 @@ function getAge(day: number, month: number, year: number) {
 }
 
 export default function EntryScreen() {
-  const { onboardingComplete, introSeen, isPremium, setIntroSeen, setPremium } = useFit();
+  const { onboardingComplete, introSeen, isPremium, setIntroSeen } = useFit();
   React.useEffect(() => {
     if (onboardingComplete && introSeen && isPremium) router.replace('/(tabs)');
   }, [onboardingComplete, introSeen, isPremium]);
   if (!onboardingComplete) return <OnboardingQuestions />;
   if (!introSeen) return <IntroScreen onDone={setIntroSeen} />;
-  if (!isPremium) return <PremiumWelcomeOfferScreen onUnlock={() => { setPremium(true); router.replace('/(tabs)'); }} onSkip={() => router.replace('/(tabs)')} />;
+  if (!isPremium) return <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)')} onSkip={() => router.replace('/(tabs)')} />;
   return null;
 }
 
@@ -401,12 +402,28 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void;
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { language } = useFit();
+  const { monthlyPackage, isAvailable, isLoading, isPurchasing, purchase } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const [actionError, setActionError] = React.useState<string | null>(null);
+  const price = monthlyPackage?.product.priceString;
   const benefits: Array<{ icon: React.ComponentProps<typeof Ionicons>['name']; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' }> = [
     { icon: 'sparkles-outline', key: 'premiumWelcomeBenefit1' },
     { icon: 'restaurant-outline', key: 'premiumWelcomeBenefit2' },
     { icon: 'chatbubble-ellipses-outline', key: 'premiumWelcomeBenefit3' },
   ];
+  const handlePurchase = async () => {
+    if (!isAvailable || !monthlyPackage) {
+      setActionError(t('premiumStoreUnavailable'));
+      return;
+    }
+    setActionError(null);
+    try {
+      await purchase(monthlyPackage);
+      onUnlock();
+    } catch {
+      setActionError(t('premiumPurchaseError'));
+    }
+  };
   return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={[styles.full, styles.offerScreen, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 18 }]}>
     <View style={styles.offerHeader}>
       <View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View>
@@ -423,7 +440,9 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void;
       <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name={benefit.icon} size={17} color={colors.primary} /></View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
     </View>
     <View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
-    <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} onPress={() => { triggerHaptic(); onUnlock(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
+     {price ? <Text style={[styles.offerPrice, { color: colors.foreground }]}>{price} {t('premiumPerMonth')}</Text> : null}
+     {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
+     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} disabled={isLoading || isPurchasing} onPress={() => { triggerHaptic(); handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || isLoading || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isLoading || isPurchasing ? t('premiumLoading') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeSkip')} onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('premiumWelcomeSkip')}</Text></Pressable>
   </LinearGradient>;
 }
@@ -532,4 +551,6 @@ const styles = StyleSheet.create({
   featureText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 14 },
   offerTrial: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 14 },
   offerTrialText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  offerPrice: { alignSelf: 'center', fontFamily: 'Inter_700Bold', fontSize: 13, marginBottom: 10 },
+  offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
 });

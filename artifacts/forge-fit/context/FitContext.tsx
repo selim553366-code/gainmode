@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { Language, TranslationKey } from '@/lib/i18n';
+import { useSubscription } from '@/lib/revenuecat';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
@@ -63,7 +64,6 @@ type FitContextValue = FitState & {
   removeMeal: (id: string) => void;
   completeOnboarding: (profile: Profile, username: string) => void;
   setIntroSeen: () => void;
-  setPremium: (value: boolean) => void;
   incrementCoachUsage: () => void;
   incrementPhotoUsage: () => void;
   toggleWorkout: (id: string) => void;
@@ -102,6 +102,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<FitState>(initialState);
   const [hydrated, setHydrated] = useState(false);
   const [coachThinking, setCoachThinking] = useState(false);
+  const { isSubscribed } = useSubscription();
 
   useEffect(() => {
     AsyncStorage.getItem('forge-fit-state').then((stored) => {
@@ -121,6 +122,11 @@ export function FitProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (hydrated) AsyncStorage.setItem('forge-fit-state', JSON.stringify(state)).catch(() => undefined);
   }, [state, hydrated]);
+
+  useEffect(() => {
+    if (isSubscribed === undefined) return;
+    setState((current) => current.isPremium === isSubscribed ? current : { ...current, isPremium: isSubscribed });
+  }, [isSubscribed]);
 
   const calculatePlan = (profile: Profile): Workout[] => {
     const names: TranslationKey[] = profile.goal === 'weightLoss' || profile.goal === 'fatLoss'
@@ -174,7 +180,6 @@ export function FitProvider({ children }: { children: ReactNode }) {
       };
     }),
     setIntroSeen: () => setState((current) => ({ ...current, introSeen: true })),
-    setPremium: (value) => setState((current) => ({ ...current, isPremium: value })),
     incrementCoachUsage: () => setState((current) => {
       const today = new Date().toISOString().slice(0, 10);
       return current.usageDate === today ? { ...current, coachMessagesUsed: current.coachMessagesUsed + 1 } : { ...current, usageDate: today, coachMessagesUsed: 1, photoAnalysesUsed: 0 };
