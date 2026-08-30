@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -11,6 +11,8 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
+import { Feather, Ionicons } from '@expo/vector-icons';
+import { Asset } from 'expo-asset';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { FitProvider } from '@/context/FitContext';
@@ -38,7 +40,33 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    ...Ionicons.font,
+    ...Feather.font,
   });
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    Asset.loadAsync([
+      require('@/assets/images/icon.png'),
+      require('@/assets/images/coach.png'),
+      require('@/assets/images/coach-thinking.png'),
+      require('@/assets/images/coach-writing-no-bg.png'),
+      require('@/assets/images/coach-thumbs-up-no-bg.png'),
+      require('@/assets/images/coach-wave-frames/frame-00.png'),
+      require('@/assets/images/coach-wave-frames/frame-15.png'),
+      require('@/assets/images/coach-wave-frames/frame-30.png'),
+      require('@/assets/images/coach-wave-frames/frame-45.png'),
+      require('@/assets/images/coach-wave-frames/frame-60.png'),
+      require('@/assets/images/coach-wave-frames/frame-75.png'),
+      require('@/assets/images/coach-wave-frames/frame-90.png'),
+    ]).finally(() => {
+      if (mounted) setAssetsLoaded(true);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -46,7 +74,7 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) return null;
+  if ((!fontsLoaded || !assetsLoaded) && !fontError) return null;
 
   return (
     <SafeAreaProvider>
