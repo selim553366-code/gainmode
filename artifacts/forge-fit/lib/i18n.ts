@@ -143,19 +143,19 @@ const translations = {
 
 const premiumTranslations = {
   tr: {
-    premiumLoading: 'Yükleniyor...', premiumRestore: 'Satın alımları geri yükle', premiumRestoreNoPurchase: 'Geri yüklenecek aktif bir Premium satın alımı bulunamadı.', premiumPurchaseError: 'Satın alma tamamlanamadı. Lütfen tekrar dene.', premiumRestoreError: 'Satın alımlar geri yüklenemedi. Lütfen tekrar dene.', premiumStoreUnavailable: 'Premium mağazası şu anda kullanılamıyor. Lütfen Android uygulamasından tekrar dene.',
+    premiumLoading: 'Yükleniyor...', premiumRestore: 'Satın alımları geri yükle', premiumRestoreNoPurchase: 'Geri yüklenecek aktif bir Premium satın alımı bulunamadı.', premiumPurchaseError: 'Satın alma tamamlanamadı. Lütfen tekrar dene.', premiumRestoreError: 'Satın alımlar geri yüklenemedi. Lütfen tekrar dene.', premiumStoreUnavailable: 'Premium mağazası şu anda kullanılamıyor. Lütfen Android uygulamasından tekrar dene.', premiumOwned: 'OWNED',
   },
   en: {
-    premiumLoading: 'Loading...', premiumRestore: 'Restore purchases', premiumRestoreNoPurchase: 'No active Premium purchase was found to restore.', premiumPurchaseError: 'The purchase could not be completed. Please try again.', premiumRestoreError: 'Purchases could not be restored. Please try again.', premiumStoreUnavailable: 'The Premium store is unavailable right now. Please try again from the Android app.',
+    premiumLoading: 'Loading...', premiumRestore: 'Restore purchases', premiumRestoreNoPurchase: 'No active Premium purchase was found to restore.', premiumPurchaseError: 'The purchase could not be completed. Please try again.', premiumRestoreError: 'Purchases could not be restored. Please try again.', premiumStoreUnavailable: 'The Premium store is unavailable right now. Please try again from the Android app.', premiumOwned: 'OWNED',
   },
   de: {
-    premiumLoading: 'Wird geladen...', premiumRestore: 'Käufe wiederherstellen', premiumRestoreNoPurchase: 'Kein aktiver Premium-Kauf zum Wiederherstellen gefunden.', premiumPurchaseError: 'Der Kauf konnte nicht abgeschlossen werden. Bitte versuche es erneut.', premiumRestoreError: 'Käufe konnten nicht wiederhergestellt werden. Bitte versuche es erneut.', premiumStoreUnavailable: 'Der Premium-Shop ist derzeit nicht verfügbar. Bitte versuche es erneut in der Android-App.',
+    premiumLoading: 'Wird geladen...', premiumRestore: 'Käufe wiederherstellen', premiumRestoreNoPurchase: 'Kein aktiver Premium-Kauf zum Wiederherstellen gefunden.', premiumPurchaseError: 'Der Kauf konnte nicht abgeschlossen werden. Bitte versuche es erneut.', premiumRestoreError: 'Käufe konnten nicht wiederhergestellt werden. Bitte versuche es erneut.', premiumStoreUnavailable: 'Der Premium-Shop ist derzeit nicht verfügbar. Bitte versuche es erneut in der Android-App.', premiumOwned: 'OWNED',
   },
   fr: {
-    premiumLoading: 'Chargement...', premiumRestore: 'Restaurer les achats', premiumRestoreNoPurchase: 'Aucun achat Premium actif à restaurer.', premiumPurchaseError: 'L’achat n’a pas pu être finalisé. Réessaie.', premiumRestoreError: 'Impossible de restaurer les achats. Réessaie.', premiumStoreUnavailable: 'La boutique Premium est indisponible pour le moment. Réessaie depuis l’application Android.',
+    premiumLoading: 'Chargement...', premiumRestore: 'Restaurer les achats', premiumRestoreNoPurchase: 'Aucun achat Premium actif à restaurer.', premiumPurchaseError: 'L’achat n’a pas pu être finalisé. Réessaie.', premiumRestoreError: 'Impossible de restaurer les achats. Réessaie.', premiumStoreUnavailable: 'La boutique Premium est indisponible pour le moment. Réessaie depuis l’application Android.', premiumOwned: 'OWNED',
   },
   es: {
-    premiumLoading: 'Cargando...', premiumRestore: 'Restaurar compras', premiumRestoreNoPurchase: 'No se encontró ninguna compra Premium activa para restaurar.', premiumPurchaseError: 'No se pudo completar la compra. Inténtalo de nuevo.', premiumRestoreError: 'No se pudieron restaurar las compras. Inténtalo de nuevo.', premiumStoreUnavailable: 'La tienda Premium no está disponible ahora. Inténtalo de nuevo desde la app de Android.',
+    premiumLoading: 'Cargando...', premiumRestore: 'Restaurar compras', premiumRestoreNoPurchase: 'No se encontró ninguna compra Premium activa para restaurar.', premiumPurchaseError: 'No se pudo completar la compra. Inténtalo de nuevo.', premiumRestoreError: 'No se pudieron restaurar las compras. Inténtalo de nuevo.', premiumStoreUnavailable: 'La tienda Premium no está disponible ahora. Inténtalo de nuevo desde la app de Android.', premiumOwned: 'OWNED',
   },
 } as const;
 

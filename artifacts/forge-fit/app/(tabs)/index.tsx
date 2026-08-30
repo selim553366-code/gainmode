@@ -9,7 +9,7 @@ import { ActionTile, AnimatedNumber, Card, Header, Metric, PremiumOfferModal, Pr
 
 export default function TodayScreen() {
   const colors = useColors();
-  const { language, meals, weight, username, calorieGoal, workouts } = useFit();
+  const { language, meals, weight, username, calorieGoal, workouts, isPremium } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [premiumVisible, setPremiumVisible] = React.useState(false);
   const calories = meals.reduce((sum, meal) => sum + meal.calories, 0);
@@ -25,7 +25,7 @@ export default function TodayScreen() {
         subtitle={t('ready')}
          action="settings-outline"
          onAction={() => router.push('/settings')}
-         premiumLabel={t('premiumShort')}
+         premiumLabel={isPremium ? t('premiumOwned') : t('premiumShort')}
          premiumAction={() => setPremiumVisible(true)}
       />
 
