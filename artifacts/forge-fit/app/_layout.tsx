@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Image, Platform } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
@@ -12,7 +13,6 @@ import {
   useFonts,
 } from '@expo-google-fonts/inter';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { Asset } from 'expo-asset';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { FitProvider } from '@/context/FitContext';
@@ -47,7 +47,13 @@ export default function RootLayout() {
 
   useEffect(() => {
     let mounted = true;
-    Asset.loadAsync([
+    if (Platform.OS === 'web') {
+      setAssetsLoaded(true);
+      return () => {
+        mounted = false;
+      };
+    }
+    const imageSources = [
       require('@/assets/images/icon.png'),
       require('@/assets/images/coach.png'),
       require('@/assets/images/coach-thinking.png'),
@@ -60,7 +66,8 @@ export default function RootLayout() {
       require('@/assets/images/coach-wave-frames/frame-60.png'),
       require('@/assets/images/coach-wave-frames/frame-75.png'),
       require('@/assets/images/coach-wave-frames/frame-90.png'),
-    ]).finally(() => {
+    ];
+    Promise.allSettled(imageSources.map((source) => Image.prefetch(Image.resolveAssetSource(source).uri))).finally(() => {
       if (mounted) setAssetsLoaded(true);
     });
     return () => {
