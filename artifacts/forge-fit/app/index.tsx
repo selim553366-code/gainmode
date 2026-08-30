@@ -246,7 +246,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
     <View style={styles.questionTop}><View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
-    <View style={styles.welcomeContent}><View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18` }]}><CoachMotion variant="wave" large /></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text></View>
+    <View style={styles.welcomeContent}><View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18` }]}><View style={styles.welcomeCoachCenter}><CoachMotion variant="wave" large /></View></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text></View>
      <Pressable onPress={() => { triggerHaptic(); onStart(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
   </LinearGradient>;
 }
@@ -313,8 +313,8 @@ const styles = StyleSheet.create({
   language: { fontFamily: 'Inter_700Bold', fontSize: 10 },
   questionBody: { flex: 1, minHeight: 0, marginTop: 10 },
   questionScrollContent: { paddingTop: 2, paddingBottom: 12 },
-  coachQuestionVisual: { width: 158, height: 158, alignSelf: 'center', justifyContent: 'center', marginBottom: 2 },
-  coachSmall: { width: 158, height: 158 },
+  coachQuestionVisual: { width: 218, height: 218, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  coachSmall: { width: 218, height: 218 },
   coachLarge: { width: 220, height: 220 },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.5, marginBottom: 9 },
   optionalLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
@@ -360,6 +360,7 @@ const styles = StyleSheet.create({
   skip: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 12 },
   welcomeContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   welcomeOrb: { width: 245, height: 245, borderRadius: 122, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
+  welcomeCoachCenter: { alignItems: 'center', justifyContent: 'center', transform: [{ translateX: -5 }, { translateY: -10 }] },
   welcomeTitle: { textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 33, lineHeight: 38, letterSpacing: -1.2 },
   welcomeSubtitle: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 23, marginTop: 12, maxWidth: 310 },
   completionContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
