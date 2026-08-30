@@ -14,3 +14,17 @@ mtime_ms = 1788103228256
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/5f51318f-b365-44c0-bcc6-8716d8df1bc7/036f325b-0f86-4f95-9a02-b7a3f2c858c4"
 storage_version_token = "1788103291488392"
 content_type = "image/png"
+
+[[outputs]]
+id = "Xx4rObYXjhjzgz2aGdYtZ"
+uri = "file://forge-fit-aab-project.zip"
+type = "unspecified"
+title = "Forge Fit AAB proje ZIP dosyası"
+description = "AAB oluşturmak için gerekli proje kaynakları. Gereksiz büyük Replit klasörleri çıkarılmıştır; dosya boyutu 31 MB."
+logical_id = "98d5c2fb-e2d1-47f3-9e90-151864d449a5"
+content_hash = "sha256:85caaf844ea53005475139f6eb6f4f1c7955906f83b9b1af64f94f759b5f3479"
+size = 31467831
+mtime_ms = 1788104275557
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/98d5c2fb-e2d1-47f3-9e90-151864d449a5/79a8bf98-d723-4f5d-b586-4aa80e8f2de1"
+storage_version_token = "1788104280912877"
+content_type = "application/octet-stream"
