@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Animated, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/AppIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';

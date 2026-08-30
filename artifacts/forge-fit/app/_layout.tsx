@@ -12,7 +12,6 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Feather, Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { FitProvider } from '@/context/FitContext';
@@ -40,8 +39,6 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    ...Ionicons.font,
-    ...Feather.font,
   });
   const [assetsLoaded, setAssetsLoaded] = useState(false);
 
@@ -59,13 +56,7 @@ export default function RootLayout() {
       require('@/assets/images/coach-thinking.png'),
       require('@/assets/images/coach-writing-no-bg.png'),
       require('@/assets/images/coach-thumbs-up-no-bg.png'),
-      require('@/assets/images/coach-wave-frames/frame-00.png'),
-      require('@/assets/images/coach-wave-frames/frame-15.png'),
-      require('@/assets/images/coach-wave-frames/frame-30.png'),
-      require('@/assets/images/coach-wave-frames/frame-45.png'),
       require('@/assets/images/coach-wave-frames/frame-60.png'),
-      require('@/assets/images/coach-wave-frames/frame-75.png'),
-      require('@/assets/images/coach-wave-frames/frame-90.png'),
     ];
     Promise.allSettled(imageSources.map((source) => Image.prefetch(Image.resolveAssetSource(source).uri))).finally(() => {
       if (mounted) setAssetsLoaded(true);

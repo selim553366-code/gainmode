@@ -1,7 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Animated, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useAudioPlayer } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
@@ -9,6 +8,7 @@ import { useFit } from '@/context/FitContext';
 import { translate, type Language, type TranslationKey } from '@/lib/i18n';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@/components/AppIcon';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 

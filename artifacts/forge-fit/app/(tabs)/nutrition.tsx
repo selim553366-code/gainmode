@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/AppIcon';
 import { useSearchFood, type FoodSearchItem } from '@workspace/api-client-react';
 import { useFit, Meal } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';

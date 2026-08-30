@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';

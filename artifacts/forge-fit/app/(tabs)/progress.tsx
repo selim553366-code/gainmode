@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/AppIcon';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';

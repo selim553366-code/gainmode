@@ -3,7 +3,7 @@ import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
-import { Feather } from '@expo/vector-icons';
+import { Feather } from '@/components/AppIcon';
 import { Tabs } from 'expo-router';
 import { PremiumLock } from '@/components/FitUI';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

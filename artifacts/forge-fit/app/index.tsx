@@ -3,7 +3,7 @@ import { Animated, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text,
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@/components/AppIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ActivityLevel,
@@ -22,28 +22,11 @@ import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { triggerHaptic } from '@/components/FitUI';
 
-const waveFrames = [
-  require('@/assets/images/coach-wave-frames/frame-00.png'),
-  require('@/assets/images/coach-wave-frames/frame-15.png'),
-  require('@/assets/images/coach-wave-frames/frame-30.png'),
-  require('@/assets/images/coach-wave-frames/frame-45.png'),
-  require('@/assets/images/coach-wave-frames/frame-60.png'),
-  require('@/assets/images/coach-wave-frames/frame-75.png'),
-  require('@/assets/images/coach-wave-frames/frame-90.png'),
-  require('@/assets/images/coach-wave-frames/frame-105.png'),
-];
-
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 
 function CoachMotion({ variant, large = false }: { variant: CoachMotionVariant; large?: boolean }) {
-  const [frame, setFrame] = React.useState(0);
-  React.useEffect(() => {
-    if (variant !== 'wave') return undefined;
-    const timer = setInterval(() => setFrame((current) => (current + 1) % waveFrames.length), 110);
-    return () => clearInterval(timer);
-  }, [variant]);
   const source = variant === 'wave'
-    ? waveFrames[frame]
+    ? require('@/assets/images/coach-wave-frames/frame-60.png')
     : variant === 'write'
       ? require('@/assets/images/coach-writing-no-bg.png')
       : require('@/assets/images/coach-thumbs-up-no-bg.png');
