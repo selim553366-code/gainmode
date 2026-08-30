@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Image, PanResponder, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,8 +21,22 @@ import {
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { triggerHaptic } from '@/components/FitUI';
+import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
+type MeasurementUnit = 'metric' | 'imperial';
+
+const KG_PER_POUND = 1 / 2.20462;
+
+function formatImperialHeight(heightCm: number) {
+  const totalInches = Math.round(heightCm / 2.54);
+  return { feet: Math.floor(totalInches / 12), inches: totalInches % 12 };
+}
+
+function formatImperialHeightLabel(heightCm: number) {
+  const { feet, inches } = formatImperialHeight(heightCm);
+  return `${feet}' ${inches}"`;
+}
 
 function CoachMotion({ variant, large = false }: { variant: CoachMotionVariant; large?: boolean }) {
   const source = variant === 'wave'
@@ -30,7 +44,7 @@ function CoachMotion({ variant, large = false }: { variant: CoachMotionVariant; 
     : variant === 'write'
       ? require('@/assets/images/coach-writing-no-bg.png')
       : require('@/assets/images/coach-thumbs-up-no-bg.png');
-  return <Image source={source} resizeMode="contain" style={large ? styles.coachLarge : styles.coachSmall} />;
+  return <Image source={source} resizeMode="contain" style={[large ? styles.coachLarge : styles.coachSmall, !large && variant === 'wave' ? styles.coachWaveQuestion : null]} />;
 }
 
 function ChoiceButton({ label, selected, onPress, icon }: { label: string; selected: boolean; onPress: () => void; icon?: React.ComponentProps<typeof Ionicons>['name'] }) {
@@ -42,39 +56,55 @@ function ChoiceButton({ label, selected, onPress, icon }: { label: string; selec
   </Pressable>;
 }
 
-function RulerPicker({ value, min, max, onChange }: { value: number; min: number; max: number; onChange: (value: number) => void }) {
+function RulerPicker({ value, min, max, onChange, valueLabel, minLabel, maxLabel }: { value: number; min: number; max: number; onChange: (value: number) => void; valueLabel: string; minLabel: string; maxLabel: string }) {
   const colors = useColors();
-  const updateFromX = (x: number) => onChange(Math.round(min + Math.max(0, Math.min(1, x / 308)) * (max - min)));
+  const [trackWidth, setTrackWidth] = React.useState(308);
+  const updateFromX = (x: number) => onChange(Math.round(min + Math.max(0, Math.min(1, x / trackWidth)) * (max - min)));
   const panResponder = React.useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
     onPanResponderGrant: (event) => updateFromX(event.nativeEvent.locationX),
     onPanResponderMove: (event) => updateFromX(event.nativeEvent.locationX),
-  }), [min, max, onChange]);
+  }), [min, max, onChange, trackWidth]);
   const progress = (value - min) / (max - min);
   return <View style={[styles.rulerCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <View style={styles.rulerValue}><Text style={[styles.rulerNumber, { color: colors.foreground }]}>{value}</Text><Text style={[styles.rulerUnit, { color: colors.primary }]}>cm</Text></View>
-    <View {...panResponder.panHandlers} style={styles.rulerTrack}>
+    <View style={styles.rulerValue}><Text style={[styles.rulerNumber, { color: colors.foreground }]}>{valueLabel}</Text></View>
+    <View {...panResponder.panHandlers} onLayout={({ nativeEvent }) => setTrackWidth(nativeEvent.layout.width)} style={styles.rulerTrack}>
       <View pointerEvents="none" style={[styles.rulerLine, { backgroundColor: colors.border }]} />
       <View pointerEvents="none" style={[styles.rulerProgress, { width: `${progress * 100}%`, backgroundColor: colors.primary }]} />
       <View pointerEvents="none" style={styles.rulerTicks}>{Array.from({ length: 16 }, (_, index) => <View key={index} style={[styles.rulerTick, { height: index % 5 === 0 ? 27 : 15, backgroundColor: index % 5 === 0 ? colors.primary : colors.mutedForeground }]} />)}</View>
       <View pointerEvents="none" style={[styles.rulerThumb, { left: `${progress * 100}%`, backgroundColor: colors.primary, borderColor: colors.background }]} />
     </View>
-    <View style={styles.rulerLabels}><Text style={[styles.rulerLabel, { color: colors.mutedForeground }]}>{min} cm</Text><Text style={[styles.rulerLabel, { color: colors.mutedForeground }]}>{max} cm</Text></View>
+    <View style={styles.rulerLabels}><Text style={[styles.rulerLabel, { color: colors.mutedForeground }]}>{minLabel}</Text><Text style={[styles.rulerLabel, { color: colors.mutedForeground }]}>{maxLabel}</Text></View>
   </View>;
 }
 
-function WeightPicker({ value, onChange }: { value: number; onChange: (value: number) => void }) {
+function UnitToggle({ unit, onChange, metricLabel, imperialLabel }: { unit: MeasurementUnit; onChange: (unit: MeasurementUnit) => void; metricLabel: string; imperialLabel: string }) {
   const colors = useColors();
-  const change = (amount: number) => onChange(Math.round(Math.max(35, Math.min(200, value + amount)) * 10) / 10);
-  return <View style={[styles.weightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <Pressable onPress={() => change(-0.5)} style={[styles.stepButton, { backgroundColor: colors.secondary }]}><Ionicons name="remove" size={22} color={colors.foreground} /></Pressable>
-    <View style={styles.weightValue}><Text style={[styles.weightNumber, { color: colors.foreground }]}>{value.toFixed(1)}</Text><Text style={[styles.rulerUnit, { color: colors.primary }]}>kg</Text></View>
-    <Pressable onPress={() => change(0.5)} style={[styles.stepButton, { backgroundColor: colors.primary }]}><Ionicons name="add" size={22} color={colors.primaryForeground} /></Pressable>
+  return <View style={[styles.unitToggle, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    {(['metric', 'imperial'] as const).map((option) => {
+      const selected = unit === option;
+      return <Pressable key={option} onPress={() => { triggerHaptic(); onChange(option); }} style={[styles.unitOption, selected ? { backgroundColor: colors.primary } : null]}>
+        <Text style={[styles.unitOptionText, { color: selected ? colors.primaryForeground : colors.mutedForeground }]}>{option === 'metric' ? metricLabel : imperialLabel}</Text>
+      </Pressable>;
+    })}
   </View>;
 }
 
-function BirthDatePicker({ day, month, year, labels, onChange }: { day: number; month: number; year: number; labels: { day: string; month: string; year: string }; onChange: (day: number, month: number, year: number) => void }) {
+function WeightPicker({ value, unit, inputValue, onInputChange, onChange }: { value: number; unit: MeasurementUnit; inputValue: string; onInputChange: (value: string) => void; onChange: (value: number) => void }) {
+  const colors = useColors();
+  const change = (amount: number) => {
+    const next = unit === 'metric' ? value + amount : value + amount * KG_PER_POUND;
+    onChange(Math.round(Math.max(35, Math.min(200, next)) * 10) / 10);
+  };
+  return <View style={[styles.weightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Pressable onPress={() => change(unit === 'metric' ? -0.5 : -1)} style={[styles.stepButton, { backgroundColor: colors.secondary }]}><Ionicons name="remove" size={22} color={colors.foreground} /></Pressable>
+    <View style={styles.weightValue}><TextInput value={inputValue} onChangeText={onInputChange} keyboardType="decimal-pad" selectTextOnFocus style={[styles.weightNumberInput, { color: colors.foreground }]} /><Text style={[styles.rulerUnit, { color: colors.primary }]}>{unit === 'metric' ? 'kg' : 'lb'}</Text></View>
+    <Pressable onPress={() => change(unit === 'metric' ? 0.5 : 1)} style={[styles.stepButton, { backgroundColor: colors.primary }]}><Ionicons name="add" size={22} color={colors.primaryForeground} /></Pressable>
+  </View>;
+}
+
+function BirthDatePicker({ day, month, year, dayText, monthText, yearText, labels, onChange, onTextChange }: { day: number; month: number; year: number; dayText: string; monthText: string; yearText: string; labels: { day: string; month: string; year: string }; onChange: (day: number, month: number, year: number) => void; onTextChange: (field: 'day' | 'month' | 'year', value: string) => void }) {
   const colors = useColors();
   const currentYear = new Date().getFullYear();
   const adjust = (field: 'day' | 'month' | 'year', amount: number) => {
@@ -83,13 +113,13 @@ function BirthDatePicker({ day, month, year, labels, onChange }: { day: number; 
     const nextYear = field === 'year' ? Math.max(currentYear - 90, Math.min(currentYear - 13, year + amount)) : year;
     onChange(nextDay, nextMonth, nextYear);
   };
-  const column = (label: string, value: number, field: 'day' | 'month' | 'year') => <View style={styles.dateColumn}>
+  const column = (label: string, value: number, valueText: string, field: 'day' | 'month' | 'year') => <View style={styles.dateColumn}>
     <Text style={[styles.dateLabel, { color: colors.mutedForeground }]}>{label}</Text>
     <Pressable onPress={() => adjust(field, 1)}><Ionicons name="chevron-up" size={18} color={colors.primary} /></Pressable>
-    <View style={[styles.dateValue, { backgroundColor: colors.secondary }]}><Text style={[styles.dateNumber, { color: colors.foreground }]}>{String(value).padStart(2, '0')}</Text></View>
+    <TextInput value={valueText} onChangeText={(text) => onTextChange(field, text)} keyboardType="number-pad" maxLength={field === 'year' ? 4 : 2} selectTextOnFocus style={[styles.dateValue, styles.dateNumber, { backgroundColor: colors.secondary, color: colors.foreground }]} />
     <Pressable onPress={() => adjust(field, -1)}><Ionicons name="chevron-down" size={18} color={colors.primary} /></Pressable>
   </View>;
-  return <View style={[styles.birthCard, { backgroundColor: colors.card, borderColor: colors.border }]}>{column(labels.day, day, 'day')}<Text style={[styles.dateSlash, { color: colors.mutedForeground }]}>/</Text>{column(labels.month, month, 'month')}<Text style={[styles.dateSlash, { color: colors.mutedForeground }]}>/</Text>{column(labels.year, year, 'year')}</View>;
+  return <View style={[styles.birthCard, { backgroundColor: colors.card, borderColor: colors.border }]}>{column(labels.day, day, dayText, 'day')}<Text style={[styles.dateSlash, { color: colors.mutedForeground }]}>/</Text>{column(labels.month, month, monthText, 'month')}<Text style={[styles.dateSlash, { color: colors.mutedForeground }]}>/</Text>{column(labels.year, year, yearText, 'year')}</View>;
 }
 
 function getAge(day: number, month: number, year: number) {
@@ -120,11 +150,19 @@ function OnboardingQuestions() {
   const [equipment, setEquipment] = React.useState<Equipment>('bodyweight');
   const [gymLevel, setGymLevel] = React.useState<GymLevel>('full');
   const [goal, setGoal] = React.useState<FitnessGoal>('maintain');
+  const [measurementUnit, setMeasurementUnit] = React.useState<MeasurementUnit>('metric');
   const [height, setHeight] = React.useState(170);
   const [weight, setWeight] = React.useState(70);
+  const [heightText, setHeightText] = React.useState('170');
+  const [heightFeetText, setHeightFeetText] = React.useState('5');
+  const [heightInchesText, setHeightInchesText] = React.useState('7');
+  const [weightText, setWeightText] = React.useState('70.0');
   const [birthDay, setBirthDay] = React.useState(1);
   const [birthMonth, setBirthMonth] = React.useState(1);
   const [birthYear, setBirthYear] = React.useState(new Date().getFullYear() - 25);
+  const [birthDayText, setBirthDayText] = React.useState('01');
+  const [birthMonthText, setBirthMonthText] = React.useState('01');
+  const [birthYearText, setBirthYearText] = React.useState(String(new Date().getFullYear() - 25));
   const [username, setUsername] = React.useState('');
   const [sex, setSex] = React.useState<BiologicalSex>('preferNot');
   const [activity, setActivity] = React.useState<ActivityLevel>('light');
@@ -140,6 +178,64 @@ function OnboardingQuestions() {
   const slide = React.useRef(new Animated.Value(1)).current;
   const total = 15;
   const currentAge = getAge(birthDay, birthMonth, birthYear);
+
+  const updateHeightFromCm = (value: number) => {
+    const next = Math.round(Math.max(130, Math.min(220, value)));
+    setHeight(next);
+    const imperial = formatImperialHeight(next);
+    setHeightText(String(next));
+    setHeightFeetText(String(imperial.feet));
+    setHeightInchesText(String(imperial.inches));
+  };
+  const updateWeightFromKg = (value: number) => {
+    const next = Math.round(Math.max(35, Math.min(200, value)) * 10) / 10;
+    setWeight(next);
+    setWeightText(measurementUnit === 'metric' ? next.toFixed(1) : (next / KG_PER_POUND).toFixed(1));
+  };
+  const changeMeasurementUnit = (next: MeasurementUnit) => {
+    setMeasurementUnit(next);
+    const imperial = formatImperialHeight(height);
+    setHeightText(String(height));
+    setHeightFeetText(String(imperial.feet));
+    setHeightInchesText(String(imperial.inches));
+    setWeightText(next === 'metric' ? weight.toFixed(1) : (weight / KG_PER_POUND).toFixed(1));
+  };
+  const updateMetricHeightText = (text: string) => {
+    setHeightText(text);
+    const parsed = Number(text.replace(',', '.'));
+    if (Number.isFinite(parsed) && parsed >= 130 && parsed <= 220) updateHeightFromCm(parsed);
+  };
+  const updateImperialHeightText = (field: 'feet' | 'inches', text: string) => {
+    if (field === 'feet') setHeightFeetText(text);
+    else setHeightInchesText(text);
+    const feet = field === 'feet' ? Number(text) : Number(heightFeetText);
+    const inches = field === 'inches' ? Number(text) : Number(heightInchesText);
+    if (Number.isFinite(feet) && Number.isFinite(inches) && inches >= 0 && inches <= 11) updateHeightFromCm((feet * 12 + inches) * 2.54);
+  };
+  const updateWeightText = (text: string) => {
+    setWeightText(text);
+    const parsed = Number(text.replace(',', '.'));
+    const next = measurementUnit === 'metric' ? parsed : parsed * KG_PER_POUND;
+    if (Number.isFinite(parsed) && next >= 35 && next <= 200) updateWeightFromKg(next);
+  };
+  const updateBirth = (day: number, month: number, year: number) => {
+    setBirthDay(day);
+    setBirthMonth(month);
+    setBirthYear(year);
+    setBirthDayText(String(day).padStart(2, '0'));
+    setBirthMonthText(String(month).padStart(2, '0'));
+    setBirthYearText(String(year));
+  };
+  const updateBirthText = (field: 'day' | 'month' | 'year', text: string) => {
+    if (field === 'day') setBirthDayText(text);
+    if (field === 'month') setBirthMonthText(text);
+    if (field === 'year') setBirthYearText(text);
+    const parsed = Number(text);
+    if (!Number.isInteger(parsed)) return;
+    if (field === 'day' && parsed >= 1 && parsed <= 31) setBirthDay(parsed);
+    if (field === 'month' && parsed >= 1 && parsed <= 12) setBirthMonth(parsed);
+    if (field === 'year' && parsed >= new Date().getFullYear() - 90 && parsed <= new Date().getFullYear()) setBirthYear(parsed);
+  };
 
   React.useEffect(() => {
     AsyncStorage.getItem('forge-fit-usernames').then((value) => setTaken(value ? JSON.parse(value) as string[] : [])).catch(() => undefined);
@@ -180,7 +276,35 @@ function OnboardingQuestions() {
       if (taken.includes(clean)) return setError(t('usernameTaken'));
     }
     if (step === 1 && equipment === 'gym' && !gymLevel) return setError(t('gymLevelQuestion'));
-    if (step === 4 && currentAge < 13) return setError(t('ageQuestion'));
+    if (step === 2) {
+      if (measurementUnit === 'metric') {
+        const parsed = Number(heightText.replace(',', '.'));
+        if (!Number.isFinite(parsed) || parsed < 130 || parsed > 220) return setError(t('heightRangeError'));
+        updateHeightFromCm(parsed);
+      } else {
+        const feet = Number(heightFeetText);
+        const inches = Number(heightInchesText);
+        const totalInches = feet * 12 + inches;
+        const cm = totalInches * 2.54;
+        if (!Number.isInteger(feet) || !Number.isInteger(inches) || feet < 4 || feet > 7 || inches < 0 || inches > 11 || cm < 130 || cm > 220) return setError(t('heightRangeError'));
+        updateHeightFromCm(cm);
+      }
+    }
+    if (step === 3) {
+      const parsed = Number(weightText.replace(',', '.'));
+      const kg = measurementUnit === 'metric' ? parsed : parsed * KG_PER_POUND;
+      if (!Number.isFinite(parsed) || kg < 35 || kg > 200) return setError(t('weightRangeError'));
+      updateWeightFromKg(kg);
+    }
+    if (step === 4) {
+      const day = Number(birthDayText);
+      const month = Number(birthMonthText);
+      const year = Number(birthYearText);
+      const date = new Date(year, month - 1, day);
+      if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year) || date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return setError(t('birthDateError'));
+      if (getAge(day, month, year) < 13) return setError(t('ageQuestion'));
+      updateBirth(day, month, year);
+    }
     if (step === total - 1) return advance();
     advance();
   };
@@ -197,18 +321,24 @@ function OnboardingQuestions() {
   const swipeResponder = React.useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
     onPanResponderRelease: (_, gesture) => {
+      if (step >= 2 && step <= 4) return;
       if (gesture.dx < -55) next();
       if (gesture.dx > 55) goBack();
     },
-  }), [language, step, username, equipment, gymLevel, currentAge, taken]);
+  }), [language, step, username, equipment, gymLevel, currentAge, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, birthDayText, birthMonthText, birthYearText]);
   const titleKeys = ['nameFirstQuestion', 'equipmentQuestion', 'heightQuestion', 'weightQuestion', 'birthDateQuestion', 'goalQuestion', 'sexQuestion', 'activityQuestion', 'trainingDaysQuestion', 'durationQuestion', 'speedQuestion', 'dietQuestion', 'proteinQuestion', 'experienceQuestion', 'preferredDaysQuestion'] as const;
   const selectedDays = (day: string) => setPreferredDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
   const renderBody = () => {
     if (step === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></>;
     if (step === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View> : null}</>;
-    if (step === 2) return <><RulerPicker value={height} min={130} max={220} onChange={setHeight} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('heightRulerHint')}</Text></>;
-    if (step === 3) return <WeightPicker value={weight} onChange={setWeight} />;
-    if (step === 4) return <><BirthDatePicker day={birthDay} month={birthMonth} year={birthYear} labels={{ day: t('day'), month: t('month'), year: t('year') }} onChange={(day, month, year) => { setBirthDay(day); setBirthMonth(month); setBirthYear(year); }} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('birthDateHint')} · {currentAge} {t('ageYears')}</Text></>;
+     if (step === 2) return <View style={styles.measurementSection}>
+       <UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} />
+       <RulerPicker value={height} min={130} max={220} onChange={updateHeightFromCm} valueLabel={measurementUnit === 'metric' ? `${height} cm` : formatImperialHeightLabel(height)} minLabel={measurementUnit === 'metric' ? '130 cm' : formatImperialHeightLabel(130)} maxLabel={measurementUnit === 'metric' ? '220 cm' : formatImperialHeightLabel(220)} />
+       {measurementUnit === 'metric' ? <View style={styles.measurementInputRow}><TextInput value={heightText} onChangeText={updateMetricHeightText} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>cm</Text></View> : <View style={styles.measurementInputRow}><TextInput value={heightFeetText} onChangeText={(text) => updateImperialHeightText('feet', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>ft</Text><TextInput value={heightInchesText} onChangeText={(text) => updateImperialHeightText('inches', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>in</Text></View>}
+       <Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('heightRulerHint')}</Text>
+     </View>;
+     if (step === 3) return <View style={styles.measurementSection}><UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} /><WeightPicker value={weight} unit={measurementUnit} inputValue={weightText} onInputChange={updateWeightText} onChange={updateWeightFromKg} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('weightInputHint')}</Text></View>;
+     if (step === 4) return <><BirthDatePicker day={birthDay} month={birthMonth} year={birthYear} dayText={birthDayText} monthText={birthMonthText} yearText={birthYearText} labels={{ day: t('day'), month: t('month'), year: t('year') }} onChange={updateBirth} onTextChange={updateBirthText} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('birthDateHint')} · {currentAge} {t('ageYears')}</Text></>;
     if (step === 5) return <View style={styles.choiceList}><ChoiceButton label={t('goalMuscle')} selected={goal === 'muscle'} onPress={() => setGoal('muscle')} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightLoss')} selected={goal === 'weightLoss'} onPress={() => setGoal('weightLoss')} icon="scale-outline" /><ChoiceButton label={t('goalFatLoss')} selected={goal === 'fatLoss'} onPress={() => setGoal('fatLoss')} icon="flame-outline" /><ChoiceButton label={t('goalMaintain')} selected={goal === 'maintain'} onPress={() => setGoal('maintain')} icon="pause-outline" /></View>;
     if (step === 6) return <View style={styles.choiceList}><ChoiceButton label={t('sexFemale')} selected={sex === 'female'} onPress={() => setSex('female')} /><ChoiceButton label={t('sexMale')} selected={sex === 'male'} onPress={() => setSex('male')} /><ChoiceButton label={t('sexPreferNot')} selected={sex === 'preferNot'} onPress={() => setSex('preferNot')} /></View>;
     if (step === 7) return <View style={styles.choiceList}><ChoiceButton label={t('activitySedentary')} selected={activity === 'sedentary'} onPress={() => setActivity('sedentary')} /><ChoiceButton label={t('activityLight')} selected={activity === 'light'} onPress={() => setActivity('light')} /><ChoiceButton label={t('activityModerate')} selected={activity === 'moderate'} onPress={() => setActivity('moderate')} /><ChoiceButton label={t('activityHigh')} selected={activity === 'high'} onPress={() => setActivity('high')} /></View>;
@@ -227,14 +357,14 @@ function OnboardingQuestions() {
   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
     <View style={styles.questionTop}><View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
-      <ScrollView contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false}>
+       <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
         <View style={styles.coachQuestionVisual}><CoachMotion variant={step === 0 ? 'wave' : 'write'} /></View>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / {total}</Text>
         {optional ? <Text style={[styles.optionalLabel, { color: colors.primary }]}>{t('optionalLabel')}</Text> : null}
         <Text style={[styles.questionTitle, { color: colors.foreground }]}>{t(titleKeys[step])}</Text>
         {renderBody()}
         {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
-      </ScrollView>
+      </KeyboardAwareScrollViewCompat>
     </Animated.View>
      <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>{optional ? <Pressable onPress={() => { triggerHaptic(); skip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('skipQuestion')}</Text></Pressable> : null}</View>
   </LinearGradient>;
@@ -313,8 +443,9 @@ const styles = StyleSheet.create({
   language: { fontFamily: 'Inter_700Bold', fontSize: 10 },
   questionBody: { flex: 1, minHeight: 0, marginTop: 10 },
   questionScrollContent: { paddingTop: 2, paddingBottom: 12 },
-  coachQuestionVisual: { width: 218, height: 218, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  coachSmall: { width: 218, height: 218 },
+  coachQuestionVisual: { width: 238, height: 238, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  coachSmall: { width: 238, height: 238 },
+  coachWaveQuestion: { transform: [{ translateX: 7 }] },
   coachLarge: { width: 220, height: 220 },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.5, marginBottom: 9 },
   optionalLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
@@ -340,15 +471,23 @@ const styles = StyleSheet.create({
   rulerLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
   rulerLabel: { fontFamily: 'Inter_500Medium', fontSize: 11 },
   centerHint: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18, marginTop: 13 },
+  measurementSection: { gap: 12 },
+  unitToggle: { flexDirection: 'row', borderWidth: 1, borderRadius: 15, padding: 3, gap: 3 },
+  unitOption: { flex: 1, minHeight: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  unitOptionText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
+  measurementInputRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  measurementInput: { minWidth: 118, height: 48, borderWidth: 1, borderRadius: 15, paddingHorizontal: 14, textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 18 },
+  measurementSmallInput: { minWidth: 78 },
+  measurementInputUnit: { fontFamily: 'Inter_700Bold', fontSize: 14, marginLeft: -3 },
   weightCard: { borderRadius: 24, borderWidth: 1, padding: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   stepButton: { width: 48, height: 48, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  weightValue: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
-  weightNumber: { fontFamily: 'Inter_700Bold', fontSize: 48, letterSpacing: -2 },
+  weightValue: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  weightNumberInput: { minWidth: 106, padding: 0, textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 42, letterSpacing: -2 },
   birthCard: { borderRadius: 24, borderWidth: 1, paddingVertical: 17, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
   dateColumn: { alignItems: 'center', gap: 5, minWidth: 70 },
   dateLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   dateValue: { minWidth: 62, height: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  dateNumber: { fontFamily: 'Inter_700Bold', fontSize: 19 },
+  dateNumber: { fontFamily: 'Inter_700Bold', fontSize: 19, textAlign: 'center' },
   dateSlash: { fontFamily: 'Inter_700Bold', fontSize: 22 },
   dayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' },
   dayButton: { width: 82, height: 52, borderRadius: 17, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
