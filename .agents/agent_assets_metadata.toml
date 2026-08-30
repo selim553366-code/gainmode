@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "X1s5XTgq0ErTiq-UegBAH"
+uri = "file://artifacts/forge-fit/assets/images/coach-app-icon-final.png"
+type = "image"
+title = "Forge Fit coach app icon"
+description = "Yazısız, kare uygulama kapağı. Mavi koç karakteri tam taşan mavi arka plan üzerinde; Expo icon ve splash asset’i olarak bağlandı."
+logical_id = "5f51318f-b365-44c0-bcc6-8716d8df1bc7"
+content_hash = "sha256:54809049578d493152d634d35d0d462a3a8a014f2109b94f37d296e20dc6cebb"
+size = 1498728
+mtime_ms = 1788103228256
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/5f51318f-b365-44c0-bcc6-8716d8df1bc7/036f325b-0f86-4f95-9a02-b7a3f2c858c4"
+storage_version_token = "1788103291488392"
+content_type = "image/png"
