@@ -10,6 +10,24 @@ import { Card, Header, Pill } from '@/components/FitUI';
 
 type Message = { id: string; text: string; from: 'coach' | 'user' };
 
+function TypingIndicator({ label, colors }: { label: string; colors: ReturnType<typeof useColors> }) {
+  const dots = React.useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
+  React.useEffect(() => {
+    const animations = dots.map((dot, index) => Animated.loop(Animated.sequence([
+      Animated.delay(index * 130),
+      Animated.timing(dot, { toValue: 1, duration: 280, useNativeDriver: true }),
+      Animated.timing(dot, { toValue: 0, duration: 280, useNativeDriver: true }),
+      Animated.delay(500 - index * 130),
+    ])));
+    animations.forEach((animation) => animation.start());
+    return () => animations.forEach((animation) => animation.stop());
+  }, [dots]);
+  return <View style={[styles.typingBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Text style={[styles.typingLabel, { color: colors.mutedForeground }]}>{label}</Text>
+    <View style={styles.typingDots}>{dots.map((dot, index) => <Animated.View key={index} style={[styles.typingDot, { backgroundColor: colors.primary, transform: [{ translateY: dot.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }]} />)}</View>
+  </View>;
+}
+
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -56,7 +74,7 @@ export default function CoachScreen() {
      <Card style={styles.coachCard}><Image source={require('@/assets/images/coach.png')} style={styles.coachAvatar} /><View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{t('coachTitle')}</Text></View><View style={styles.limit}><Text style={[styles.limitNumber, { color: colors.foreground }]}>{String(5 - coachMessagesUsed).padStart(2, '0')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>/ 05</Text></View></Card>
     <View style={styles.suggestions}><Pill label={t('coachExample')} onPress={() => setText(t('coachExample'))} /><Pill label={t('protein')} onPress={() => setText(t('protein'))} /></View>
     <KeyboardAvoidingView style={styles.chatWrap} behavior="padding" keyboardVerticalOffset={0}>
-      <FlatList style={styles.messagesList} data={messages} keyExtractor={(item) => item.id} renderItem={({ item }) => <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card, borderColor: colors.border }]]}><Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text></View>} contentContainerStyle={styles.messageList} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" />
+      <FlatList style={styles.messagesList} data={messages} keyExtractor={(item) => item.id} renderItem={({ item }) => <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card, borderColor: colors.border }]]}><Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text></View>} ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : null} contentContainerStyle={styles.messageList} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" />
       <View style={[styles.inputRow, { paddingBottom: insets.bottom + 8, backgroundColor: colors.background }]}>
         <Animated.View style={[styles.auraInput, { borderColor: colors.primary, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]}><TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { backgroundColor: colors.card, color: colors.foreground }]} /></Animated.View>
         <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.primaryForeground} /></Pressable>
@@ -81,6 +99,10 @@ const styles = StyleSheet.create({
   userBubble: { alignSelf: 'flex-end', borderBottomRightRadius: 6 },
   coachBubble: { alignSelf: 'flex-start', borderWidth: 1, borderBottomLeftRadius: 6 },
   bubbleText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20 },
+  typingBubble: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 18, borderBottomLeftRadius: 6, paddingHorizontal: 14, paddingVertical: 11 },
+  typingLabel: { fontFamily: 'Inter_500Medium', fontSize: 12 },
+  typingDots: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 14 },
+  typingDot: { width: 5, height: 5, borderRadius: 3 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingTop: 9 },
   input: { flex: 1, minHeight: 48, borderWidth: 1, borderRadius: 17, paddingHorizontal: 15, fontFamily: 'Inter_400Regular', fontSize: 13 },
   auraInput: { flex: 1, borderWidth: 1.5, borderRadius: 19, shadowOpacity: 0.75, shadowRadius: 10, elevation: 3 },
