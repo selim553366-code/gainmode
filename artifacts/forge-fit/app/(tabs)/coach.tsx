@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { Card, Header, Pill, Screen } from '@/components/FitUI';
+import { Card, Header, Pill } from '@/components/FitUI';
 
 type Message = { id: string; text: string; from: 'coach' | 'user' };
 
@@ -49,12 +49,11 @@ export default function CoachScreen() {
     } finally {
       setLoading(false);
       setCoachThinking(false);
-      inputRef.current?.focus();
     }
   };
-  return <Screen scroll={false}>
+  return <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
     <Header eyebrow="Intelligence / 05" title={t('coachTitle')} subtitle={t('coachSubtitle')} action="sparkles-outline" onAction={() => undefined} />
-     <Card style={styles.coachCard}><Image source={require('@/assets/images/coach.png')} style={styles.coachAvatar} /><View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{t('coachTitle')}</Text><Text style={[styles.caption, { color: colors.success }]}>{t('online')}</Text></View><View style={styles.limit}><Text style={[styles.limitNumber, { color: colors.foreground }]}>{String(5 - coachMessagesUsed).padStart(2, '0')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>/ 05</Text></View></Card>
+     <Card style={styles.coachCard}><Image source={require('@/assets/images/coach.png')} style={styles.coachAvatar} /><View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{t('coachTitle')}</Text></View><View style={styles.limit}><Text style={[styles.limitNumber, { color: colors.foreground }]}>{String(5 - coachMessagesUsed).padStart(2, '0')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>/ 05</Text></View></Card>
     <View style={styles.suggestions}><Pill label={t('coachExample')} onPress={() => setText(t('coachExample'))} /><Pill label={t('protein')} onPress={() => setText(t('protein'))} /></View>
     <KeyboardAvoidingView style={styles.chatWrap} behavior="padding" keyboardVerticalOffset={0}>
       <FlatList style={styles.messagesList} data={messages} keyExtractor={(item) => item.id} renderItem={({ item }) => <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card, borderColor: colors.border }]]}><Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text></View>} contentContainerStyle={styles.messageList} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled" />
@@ -63,10 +62,11 @@ export default function CoachScreen() {
         <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.primaryForeground} /></Pressable>
       </View>
     </KeyboardAvoidingView>
-  </Screen>;
+  </View>;
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, paddingHorizontal: 20 },
   coachCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15 },
   coachAvatar: { width: 48, height: 48, borderRadius: 17 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   limit: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   limitNumber: { fontFamily: 'Inter_700Bold', fontSize: 18 },
   suggestions: { flexDirection: 'row', marginBottom: 8, overflow: 'hidden' },
-  chatWrap: { flex: 1, minHeight: 350 },
+  chatWrap: { flex: 1, minHeight: 0 },
   messagesList: { flex: 1, minHeight: 0 },
   messageList: { paddingVertical: 12, gap: 10 },
   bubble: { maxWidth: '84%', paddingHorizontal: 15, paddingVertical: 12, borderRadius: 18 },
