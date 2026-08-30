@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   coachTabButton: { position: 'absolute', top: -42, alignItems: 'center', shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 4 }, elevation: 18 },
   coachTabCircle: { width: 88, height: 88, borderRadius: 44, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.42, shadowRadius: 14, shadowOffset: { width: 0, height: 0 }, elevation: 13 },
   coachTabImage: { width: 88, height: 88, borderRadius: 44 },
-  coachThinkingImage: { transform: [{ translateY: 4 }] },
+  coachThinkingImage: { width: 100, height: 100, transform: [{ translateY: 6 }] },
   coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 7, letterSpacing: 0.8 },
   coachTabDot: { width: 5, height: 5, borderRadius: 3, marginTop: 4 },
 });
