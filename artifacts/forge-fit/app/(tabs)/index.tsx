@@ -5,11 +5,11 @@ import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { ActionTile, AnimatedNumber, Card, Header, Metric, PremiumOfferModal, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
+import { AnimatedNumber, Card, Header, Metric, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
 
 export default function TodayScreen() {
   const colors = useColors();
-  const { language, meals, weight, username, calorieGoal, workouts, isPremium } = useFit();
+  const { language, meals, username, calorieGoal, workouts, isPremium } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [premiumVisible, setPremiumVisible] = React.useState(false);
   const calories = meals.reduce((sum, meal) => sum + meal.calories, 0);
@@ -19,7 +19,7 @@ export default function TodayScreen() {
     fat: totals.fat + meal.fat,
   }), { protein: 0, carbs: 0, fat: 0 });
   return (
-    <Screen>
+    <Screen bottomPadding={120}>
       <Header
         title={`${t('goodMorning')}, ${username ?? ''}`.trim()}
         subtitle={t('ready')}
@@ -64,14 +64,6 @@ export default function TodayScreen() {
         <Pressable testID="create-workout-plan" onPress={() => router.push('/(tabs)/plan')} style={({ pressed }) => [styles.workoutButton, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
       </Card>
 
-      <SectionTitle title={t('quickActions')} />
-      <View style={styles.actionGrid}>
-        <ActionTile icon="restaurant-outline" title={t('logMeal')} subtitle={t('addFirstMeal')} color={colors.success} onPress={() => router.push('/(tabs)/nutrition')} />
-        <ActionTile icon="scan-outline" title={t('scanMeal')} subtitle={t('premium')} color={colors.plum} onPress={() => router.push('/(tabs)/nutrition')} />
-        <ActionTile icon="scale-outline" title={t('weight')} subtitle={weight === null ? t('noData') : `${weight} kg`} color={colors.blue} onPress={() => router.push('/(tabs)/progress')} />
-        <ActionTile icon="flame-outline" title={t('streak')} subtitle={t('noData')} color={colors.orange} />
-      </View>
-
       <Card onPress={() => setPremiumVisible(true)} style={[styles.premiumCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
         <View style={[styles.premiumMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={16} color={colors.primaryForeground} /></View>
         <View style={{ flex: 1 }}><Text style={[styles.premiumLabel, { color: colors.primary }]}>{t('premium')}</Text><Text style={[styles.premiumTitle, { color: colors.foreground }]}>{t('unlock')}</Text><Text style={[styles.premiumDesc, { color: colors.mutedForeground }]}>{t('premiumDesc')}</Text></View>
@@ -110,7 +102,6 @@ const styles = StyleSheet.create({
   workoutCard: { flexDirection: 'row', alignItems: 'center', gap: 13 },
   workoutIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   workoutButton: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   premiumCard: { flexDirection: 'row', alignItems: 'center', gap: 13, borderWidth: 1, borderRadius: 22, padding: 16, marginTop: 8 },
   premiumMark: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   premiumLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.2, marginBottom: 4 },

@@ -17,11 +17,11 @@ export function triggerHaptic(style: Haptics.ImpactFeedbackStyle = Haptics.Impac
   Haptics.impactAsync(style).catch(() => undefined);
 }
 
-export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
+export function Screen({ children, scroll = true, bottomPadding = 104 }: { children: ReactNode; scroll?: boolean; bottomPadding?: number }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topSpacing = Platform.OS === 'ios' ? 28 : 16;
-  const content = <View style={[styles.screen, { paddingTop: insets.top + topSpacing, paddingBottom: insets.bottom + 104, backgroundColor: colors.background }]}>{children}</View>;
+  const content = <View style={[styles.screen, { paddingTop: insets.top + topSpacing, paddingBottom: insets.bottom + bottomPadding, backgroundColor: colors.background }]}>{children}</View>;
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{content}</ScrollView> : content;
 }
 
