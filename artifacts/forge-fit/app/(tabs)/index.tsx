@@ -1,15 +1,19 @@
 import React from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Accelerometer } from 'expo-sensors';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { AnimatedNumber, Card, Header, Metric, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
+import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
+import { AnimatedNumber, Card, ForgeFitMark, Header, Metric, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
 
 function CalorieWaterFill({ progress, color }: { progress: number; color: string }) {
   const level = React.useRef(new Animated.Value(0)).current;
   const wave = React.useRef(new Animated.Value(0)).current;
+  const tiltX = React.useRef(new Animated.Value(0)).current;
+  const tiltY = React.useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
     Animated.timing(level, { toValue: Math.max(0.035, Math.min(progress, 1)), duration: 650, useNativeDriver: false }).start();
   }, [level, progress]);
@@ -18,10 +22,29 @@ function CalorieWaterFill({ progress, color }: { progress: number; color: string
     animation.start();
     return () => animation.stop();
   }, [wave]);
+  React.useEffect(() => {
+    if (Platform.OS === 'web') return;
+    let subscription: { remove: () => void } | undefined;
+    try {
+      Accelerometer.setUpdateInterval(55);
+      subscription = Accelerometer.addListener(({ x, y }) => {
+        Animated.parallel([
+          Animated.spring(tiltX, { toValue: Math.max(-1, Math.min(1, x)), friction: 8, tension: 55, useNativeDriver: true }),
+          Animated.spring(tiltY, { toValue: Math.max(-1, Math.min(1, y)), friction: 8, tension: 55, useNativeDriver: true }),
+        ]).start();
+      });
+    } catch {
+      // Sensor access is unavailable in web previews and restricted native environments.
+    }
+    return () => subscription?.remove();
+  }, [tiltX, tiltY]);
   const height = level.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   const translateX = wave.interpolate({ inputRange: [0, 1], outputRange: [0, -92] });
+  const fluidTranslateX = tiltX.interpolate({ inputRange: [-1, 1], outputRange: [-10, 10] });
+  const fluidTranslateY = tiltY.interpolate({ inputRange: [-1, 1], outputRange: [7, -7] });
+  const fluidRotation = tiltX.interpolate({ inputRange: [-1, 1], outputRange: ['-5deg', '5deg'] });
   return <View pointerEvents="none" style={styles.waterFrame}>
-    <Animated.View style={[styles.waterFill, { height, backgroundColor: color }]}>
+    <Animated.View style={[styles.waterFill, { height, backgroundColor: color, transform: [{ translateX: fluidTranslateX }, { translateY: fluidTranslateY }, { rotate: fluidRotation }] }]}>
       <Animated.View style={[styles.waterWave, { backgroundColor: color, transform: [{ translateX }] }]} />
       <Animated.View style={[styles.waterWave, styles.waterWaveSecond, { backgroundColor: color, transform: [{ translateX }] }]} />
     </Animated.View>
@@ -34,6 +57,7 @@ export default function TodayScreen() {
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [premiumVisible, setPremiumVisible] = React.useState(false);
   const calories = meals.reduce((sum, meal) => sum + meal.calories, 0);
+  const streak = workouts.filter((workout) => workout.completed).length;
   const macros = meals.reduce((totals, meal) => ({
     protein: totals.protein + meal.protein,
     carbs: totals.carbs + meal.carbs,
@@ -46,9 +70,11 @@ export default function TodayScreen() {
         subtitle={t('ready')}
          action="settings-outline"
          onAction={() => router.push('/settings')}
-         premiumLabel={isPremium ? t('premiumOwned') : t('premiumShort')}
+         premiumLabel={SUBSCRIPTION_PURCHASE_ENABLED ? (isPremium ? t('premiumOwned') : t('premiumShort')) : undefined}
          premiumOwned={isPremium}
-         premiumAction={() => setPremiumVisible(true)}
+         premiumAction={SUBSCRIPTION_PURCHASE_ENABLED ? () => setPremiumVisible(true) : undefined}
+         streak={streak}
+         streakLabel={t('streak')}
       />
 
       <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
@@ -86,11 +112,11 @@ export default function TodayScreen() {
         <Pressable testID="create-workout-plan" onPress={() => router.push('/(tabs)/plan')} style={({ pressed }) => [styles.workoutButton, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
       </Card>
 
-      <Card onPress={() => setPremiumVisible(true)} style={[styles.premiumCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
-        <View style={[styles.premiumMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={16} color={colors.primaryForeground} /></View>
+      {SUBSCRIPTION_PURCHASE_ENABLED ? <Card onPress={() => setPremiumVisible(true)} style={[styles.premiumCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
+        <View style={[styles.premiumMark, { backgroundColor: colors.primary }]}><ForgeFitMark size={34} /></View>
         <View style={{ flex: 1 }}><Text style={[styles.premiumLabel, { color: colors.primary }]}>{t('premium')}</Text><Text style={[styles.premiumTitle, { color: colors.foreground }]}>{t('unlock')}</Text><Text style={[styles.premiumDesc, { color: colors.mutedForeground }]}>{t('premiumDesc')}</Text></View>
         <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
-      </Card>
+      </Card> : null}
 
       <PremiumOfferModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
     </Screen>
@@ -117,7 +143,7 @@ const styles = StyleSheet.create({
   heroSmallValue: { fontFamily: 'Inter_700Bold', fontSize: 16, marginTop: 3 },
   heroStatus: { flexDirection: 'row', gap: 5, alignItems: 'center' },
   heroStatusText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  metricRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginBottom: 16 },
+  metricRow: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginBottom: 16 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardCaption: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 5 },
   workoutCard: { flexDirection: 'row', alignItems: 'center', gap: 13 },

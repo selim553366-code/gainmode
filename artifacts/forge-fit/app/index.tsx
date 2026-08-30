@@ -21,9 +21,9 @@ import {
 } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { triggerHaptic } from '@/components/FitUI';
+import { ForgeFitMark, triggerHaptic } from '@/components/FitUI';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
-import { useSubscription } from '@/lib/revenuecat';
+import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
@@ -157,11 +157,11 @@ function getAge(day: number, month: number, year: number) {
 export default function EntryScreen() {
   const { onboardingComplete, introSeen, isPremium, setIntroSeen } = useFit();
   React.useEffect(() => {
-    if (onboardingComplete && introSeen && isPremium) router.replace('/(tabs)');
+     if (onboardingComplete && introSeen && (isPremium || !SUBSCRIPTION_PURCHASE_ENABLED)) router.replace('/(tabs)');
   }, [onboardingComplete, introSeen, isPremium]);
   if (!onboardingComplete) return <OnboardingQuestions />;
   if (!introSeen) return <IntroScreen onDone={setIntroSeen} />;
-  if (!isPremium) return <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)')} onSkip={() => router.replace('/(tabs)')} />;
+   if (!isPremium) return SUBSCRIPTION_PURCHASE_ENABLED ? <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)')} onSkip={() => router.replace('/(tabs)')} /> : null;
   return null;
 }
 
@@ -419,8 +419,8 @@ function OnboardingQuestions() {
    const optional = step >= 6 && !hasTargetWeightStep;
    const isTargetStep = step === targetStep && hasTargetWeightStep;
    const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[step] ?? 'preferredDaysQuestion';
-  return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
-    <View style={styles.questionTop}><View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
+   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
+     <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
        <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
         <View style={styles.coachQuestionVisual}><CoachMotion variant={step === 0 ? 'wave' : 'write'} /></View>
@@ -439,8 +439,8 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   const colors = useColors();
   const { language, setLanguage } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
-    <View style={styles.questionTop}><View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
+   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
+     <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
     <View style={styles.welcomeContent}><View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18` }]}><View style={styles.welcomeCoachCenter}><CoachMotion variant="wave" large /></View></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text></View>
      <Pressable onPress={() => { triggerHaptic(); onStart(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
   </LinearGradient>;
@@ -481,7 +481,7 @@ function PlanBuildingScreen({ onComplete }: { onComplete: () => void }) {
     <View style={styles.planBuildingContent}>
       <Animated.View style={[styles.planBuildingOrb, { borderColor: `${colors.primary}50`, transform: [{ rotate: spinValue }] }]}>
         <View style={[styles.planBuildingOrbInner, { backgroundColor: `${colors.primary}18`, borderColor: colors.primary }]}>
-          <Ionicons name="sparkles" size={34} color={colors.primary} />
+           <ForgeFitMark size={62} />
         </View>
       </Animated.View>
       <Text style={[styles.planBuildingTitle, { color: colors.foreground }]}>{t('planBuildingTitle')}</Text>
@@ -512,8 +512,8 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void;
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const price = monthlyPackage?.product.priceString;
-  const benefits: Array<{ icon: React.ComponentProps<typeof Ionicons>['name']; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' }> = [
-    { icon: 'sparkles-outline', key: 'premiumWelcomeBenefit1' },
+  const benefits: Array<{ icon?: React.ComponentProps<typeof Ionicons>['name']; logo?: boolean; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' }> = [
+    { logo: true, key: 'premiumWelcomeBenefit1' },
     { icon: 'restaurant-outline', key: 'premiumWelcomeBenefit2' },
     { icon: 'chatbubble-ellipses-outline', key: 'premiumWelcomeBenefit3' },
   ];
@@ -531,19 +531,19 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void;
     }
   };
   return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={[styles.full, styles.offerScreen, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 18 }]}>
-    <View style={styles.offerHeader}>
-      <View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View>
-      <View style={[styles.offerProPill, { backgroundColor: `${isSubscribed ?? isPremium ? colors.success : colors.primary}18`, borderColor: `${isSubscribed ?? isPremium ? colors.success : colors.primary}55` }]}><Ionicons name={isSubscribed ?? isPremium ? 'checkmark-circle' : 'star'} size={12} color={isSubscribed ?? isPremium ? colors.success : colors.primary} /><Text style={[styles.offerProText, { color: isSubscribed ?? isPremium ? colors.success : colors.primary }]}>{isSubscribed ?? isPremium ? t('premiumOwned') : t('premiumShort')}</Text></View>
+     <View style={styles.offerHeader}>
+       <ForgeFitMark size={38} />
+       <View style={[styles.offerProPill, { backgroundColor: `${isSubscribed ?? isPremium ? colors.success : colors.primary}18`, borderColor: `${isSubscribed ?? isPremium ? colors.success : colors.primary}55` }]}>{isSubscribed ?? isPremium ? <Ionicons name="checkmark-circle" size={12} color={colors.success} /> : <ForgeFitMark size={18} />}<Text style={[styles.offerProText, { color: isSubscribed ?? isPremium ? colors.success : colors.primary }]}>{isSubscribed ?? isPremium ? t('premiumOwned') : t('premiumShort')}</Text></View>
     </View>
     <View style={styles.offerHero}>
-      <View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={31} color={colors.primaryForeground} /></View>
+       <View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><ForgeFitMark size={74} /></View>
       <Text style={[styles.offerEyebrow, { color: colors.primary }]}>{t('premiumWelcomeEyebrow')}</Text>
       <Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumWelcomeTitle')}</Text>
       <Text style={[styles.offerBody, { color: colors.mutedForeground }]}>{t('premiumWelcomeBody')}</Text>
     </View>
     <View style={[styles.offerValueCard, { backgroundColor: `${colors.card}D9`, borderColor: colors.border }]}>
       <Text style={[styles.offerReason, { color: colors.foreground }]}>{t('premiumWelcomeReason')}</Text>
-      <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name={benefit.icon} size={17} color={colors.primary} /></View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
+       <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}>{benefit.logo ? <ForgeFitMark size={25} /> : <Ionicons name={benefit.icon!} size={17} color={colors.primary} />}</View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
     </View>
     <View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
      {price ? <Text style={[styles.offerPrice, { color: colors.foreground }]}>{price} {t('premiumPerMonth')}</Text> : null}
@@ -557,7 +557,7 @@ function OfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () =>
   const colors = useColors();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={styles.full}><View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={30} color={colors.primaryForeground} /></View><Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('premiumSubtitle')}</Text><View style={styles.features}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3'] as const).map((key) => <View key={key} style={styles.feature}><Ionicons name="checkmark-circle" size={20} color={colors.primary} /><Text style={[styles.featureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View><View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View><Pressable onPress={() => { triggerHaptic(); onUnlock(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable><Pressable onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('cancel')}</Text></Pressable></LinearGradient>;
+  return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={styles.full}><View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><ForgeFitMark size={74} /></View><Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('premiumSubtitle')}</Text><View style={styles.features}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3'] as const).map((key) => <View key={key} style={styles.feature}><Ionicons name="checkmark-circle" size={20} color={colors.primary} /><Text style={[styles.featureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View><View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View><Pressable onPress={() => { triggerHaptic(); onUnlock(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable><Pressable onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('cancel')}</Text></Pressable></LinearGradient>;
 }
 
 const styles = StyleSheet.create({

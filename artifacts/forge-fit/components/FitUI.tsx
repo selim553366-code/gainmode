@@ -1,17 +1,21 @@
 import React, { ReactNode } from 'react';
-import { Animated, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
+import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useAudioPlayer } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate, type Language, type TranslationKey } from '@/lib/i18n';
-import { REVENUECAT_ENTITLEMENT_IDENTIFIER, useSubscription } from '@/lib/revenuecat';
+import { REVENUECAT_ENTITLEMENT_IDENTIFIER, SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@/components/AppIcon';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
+
+export function ForgeFitMark({ size = 28, style }: { size?: number; style?: object }) {
+  return <Image source={require('@/assets/images/forge-fit-logo.jpeg')} resizeMode="cover" style={[{ width: size, height: size, borderRadius: size * 0.24 }, style]} />;
+}
 
 export function triggerHaptic(style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) {
   Haptics.impactAsync(style).catch(() => undefined);
@@ -25,7 +29,7 @@ export function Screen({ children, scroll = true, bottomPadding = 104 }: { child
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{content}</ScrollView> : content;
 }
 
-export function Header({ eyebrow, title, subtitle, action, onAction, premiumLabel, premiumAction, premiumOwned = false }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumOwned?: boolean }) {
+export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, premiumLabel, premiumAction, premiumOwned = false, streak, streakLabel }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumOwned?: boolean; streak?: number; streakLabel?: string }) {
   const colors = useColors();
   const premiumColor = premiumOwned ? colors.success : colors.primary;
   return <View style={styles.header}>
@@ -35,8 +39,9 @@ export function Header({ eyebrow, title, subtitle, action, onAction, premiumLabe
       {subtitle ? <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
     </View>
     <View style={styles.headerActions}>
-      {premiumAction ? <Pressable accessibilityLabel={premiumLabel} testID="header-premium" onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); premiumAction(); }} style={({ pressed }) => [styles.premiumPill, { backgroundColor: `${premiumColor}20`, borderColor: `${premiumColor}70`, opacity: pressed ? 0.72 : 1 }]}><Ionicons name={premiumOwned ? 'checkmark-circle' : 'sparkles'} size={13} color={premiumColor} /><Text style={[styles.premiumPillText, { color: premiumColor }]}>{premiumLabel}</Text></Pressable> : null}
-      {action && onAction ? <Pressable testID="header-action" onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><Ionicons name={action} size={20} color={colors.foreground} /></Pressable> : null}
+      {streak !== undefined ? <View accessibilityLabel={`${streak} ${streakLabel ?? ''}`} style={[styles.streakPill, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Ionicons name="flame" size={15} color={colors.orange} /><Text style={[styles.streakValue, { color: colors.orange }]}>{streak}</Text>{streakLabel ? <Text style={[styles.streakLabel, { color: colors.orange }]}>{streakLabel}</Text> : null}</View> : null}
+      {premiumAction ? <Pressable accessibilityLabel={premiumLabel} testID="header-premium" onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); premiumAction(); }} style={({ pressed }) => [styles.premiumPill, { backgroundColor: `${premiumColor}20`, borderColor: `${premiumColor}70`, opacity: pressed ? 0.72 : 1 }]}>{premiumOwned ? <Ionicons name="checkmark-circle" size={13} color={premiumColor} /> : <ForgeFitMark size={18} />}<Text style={[styles.premiumPillText, { color: premiumColor }]}>{premiumLabel}</Text></Pressable> : null}
+      {action && onAction ? <Pressable testID="header-action" onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}>{actionLogo ? <ForgeFitMark size={27} /> : <Ionicons name={action} size={20} color={colors.foreground} />}</Pressable> : null}
     </View>
   </View>;
 }
@@ -115,7 +120,7 @@ export function CelebrationBurst({ visible, onDone, title, subtitle }: { visible
   return <View pointerEvents="none" style={styles.celebrationLayer}>
     {pieces.map((piece, index) => <Animated.View key={index} style={[styles.confettiPiece, { backgroundColor: piece.color, transform: [{ translateX: progress.interpolate({ inputRange: [0, 0.45, 1], outputRange: [piece.side * (185 + (index % 3) * 24), piece.side * 12, piece.side * piece.endX] }) }, { translateY: progress.interpolate({ inputRange: [0, 0.45, 1], outputRange: [piece.startY, piece.startY * 0.18, piece.startY + piece.drift] }) }, { rotate: piece.rotate }, { scale: progress.interpolate({ inputRange: [0, 0.18, 0.7, 1], outputRange: [0.15, 1.15, 0.9, 0.55] }) }], opacity: progress.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 1, 0] }) }]} />)}
     {title ? <Animated.View style={[styles.celebrationCopy, { opacity: progress.interpolate({ inputRange: [0, 0.18, 0.78, 1], outputRange: [0, 1, 1, 0] }), transform: [{ scale: progress.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0.82, 1, 0.98] }) }] }]}>
-      <View style={[styles.celebrationBadge, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={22} color={colors.primaryForeground} /></View>
+      <View style={[styles.celebrationBadge, { backgroundColor: colors.primary }]}><ForgeFitMark size={42} /></View>
       <Text style={[styles.celebrationTitle, { color: colors.foreground }]}>{title}</Text>
       {subtitle ? <Text style={[styles.celebrationSubtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
     </Animated.View> : null}
@@ -133,10 +138,10 @@ export function PremiumLock() {
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [offerVisible, setOfferVisible] = React.useState(false);
-  const previewItems: Array<{ icon: IconName; label: TranslationKey; accent: string }> = [
+  const previewItems: Array<{ icon?: IconName; logo?: boolean; label: TranslationKey; accent: string }> = [
     { icon: 'pie-chart-outline', label: 'premiumGateNutrition', accent: colors.success },
     { icon: 'barbell-outline', label: 'premiumGateWorkout', accent: colors.orange },
-    { icon: 'sparkles-outline', label: 'premiumGateCoach', accent: colors.primary },
+    { logo: true, label: 'premiumGateCoach', accent: colors.primary },
     { icon: 'analytics-outline', label: 'premiumGateProgress', accent: colors.blue },
     { icon: 'people-outline', label: 'premiumGateCommunity', accent: colors.plum },
   ];
@@ -144,12 +149,12 @@ export function PremiumLock() {
     <View style={[styles.lockPreviewShell, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.lockPreviewTop}><View style={[styles.lockPreviewBrand, { backgroundColor: `${colors.primary}30` }]} /><View style={styles.lockPreviewTopLines}><View style={[styles.lockPreviewLine, { backgroundColor: colors.border }]} /><View style={[styles.lockPreviewLineShort, { backgroundColor: colors.border }]} /></View><View style={[styles.lockPreviewAvatar, { backgroundColor: `${colors.primary}30` }]} /></View>
       <View style={styles.lockPreviewTabs}>{(['premiumGateNutrition', 'premiumGateWorkout', 'premiumGateCoach', 'premiumGateProgress', 'premiumGateCommunity'] as const).map((key) => <View key={key} style={[styles.lockPreviewTab, { backgroundColor: `${colors.primary}16` }]}><Text style={[styles.lockPreviewTabText, { color: colors.mutedForeground }]}>{t(key)}</Text></View>)}</View>
-      <View style={styles.lockPreviewGrid}>{previewItems.map((item, index) => <View key={item.label} style={[styles.lockPreviewCard, index === 0 ? styles.lockPreviewWide : null, { backgroundColor: `${item.accent}12`, borderColor: `${item.accent}28` }]}><View style={[styles.lockPreviewIcon, { backgroundColor: `${item.accent}28` }]}><Ionicons name={item.icon} size={17} color={item.accent} /></View><View style={styles.lockPreviewCopy}><Text style={[styles.lockPreviewTitle, { color: colors.foreground }]}>{t(item.label)}</Text><View style={[styles.lockPreviewLine, { backgroundColor: `${colors.foreground}30` }]} /><View style={[styles.lockPreviewLineShort, { backgroundColor: `${colors.foreground}18` }]} /></View></View>)}</View>
+       <View style={styles.lockPreviewGrid}>{previewItems.map((item, index) => <View key={item.label} style={[styles.lockPreviewCard, index === 0 ? styles.lockPreviewWide : null, { backgroundColor: `${item.accent}12`, borderColor: `${item.accent}28` }]}><View style={[styles.lockPreviewIcon, { backgroundColor: `${item.accent}28` }]}>{item.logo ? <ForgeFitMark size={29} /> : <Ionicons name={item.icon!} size={17} color={item.accent} />}</View><View style={styles.lockPreviewCopy}><Text style={[styles.lockPreviewTitle, { color: colors.foreground }]}>{t(item.label)}</Text><View style={[styles.lockPreviewLine, { backgroundColor: `${colors.foreground}30` }]} /><View style={[styles.lockPreviewLineShort, { backgroundColor: `${colors.foreground}18` }]} /></View></View>)}</View>
       <BlurView intensity={45} tint="dark" pointerEvents="none" style={StyleSheet.absoluteFill} />
       <View pointerEvents="none" style={styles.lockPreviewShade} />
     </View>
     <View style={styles.lockGateContent}>
-      <View style={[styles.lockIcon, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={27} color={colors.primaryForeground} /></View>
+       <View style={[styles.lockIcon, { backgroundColor: colors.primary }]}><ForgeFitMark size={48} /></View>
       <Text style={[styles.lockEyebrow, { color: colors.primary }]}>{t('premiumGateEyebrow')}</Text>
       <Text style={[styles.lockTitle, { color: colors.foreground }]}>{t('premiumGateTitle')}</Text>
       <Text style={[styles.lockText, { color: colors.mutedForeground }]}>{t('premiumGateBody')}</Text>
@@ -228,14 +233,14 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
     }
   };
 
-  if (!visible) return null;
+  if (!visible || !SUBSCRIPTION_PURCHASE_ENABLED) return null;
   return <Modal transparent visible animationType="none" onRequestClose={celebrating ? undefined : onClose}>
     <View style={styles.premiumModalRoot}>
       <Pressable onPress={celebrating ? undefined : onClose} style={StyleSheet.absoluteFill} />
       <Animated.View style={[styles.premiumSheet, { backgroundColor: colors.card, borderColor: colors.border, opacity: appear, transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }]}>
         <LinearGradient colors={[`${colors.primary}3A`, `${colors.primary}08`, colors.card]} style={styles.premiumGradient}>
           <View style={styles.premiumModalHeader}>
-            <View style={[styles.premiumModalIcon, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={22} color={colors.primaryForeground} /></View>
+       <View style={[styles.premiumModalIcon, { backgroundColor: colors.primary }]}><ForgeFitMark size={42} /></View>
             <Pressable accessibilityLabel={t('close')} testID="close-premium" onPress={celebrating ? undefined : onClose} hitSlop={10} style={[styles.premiumClose, { backgroundColor: colors.secondary, opacity: celebrating ? 0 : 1 }]}><Ionicons name="close" size={19} color={colors.foreground} /></Pressable>
           </View>
           <Text style={[styles.premiumModalEyebrow, { color: colors.primary }]}>{t('premiumModalEyebrow')}</Text>
@@ -264,6 +269,9 @@ export const styles = StyleSheet.create({
   screen: { paddingHorizontal: 20, minHeight: '100%' },
   header: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 26 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  streakPill: { height: 38, borderRadius: 15, borderWidth: 1, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  streakValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  streakLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.6, marginBottom: 8 },
   title: { fontFamily: 'Inter_700Bold', fontSize: 30, letterSpacing: -1.1 },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, marginTop: 7 },
@@ -276,7 +284,7 @@ export const styles = StyleSheet.create({
   link: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   progressTrack: { height: 7, borderRadius: 8, overflow: 'hidden' },
   progressFill: { height: '100%', borderRadius: 8 },
-  metric: { flex: 1, minWidth: 72 },
+  metric: { flex: 1, minWidth: 72, alignItems: 'center' },
   metricIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   metricValue: { fontFamily: 'Inter_700Bold', fontSize: 16 },
   metricLabel: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },

@@ -61,9 +61,11 @@ export default function RootLayout() {
       require('@/assets/images/icon.png'),
       require('@/assets/images/coach.png'),
       require('@/assets/images/coach-thinking.png'),
+      require('@/assets/images/coach-thinking-custom.jpeg'),
       require('@/assets/images/coach-writing-no-bg.png'),
       require('@/assets/images/coach-thumbs-up-no-bg.png'),
       require('@/assets/images/coach-wave-direct.jpg'),
+      require('@/assets/images/forge-fit-logo.jpeg'),
     ];
     Promise.allSettled(imageSources.map((source) => Image.prefetch(Image.resolveAssetSource(source).uri))).finally(() => {
       if (mounted) setAssetsLoaded(true);

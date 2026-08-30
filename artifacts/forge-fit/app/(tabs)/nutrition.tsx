@@ -1,6 +1,7 @@
 import React from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@/components/AppIcon';
 import { useSearchFood, type FoodSearchItem } from '@workspace/api-client-react';
 import { useFit, Meal } from '@/context/FitContext';
@@ -9,6 +10,37 @@ import { useColors } from '@/hooks/useColors';
 import { Card, Header, Pill, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 
 const formatNutrition = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
+
+function BarcodeScanner({ visible, onClose, onScanned, title, hint, permissionText, unavailableText, allowCameraLabel, closeLabel }: { visible: boolean; onClose: () => void; onScanned: (data: string) => void; title: string; hint: string; permissionText: string; unavailableText: string; allowCameraLabel: string; closeLabel: string }) {
+  const colors = useColors();
+  const [permission, requestPermission] = useCameraPermissions();
+  const scanLocked = React.useRef(false);
+
+  React.useEffect(() => {
+    scanLocked.current = false;
+    if (visible && permission && !permission.granted && permission.canAskAgain) requestPermission().catch(() => undefined);
+  }, [visible, permission, requestPermission]);
+
+  if (!visible) return null;
+  const cameraAvailable = Platform.OS !== 'web';
+  return <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen">
+    <View style={[styles.scannerScreen, { backgroundColor: colors.background }]}>
+      {cameraAvailable && permission?.granted ? <CameraView
+        style={styles.camera}
+        facing="back"
+        barcodeScannerSettings={{ barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'code93', 'itf14', 'codabar', 'qr'] }}
+        onBarcodeScanned={({ data }) => {
+          if (scanLocked.current || !data) return;
+          scanLocked.current = true;
+          onScanned(data);
+        }}
+      /> : <View style={styles.cameraPermission}><Ionicons name="camera-outline" size={42} color={colors.primary} /><Text style={[styles.scannerTitle, { color: colors.foreground }]}>{cameraAvailable ? permissionText : unavailableText}</Text>{cameraAvailable ? <Pressable onPress={() => requestPermission()} style={[styles.scannerPermissionButton, { backgroundColor: colors.primary }]}><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{allowCameraLabel}</Text></Pressable> : null}</View>}
+      {cameraAvailable && permission?.granted ? <View pointerEvents="none" style={styles.scannerShade} /> : null}
+      <View style={styles.scannerHeader}><Text style={[styles.scannerTitle, { color: colors.foreground }]}>{title}</Text><Pressable accessibilityLabel={closeLabel} onPress={onClose} style={[styles.scannerClose, { backgroundColor: `${colors.background}CC` }]}><Ionicons name="close" size={22} color={colors.foreground} /></Pressable></View>
+      {cameraAvailable && permission?.granted ? <View pointerEvents="none" style={styles.scannerCenter}><View style={[styles.scannerFrame, { borderColor: colors.primary }]} /><Text style={[styles.scannerHint, { color: colors.foreground }]}>{hint}</Text></View> : null}
+    </View>
+  </Modal>;
+}
 
 export default function NutritionScreen() {
   const colors = useColors();
@@ -19,6 +51,7 @@ export default function NutritionScreen() {
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
   const [analyzing, setAnalyzing] = React.useState(false);
+  const [barcodeScannerVisible, setBarcodeScannerVisible] = React.useState(false);
   const normalizedSearch = search.trim();
   const searchEnabled = debouncedSearch.length >= 2;
   const foodSearch = useSearchFood(
@@ -65,6 +98,12 @@ export default function NutritionScreen() {
     setDebouncedSearch('');
     Alert.alert(t('addFood'), t('foodAdded'));
   };
+  const handleBarcode = (data: string) => {
+    setBarcodeScannerVisible(false);
+    setSearch(data);
+    setDebouncedSearch(data);
+    Alert.alert(t('barcodeFound'), data);
+  };
 
   const loggedMeals = [...meals].reverse();
 
@@ -81,11 +120,17 @@ export default function NutritionScreen() {
         <View><Text style={[styles.macroValue, { color: colors.foreground }]}>{formatNutrition(macros.fat)}g</Text><Text style={[styles.macroLabel, { color: colors.mutedForeground }]}>{t('fat')}</Text></View>
       </View>
     </Card>
-    <View style={styles.scanRow}>
-      <Pressable testID="camera-scan" onPress={() => pickPhoto(true)} style={({ pressed }) => [styles.scanButton, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="camera-outline" size={19} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('scanMeal')}</Text></Pressable>
-      <Pressable testID="gallery-scan" onPress={() => pickPhoto(false)} style={({ pressed }) => [styles.scanButton, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="images-outline" size={19} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('add')}</Text></Pressable>
-    </View>
-    {photoUri ? <Card style={styles.photoCard}><Image source={{ uri: photoUri }} style={styles.photo} /><View style={{ flex: 1 }}><Text style={[styles.mealName, { color: colors.foreground }]}>{analyzing ? t('analyzing') : t('analyzePhoto')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{photoAnalysesUsed} / 5 {t('photoLimit')}</Text></View></Card> : null}
+    <Card style={styles.captureCard}>
+      <View style={[styles.captureFrame, { borderColor: `${colors.primary}70`, backgroundColor: `${colors.primary}0D` }]}>
+        {photoUri ? <Image source={{ uri: photoUri }} style={styles.captureImage} /> : <><Ionicons name="scan-outline" size={31} color={colors.primary} /><Text style={[styles.capturePlaceholder, { color: colors.mutedForeground }]}>{t('mealCaptureHint')}</Text></>}
+      </View>
+      {photoUri ? <View style={styles.captureStatus}><Text style={[styles.mealName, { color: colors.foreground }]}>{analyzing ? t('analyzing') : t('analyzePhoto')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{photoAnalysesUsed} / 5 {t('photoLimit')}</Text></View> : null}
+      <View style={styles.captureOptions}>
+        <Pressable testID="camera-scan" onPress={() => pickPhoto(true)} style={({ pressed }) => [styles.captureOptionPrimary, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="camera-outline" size={18} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('scanMeal')}</Text></Pressable>
+        <Pressable testID="barcode-scan" onPress={() => setBarcodeScannerVisible(true)} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="scan-outline" size={18} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('scanBarcode')}</Text></Pressable>
+        <Pressable testID="gallery-scan" onPress={() => pickPhoto(false)} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="images-outline" size={18} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('add')}</Text></Pressable>
+      </View>
+    </Card>
     <SectionTitle title={t('searchFood')} />
     <Card style={styles.searchCard}>
       <View style={styles.searchRow}><Ionicons name="search-outline" size={18} color={colors.mutedForeground} /><TextInput testID="food-search" value={search} onChangeText={setSearch} placeholder={t('searchPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.searchInput, { color: colors.foreground }]} autoCapitalize="none" returnKeyType="search" />{normalizedSearch ? <Pressable testID="clear-food-search" onPress={() => { setSearch(''); setDebouncedSearch(''); }} hitSlop={8}><Ionicons name="close-circle" size={18} color={colors.mutedForeground} /></Pressable> : null}</View>
@@ -101,6 +146,7 @@ export default function NutritionScreen() {
       <View style={styles.mealHeader}><View style={[styles.mealIcon, { backgroundColor: `${colors.orange}20` }]}><Ionicons name="restaurant-outline" size={19} color={colors.orange} /></View><View style={{ flex: 1 }}><Text style={[styles.mealTitle, { color: colors.foreground }]}>{t('loggedFoods')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{loggedMeals.length} · {calories} {t('caloriesShort')}</Text></View></View>
       {loggedMeals.length > 0 ? loggedMeals.map((meal) => <View key={meal.id} style={[styles.mealLine, { borderTopColor: colors.border }]}>{meal.imageUri ? <Image source={{ uri: meal.imageUri }} style={styles.mealThumb} /> : null}<View style={{ flex: 1 }}><Text style={[styles.mealName, { color: colors.foreground }]}>{meal.name}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{meal.protein}g {t('protein')}  ·  {meal.carbs}g {t('carbs')}  ·  {meal.fat}g {t('fat')}</Text></View><View style={styles.mealActions}><Text style={[styles.mealKcal, { color: colors.foreground }]}>{meal.calories}</Text><Pressable onPress={() => removeMeal(meal.id)} hitSlop={8}><Ionicons name="close-circle-outline" size={18} color={colors.mutedForeground} /></Pressable></View></View>) : <Text style={[styles.emptyMeal, { color: colors.mutedForeground }]}>{t('noMeals')}</Text>}
     </Card>
+    <BarcodeScanner visible={barcodeScannerVisible} onClose={() => setBarcodeScannerVisible(false)} onScanned={handleBarcode} title={t('barcodeScannerTitle')} hint={t('barcodeScannerHint')} permissionText={t('barcodePermission')} unavailableText={t('barcodeUnavailable')} allowCameraLabel={t('allowCamera')} closeLabel={t('close')} />
   </Screen>;
 }
 
@@ -110,6 +156,14 @@ const styles = StyleSheet.create({
   macroSummary: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, marginTop: 17, paddingTop: 14 },
   macroValue: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
   macroLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 3 },
+  captureCard: { padding: 13, marginBottom: 2 },
+  captureFrame: { height: 142, borderRadius: 19, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 18 },
+  captureImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  capturePlaceholder: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 9, maxWidth: 230 },
+  captureStatus: { paddingHorizontal: 4, paddingTop: 11 },
+  captureOptions: { flexDirection: 'row', gap: 8, marginTop: 13 },
+  captureOptionPrimary: { flex: 1.15, minHeight: 45, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
+  captureOption: { flex: 1, minHeight: 45, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   searchCard: { padding: 12 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   searchInput: { flex: 1, height: 40, fontFamily: 'Inter_400Regular', fontSize: 13 },
@@ -128,11 +182,18 @@ const styles = StyleSheet.create({
   badgeText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   summaryFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 11 },
   footerValue: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  scanRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  scanButton: { flex: 1, height: 50, borderRadius: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 8 },
   scanText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  photoCard: { padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  photo: { width: 58, height: 58, borderRadius: 15 },
+  scannerScreen: { flex: 1, justifyContent: 'center' },
+  camera: { ...StyleSheet.absoluteFillObject },
+  scannerShade: { ...StyleSheet.absoluteFillObject, backgroundColor: '#00000035' },
+  scannerHeader: { position: 'absolute', top: 58, left: 22, right: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  scannerTitle: { fontFamily: 'Inter_700Bold', fontSize: 20, textAlign: 'center' },
+  scannerClose: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  scannerCenter: { alignItems: 'center', justifyContent: 'center' },
+  scannerFrame: { width: 286, height: 168, borderRadius: 22, borderWidth: 2 },
+  scannerHint: { fontFamily: 'Inter_500Medium', fontSize: 13, marginTop: 22, textAlign: 'center' },
+  cameraPermission: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 35, gap: 14 },
+  scannerPermissionButton: { minHeight: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
   mealCard: { padding: 16 },
   mealHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   mealIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },

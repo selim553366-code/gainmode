@@ -6,6 +6,7 @@ import { translate } from '@/lib/i18n';
 import { Feather } from '@/components/AppIcon';
 import { Tabs } from 'expo-router';
 import { PremiumLock } from '@/components/FitUI';
+import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const tabOrder = ['index', 'nutrition', 'coach', 'plan', 'friends'];
@@ -23,6 +24,7 @@ type TabBarProps = {
 function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean; label: string; onPress: () => void; colors: ReturnType<typeof useColors> }) {
   const { coachThinking } = useFit();
   const logoScale = React.useRef(new Animated.Value(focused ? 0.8 : 1)).current;
+  const thinkingTransition = React.useRef(new Animated.Value(coachThinking ? 1 : 0)).current;
 
   React.useEffect(() => {
     Animated.spring(logoScale, {
@@ -32,6 +34,9 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
       useNativeDriver: true,
     }).start();
   }, [focused, logoScale]);
+  React.useEffect(() => {
+    Animated.timing(thinkingTransition, { toValue: coachThinking ? 1 : 0, duration: 360, useNativeDriver: true }).start();
+  }, [coachThinking, thinkingTransition]);
 
   return (
     <Pressable
@@ -44,7 +49,8 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
       <View style={[styles.coachTabButton, { shadowColor: colors.primary }]}>
         <Animated.View style={{ transform: [{ scale: logoScale }] }}>
           <View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary }]}>
-            <Image source={coachThinking ? require('@/assets/images/coach-thinking.png') : require('@/assets/images/coach.png')} resizeMode="contain" style={[styles.coachTabImage, coachThinking && styles.coachThinkingImage]} />
+            <Animated.Image source={require('@/assets/images/coach.png')} resizeMode="contain" style={[styles.coachTabImage, { opacity: thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} />
+            <Animated.Image source={require('@/assets/images/coach-thinking-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, styles.coachThinkingImage, styles.coachThinkingOverlay, { opacity: thinkingTransition }]} />
           </View>
         </Animated.View>
         <Text style={[styles.coachTabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
@@ -113,7 +119,7 @@ export default function TabLayout() {
   const { isPremium } = useFit();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  if (!isPremium) return <PremiumLock />;
+  if (!isPremium && SUBSCRIPTION_PURCHASE_ENABLED) return <PremiumLock />;
   return (
     <Tabs tabBar={(props) => <FloatingTabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}>
       <Tabs.Screen name="index" options={{ title: t('today') }} />
@@ -136,6 +142,7 @@ const styles = StyleSheet.create({
   coachTabCircle: { width: 88, height: 88, borderRadius: 44, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.42, shadowRadius: 14, shadowOffset: { width: 0, height: 0 }, elevation: 13 },
   coachTabImage: { width: 88, height: 88, borderRadius: 44 },
   coachThinkingImage: { width: 100, height: 100, transform: [{ translateY: 6 }] },
+  coachThinkingOverlay: { position: 'absolute', left: -6, top: -6 },
   coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 7, letterSpacing: 0.8 },
   coachTabDot: { width: 5, height: 5, borderRadius: 3, marginTop: 4 },
 });

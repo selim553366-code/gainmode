@@ -4,6 +4,8 @@ import Purchases, { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'r
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const REVENUECAT_ENTITLEMENT_IDENTIFIER = 'forge_fit_pro';
+// Keep the RevenueCat connection intact while the in-app purchase surface is paused.
+export const SUBSCRIPTION_PURCHASE_ENABLED = false;
 const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
 
 let configured = false;
