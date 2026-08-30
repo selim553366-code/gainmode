@@ -17,7 +17,7 @@
       "supportsTablet": false
     },
     "android": {
-      "package": "com.app.fitaicoach"
+      "package": "com.forgefit2.app"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
