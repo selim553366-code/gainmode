@@ -25,8 +25,9 @@ export function Screen({ children, scroll = true }: { children: ReactNode; scrol
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{content}</ScrollView> : content;
 }
 
-export function Header({ eyebrow, title, subtitle, action, onAction, premiumLabel, premiumAction }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void }) {
+export function Header({ eyebrow, title, subtitle, action, onAction, premiumLabel, premiumAction, premiumOwned = false }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumOwned?: boolean }) {
   const colors = useColors();
+  const premiumColor = premiumOwned ? colors.success : colors.primary;
   return <View style={styles.header}>
     <View style={{ flex: 1 }}>
       {eyebrow ? <Text style={[styles.eyebrow, { color: colors.primary }]}>{eyebrow.toUpperCase()}</Text> : null}
@@ -34,7 +35,7 @@ export function Header({ eyebrow, title, subtitle, action, onAction, premiumLabe
       {subtitle ? <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
     </View>
     <View style={styles.headerActions}>
-      {premiumAction ? <Pressable accessibilityLabel={premiumLabel} testID="header-premium" onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); premiumAction(); }} style={({ pressed }) => [styles.premiumPill, { backgroundColor: `${colors.primary}20`, borderColor: `${colors.primary}70`, opacity: pressed ? 0.72 : 1 }]}><Ionicons name="sparkles" size={13} color={colors.primary} /><Text style={[styles.premiumPillText, { color: colors.primary }]}>{premiumLabel}</Text></Pressable> : null}
+      {premiumAction ? <Pressable accessibilityLabel={premiumLabel} testID="header-premium" onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); premiumAction(); }} style={({ pressed }) => [styles.premiumPill, { backgroundColor: `${premiumColor}20`, borderColor: `${premiumColor}70`, opacity: pressed ? 0.72 : 1 }]}><Ionicons name={premiumOwned ? 'checkmark-circle' : 'sparkles'} size={13} color={premiumColor} /><Text style={[styles.premiumPillText, { color: premiumColor }]}>{premiumLabel}</Text></Pressable> : null}
       {action && onAction ? <Pressable testID="header-action" onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><Ionicons name={action} size={20} color={colors.foreground} /></Pressable> : null}
     </View>
   </View>;

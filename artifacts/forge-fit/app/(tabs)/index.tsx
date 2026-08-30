@@ -26,6 +26,7 @@ export default function TodayScreen() {
          action="settings-outline"
          onAction={() => router.push('/settings')}
          premiumLabel={isPremium ? t('premiumOwned') : t('premiumShort')}
+         premiumOwned={isPremium}
          premiumAction={() => setPremiumVisible(true)}
       />
 

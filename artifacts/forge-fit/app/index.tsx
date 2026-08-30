@@ -427,7 +427,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void;
   return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={[styles.full, styles.offerScreen, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 18 }]}>
     <View style={styles.offerHeader}>
       <View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View>
-      <View style={[styles.offerProPill, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}55` }]}><Ionicons name={isSubscribed ?? isPremium ? 'checkmark-circle' : 'star'} size={12} color={colors.primary} /><Text style={[styles.offerProText, { color: colors.primary }]}>{isSubscribed ?? isPremium ? t('premiumOwned') : t('premiumShort')}</Text></View>
+      <View style={[styles.offerProPill, { backgroundColor: `${isSubscribed ?? isPremium ? colors.success : colors.primary}18`, borderColor: `${isSubscribed ?? isPremium ? colors.success : colors.primary}55` }]}><Ionicons name={isSubscribed ?? isPremium ? 'checkmark-circle' : 'star'} size={12} color={isSubscribed ?? isPremium ? colors.success : colors.primary} /><Text style={[styles.offerProText, { color: isSubscribed ?? isPremium ? colors.success : colors.primary }]}>{isSubscribed ?? isPremium ? t('premiumOwned') : t('premiumShort')}</Text></View>
     </View>
     <View style={styles.offerHero}>
       <View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={31} color={colors.primaryForeground} /></View>
