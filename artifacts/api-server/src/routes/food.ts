@@ -6,6 +6,10 @@ const OPEN_FOOD_FACTS_URLS = [
   "https://world.openfoodfacts.net/cgi/search.pl",
   "https://world.openfoodfacts.org/cgi/search.pl",
 ];
+const OPEN_FOOD_FACTS_PRODUCT_URLS = [
+  "https://world.openfoodfacts.net/api/v2/product",
+  "https://world.openfoodfacts.org/api/v2/product",
+];
 const USDA_SEARCH_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
 const supportedLanguages = new Set(["tr", "en", "de", "fr", "es"]);
 
@@ -24,6 +28,10 @@ type ProviderProduct = {
 
 type ProviderResponse = {
   products?: ProviderProduct[];
+};
+
+type ProviderProductResponse = {
+  product?: ProviderProduct;
 };
 
 type UsdaNutrient = {
@@ -187,6 +195,36 @@ async function searchOpenFoodFacts(query: string, language: string, limit: numbe
     .filter((item): item is NonNullable<ReturnType<typeof normalizeProduct>> => item !== null);
 }
 
+async function searchOpenFoodFactsBarcode(code: string, language: string): Promise<NormalizedFood[]> {
+  const fields = [
+    "code",
+    "product_name",
+    "product_name_en",
+    "product_name_tr",
+    "product_name_de",
+    "product_name_fr",
+    "product_name_es",
+    "brands",
+    "serving_size",
+    "nutriments",
+  ].join(",");
+  const providerStatuses: number[] = [];
+  for (const providerUrl of OPEN_FOOD_FACTS_PRODUCT_URLS) {
+    const response = await fetch(`${providerUrl}/${encodeURIComponent(code)}.json?fields=${fields}`, {
+      headers: { Accept: "application/json", "User-Agent": "ForgeFit/1.0 (barcode lookup)" },
+      signal: AbortSignal.timeout(10000),
+    });
+    providerStatuses.push(response.status);
+    if (!response.ok) continue;
+    const payload = await response.json() as ProviderProductResponse;
+    if (!payload.product) continue;
+    const normalized = normalizeProduct(payload.product, language, 0);
+    return normalized ? [normalized] : [];
+  }
+  if (providerStatuses.some((status) => status === 200 || status === 404)) return [];
+  throw new Error(`Open Food Facts barcode lookup returned ${providerStatuses.join(", ")}.`);
+}
+
 async function searchUsda(query: string, limit: number): Promise<NormalizedFood[]> {
   const params = new URLSearchParams({
     api_key: "DEMO_KEY",
@@ -219,19 +257,19 @@ router.get("/food/search", async (req, res) => {
   }
 
   try {
-    const providerResults = await Promise.allSettled([
-      searchUsda(query, limit),
-      searchOpenFoodFacts(query, language, limit),
-    ]);
-    const successfulResults = providerResults
-      .filter((result): result is PromiseFulfilledResult<NormalizedFood[]> => result.status === "fulfilled")
-      .flatMap((result) => result.value);
-    if (successfulResults.length === 0) {
+    const isBarcode = /^\d{8,14}$/.test(query);
+    const providerResults = await Promise.allSettled(isBarcode
+      ? [searchOpenFoodFactsBarcode(query, language)]
+      : [searchUsda(query, limit), searchOpenFoodFacts(query, language, limit)]);
+    const successfulProviders = providerResults
+      .filter((result): result is PromiseFulfilledResult<NormalizedFood[]> => result.status === "fulfilled");
+    if (successfulProviders.length === 0) {
       const failures = providerResults
         .filter((result): result is PromiseRejectedResult => result.status === "rejected")
         .map((result) => result.reason instanceof Error ? result.reason.message : "unknown error");
       throw new Error(`Food providers failed: ${failures.join(" | ")}`);
     }
+    const successfulResults = successfulProviders.flatMap((result) => result.value);
     const seen = new Set<string>();
     const items = successfulResults
       .filter((item) => {

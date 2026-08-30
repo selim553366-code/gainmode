@@ -32,6 +32,19 @@
       "expo-font",
       "expo-web-browser",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Forge Fit to use your camera for meal, barcode, and movement analysis.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Forge Fit to access a meal photo you choose for nutrition analysis."
+        }
+      ],
+      [
         "react-native-pose-detection",
         {
           "model": "full",
