@@ -16,6 +16,7 @@ import {
   GymLevel,
   Profile,
   ProteinPreference,
+  recommendTargetWeight,
   useFit,
 } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
@@ -26,6 +27,7 @@ import { useSubscription } from '@/lib/revenuecat';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
+type TargetWeightUnit = 'kg' | 'lb';
 
 const KG_PER_POUND = 1 / 2.20462;
 
@@ -105,6 +107,27 @@ function WeightPicker({ value, unit, inputValue, onInputChange, onChange }: { va
   </View>;
 }
 
+function GoalWeightPicker({ valueKg, recommendedKg, unit, inputValue, recommendedLabel, onInputChange, onChange, onUnitChange }: { valueKg: number; recommendedKg: number; unit: TargetWeightUnit; inputValue: string; recommendedLabel: string; onInputChange: (value: string) => void; onChange: (valueKg: number) => void; onUnitChange: (unit: TargetWeightUnit) => void }) {
+  const colors = useColors();
+  const displayRecommended = unit === 'kg' ? recommendedKg : recommendedKg / KG_PER_POUND;
+  const change = (amount: number) => onChange(Math.round(Math.max(35, Math.min(200, valueKg + amount * (unit === 'kg' ? 1 : KG_PER_POUND))) * 10) / 10);
+  return <View style={styles.targetWeightSection}>
+    <View style={[styles.targetUnitToggle, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {(['kg', 'lb'] as const).map((option) => <Pressable key={option} onPress={() => { triggerHaptic(); onUnitChange(option); }} style={[styles.targetUnitOption, unit === option ? { backgroundColor: colors.primary } : null]}><Text style={[styles.unitOptionText, { color: unit === option ? colors.primaryForeground : colors.mutedForeground }]}>{option}</Text></Pressable>)}
+    </View>
+    <View style={[styles.weightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Pressable onPress={() => change(-1)} style={[styles.stepButton, { backgroundColor: colors.secondary }]}><Ionicons name="remove" size={22} color={colors.foreground} /></Pressable>
+      <View style={styles.weightValue}><TextInput value={inputValue} onChangeText={onInputChange} keyboardType="decimal-pad" selectTextOnFocus style={[styles.weightNumberInput, { color: colors.foreground }]} /><Text style={[styles.rulerUnit, { color: colors.primary }]}>{unit}</Text></View>
+      <Pressable onPress={() => change(1)} style={[styles.stepButton, { backgroundColor: colors.primary }]}><Ionicons name="add" size={22} color={colors.primaryForeground} /></Pressable>
+    </View>
+    <View style={[styles.recommendedTarget, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}>
+      <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
+      <Text style={[styles.recommendedTargetText, { color: colors.foreground }]}>{recommendedLabel}</Text>
+      <Text style={[styles.recommendedTargetValue, { color: colors.primary }]}>{displayRecommended.toFixed(1)} {unit}</Text>
+    </View>
+  </View>;
+}
+
 function BirthDatePicker({ day, month, year, dayText, monthText, yearText, labels, onChange, onTextChange }: { day: number; month: number; year: number; dayText: string; monthText: string; yearText: string; labels: { day: string; month: string; year: string }; onChange: (day: number, month: number, year: number) => void; onTextChange: (field: 'day' | 'month' | 'year', value: string) => void }) {
   const colors = useColors();
   const currentYear = new Date().getFullYear();
@@ -174,11 +197,24 @@ function OnboardingQuestions() {
   const [proteinPreference, setProteinPreference] = React.useState<ProteinPreference>('balanced');
   const [experience, setExperience] = React.useState<ExperienceLevel>('beginner');
   const [preferredDays, setPreferredDays] = React.useState<string[]>([]);
+  const [targetWeightUnit, setTargetWeightUnit] = React.useState<TargetWeightUnit>('kg');
+  const [targetWeight, setTargetWeight] = React.useState<number | null>(null);
+  const [targetWeightText, setTargetWeightText] = React.useState('');
+  const [buildingPlan, setBuildingPlan] = React.useState(false);
   const [taken, setTaken] = React.useState<string[]>([]);
   const [error, setError] = React.useState('');
   const slide = React.useRef(new Animated.Value(1)).current;
-  const total = 15;
+  const targetStep = 15;
+  const hasTargetWeightStep = goal === 'weightGain' || goal === 'weightLoss';
+  const total = hasTargetWeightStep ? 16 : 15;
   const currentAge = getAge(birthDay, birthMonth, birthYear);
+  const recommendedTargetWeight = React.useMemo(() => recommendTargetWeight({ height, weight, age: currentAge, goal, sex, activity, goalRate }), [height, weight, currentAge, goal, sex, activity, goalRate]);
+
+  React.useEffect(() => {
+    if (!hasTargetWeightStep || step !== targetStep || targetWeight !== null) return;
+    setTargetWeight(recommendedTargetWeight);
+    setTargetWeightText(targetWeightUnit === 'kg' ? recommendedTargetWeight.toFixed(1) : (recommendedTargetWeight / KG_PER_POUND).toFixed(1));
+  }, [hasTargetWeightStep, step, targetWeight, recommendedTargetWeight, targetWeightUnit]);
 
   const updateHeightFromCm = (value: number) => {
     const next = Math.round(Math.max(130, Math.min(220, value)));
@@ -218,6 +254,22 @@ function OnboardingQuestions() {
     const parsed = Number(text.replace(',', '.'));
     const next = measurementUnit === 'metric' ? parsed : parsed * KG_PER_POUND;
     if (Number.isFinite(parsed) && next >= 35 && next <= 200) updateWeightFromKg(next);
+  };
+  const updateTargetWeightFromKg = (valueKg: number) => {
+    const next = Math.round(Math.max(35, Math.min(200, valueKg)) * 10) / 10;
+    setTargetWeight(next);
+    setTargetWeightText(targetWeightUnit === 'kg' ? next.toFixed(1) : (next / KG_PER_POUND).toFixed(1));
+  };
+  const changeTargetWeightUnit = (nextUnit: TargetWeightUnit) => {
+    setTargetWeightUnit(nextUnit);
+    const valueKg = targetWeight ?? recommendedTargetWeight;
+    setTargetWeightText(nextUnit === 'kg' ? valueKg.toFixed(1) : (valueKg / KG_PER_POUND).toFixed(1));
+  };
+  const updateTargetWeightText = (text: string) => {
+    setTargetWeightText(text);
+    const parsed = Number(text.replace(',', '.'));
+    const valueKg = targetWeightUnit === 'kg' ? parsed : parsed * KG_PER_POUND;
+    if (Number.isFinite(parsed) && valueKg >= 35 && valueKg <= 200) setTargetWeight(Math.round(valueKg * 10) / 10);
   };
   const updateBirth = (day: number, month: number, year: number) => {
     setBirthDay(day);
@@ -265,6 +317,7 @@ function OnboardingQuestions() {
       proteinPreference,
       experience,
       preferredDays,
+      targetWeight: hasTargetWeightStep ? (targetWeight ?? recommendedTargetWeight) : weight,
     };
     completeOnboarding(profile, cleanUsername);
     AsyncStorage.setItem('forge-fit-usernames', JSON.stringify([...taken, cleanUsername])).catch(() => undefined);
@@ -306,6 +359,13 @@ function OnboardingQuestions() {
       if (getAge(day, month, year) < 13) return setError(t('ageQuestion'));
       updateBirth(day, month, year);
     }
+    if (step === targetStep && hasTargetWeightStep) {
+      const parsed = Number(targetWeightText.replace(',', '.'));
+      const valueKg = targetWeightUnit === 'kg' ? parsed : parsed * KG_PER_POUND;
+      if (!Number.isFinite(parsed) || valueKg < 35 || valueKg > 200) return setError(t('weightRangeError'));
+      if ((goal === 'weightGain' && valueKg <= weight) || (goal === 'weightLoss' && valueKg >= weight)) return setError(t('targetWeightDirectionError'));
+      updateTargetWeightFromKg(valueKg);
+    }
     if (step === total - 1) return advance();
     advance();
   };
@@ -322,11 +382,11 @@ function OnboardingQuestions() {
   const swipeResponder = React.useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
     onPanResponderRelease: (_, gesture) => {
-      if (step >= 2 && step <= 4) return;
+      if (step >= 2 && step <= 4 || step === targetStep) return;
       if (gesture.dx < -55) next();
       if (gesture.dx > 55) goBack();
     },
-  }), [language, step, username, equipment, gymLevel, currentAge, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, birthDayText, birthMonthText, birthYearText]);
+  }), [language, step, username, equipment, gymLevel, currentAge, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, birthDayText, birthMonthText, birthYearText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
   const titleKeys = ['nameFirstQuestion', 'equipmentQuestion', 'heightQuestion', 'weightQuestion', 'birthDateQuestion', 'goalQuestion', 'sexQuestion', 'activityQuestion', 'trainingDaysQuestion', 'durationQuestion', 'speedQuestion', 'dietQuestion', 'proteinQuestion', 'experienceQuestion', 'preferredDaysQuestion'] as const;
   const selectedDays = (day: string) => setPreferredDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
   const renderBody = () => {
@@ -340,7 +400,7 @@ function OnboardingQuestions() {
      </View>;
      if (step === 3) return <View style={styles.measurementSection}><UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} /><WeightPicker value={weight} unit={measurementUnit} inputValue={weightText} onInputChange={updateWeightText} onChange={updateWeightFromKg} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('weightInputHint')}</Text></View>;
      if (step === 4) return <><BirthDatePicker day={birthDay} month={birthMonth} year={birthYear} dayText={birthDayText} monthText={birthMonthText} yearText={birthYearText} labels={{ day: t('day'), month: t('month'), year: t('year') }} onChange={updateBirth} onTextChange={updateBirthText} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('birthDateHint')} · {currentAge} {t('ageYears')}</Text></>;
-    if (step === 5) return <View style={styles.choiceList}><ChoiceButton label={t('goalMuscle')} selected={goal === 'muscle'} onPress={() => setGoal('muscle')} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightLoss')} selected={goal === 'weightLoss'} onPress={() => setGoal('weightLoss')} icon="scale-outline" /><ChoiceButton label={t('goalFatLoss')} selected={goal === 'fatLoss'} onPress={() => setGoal('fatLoss')} icon="flame-outline" /><ChoiceButton label={t('goalMaintain')} selected={goal === 'maintain'} onPress={() => setGoal('maintain')} icon="pause-outline" /></View>;
+     if (step === 5) return <View style={styles.choiceList}><ChoiceButton label={t('goalMuscle')} selected={goal === 'muscle'} onPress={() => { setGoal('muscle'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightGain')} selected={goal === 'weightGain'} onPress={() => { setGoal('weightGain'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightLoss')} selected={goal === 'weightLoss'} onPress={() => { setGoal('weightLoss'); setTargetWeight(null); }} icon="scale-outline" /><ChoiceButton label={t('goalFatLoss')} selected={goal === 'fatLoss'} onPress={() => { setGoal('fatLoss'); setTargetWeight(null); }} icon="flame-outline" /><ChoiceButton label={t('goalMaintain')} selected={goal === 'maintain'} onPress={() => { setGoal('maintain'); setTargetWeight(null); }} icon="pause-outline" /></View>;
     if (step === 6) return <View style={styles.choiceList}><ChoiceButton label={t('sexFemale')} selected={sex === 'female'} onPress={() => setSex('female')} /><ChoiceButton label={t('sexMale')} selected={sex === 'male'} onPress={() => setSex('male')} /><ChoiceButton label={t('sexPreferNot')} selected={sex === 'preferNot'} onPress={() => setSex('preferNot')} /></View>;
     if (step === 7) return <View style={styles.choiceList}><ChoiceButton label={t('activitySedentary')} selected={activity === 'sedentary'} onPress={() => setActivity('sedentary')} /><ChoiceButton label={t('activityLight')} selected={activity === 'light'} onPress={() => setActivity('light')} /><ChoiceButton label={t('activityModerate')} selected={activity === 'moderate'} onPress={() => setActivity('moderate')} /><ChoiceButton label={t('activityHigh')} selected={activity === 'high'} onPress={() => setActivity('high')} /></View>;
     if (step === 8) return <View style={styles.choiceList}>{[2, 3, 4, 5, 6].map((days) => <ChoiceButton key={days} label={`${days} ${t('dayUnit')}`} selected={trainingDays === days} onPress={() => setTrainingDays(days)} />)}</View>;
@@ -349,12 +409,16 @@ function OnboardingQuestions() {
     if (step === 11) return <View style={styles.choiceList}><ChoiceButton label={t('dietEverything')} selected={diet === 'everything'} onPress={() => setDiet('everything')} /><ChoiceButton label={t('dietVegetarian')} selected={diet === 'vegetarian'} onPress={() => setDiet('vegetarian')} /><ChoiceButton label={t('dietVegan')} selected={diet === 'vegan'} onPress={() => setDiet('vegan')} /><ChoiceButton label={t('dietHalal')} selected={diet === 'halal'} onPress={() => setDiet('halal')} /></View>;
     if (step === 12) return <View style={styles.choiceList}><ChoiceButton label={t('proteinBalanced')} selected={proteinPreference === 'balanced'} onPress={() => setProteinPreference('balanced')} /><ChoiceButton label={t('proteinHigh')} selected={proteinPreference === 'high'} onPress={() => setProteinPreference('high')} /><ChoiceButton label={t('proteinLower')} selected={proteinPreference === 'lower'} onPress={() => setProteinPreference('lower')} /></View>;
     if (step === 13) return <View style={styles.choiceList}><ChoiceButton label={t('experienceBeginner')} selected={experience === 'beginner'} onPress={() => setExperience('beginner')} /><ChoiceButton label={t('experienceIntermediate')} selected={experience === 'intermediate'} onPress={() => setExperience('intermediate')} /><ChoiceButton label={t('experienceAdvanced')} selected={experience === 'advanced'} onPress={() => setExperience('advanced')} /></View>;
+     if (step === targetStep && hasTargetWeightStep) return <><GoalWeightPicker valueKg={targetWeight ?? recommendedTargetWeight} recommendedKg={recommendedTargetWeight} unit={targetWeightUnit} inputValue={targetWeightText} recommendedLabel={t('recommendedTarget')} onInputChange={updateTargetWeightText} onChange={updateTargetWeightFromKg} onUnitChange={changeTargetWeightUnit} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('targetWeightHint')}</Text></>;
     return <><View style={styles.dayGrid}>{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => <Pressable key={day} onPress={() => selectedDays(day)} style={[styles.dayButton, { backgroundColor: preferredDays.includes(day) ? colors.primary : colors.card, borderColor: preferredDays.includes(day) ? colors.primary : colors.border }]}><Text style={[styles.dayText, { color: preferredDays.includes(day) ? colors.primaryForeground : colors.foreground }]}>{day}</Text></Pressable>)}</View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('preferredDaysQuestion')}</Text></>;
   };
 
   if (!started) return <WelcomeScreen onStart={() => setStarted(true)} />;
-  if (step === total) return <CompletionScreen onContinue={finish} />;
-  const optional = step >= 6;
+   if (buildingPlan) return <PlanBuildingScreen onComplete={finish} />;
+   if (step === total) return <CompletionScreen onContinue={() => setBuildingPlan(true)} />;
+   const optional = step >= 6 && !hasTargetWeightStep;
+   const isTargetStep = step === targetStep && hasTargetWeightStep;
+   const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[step] ?? 'preferredDaysQuestion';
   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
     <View style={styles.questionTop}><View style={[styles.brandMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={18} color={colors.primaryForeground} /></View><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
@@ -362,12 +426,12 @@ function OnboardingQuestions() {
         <View style={styles.coachQuestionVisual}><CoachMotion variant={step === 0 ? 'wave' : 'write'} /></View>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / {total}</Text>
         {optional ? <Text style={[styles.optionalLabel, { color: colors.primary }]}>{t('optionalLabel')}</Text> : null}
-        <Text style={[styles.questionTitle, { color: colors.foreground }]}>{t(titleKeys[step])}</Text>
+         <Text style={[styles.questionTitle, { color: colors.foreground }]}>{t(titleKey)}</Text>
         {renderBody()}
         {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       </KeyboardAwareScrollViewCompat>
     </Animated.View>
-     <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>{optional ? <Pressable onPress={() => { triggerHaptic(); skip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('skipQuestion')}</Text></Pressable> : null}</View>
+      <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>{optional ? <Pressable onPress={() => { triggerHaptic(); skip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('skipQuestion')}</Text></Pressable> : null}</View>
   </LinearGradient>;
 }
 
@@ -387,6 +451,48 @@ function CompletionScreen({ onContinue }: { onContinue: () => void }) {
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
    return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.completionContent}><View style={[styles.completionCoach, { backgroundColor: `${colors.primary}18` }]}><CoachMotion variant="done" large /></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('finishQuestionsTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('finishQuestionsBody')}</Text></View><Pressable onPress={() => { triggerHaptic(); onContinue(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continueToPlan')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></LinearGradient>;
+}
+
+function PlanBuildingScreen({ onComplete }: { onComplete: () => void }) {
+  const colors = useColors();
+  const { language } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const progress = React.useRef(new Animated.Value(0)).current;
+  const rotation = React.useRef(new Animated.Value(0)).current;
+  const [phase, setPhase] = React.useState(0);
+
+  React.useEffect(() => {
+    Animated.timing(progress, { toValue: 1, duration: 5600, useNativeDriver: false }).start();
+    const spin = Animated.loop(Animated.timing(rotation, { toValue: 1, duration: 1800, useNativeDriver: true }));
+    spin.start();
+    const phaseTimer = setInterval(() => setPhase((current) => Math.min(current + 1, 3)), 1450);
+    const completionTimer = setTimeout(onComplete, 6000);
+    return () => {
+      spin.stop();
+      clearInterval(phaseTimer);
+      clearTimeout(completionTimer);
+    };
+  }, [onComplete, progress, rotation]);
+
+  const spinValue = rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const widthValue = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+  const phaseKeys: Array<'planBuildingStep1' | 'planBuildingStep2' | 'planBuildingStep3' | 'planBuildingStep4'> = ['planBuildingStep1', 'planBuildingStep2', 'planBuildingStep3', 'planBuildingStep4'];
+  return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
+    <View style={styles.planBuildingContent}>
+      <Animated.View style={[styles.planBuildingOrb, { borderColor: `${colors.primary}50`, transform: [{ rotate: spinValue }] }]}>
+        <View style={[styles.planBuildingOrbInner, { backgroundColor: `${colors.primary}18`, borderColor: colors.primary }]}>
+          <Ionicons name="sparkles" size={34} color={colors.primary} />
+        </View>
+      </Animated.View>
+      <Text style={[styles.planBuildingTitle, { color: colors.foreground }]}>{t('planBuildingTitle')}</Text>
+      <Text style={[styles.planBuildingBody, { color: colors.mutedForeground }]}>{t('planBuildingBody')}</Text>
+      <View style={[styles.planProgressTrack, { backgroundColor: colors.secondary }]}>
+        <Animated.View style={[styles.planProgressFill, { width: widthValue, backgroundColor: colors.primary }]} />
+      </View>
+      <Text style={[styles.planBuildingPhase, { color: colors.primary }]}>{t(phaseKeys[phase])}</Text>
+      <View style={styles.planBuildingDots}>{phaseKeys.map((key, index) => <View key={key} style={[styles.planBuildingDot, { backgroundColor: index <= phase ? colors.primary : colors.secondary }]} />)}</View>
+    </View>
+  </LinearGradient>;
 }
 
 function IntroScreen({ onDone }: { onDone: () => void }) {
@@ -499,6 +605,12 @@ const styles = StyleSheet.create({
   measurementSmallInput: { minWidth: 78 },
   measurementInputUnit: { fontFamily: 'Inter_700Bold', fontSize: 14, marginLeft: -3 },
   weightCard: { borderRadius: 24, borderWidth: 1, padding: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  targetWeightSection: { gap: 12 },
+  targetUnitToggle: { flexDirection: 'row', borderWidth: 1, borderRadius: 15, padding: 3, gap: 3 },
+  targetUnitOption: { flex: 1, minHeight: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  recommendedTarget: { borderRadius: 15, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 11, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  recommendedTargetText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 12 },
+  recommendedTargetValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   stepButton: { width: 48, height: 48, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   weightValue: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   weightNumberInput: { minWidth: 106, padding: 0, textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 42, letterSpacing: -2 },
@@ -523,6 +635,16 @@ const styles = StyleSheet.create({
   welcomeSubtitle: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 23, marginTop: 12, maxWidth: 310 },
   completionContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   completionCoach: { width: 245, height: 245, borderRadius: 122, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
+  planBuildingContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  planBuildingOrb: { width: 154, height: 154, borderRadius: 77, borderWidth: 2, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginBottom: 34 },
+  planBuildingOrbInner: { width: 104, height: 104, borderRadius: 52, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  planBuildingTitle: { fontFamily: 'Inter_700Bold', fontSize: 30, letterSpacing: -1, textAlign: 'center' },
+  planBuildingBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, maxWidth: 315, textAlign: 'center', marginTop: 12 },
+  planProgressTrack: { width: '82%', height: 7, borderRadius: 8, overflow: 'hidden', marginTop: 34 },
+  planProgressFill: { height: '100%', borderRadius: 8 },
+  planBuildingPhase: { fontFamily: 'Inter_700Bold', fontSize: 12, marginTop: 18 },
+  planBuildingDots: { flexDirection: 'row', gap: 8, marginTop: 20 },
+  planBuildingDot: { width: 8, height: 8, borderRadius: 4 },
   introVisual: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   auraLarge: { position: 'absolute', width: 220, height: 220, borderRadius: 110 },
   introIcon: { width: 150, height: 150, borderRadius: 50 },

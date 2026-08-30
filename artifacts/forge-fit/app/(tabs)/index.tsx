@@ -1,11 +1,32 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { AnimatedNumber, Card, Header, Metric, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
+
+function CalorieWaterFill({ progress, color }: { progress: number; color: string }) {
+  const level = React.useRef(new Animated.Value(0)).current;
+  const wave = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    Animated.timing(level, { toValue: Math.max(0.035, Math.min(progress, 1)), duration: 650, useNativeDriver: false }).start();
+  }, [level, progress]);
+  React.useEffect(() => {
+    const animation = Animated.loop(Animated.timing(wave, { toValue: 1, duration: 2200, useNativeDriver: true }));
+    animation.start();
+    return () => animation.stop();
+  }, [wave]);
+  const height = level.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+  const translateX = wave.interpolate({ inputRange: [0, 1], outputRange: [0, -92] });
+  return <View pointerEvents="none" style={styles.waterFrame}>
+    <Animated.View style={[styles.waterFill, { height, backgroundColor: color }]}>
+      <Animated.View style={[styles.waterWave, { backgroundColor: color, transform: [{ translateX }] }]} />
+      <Animated.View style={[styles.waterWave, styles.waterWaveSecond, { backgroundColor: color, transform: [{ translateX }] }]} />
+    </Animated.View>
+  </View>;
+}
 
 export default function TodayScreen() {
   const colors = useColors();
@@ -31,6 +52,7 @@ export default function TodayScreen() {
       />
 
       <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
+        <CalorieWaterFill progress={calorieGoal ? calories / calorieGoal : 0} color={colors.primaryForeground} />
         <View style={styles.heroGlow} />
         <View style={styles.heroTop}>
           <View>
@@ -70,11 +92,6 @@ export default function TodayScreen() {
         <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
       </Card>
 
-      <View style={[styles.streakBanner, { backgroundColor: colors.secondary }]}>
-        <View style={[styles.streakIcon, { backgroundColor: `${colors.orange}22` }]}><Ionicons name="flame" size={18} color={colors.orange} /></View>
-        <Text style={[styles.streakText, { color: colors.foreground }]}>{t('stayConsistent')}</Text>
-        <Ionicons name="arrow-forward" size={17} color={colors.primary} />
-      </View>
       <PremiumOfferModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
     </Screen>
   );
@@ -82,6 +99,10 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   heroCard: { borderRadius: 28, padding: 22, overflow: 'hidden', marginBottom: 16 },
+  waterFrame: { position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, justifyContent: 'flex-end', overflow: 'hidden' },
+  waterFill: { width: '100%', opacity: 0.13, minHeight: 2 },
+  waterWave: { position: 'absolute', width: '145%', height: 26, borderRadius: 80, top: -13, left: '-22%' },
+  waterWaveSecond: { top: -8, left: '30%', opacity: 0.72 },
   heroGlow: { position: 'absolute', right: -56, top: -70, width: 180, height: 180, borderRadius: 100, backgroundColor: '#FFFFFF18' },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heroEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.3 },
@@ -107,7 +128,4 @@ const styles = StyleSheet.create({
   premiumLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.2, marginBottom: 4 },
   premiumTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
   premiumDesc: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 3 },
-  streakBanner: { borderRadius: 18, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, marginBottom: 10 },
-  streakIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  streakText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 12 },
 });
