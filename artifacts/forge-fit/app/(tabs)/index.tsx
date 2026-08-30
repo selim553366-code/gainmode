@@ -5,12 +5,13 @@ import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { ActionTile, AnimatedNumber, Card, Header, Metric, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
+import { ActionTile, AnimatedNumber, Card, Header, Metric, PremiumOfferModal, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 
 export default function TodayScreen() {
   const colors = useColors();
   const { language, meals, weight, username, calorieGoal, workouts } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const [premiumVisible, setPremiumVisible] = React.useState(false);
   const calories = meals.reduce((sum, meal) => sum + meal.calories, 0);
   const macros = meals.reduce((totals, meal) => ({
     protein: totals.protein + meal.protein,
@@ -20,11 +21,12 @@ export default function TodayScreen() {
   return (
     <Screen>
       <Header
-        eyebrow="Forge Fit"
-            title={`${t('goodMorning')}, ${username ?? ''}`.trim()}
+        title={`${t('goodMorning')}, ${username ?? ''}`.trim()}
         subtitle={t('ready')}
          action="settings-outline"
          onAction={() => router.push('/settings')}
+         premiumLabel={t('premiumShort')}
+         premiumAction={() => setPremiumVisible(true)}
       />
 
       <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
@@ -69,17 +71,18 @@ export default function TodayScreen() {
         <ActionTile icon="flame-outline" title={t('streak')} subtitle={t('noData')} color={colors.orange} />
       </View>
 
-      <View style={[styles.premiumCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
+      <Card onPress={() => setPremiumVisible(true)} style={[styles.premiumCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
         <View style={[styles.premiumMark, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={16} color={colors.primaryForeground} /></View>
         <View style={{ flex: 1 }}><Text style={[styles.premiumLabel, { color: colors.primary }]}>{t('premium')}</Text><Text style={[styles.premiumTitle, { color: colors.foreground }]}>{t('unlock')}</Text><Text style={[styles.premiumDesc, { color: colors.mutedForeground }]}>{t('premiumDesc')}</Text></View>
         <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
-      </View>
+      </Card>
 
       <View style={[styles.streakBanner, { backgroundColor: colors.secondary }]}>
         <View style={[styles.streakIcon, { backgroundColor: `${colors.orange}22` }]}><Ionicons name="flame" size={18} color={colors.orange} /></View>
         <Text style={[styles.streakText, { color: colors.foreground }]}>{t('stayConsistent')}</Text>
         <Ionicons name="arrow-forward" size={17} color={colors.primary} />
       </View>
+      <PremiumOfferModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
     </Screen>
   );
 }
