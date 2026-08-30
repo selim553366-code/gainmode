@@ -2,7 +2,11 @@ import { Router, type IRouter } from "express";
 
 const router: IRouter = Router();
 
-const OPEN_FOOD_FACTS_URL = "https://world.openfoodfacts.org/cgi/search.pl";
+const OPEN_FOOD_FACTS_URLS = [
+  "https://world.openfoodfacts.net/cgi/search.pl",
+  "https://world.openfoodfacts.org/cgi/search.pl",
+];
+const USDA_SEARCH_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
 const supportedLanguages = new Set(["tr", "en", "de", "fr", "es"]);
 
 type ProviderProduct = {
@@ -20,6 +24,35 @@ type ProviderProduct = {
 
 type ProviderResponse = {
   products?: ProviderProduct[];
+};
+
+type UsdaNutrient = {
+  nutrientId?: number;
+  nutrientName?: string;
+  unitName?: string;
+  value?: number;
+};
+
+type UsdaProduct = {
+  fdcId?: number;
+  description?: string;
+  servingSize?: number;
+  servingSizeUnit?: string;
+  foodNutrients?: UsdaNutrient[];
+};
+
+type UsdaResponse = {
+  foods?: UsdaProduct[];
+};
+
+type NormalizedFood = {
+  id: string;
+  name: string;
+  serving: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
 };
 
 function toNumber(value: unknown): number | null {
@@ -86,6 +119,93 @@ function normalizeProduct(product: ProviderProduct, language: string, index: num
   };
 }
 
+function usdaNutrient(product: UsdaProduct, id: number) {
+  const nutrient = product.foodNutrients?.find((item) => item.nutrientId === id);
+  return toNumber(nutrient?.value);
+}
+
+function normalizeUsdaProduct(product: UsdaProduct, index: number): NormalizedFood | null {
+  const name = product.description?.trim();
+  const calories = usdaNutrient(product, 1008);
+  const protein = usdaNutrient(product, 1003);
+  const carbs = usdaNutrient(product, 1005);
+  const fat = usdaNutrient(product, 1004);
+  if (!name || calories === null || protein === null || carbs === null || fat === null) return null;
+
+  const servingSize = toNumber(product.servingSize);
+  const servingUnit = product.servingSizeUnit?.trim().toLowerCase();
+  const isGramServing = servingSize !== null && servingUnit === "g";
+  const multiplier = isGramServing ? servingSize / 100 : 1;
+  return {
+    id: product.fdcId ? `usda-${product.fdcId}` : `usda-${index}`,
+    name,
+    serving: isGramServing ? `${servingSize} g` : "100 g",
+    calories: Math.round(calories * multiplier),
+    protein: Math.round(protein * multiplier * 10) / 10,
+    carbs: Math.round(carbs * multiplier * 10) / 10,
+    fat: Math.round(fat * multiplier * 10) / 10,
+  };
+}
+
+async function searchOpenFoodFacts(query: string, language: string, limit: number): Promise<NormalizedFood[]> {
+  const params = new URLSearchParams({
+    search_terms: query,
+    search_simple: "1",
+    action: "process",
+    json: "1",
+    page_size: String(Math.min(limit * 2, 40)),
+    fields: [
+      "code",
+      "product_name",
+      "product_name_en",
+      "product_name_tr",
+      "product_name_de",
+      "product_name_fr",
+      "product_name_es",
+      "brands",
+      "serving_size",
+      "nutriments",
+    ].join(","),
+  });
+  let providerResponse: Response | null = null;
+  const providerStatuses: number[] = [];
+  for (const providerUrl of OPEN_FOOD_FACTS_URLS) {
+    const response = await fetch(`${providerUrl}?${params.toString()}`, {
+      headers: { Accept: "application/json", "User-Agent": "ForgeFit/1.0 (nutrition search)" },
+      signal: AbortSignal.timeout(10000),
+    });
+    providerStatuses.push(response.status);
+    if (response.ok) {
+      providerResponse = response;
+      break;
+    }
+  }
+  if (!providerResponse) throw new Error(`Open Food Facts returned ${providerStatuses.join(", ")}.`);
+  const payload = await providerResponse.json() as ProviderResponse;
+  return (payload.products ?? [])
+    .map((product, index) => normalizeProduct(product, language, index))
+    .filter((item): item is NonNullable<ReturnType<typeof normalizeProduct>> => item !== null);
+}
+
+async function searchUsda(query: string, limit: number): Promise<NormalizedFood[]> {
+  const params = new URLSearchParams({
+    api_key: "DEMO_KEY",
+    query,
+    pageSize: String(Math.min(limit * 2, 20)),
+    dataType: "Foundation,SR Legacy",
+    fields: "fdcId,description,servingSize,servingSizeUnit,foodNutrients",
+  });
+  const response = await fetch(`${USDA_SEARCH_URL}?${params.toString()}`, {
+    headers: { Accept: "application/json", "User-Agent": "ForgeFit/1.0 (nutrition search)" },
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) throw new Error(`USDA returned ${response.status}.`);
+  const payload = await response.json() as UsdaResponse;
+  return (payload.foods ?? [])
+    .map((product, index) => normalizeUsdaProduct(product, index))
+    .filter((item): item is NormalizedFood => item !== null);
+}
+
 router.get("/food/search", async (req, res) => {
   const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const language = typeof req.query.language === "string" && supportedLanguages.has(req.query.language)
@@ -99,43 +219,33 @@ router.get("/food/search", async (req, res) => {
   }
 
   try {
-    const params = new URLSearchParams({
-      search_terms: query,
-      search_simple: "1",
-      action: "process",
-      json: "1",
-      page_size: String(Math.min(limit * 2, 40)),
-      fields: [
-        "code",
-        "product_name",
-        "product_name_en",
-        "product_name_tr",
-        "product_name_de",
-        "product_name_fr",
-        "product_name_es",
-        "brands",
-        "serving_size",
-        "nutriments",
-      ].join(","),
-    });
-    const response = await fetch(`${OPEN_FOOD_FACTS_URL}?${params.toString()}`, {
-      headers: { Accept: "application/json", "User-Agent": "ForgeFit/1.0 (nutrition search)" },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok) throw new Error(`Food provider returned ${response.status}.`);
-    const payload = await response.json() as ProviderResponse;
+    const providerResults = await Promise.allSettled([
+      searchUsda(query, limit),
+      searchOpenFoodFacts(query, language, limit),
+    ]);
+    const successfulResults = providerResults
+      .filter((result): result is PromiseFulfilledResult<NormalizedFood[]> => result.status === "fulfilled")
+      .flatMap((result) => result.value);
+    if (successfulResults.length === 0) {
+      const failures = providerResults
+        .filter((result): result is PromiseRejectedResult => result.status === "rejected")
+        .map((result) => result.reason instanceof Error ? result.reason.message : "unknown error");
+      throw new Error(`Food providers failed: ${failures.join(" | ")}`);
+    }
     const seen = new Set<string>();
-    const items = (payload.products ?? [])
-      .map((product, index) => normalizeProduct(product, language, index))
-      .filter((item): item is NonNullable<ReturnType<typeof normalizeProduct>> => {
-        if (!item || seen.has(item.name.toLowerCase())) return false;
+    const items = successfulResults
+      .filter((item) => {
+        if (seen.has(item.name.toLowerCase())) return false;
         seen.add(item.name.toLowerCase());
         return true;
       })
       .slice(0, limit);
     return res.json({ query, items });
   } catch (error) {
-    req.log?.error?.({ error, query }, "Food search failed");
+    req.log?.error?.({
+      query,
+      error: error instanceof Error ? { message: error.message, stack: error.stack } : error,
+    }, "Food search failed");
     return res.status(502).json({ error: "Food search is temporarily unavailable." });
   }
 });

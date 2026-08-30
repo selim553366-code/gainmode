@@ -1,2 +1,3 @@
 - [Forge Fit AI and access model](forge-fit-ai.md) — local-first user state with server-side GPT-5 mini and premium usage gates.
 - [Forge Fit onboarding personalization](forge-fit-onboarding.md) — required profile first, optional refinements second, with native-friendly transparent coach media.
+- [Food search provider resilience](food-search-providers.md) — Open Food Facts may rate-limit the .org endpoint; keep the alternate .net source available and combine USDA for generic foods.
