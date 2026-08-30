@@ -6,7 +6,7 @@ import { useAudioPlayer } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate, type Language, type TranslationKey } from '@/lib/i18n';
-import { useSubscription } from '@/lib/revenuecat';
+import { REVENUECAT_ENTITLEMENT_IDENTIFIER, useSubscription } from '@/lib/revenuecat';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@/components/AppIcon';
@@ -218,7 +218,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
     }
     try {
       const customerInfo = await restore();
-      if (customerInfo.entitlements.active.fitai_premium) {
+      if (customerInfo.entitlements.active[REVENUECAT_ENTITLEMENT_IDENTIFIER]) {
         setCelebrating(true);
         return;
       }

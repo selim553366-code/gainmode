@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import Purchases, { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-export const REVENUECAT_ENTITLEMENT_IDENTIFIER = 'fitai_premium';
+export const REVENUECAT_ENTITLEMENT_IDENTIFIER = 'forge_fit_pro';
 const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
 
 let configured = false;
