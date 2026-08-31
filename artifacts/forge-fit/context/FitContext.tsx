@@ -4,6 +4,7 @@ import { Language, TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
 import { getCurrentMonthKey } from '@/lib/profileEdit';
+import { buildWorkoutPlan, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
@@ -35,7 +36,8 @@ export type Profile = {
   preferredDays?: string[];
   targetWeight?: number;
 };
-export type Workout = { id: string; day: string; name: string; duration: number; exercises: { id: string; name: string; sets: number; reps: number }[]; completed: boolean };
+export type Workout = { id: string; day: string; name: string; duration: number; focusAreas?: MuscleGroup[]; exercises: { id: string; name: string; sets: number; reps: number; muscleGroup?: MuscleGroup; completed?: boolean }[]; completed: boolean };
+export type { MuscleGroup } from '@/lib/workoutPlan';
 export type GoalProjection = {
   goal: FitnessGoal;
   direction: 'loss' | 'gain' | 'maintain';
@@ -91,6 +93,7 @@ type FitContextValue = FitState & {
   incrementCoachUsage: () => void;
   incrementPhotoUsage: () => void;
   toggleWorkout: (id: string) => void;
+  toggleExercise: (workoutId: string, exerciseId: string) => void;
   addExercise: (workoutId: string, name: string, sets?: number, reps?: number) => void;
   removeExercise: (workoutId: string, exerciseId: string) => void;
   updateExercise: (workoutId: string, exerciseId: string, patch: { sets?: number; reps?: number }) => void;
@@ -102,7 +105,7 @@ type FitContextValue = FitState & {
 };
 
 const initialState: FitState = {
-  version: 4,
+  version: 5,
   language: 'tr',
   weight: null,
   calorieGoal: null,
@@ -217,7 +220,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
     AsyncStorage.getItem('forge-fit-state').then((stored) => {
       if (stored) {
         const parsed = JSON.parse(stored) as Partial<FitState> & { water?: unknown; hydrationGoal?: unknown };
-        if (parsed.version === initialState.version || parsed.version === 3) {
+        if (parsed.version === initialState.version || parsed.version === 4 || parsed.version === 3) {
           const { water: _legacyWater, hydrationGoal: _legacyHydrationGoal, ...storedState } = parsed;
           const merged = {
             ...initialState,
@@ -225,6 +228,12 @@ export function FitProvider({ children }: { children: ReactNode }) {
             notificationSettings: { ...initialState.notificationSettings, ...(parsed.notificationSettings ?? {}) },
             version: initialState.version,
           };
+          const needsWorkoutUpgrade = merged.profile && merged.workouts.length > 0 && merged.workouts.some((workout) => (
+            !workout.focusAreas?.length || workout.exercises.some((exercise) => !exercise.muscleGroup)
+          ));
+          if (needsWorkoutUpgrade && merged.profile) {
+            merged.workouts = buildWorkoutPlan(merged.profile);
+          }
           if (!merged.goalProjection && merged.profile && merged.calorieGoal) {
             merged.goalProjection = createGoalProjection(merged.profile, merged.calorieGoal, merged.workouts, merged.goalWeight ?? undefined);
           }
@@ -251,50 +260,6 @@ export function FitProvider({ children }: { children: ReactNode }) {
       console.warn('Forge Fit notifications could not be synchronized.', error);
     });
   }, [hydrated, state.notificationSettings, state.profile, state.language]);
-
-  const calculatePlan = (profile: Profile): Workout[] => {
-    const isLossGoal = profile.goal === 'weightLoss' || profile.goal === 'fatLoss';
-    const isBuildGoal = profile.goal === 'muscle' || profile.goal === 'weightGain';
-    const names: TranslationKey[] = isLossGoal
-      ? ['workoutConditioning', 'workoutStrength', 'workoutFullBody', 'workoutLower', 'workoutUpper', 'workoutPull']
-      : ['workoutUpper', 'workoutPull', 'workoutLower', 'workoutFullBody', 'workoutStrength', 'workoutConditioning'];
-    const bodyweight = profile.equipment === 'bodyweight';
-     const homeEquipment = profile.equipment === 'home' || (profile.equipment === 'gym' && profile.gymLevel === 'basic');
-     const equipmentText = (profile.equipmentDetails ?? '').toLocaleLowerCase();
-     const hasDumbbells = /dumbbell|halter|mancuerna|hantel|haltère/.test(equipmentText);
-     const hasBands = /band|bant|direnç|resistance|elastique|gummiband|banda/.test(equipmentText);
-     const hasKettlebell = /kettlebell|girya/.test(equipmentText);
-     const hasBench = /bench|bank|banco|banc/.test(equipmentText);
-     const homeExerciseSets: TranslationKey[][] = hasDumbbells || hasKettlebell
-       ? [['exerciseShoulderPress', 'exerciseRow', 'exerciseSquat'], ['exerciseRdl', 'exerciseCurl', 'exerciseLunge'], ['exerciseSquat', 'exerciseShoulderPress', 'exerciseGluteBridge'], ['exerciseRow', 'exerciseRdl', 'exerciseSidePlank'], ['exerciseLunge', 'exerciseCurl', 'exercisePlank'], ['exerciseSquat', 'exerciseRow', 'exerciseDeadBug']]
-       : hasBands
-         ? [['exerciseRow', 'exercisePushup', 'exerciseSquat'], ['exerciseShoulderPress', 'exerciseLunge', 'exerciseGluteBridge'], ['exerciseRow', 'exercisePushup', 'exerciseSidePlank'], ['exerciseShoulderPress', 'exerciseSquat', 'exerciseDeadBug'], ['exercisePushup', 'exerciseLunge', 'exercisePlank'], ['exerciseRow', 'exerciseGluteBridge', 'exerciseMountain']]
-         : hasBench
-           ? [['exerciseBench', 'exercisePushup', 'exerciseSquat'], ['exerciseRow', 'exerciseLunge', 'exerciseGluteBridge'], ['exerciseBench', 'exerciseShoulderPress', 'exerciseSidePlank'], ['exercisePushup', 'exerciseSquat', 'exerciseDeadBug'], ['exerciseBench', 'exerciseRdl', 'exercisePlank'], ['exerciseRow', 'exerciseLunge', 'exerciseMountain']]
-           : [['exercisePushup', 'exerciseSquat', 'exerciseGluteBridge'], ['exerciseRow', 'exerciseLunge', 'exerciseDeadBug'], ['exerciseShoulderPress', 'exerciseMountain', 'exerciseSidePlank'], ['exercisePushup', 'exerciseLunge', 'exercisePlank'], ['exerciseSquat', 'exerciseGluteBridge', 'exerciseDeadBug'], ['exerciseMountain', 'exerciseRow', 'exerciseSidePlank']];
-     const exerciseSets: TranslationKey[][] = bodyweight
-      ? [['exercisePushup', 'exerciseSquat', 'exercisePlank'], ['exerciseRow', 'exerciseLunge', 'exerciseDeadBug'], ['exerciseMountain', 'exerciseGluteBridge', 'exerciseSidePlank'], ['exercisePushup', 'exerciseLunge', 'exerciseSidePlank'], ['exerciseSquat', 'exerciseGluteBridge', 'exercisePlank'], ['exerciseMountain', 'exercisePushup', 'exerciseDeadBug']]
-      : homeEquipment
-        ? homeExerciseSets
-        : [['exerciseBench', 'exerciseShoulderPress', 'exerciseTriceps'], ['exerciseRow', 'exerciseLatPulldown', 'exerciseCurl'], ['exerciseLegPress', 'exerciseRdl', 'exerciseCalfRaise'], ['exerciseBench', 'exerciseRow', 'exerciseLegPress'], ['exerciseShoulderPress', 'exerciseCurl', 'exerciseRdl'], ['exerciseLatPulldown', 'exerciseTriceps', 'exerciseCalfRaise']];
-    const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-    const count = Math.min(Math.max(profile.trainingDays ?? 3, 2), 6);
-    const reps = profile.experience === 'advanced' ? (isBuildGoal ? 8 : 10) : profile.experience === 'intermediate' ? 10 : isLossGoal ? 14 : 12;
-    const duration = profile.sessionDuration ?? (isBuildGoal ? 50 : 40);
-    const baseSets = profile.experience === 'advanced' ? 4 : profile.experience === 'intermediate' ? 3 : 2;
-    const durationSet = duration >= 55 ? 1 : 0;
-    const activitySet = profile.activity === 'high' ? 1 : 0;
-    const goalSet = isBuildGoal ? 1 : 0;
-    const sets = Math.min(5, baseSets + durationSet + activitySet + goalSet);
-    return names.slice(0, count).map((name, index) => ({
-      id: `workout-${index}`,
-      day: profile.preferredDays?.[index] ?? days[index],
-      name,
-      duration,
-      completed: false,
-      exercises: exerciseSets[index].map((exercise, exerciseIndex) => ({ id: `${index}-${exerciseIndex}`, name: exercise, sets, reps: bodyweight ? reps + 2 : reps })),
-    }));
-  };
 
   const value = useMemo<FitContextValue>(() => ({
     ...state,
@@ -333,7 +298,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
        const fatRatio = profile.diet === 'vegan' ? 0.3 : profile.diet === 'vegetarian' ? 0.28 : isLossGoal ? (profile.goalRate === 'fast' ? 0.23 : 0.25) : isGainGoal ? 0.28 : 0.27;
       const fatGoal = Math.round((calorieGoal * fatRatio) / 9);
       const carbsGoal = Math.max(0, Math.round((calorieGoal - proteinGoal * 4 - fatGoal * 9) / 4));
-      const workouts = calculatePlan(profile);
+      const workouts = buildWorkoutPlan(profile);
       const projection = createGoalProjection(profile, calorieGoal, workouts, targetWeight);
       return {
         ...current,
@@ -362,9 +327,22 @@ export function FitProvider({ children }: { children: ReactNode }) {
       const today = new Date().toISOString().slice(0, 10);
       return current.usageDate === today ? { ...current, photoAnalysesUsed: current.photoAnalysesUsed + 1 } : { ...current, usageDate: today, coachMessagesUsed: 0, photoAnalysesUsed: 1 };
     }),
-    toggleWorkout: (id) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === id ? { ...workout, completed: !workout.completed } : workout) })),
-     addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, exercises: [...workout.exercises, { id: `${Date.now()}-${Math.random()}`, name, sets, reps }] } : workout) })),
-    removeExercise: (workoutId, exerciseId) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, exercises: workout.exercises.filter((exercise) => exercise.id !== exerciseId) } : workout) })),
+    toggleWorkout: (id) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => {
+      if (workout.id !== id) return workout;
+      const completed = !workout.completed;
+      return { ...workout, completed, exercises: workout.exercises.map((exercise) => ({ ...exercise, completed })) };
+    }) })),
+    toggleExercise: (workoutId, exerciseId) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => {
+      if (workout.id !== workoutId) return workout;
+      const exercises = workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, completed: !exercise.completed } : exercise);
+      return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
+    }) })),
+     addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, completed: false, exercises: [...workout.exercises, { id: `${Date.now()}-${Math.random()}`, name, sets, reps, muscleGroup: 'other', completed: false }] } : workout) })),
+    removeExercise: (workoutId, exerciseId) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => {
+      if (workout.id !== workoutId) return workout;
+      const exercises = workout.exercises.filter((exercise) => exercise.id !== exerciseId);
+      return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
+    }) })),
      updateExercise: (workoutId, exerciseId, patch) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, exercises: workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, ...patch } : exercise) } : workout) })),
      updateNutritionGoals: (patch) => setState((current) => {
        const nextGoals = {
