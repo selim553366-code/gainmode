@@ -33,6 +33,17 @@ export type Profile = {
   targetWeight?: number;
 };
 export type Workout = { id: string; day: string; name: string; duration: number; exercises: { id: string; name: string; sets: number; reps: number }[]; completed: boolean };
+export type GoalProjection = {
+  goal: FitnessGoal;
+  direction: 'loss' | 'gain' | 'maintain';
+  startWeightKg: number;
+  targetWeightKg: number;
+  weeklyChangeKg: number;
+  estimatedWeeks: number;
+  estimatedMonths: number;
+  dailyCalorieGap: number;
+  weeklyWorkoutMinutes: number;
+};
 export type Friend = { id: string; username: string };
 export type Challenge = { id: string; name: string; target: number; progress: number };
 type FitState = {
@@ -45,9 +56,11 @@ type FitState = {
   carbsGoal: number | null;
   fatGoal: number | null;
   goalWeight: number | null;
+  goalProjection: GoalProjection | null;
   profile: Profile | null;
   username: string | null;
   onboardingComplete: boolean;
+  coachIntroPending: boolean;
   introSeen: boolean;
   isPremium: boolean;
   coachMessagesUsed: number;
@@ -66,6 +79,7 @@ type FitContextValue = FitState & {
   addMeal: (meal: Omit<Meal, 'id'>) => void;
   removeMeal: (id: string) => void;
   completeOnboarding: (profile: Profile, username: string) => void;
+  markCoachIntroSeen: () => void;
   setIntroSeen: () => void;
   incrementCoachUsage: () => void;
   incrementPhotoUsage: () => void;
@@ -86,9 +100,11 @@ const initialState: FitState = {
   carbsGoal: null,
   fatGoal: null,
   goalWeight: null,
+  goalProjection: null,
   profile: null,
   username: null,
   onboardingComplete: false,
+  coachIntroPending: false,
   introSeen: false,
   isPremium: false,
   coachMessagesUsed: 0,
@@ -107,8 +123,6 @@ const clamp = (value: number, min: number, max: number) => Math.min(Math.max(val
 const roundKg = (value: number) => Math.round(value * 10) / 10;
 
 export function recommendTargetWeight(profile: Pick<Profile, 'height' | 'weight' | 'age' | 'goal' | 'sex' | 'activity' | 'goalRate'>) {
-  if (profile.goal !== 'weightGain' && profile.goal !== 'weightLoss') return roundKg(profile.weight);
-
   const heightMeters = profile.height / 100;
   const healthyLower = heightMeters * heightMeters * 18.5;
   const healthyUpper = heightMeters * heightMeters * 24.9;
@@ -118,10 +132,61 @@ export function recommendTargetWeight(profile: Pick<Profile, 'height' | 'weight'
   const sexFactor = profile.sex === 'female' ? 0.94 : profile.sex === 'male' ? 1 : 0.97;
   const conservativeChange = Math.min(profile.weight * 0.08, (2 + profile.weight * 0.025) * paceFactor * activityFactor * ageFactor * sexFactor);
 
-  if (profile.goal === 'weightLoss') {
-    return roundKg(clamp(Math.min(profile.weight, profile.weight - conservativeChange), 35, Math.min(200, healthyUpper)));
+  if (profile.goal === 'weightLoss' || profile.goal === 'fatLoss') {
+    const change = profile.goal === 'fatLoss' ? Math.min(profile.weight * 0.05, conservativeChange * 1.25) : conservativeChange;
+    return roundKg(clamp(Math.min(profile.weight, profile.weight - change), 35, Math.min(200, healthyUpper)));
   }
-  return roundKg(clamp(Math.max(profile.weight, profile.weight + conservativeChange), Math.max(35, healthyLower), 200));
+  if (profile.goal === 'weightGain' || profile.goal === 'muscle') {
+    const change = profile.goal === 'muscle' ? Math.min(profile.weight * 0.04, conservativeChange * 0.85) : conservativeChange;
+    return roundKg(clamp(Math.max(profile.weight, profile.weight + change), Math.max(35, healthyLower), 200));
+  }
+  return roundKg(profile.weight);
+}
+
+function estimateMaintenanceCalories(profile: Profile) {
+  const sexAdjustment = profile.sex === 'female' ? -161 : profile.sex === 'preferNot' ? -78 : 5;
+  const bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + sexAdjustment;
+  const activityMultiplier = { sedentary: 1.2, light: 1.35, moderate: 1.5, high: 1.7 }[profile.activity ?? 'light'];
+  return Math.max(1200, bmr * activityMultiplier);
+}
+
+export function createGoalProjection(profile: Profile, calorieGoal: number, workouts: Workout[], targetWeight = profile.targetWeight ?? recommendTargetWeight(profile)): GoalProjection {
+  const direction: GoalProjection['direction'] = targetWeight < profile.weight ? 'loss' : targetWeight > profile.weight ? 'gain' : 'maintain';
+  const weeklyWorkoutMinutes = workouts.reduce((total, workout) => total + workout.duration, 0);
+  const workoutIntensity = profile.equipment === 'gym' ? 6.5 : profile.equipment === 'home' ? 5.5 : 5;
+  const dailyWorkoutCalories = (weeklyWorkoutMinutes * workoutIntensity) / 7;
+  const energyGap = estimateMaintenanceCalories(profile) + dailyWorkoutCalories - calorieGoal;
+  const dailyCalorieGap = Math.round(Math.abs(energyGap));
+  const targetDelta = Math.abs(targetWeight - profile.weight);
+  const pace = profile.goalRate ?? 'balanced';
+  const maxWeeklyFraction = direction === 'loss'
+    ? { slow: 0.005, balanced: 0.0075, fast: 0.01 }[pace]
+    : direction === 'gain'
+      ? { slow: 0.0025, balanced: 0.005, fast: 0.0075 }[pace]
+      : 0;
+  const safeWeeklyLimit = profile.weight * maxWeeklyFraction;
+  const energyBasedChange = direction === 'loss'
+    ? Math.max(0, energyGap) * 7 / 7700
+    : direction === 'gain'
+      ? Math.max(0, -energyGap) * 7 / 7700
+      : 0;
+  const weeklyChangeKg = direction === 'maintain'
+    ? 0
+    : roundKg(clamp(Math.max(energyBasedChange, 0.05), 0.05, safeWeeklyLimit));
+  const estimatedWeeks = direction === 'maintain'
+    ? ({ slow: 12, balanced: 8, fast: 6 }[pace])
+    : Math.max(1, Math.ceil(targetDelta / weeklyChangeKg));
+  return {
+    goal: profile.goal,
+    direction,
+    startWeightKg: roundKg(profile.weight),
+    targetWeightKg: roundKg(targetWeight),
+    weeklyChangeKg,
+    estimatedWeeks,
+    estimatedMonths: Math.max(1, Math.round(estimatedWeeks / 4.345)),
+    dailyCalorieGap,
+    weeklyWorkoutMinutes,
+  };
 }
 
 export function FitProvider({ children }: { children: ReactNode }) {
@@ -137,6 +202,9 @@ export function FitProvider({ children }: { children: ReactNode }) {
         if (parsed.version === initialState.version) {
           const { water: _legacyWater, hydrationGoal: _legacyHydrationGoal, ...storedState } = parsed;
           const merged = { ...initialState, ...storedState };
+          if (!merged.goalProjection && merged.profile && merged.calorieGoal) {
+            merged.goalProjection = createGoalProjection(merged.profile, merged.calorieGoal, merged.workouts, merged.goalWeight ?? undefined);
+          }
           const today = new Date().toISOString().slice(0, 10);
           setState(merged.usageDate === today ? merged : { ...merged, usageDate: today, coachMessagesUsed: 0, photoAnalysesUsed: 0 });
         }
@@ -215,6 +283,8 @@ export function FitProvider({ children }: { children: ReactNode }) {
       const fatRatio = profile.diet === 'vegan' ? 0.3 : profile.diet === 'vegetarian' ? 0.28 : isLossGoal ? 0.25 : 0.27;
       const fatGoal = Math.round((calorieGoal * fatRatio) / 9);
       const carbsGoal = Math.max(0, Math.round((calorieGoal - proteinGoal * 4 - fatGoal * 9) / 4));
+      const workouts = calculatePlan(profile);
+      const projection = createGoalProjection(profile, calorieGoal, workouts, targetWeight);
       return {
         ...current,
         profile,
@@ -225,10 +295,13 @@ export function FitProvider({ children }: { children: ReactNode }) {
         carbsGoal,
         fatGoal,
         goalWeight: targetWeight,
-        workouts: calculatePlan(profile),
+        goalProjection: projection,
+        workouts,
         onboardingComplete: true,
+        coachIntroPending: true,
       };
     }),
+    markCoachIntroSeen: () => setState((current) => current.coachIntroPending ? { ...current, coachIntroPending: false } : current),
     setIntroSeen: () => setState((current) => ({ ...current, introSeen: true })),
     incrementCoachUsage: () => setState((current) => {
       const today = new Date().toISOString().slice(0, 10);

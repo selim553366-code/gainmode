@@ -191,13 +191,13 @@ function getAge(day: number, month: number, year: number) {
 }
 
 export default function EntryScreen() {
-  const { onboardingComplete, introSeen, isPremium, setIntroSeen } = useFit();
+  const { onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen } = useFit();
   React.useEffect(() => {
-     if (onboardingComplete && introSeen && (isPremium || !SUBSCRIPTION_PURCHASE_ENABLED)) router.replace('/(tabs)');
-  }, [onboardingComplete, introSeen, isPremium]);
+     if (onboardingComplete && introSeen && (isPremium || !SUBSCRIPTION_PURCHASE_ENABLED)) router.replace(coachIntroPending ? '/(tabs)/coach' : '/(tabs)');
+  }, [onboardingComplete, introSeen, isPremium, coachIntroPending]);
   if (!onboardingComplete) return <OnboardingQuestions />;
   if (!introSeen) return <IntroScreen onDone={setIntroSeen} />;
-   if (!isPremium) return SUBSCRIPTION_PURCHASE_ENABLED ? <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)')} onSkip={() => router.replace('/(tabs)')} /> : null;
+   if (!isPremium) return SUBSCRIPTION_PURCHASE_ENABLED ? <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)/coach')} onSkip={() => router.replace('/(tabs)')} /> : null;
   return null;
 }
 
@@ -353,7 +353,7 @@ function OnboardingQuestions() {
       proteinPreference,
       experience,
       preferredDays,
-      targetWeight: hasTargetWeightStep ? (targetWeight ?? recommendedTargetWeight) : weight,
+       targetWeight: hasTargetWeightStep ? (targetWeight ?? recommendedTargetWeight) : recommendTargetWeight({ height, weight, age: currentAge, goal, sex, activity, goalRate }),
     };
     completeOnboarding(profile, cleanUsername);
     AsyncStorage.setItem('forge-fit-usernames', JSON.stringify([...taken, cleanUsername])).catch(() => undefined);
