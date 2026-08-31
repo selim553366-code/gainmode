@@ -205,7 +205,7 @@ export default function EntryScreen() {
   }, [onboardingComplete, introSeen, isPremium, coachIntroPending]);
   if (!onboardingComplete) return <OnboardingQuestions />;
   if (!introSeen) return <IntroScreen onDone={setIntroSeen} />;
-   if (!isPremium) return SUBSCRIPTION_PURCHASE_ENABLED ? <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)/coach')} onSkip={() => router.replace('/(tabs)')} /> : null;
+   if (!isPremium) return SUBSCRIPTION_PURCHASE_ENABLED ? <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)/coach')} onSkip={() => router.replace('/(tabs)')} onRestart={restartOnboarding} /> : null;
   return redirectFailed ? <EntryRecoveryScreen onRestart={restartOnboarding} /> : <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
 }
 
@@ -675,7 +675,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
    return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.introVisual}><View style={[styles.auraLarge, { backgroundColor: `${colors.primary}18` }]} /><Image source={require('@/assets/images/icon.png')} style={styles.introIcon} /></View><Animated.View style={{ opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }}><Text style={[styles.eyebrow, { color: colors.primary }]}>1 / 1</Text><Text style={[styles.introTitle, { color: colors.foreground }]}>{t('onboardingTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('onboardingIntro')}</Text></Animated.View><View style={styles.introBottom}><Pressable onPress={() => { triggerHaptic(); onDone(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View></LinearGradient>;
 }
 
-function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () => void }) {
+function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: () => void; onSkip: () => void; onRestart: () => void }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { language, isPremium } = useFit();
@@ -725,6 +725,10 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void;
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
      <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} disabled={isLoading || isPurchasing} onPress={() => { triggerHaptic(); handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || isLoading || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isLoading || isPurchasing ? t('premiumLoading') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeSkip')} onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('premiumWelcomeSkip')}</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('restartOnboarding')} onPress={() => { triggerHaptic(); onRestart(); router.replace('/'); }} style={({ pressed }) => [styles.restartOnboardingLink, { opacity: pressed ? 0.6 : 1 }]}>
+        <Ionicons name="flash-outline" size={15} color={colors.mutedForeground} />
+        <Text style={[styles.restartOnboardingLinkText, { color: colors.mutedForeground }]}>{t('restartOnboarding')}</Text>
+      </Pressable>
   </LinearGradient>;
 }
 
@@ -743,6 +747,8 @@ const styles = StyleSheet.create({
   entryRecoveryBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, textAlign: 'center', maxWidth: 310, marginTop: 10 },
   entryRecoveryButton: { minHeight: 54, width: '100%', borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10, marginTop: 28 },
   entryRecoveryButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
+  restartOnboardingLink: { minHeight: 34, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, marginTop: 2 },
+  restartOnboardingLinkText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   questionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brandMark: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   languageRow: { flexDirection: 'row', gap: 11 },
