@@ -83,7 +83,7 @@ paths:
       operationId: claimRunForgeDiscount
       tags: [runforge]
       summary: Claim the shared RunForge discount code
-      description: Assigns the shared RunForge discount code to one unique client within the campaign limit.
+      description: Returns the same shared RunForge discount code to each unique client until the 10-person campaign limit is reached.
       requestBody:
         required: true
         content:

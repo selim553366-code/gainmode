@@ -16,7 +16,6 @@ export default function SettingsScreen() {
     language,
     setLanguage,
     restartOnboarding,
-    isPremium,
     runForgeDiscountCode,
     runForgeDiscountRemaining,
     runForgeDiscountLimit,
@@ -31,10 +30,10 @@ export default function SettingsScreen() {
   const languages = Object.keys(languageLabels) as Language[];
 
   useEffect(() => {
-    if (!isPremium || runForgeDiscountCode || claimAttempted.current || !['unknown', 'error'].includes(runForgeDiscountStatus)) return;
+    if (runForgeDiscountCode || claimAttempted.current || !['unknown', 'error'].includes(runForgeDiscountStatus)) return;
     claimAttempted.current = true;
     void ensureRunForgeDiscountCode();
-  }, [ensureRunForgeDiscountCode, isPremium, runForgeDiscountCode, runForgeDiscountStatus]);
+  }, [ensureRunForgeDiscountCode, runForgeDiscountCode, runForgeDiscountStatus]);
 
   const copyCode = async (code: string) => {
     await Clipboard.setStringAsync(code);
@@ -80,8 +79,7 @@ export default function SettingsScreen() {
         </View>
       </Card>
 
-      {isPremium ? (
-        <>
+      <>
           <SectionTitle title={t('runForgeCodesSettings')} />
           <Card>
             <View style={styles.row}>
@@ -124,8 +122,7 @@ export default function SettingsScreen() {
               </Text>
             ) : null}
           </Card>
-        </>
-      ) : null}
+      </>
 
       <SectionTitle title={t('onboarding')} />
       <Card>

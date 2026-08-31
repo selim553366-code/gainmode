@@ -1,4 +1,3 @@
-import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { db, runForgeCampaigns, runForgeRedemptions } from "@workspace/db";
@@ -6,6 +5,7 @@ import { db, runForgeCampaigns, runForgeRedemptions } from "@workspace/db";
 const router: IRouter = Router();
 const CAMPAIGN_ID = 1;
 const CAMPAIGN_LIMIT = 10;
+const SHARED_CODE = "Forge36BB8E0E24";
 
 type RunForgeDiscountResponse = {
   available: boolean;
@@ -13,10 +13,6 @@ type RunForgeDiscountResponse = {
   remaining: number;
   limit: number;
 };
-
-function createSharedCode() {
-  return `Forge${randomBytes(5).toString("hex").toUpperCase()}`;
-}
 
 router.post("/runforge/discount", async (req, res) => {
   const clientId = typeof req.body?.clientId === "string" ? req.body.clientId.trim() : "";
@@ -30,7 +26,7 @@ router.post("/runforge/discount", async (req, res) => {
         .insert(runForgeCampaigns)
         .values({
           id: CAMPAIGN_ID,
-          code: createSharedCode(),
+          code: SHARED_CODE,
           usageLimit: CAMPAIGN_LIMIT,
           usedCount: 0,
         })

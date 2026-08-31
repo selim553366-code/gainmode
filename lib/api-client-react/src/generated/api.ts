@@ -227,7 +227,7 @@ export const getClaimRunForgeDiscountUrl = () => {
 }
 
 /**
- * Assigns the shared RunForge discount code to one unique client within the campaign limit.
+ * Returns the same shared RunForge discount code to each unique client until the 10-person campaign limit is reached.
  * @summary Claim the shared RunForge discount code
  */
 export const claimRunForgeDiscount = async (runForgeDiscountClaimRequest: RunForgeDiscountClaimRequest, options?: Parameters<typeof customFetch>[1]): Promise<RunForgeDiscountResponse> => {
