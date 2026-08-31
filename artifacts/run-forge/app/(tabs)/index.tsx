@@ -10,7 +10,6 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Circle, Marker, Polyline, type MapPressEvent } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
-import { claimRunForgeDiscount } from '@workspace/api-client-react';
 import { localeFor, languageLabels, type CopyKey, type Language, translate } from '@/lib/i18n';
 
 type Coordinate = { latitude: number; longitude: number };
@@ -18,7 +17,7 @@ type Region = Coordinate & { latitudeDelta: number; longitudeDelta: number };
 type Phase = 'ready' | 'countdown' | 'running' | 'summary';
 type RunRecord = { id: string; date: string; distanceKm: number; durationSec: number; averageSpeed: number; steps: number; route: Coordinate[] };
 
-const STORAGE_KEYS = { language: '@runforge/language', runs: '@runforge/runs', client: '@runforge/client' };
+const STORAGE_KEYS = { language: '@runforge/language', runs: '@runforge/runs' };
 const DEFAULT_REGION: Region = { latitude: 41.0082, longitude: 28.9784, latitudeDelta: 0.035, longitudeDelta: 0.035 };
 
 function distanceBetween(a: Coordinate, b: Coordinate) {
@@ -39,10 +38,6 @@ function formatDuration(seconds: number) {
 
 function sameDay(date: string) {
   return new Date(date).toDateString() === new Date().toDateString();
-}
-
-function makeClientId() {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function NeonIconButton({ icon, onPress, colors, accessibilityLabel }: { icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void; colors: ReturnType<typeof useColors>; accessibilityLabel: string }) {
@@ -128,10 +123,6 @@ export default function RunForgeHome() {
   const [recordPicker, setRecordPicker] = React.useState<'start' | 'finish' | null>(null);
   const [recordStart, setRecordStart] = React.useState<Coordinate | null>(null);
   const [recordFinish, setRecordFinish] = React.useState<Coordinate | null>(null);
-  const [recordCode, setRecordCode] = React.useState('');
-  const [codeRemaining, setCodeRemaining] = React.useState<number | null>(null);
-  const [codeLoading, setCodeLoading] = React.useState(false);
-  const [codeError, setCodeError] = React.useState(false);
   const subscriptionRef = React.useRef<Location.LocationSubscription | null>(null);
   const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = React.useRef(0);
@@ -301,16 +292,6 @@ export default function RunForgeHome() {
     void Haptics.selectionAsync();
   };
 
-  const loadForgeCode = async () => {
-    setCodeLoading(true); setCodeError(false);
-    try {
-      let clientId = await AsyncStorage.getItem(STORAGE_KEYS.client);
-      if (!clientId) { clientId = makeClientId(); await AsyncStorage.setItem(STORAGE_KEYS.client, clientId); }
-      const response = await claimRunForgeDiscount({ clientId });
-      if (response.available && response.code) { setRecordCode(response.code); setCodeRemaining(response.remaining); } else setCodeError(true);
-    } catch { setCodeError(true); } finally { setCodeLoading(false); }
-  };
-
   const todayRuns = runs.filter((run) => sameDay(run.date));
   const todayDistance = todayRuns.reduce((sum, run) => sum + run.distanceKm, 0) + (phase === 'running' ? distanceKm : 0);
   const completedDistance = todayRuns.reduce((sum, run) => sum + run.distanceKm, 0);
@@ -442,8 +423,6 @@ const styles = StyleSheet.create({
   linkBody: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 15, marginTop: 2 },
   smallButton: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
   smallButtonText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
-  codeText: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 0.7 },
-  codeError: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: -9 },
   sectionHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 3 },
   sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 19 },
   sectionMeta: { fontFamily: 'Inter_500Medium', fontSize: 11 },

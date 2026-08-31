@@ -1,9 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { Language, TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
-import { createRunForgeClientId } from '@/lib/runForgeCodes';
-import { claimRunForgeDiscount, type RunForgeDiscountResponse } from '@workspace/api-client-react';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
@@ -49,10 +47,6 @@ export type GoalProjection = {
 };
 export type Friend = { id: string; username: string };
 export type Challenge = { id: string; name: string; target: number; progress: number };
-export type RunForgeDiscountClaimResult =
-  | { status: 'granted'; code: string; remaining: number; limit: number }
-  | { status: 'exhausted'; remaining: number; limit: number }
-  | { status: 'error'; remaining: number | null; limit: number };
 type FitState = {
   version: number;
   language: Language;
@@ -77,17 +71,12 @@ type FitState = {
   friends: Friend[];
   challenges: Challenge[];
   weightLogs: { id: string; value: number; date: string }[];
-  runForgeDiscountCode: string | null;
-  runForgeDiscountRemaining: number | null;
-  runForgeDiscountLimit: number;
-  runForgeDiscountStatus: 'unknown' | 'pending' | 'available' | 'exhausted' | 'error';
 };
 
 type FitContextValue = FitState & {
   coachThinking: boolean;
   setCoachThinking: (value: boolean) => void;
   enablePremium: () => void;
-  ensureRunForgeDiscountCode: () => Promise<RunForgeDiscountClaimResult>;
   setLanguage: (language: Language) => void;
   restartOnboarding: () => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
@@ -129,10 +118,6 @@ const initialState: FitState = {
   challenges: [],
   weightLogs: [],
   meals: [],
-  runForgeDiscountCode: null,
-  runForgeDiscountRemaining: null,
-  runForgeDiscountLimit: 10,
-  runForgeDiscountStatus: 'unknown',
 };
 
 const FitContext = createContext<FitContextValue | null>(null);
@@ -211,8 +196,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<FitState>(initialState);
   const [hydrated, setHydrated] = useState(false);
   const [coachThinking, setCoachThinking] = useState(false);
-  const { isSubscribed, customerInfo } = useSubscription();
-  const runForgeClaimRef = useRef<Promise<RunForgeDiscountClaimResult> | null>(null);
+  const { isSubscribed } = useSubscription();
 
   useEffect(() => {
     AsyncStorage.getItem('forge-fit-state').then((stored) => {
@@ -221,12 +205,6 @@ export function FitProvider({ children }: { children: ReactNode }) {
         if (parsed.version === initialState.version || parsed.version === 3) {
           const { water: _legacyWater, hydrationGoal: _legacyHydrationGoal, ...storedState } = parsed;
           const merged = { ...initialState, ...storedState, version: initialState.version };
-          if (parsed.version === 3) {
-            merged.runForgeDiscountCode = null;
-            merged.runForgeDiscountRemaining = null;
-            merged.runForgeDiscountStatus = 'unknown';
-          }
-          if (merged.runForgeDiscountStatus === 'pending') merged.runForgeDiscountStatus = 'unknown';
           if (!merged.goalProjection && merged.profile && merged.calorieGoal) {
             merged.goalProjection = createGoalProjection(merged.profile, merged.calorieGoal, merged.workouts, merged.goalWeight ?? undefined);
           }
@@ -296,70 +274,6 @@ export function FitProvider({ children }: { children: ReactNode }) {
     coachThinking,
     setCoachThinking,
      enablePremium: () => setState((current) => current.isPremium ? current : { ...current, isPremium: true }),
-      ensureRunForgeDiscountCode: async () => {
-        if (state.runForgeDiscountCode) {
-          return {
-            status: 'granted',
-            code: state.runForgeDiscountCode,
-            remaining: state.runForgeDiscountRemaining ?? 0,
-            limit: state.runForgeDiscountLimit,
-          };
-        }
-        if (state.runForgeDiscountStatus === 'exhausted') {
-          return {
-            status: 'exhausted',
-            remaining: state.runForgeDiscountRemaining ?? 0,
-            limit: state.runForgeDiscountLimit,
-          };
-        }
-        if (runForgeClaimRef.current) return runForgeClaimRef.current;
-
-        const claimPromise = (async (): Promise<RunForgeDiscountClaimResult> => {
-          setState((current) => ({ ...current, runForgeDiscountStatus: 'pending' }));
-          try {
-            const storedClientId = await AsyncStorage.getItem('forge-fit-runforge-client-id');
-            const clientId = customerInfo?.originalAppUserId ?? storedClientId ?? createRunForgeClientId();
-            if (!storedClientId && !customerInfo?.originalAppUserId) await AsyncStorage.setItem('forge-fit-runforge-client-id', clientId);
-            const response: RunForgeDiscountResponse = await claimRunForgeDiscount({ clientId });
-            if (response.available && response.code) {
-              const result = {
-                status: 'granted' as const,
-                code: response.code,
-                remaining: response.remaining,
-                limit: response.limit,
-              };
-              setState((current) => ({
-                ...current,
-                runForgeDiscountCode: response.code,
-                runForgeDiscountRemaining: response.remaining,
-                runForgeDiscountLimit: response.limit,
-                runForgeDiscountStatus: 'available',
-              }));
-              return result;
-            }
-            const result = {
-              status: 'exhausted' as const,
-              remaining: response.remaining,
-              limit: response.limit,
-            };
-            setState((current) => ({
-              ...current,
-              runForgeDiscountCode: null,
-              runForgeDiscountRemaining: response.remaining,
-              runForgeDiscountLimit: response.limit,
-              runForgeDiscountStatus: 'exhausted',
-            }));
-            return result;
-          } catch {
-            setState((current) => ({ ...current, runForgeDiscountStatus: 'error' }));
-            return { status: 'error', remaining: null, limit: state.runForgeDiscountLimit };
-          } finally {
-            runForgeClaimRef.current = null;
-          }
-        })();
-        runForgeClaimRef.current = claimPromise;
-        return claimPromise;
-      },
     setLanguage: (language) => setState((current) => ({ ...current, language })),
     restartOnboarding: () => setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false })),
      addMeal: (meal) => setState((current) => ({ ...current, meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }] })),
