@@ -9,6 +9,7 @@ const FOOD_ANALYSIS_REQUESTS_PER_WINDOW = 10;
 const MAX_IMAGE_DATA_LENGTH = 8_000_000;
 const MAX_MESSAGE_LENGTH = 2_000;
 const MAX_CONTEXT_LENGTH = 12_000;
+const COACH_MAX_COMPLETION_TOKENS = 420;
 const languageNames: Record<string, string> = {
   tr: "Turkish",
   en: "English",
@@ -88,14 +89,14 @@ function openAiUrl() {
   return `${base.replace(/\/$/, "")}/chat/completions`;
 }
 
-async function askOpenAi(messages: unknown[]) {
+async function askOpenAi(messages: unknown[], maxCompletionTokens = 1200) {
   const response = await fetch(openAiUrl(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? ""}`,
     },
-    body: JSON.stringify({ model, messages, max_completion_tokens: 1200 }),
+    body: JSON.stringify({ model, messages, max_completion_tokens: maxCompletionTokens }),
   });
   if (!response.ok) throw new Error(`OpenAI request failed with ${response.status}.`);
   const payload = await response.json() as { choices?: { message?: { content?: string } }[] };
@@ -119,9 +120,9 @@ router.post("/ai/coach", async (req, res) => {
       ? [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${normalizedImageData}` } }]
       : prompt;
     const content = await askOpenAi([
-      { role: "system", content: `You are Forge Coach, a concise, encouraging fitness and nutrition coach. Use the user's app data below to personalize answers. Never invent logged data. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[selectedLanguage]}; do not switch languages. User app data: ${normalizedContext || "No profile data yet."}` },
+      { role: "system", content: `You are Forge Coach, an encouraging fitness and nutrition coach. Use the user's app data below to personalize answers. Never invent logged data. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[selectedLanguage]}; do not switch languages. Keep the reply medium-length: 4-6 short sentences, approximately 80-120 words, and no more than 2 short paragraphs. Avoid long explanations and long bullet lists. Give one clear, practical next step. User app data: ${normalizedContext || "No profile data yet."}` },
       { role: "user", content: userContent },
-    ]);
+    ], COACH_MAX_COMPLETION_TOKENS);
     if (!content) return res.status(502).json({ error: "AI coach returned an empty response." });
     return res.json({ content });
   } catch (error) {
