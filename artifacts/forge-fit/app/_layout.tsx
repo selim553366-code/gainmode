@@ -47,16 +47,10 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
   });
-  const [assetsLoaded, setAssetsLoaded] = useState(false);
+  const [startupFallbackReady, setStartupFallbackReady] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    if (Platform.OS === 'web') {
-      setAssetsLoaded(true);
-      return () => {
-        mounted = false;
-      };
-    }
+    if (Platform.OS === 'web') return undefined;
     const imageSources = [
       require('@/assets/images/icon.png'),
       require('@/assets/images/coach.png'),
@@ -69,28 +63,27 @@ export default function RootLayout() {
       require('@/assets/images/coach-wave-direct.jpg'),
       require('@/assets/images/forge-fit-logo.jpeg'),
     ];
-    Promise.allSettled(imageSources.map((source) => Image.prefetch(Image.resolveAssetSource(source).uri))).finally(() => {
-      if (mounted) setAssetsLoaded(true);
-    });
-    return () => {
-      mounted = false;
-    };
+    void Promise.allSettled(imageSources.map((source) => Image.prefetch(Image.resolveAssetSource(source).uri)));
+    return undefined;
   }, []);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
+    const timeout = setTimeout(() => setStartupFallbackReady(true), 2500);
+    return () => clearTimeout(timeout);
+  }, []);
 
-  if ((!fontsLoaded || !assetsLoaded) && !fontError) return null;
+  useEffect(() => {
+    if (fontsLoaded || fontError || startupFallbackReady) {
+      SplashScreen.hideAsync().catch(() => undefined);
+    }
+  }, [fontsLoaded, fontError, startupFallbackReady]);
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ flex: 1 }}>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <SubscriptionProvider>
-            <GestureHandlerRootView>
+            <GestureHandlerRootView style={{ flex: 1 }}>
               <KeyboardProvider>
                 <FitProvider>
                   <RootLayoutNav />
