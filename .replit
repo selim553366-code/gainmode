@@ -26,6 +26,9 @@ channel = "stable-25_05"
 
 [userenv.shared]
 
+[userenv.production]
+EXPO_PUBLIC_DOMAIN = "unfolded-superior-webpages.replit.app"
+
 [[ports]]
 localPort = 8080
 externalPort = 8080
