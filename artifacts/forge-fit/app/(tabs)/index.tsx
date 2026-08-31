@@ -24,7 +24,7 @@ function CalorieProgressFill({ progress, color }: { progress: number; color: str
 
 export default function TodayScreen() {
   const colors = useColors();
-  const { language, meals, username, calorieGoal, workouts, isPremium } = useFit();
+  const { language, meals, username, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, isPremium } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [premiumVisible, setPremiumVisible] = React.useState(false);
   const calories = meals.reduce((sum, meal) => sum + meal.calories, 0);
@@ -85,9 +85,9 @@ export default function TodayScreen() {
       </View>
 
       <View style={styles.metricRow}>
-        <Metric icon="flame-outline" value={<AnimatedNumber value={macros.protein} suffix=" g" />} label={t('protein')} color={colors.blue} />
-        <Metric icon="flash-outline" value={<AnimatedNumber value={macros.carbs} suffix=" g" />} label={t('carbs')} color={colors.orange} />
-        <Metric icon="nutrition-outline" value={<AnimatedNumber value={macros.fat} suffix=" g" />} label={t('fat')} color={colors.plum} />
+        <Metric icon="flame-outline" value={<><AnimatedNumber value={macros.protein} suffix=" g" /><Text style={[styles.metricGoal, { color: colors.mutedForeground }]}>{proteinGoal ? ` / ${proteinGoal} g` : ' / —'}</Text></>} label={t('protein')} color={colors.blue} />
+        <Metric icon="flash-outline" value={<><AnimatedNumber value={macros.carbs} suffix=" g" /><Text style={[styles.metricGoal, { color: colors.mutedForeground }]}>{carbsGoal ? ` / ${carbsGoal} g` : ' / —'}</Text></>} label={t('carbs')} color={colors.orange} />
+        <Metric icon="nutrition-outline" value={<><AnimatedNumber value={macros.fat} suffix=" g" /><Text style={[styles.metricGoal, { color: colors.mutedForeground }]}>{fatGoal ? ` / ${fatGoal} g` : ' / —'}</Text></>} label={t('fat')} color={colors.plum} />
       </View>
 
       <SectionTitle title={t('todayWorkout')} action={t('viewAll')} onAction={() => router.push('/(tabs)/plan')} />
@@ -133,6 +133,7 @@ const styles = StyleSheet.create({
   heroSmallValue: { fontFamily: 'Inter_700Bold', fontSize: 16, marginTop: 3 },
   heroStatus: { flex: 1, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 },
   heroStatusText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 11, textAlign: 'right' },
+  metricGoal: { fontFamily: 'Inter_500Medium', fontSize: 10 },
   heroPhotoAction: { marginTop: 17, borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
   heroPhotoActionGradient: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 11 },
   heroPhotoActionIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
