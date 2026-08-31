@@ -43,6 +43,7 @@ export default function TodayScreen() {
          action="settings-outline"
          onAction={() => router.push('/settings')}
          premiumLabel={SUBSCRIPTION_PURCHASE_ENABLED ? (isPremium ? t('premiumOwned') : t('premiumShort')) : undefined}
+          premiumIcon="trophy-outline"
          premiumOwned={isPremium}
          premiumAction={SUBSCRIPTION_PURCHASE_ENABLED ? () => setPremiumVisible(true) : undefined}
          streak={streak}
@@ -98,7 +99,7 @@ export default function TodayScreen() {
       </Card>
 
       {SUBSCRIPTION_PURCHASE_ENABLED ? <Card onPress={() => setPremiumVisible(true)} style={[styles.premiumCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
-        <View style={[styles.premiumMark, { backgroundColor: colors.primary }]}><ForgeFitMark size={34} /></View>
+         <View style={[styles.premiumMark, { backgroundColor: colors.primary }]}><Ionicons name="trophy-outline" size={21} color={colors.primaryForeground} /></View>
         <View style={{ flex: 1 }}><Text style={[styles.premiumLabel, { color: colors.primary }]}>{t('premium')}</Text><Text style={[styles.premiumTitle, { color: colors.foreground }]}>{t('unlock')}</Text><Text style={[styles.premiumDesc, { color: colors.mutedForeground }]}>{t('premiumDesc')}</Text></View>
         <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
       </Card> : null}

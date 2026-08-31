@@ -64,14 +64,14 @@ export default function ProgressScreen() {
   };
 
   return <Screen>
-    <Header eyebrow={t('weeklyAiEyebrow')} title={t('weeklyAiTitle')} subtitle={t('weeklyAiSubtitle')} action="sparkles-outline" onAction={requestAnalysis} />
+     <Header eyebrow={t('weeklyAiEyebrow')} title={t('weeklyAiTitle')} subtitle={t('weeklyAiSubtitle')} action="analytics-outline" onAction={requestAnalysis} />
     <Animated.View style={{ opacity: launchProgress.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.94, 0.55] }), transform: [{ translateY: launchProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -18] }) }, { scale: launchProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] }) }] }}>
       <LinearGradient colors={[colors.primary, colors.blue]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
         <View pointerEvents="none" style={[styles.heroOrb, { backgroundColor: `${colors.primaryForeground}18` }]} />
         <View pointerEvents="none" style={[styles.heroOrbSmall, { backgroundColor: `${colors.primaryForeground}10` }]} />
         <View style={styles.heroHeader}>
           <View style={styles.heroEyebrowRow}><View style={[styles.liveDot, { backgroundColor: colors.success }]} /><Text style={[styles.heroEyebrow, { color: `${colors.primaryForeground}B8` }]}>{t('weeklyAiLive')}</Text></View>
-          <View style={[styles.weekPill, { backgroundColor: `${colors.primaryForeground}18`, borderColor: `${colors.primaryForeground}26` }]}><Ionicons name="sparkles-outline" size={13} color={colors.primaryForeground} /><Text style={[styles.weekPillText, { color: colors.primaryForeground }]}>{t('weeklyAiLastSeven')}</Text></View>
+           <View style={[styles.weekPill, { backgroundColor: `${colors.primaryForeground}18`, borderColor: `${colors.primaryForeground}26` }]}><Ionicons name="analytics-outline" size={13} color={colors.primaryForeground} /><Text style={[styles.weekPillText, { color: colors.primaryForeground }]}>{t('weeklyAiLastSeven')}</Text></View>
         </View>
         <Text style={[styles.heroTitle, { color: colors.primaryForeground }]}>{t('weeklyAiCardTitle')}</Text>
         <Text style={[styles.heroSubtitle, { color: `${colors.primaryForeground}B8` }]}>{t('weeklyAiCardSubtitle')}</Text>
@@ -80,7 +80,7 @@ export default function ProgressScreen() {
           <View style={[styles.heroBadge, { backgroundColor: `${colors.primaryForeground}18`, borderColor: `${colors.primaryForeground}2C` }]}><Ionicons name={summary.weightOutcome === 'gained' ? 'trending-up-outline' : summary.weightOutcome === 'lost' ? 'trending-down' : 'analytics-outline'} size={28} color={colors.primaryForeground} /><Text style={[styles.heroBadgeText, { color: `${colors.primaryForeground}C2` }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View>
         </View> : <View style={styles.muscleFocus}><View style={[styles.muscleFocusIcon, { backgroundColor: `${colors.primaryForeground}18` }]}><Ionicons name="barbell-outline" size={26} color={colors.primaryForeground} /></View><View style={{ flex: 1 }}><Text style={[styles.heroLabel, { color: `${colors.primaryForeground}A8` }]}>{t('weeklyMuscleFocus')}</Text><Text style={[styles.muscleFocusText, { color: colors.primaryForeground }]}>{t('weeklyMuscleSubtitle')}</Text></View></View>}
         <Pressable testID="get-weekly-ai-analysis" accessibilityRole="button" accessibilityLabel={t('weeklyAnalysisCta')} onPress={requestAnalysis} style={({ pressed }) => [styles.analysisButton, { backgroundColor: colors.primaryForeground, opacity: pressed || launching ? 0.8 : 1 }]}>
-          <View style={[styles.analysisButtonIcon, { backgroundColor: `${colors.primary}24` }]}><Ionicons name={launching ? 'arrow-up' : 'sparkles-outline'} size={17} color={colors.primary} /></View>
+           <View style={[styles.analysisButtonIcon, { backgroundColor: `${colors.primary}24` }]}><Ionicons name={launching ? 'arrow-up' : 'trending-up-outline'} size={17} color={colors.primary} /></View>
           <Text style={[styles.analysisButtonText, { color: colors.primary }]}>{launching ? t('weeklyAnalysisSending') : t('weeklyAnalysisCta')}</Text>
           {!launching ? <Ionicons name="arrow-forward" size={17} color={colors.primary} /> : <Ionicons name="ellipsis-horizontal" size={17} color={colors.primary} />}
         </Pressable>
