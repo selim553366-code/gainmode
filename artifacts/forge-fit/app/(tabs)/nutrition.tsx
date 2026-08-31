@@ -1,13 +1,14 @@
 import React from 'react';
-import { ActivityIndicator, Alert, Animated, Image, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Easing, Image, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@/components/AppIcon';
 import { useSearchFood, type FoodSearchItem } from '@workspace/api-client-react';
 import { useFit, Meal } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { Card, Header, Pill, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
+import { Card, ForgeFitMark, Header, Pill, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 import { DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,6 +16,52 @@ const formatNutrition = (value: number) => Number.isInteger(value) ? String(valu
 
 type CaptureMode = 'meal' | 'barcode';
 type CapturedPhoto = { uri: string; base64?: string };
+type AnalysisPhase = 'idle' | 'flying' | 'analyzing';
+
+function PhotoAnalysisTransfer({ uri, phase, sendingLabel, aiBoxLabel, analyzingLabel }: { uri: string; phase: AnalysisPhase; sendingLabel: string; aiBoxLabel: string; analyzingLabel: string }) {
+  const colors = useColors();
+  const progress = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    if (phase === 'flying') {
+      progress.setValue(0);
+      Animated.timing(progress, { toValue: 1, duration: 1050, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      return;
+    }
+    if (phase === 'analyzing') {
+      Animated.timing(progress, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+      return;
+    }
+    progress.setValue(0);
+  }, [phase, progress]);
+
+  if (phase === 'idle') return null;
+  const photoTranslateX = progress.interpolate({ inputRange: [0, 1], outputRange: [0, 124] });
+  const photoScale = progress.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.78, 0.42] });
+  const photoOpacity = progress.interpolate({ inputRange: [0, 0.82, 1], outputRange: [1, 0.96, 0.12] });
+  const boxOpacity = progress.interpolate({ inputRange: [0, 0.52, 0.82, 1], outputRange: [0.45, 0.72, 1, 1] });
+  const boxScale = progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.86, 0.96, 1] });
+
+  return <View style={styles.analysisStage}>
+    <View style={styles.analysisStageHeader}>
+      <View style={[styles.analysisStageDot, { backgroundColor: colors.primary }]} />
+      <Text style={[styles.analysisStageLabel, { color: colors.foreground }]}>{phase === 'flying' ? sendingLabel : analyzingLabel}</Text>
+    </View>
+    <View style={styles.analysisTrack}>
+      <View style={[styles.analysisTrackLine, { backgroundColor: `${colors.primary}32` }]} />
+      <Animated.View style={[styles.analysisPhoto, { borderColor: colors.primary, opacity: photoOpacity, transform: [{ translateX: photoTranslateX }, { scale: photoScale }] }]}>
+        <Image source={{ uri }} style={styles.analysisPhotoImage} />
+      </Animated.View>
+      <Animated.View style={[styles.analysisAiBox, { opacity: boxOpacity, transform: [{ scale: boxScale }] }]}>
+        <LinearGradient colors={[colors.secondary, colors.blue, colors.primary]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={styles.analysisAiGradient}>
+          <ForgeFitMark size={26} />
+          <Text style={[styles.analysisAiText, { color: colors.primaryForeground }]}>{aiBoxLabel}</Text>
+          {phase === 'analyzing' ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Ionicons name="arrow-forward" size={14} color={colors.primaryForeground} />}
+        </LinearGradient>
+      </Animated.View>
+    </View>
+  </View>;
+}
 
 function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, hint, permissionText, unavailableText, allowCameraLabel, closeLabel, captureLabel, flipLabel }: { visible: boolean; onClose: () => void; onScanned?: (data: string) => void; onPhoto?: (photo: CapturedPhoto) => void; mode: CaptureMode; title: string; hint: string; permissionText: string; unavailableText: string; allowCameraLabel: string; closeLabel: string; captureLabel: string; flipLabel: string }) {
   const colors = useColors();
@@ -69,7 +116,9 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
   const cameraReady = cameraAvailable && permission?.granted;
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen">
     <View style={[styles.scannerScreen, { backgroundColor: colors.background }]}>
-      {cameraReady ? <CameraView
+      {!cameraReady ? <View style={styles.cameraPermission}><Ionicons name="camera-outline" size={42} color={colors.primary} /><Text style={[styles.scannerTitle, { color: colors.foreground }]}>{cameraAvailable ? permissionText : unavailableText}</Text>{cameraAvailable ? <Pressable onPress={() => requestPermission()} style={[styles.scannerPermissionButton, { backgroundColor: colors.primary }]}><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{allowCameraLabel}</Text></Pressable> : null}</View> : null}
+      <View style={[styles.scannerHeader, { top: insets.top + 14 }]}><View style={styles.scannerHeaderCopy}><Text style={[styles.scannerTitle, { color: colors.foreground }]}>{title}</Text><View style={[styles.scannerLivePill, { borderColor: `${colors.primary}75`, backgroundColor: `${colors.primary}20` }]}><View style={[styles.scannerLiveDot, { backgroundColor: colors.primary }]} /><Text style={[styles.scannerLiveText, { color: colors.primary }]}>{mode === 'meal' ? captureLabel : title}</Text></View></View><Pressable accessibilityLabel={closeLabel} onPress={onClose} style={[styles.scannerClose, { backgroundColor: `${colors.background}CC`, borderColor: `${colors.primary}55` }]}><Ionicons name="close" size={22} color={colors.foreground} /></Pressable></View>
+      {cameraReady ? <View pointerEvents="none" style={styles.scannerCenter}><LinearGradient colors={[colors.secondary, colors.blue, colors.primary]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={[styles.neonFrame, styles.neonFrameGradient, mode === 'barcode' ? styles.neonBarcodeFrame : styles.neonMealFrame]}><View style={styles.neonCameraInner}><CameraView
         ref={cameraRef}
         style={styles.camera}
         facing={facing}
@@ -79,10 +128,7 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
           scanLocked.current = true;
           onScanned?.(data);
         } : undefined}
-      /> : <View style={styles.cameraPermission}><Ionicons name="camera-outline" size={42} color={colors.primary} /><Text style={[styles.scannerTitle, { color: colors.foreground }]}>{cameraAvailable ? permissionText : unavailableText}</Text>{cameraAvailable ? <Pressable onPress={() => requestPermission()} style={[styles.scannerPermissionButton, { backgroundColor: colors.primary }]}><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{allowCameraLabel}</Text></Pressable> : null}</View>}
-      {cameraReady ? <View pointerEvents="none" style={[styles.scannerShade, { backgroundColor: `${colors.background}A8` }]} /> : null}
-      <View style={[styles.scannerHeader, { top: insets.top + 14 }]}><View style={styles.scannerHeaderCopy}><Text style={[styles.scannerTitle, { color: colors.foreground }]}>{title}</Text><View style={[styles.scannerLivePill, { borderColor: `${colors.primary}75`, backgroundColor: `${colors.primary}20` }]}><View style={[styles.scannerLiveDot, { backgroundColor: colors.primary }]} /><Text style={[styles.scannerLiveText, { color: colors.primary }]}>{mode === 'meal' ? captureLabel : title}</Text></View></View><Pressable accessibilityLabel={closeLabel} onPress={onClose} style={[styles.scannerClose, { backgroundColor: `${colors.background}CC`, borderColor: `${colors.primary}55` }]}><Ionicons name="close" size={22} color={colors.foreground} /></Pressable></View>
-      {cameraReady ? <View pointerEvents="none" style={styles.scannerCenter}><View style={[styles.neonFrame, mode === 'barcode' ? styles.neonBarcodeFrame : styles.neonMealFrame]}><Animated.View style={[styles.neonFrameGlow, { borderColor: colors.primary, shadowColor: colors.primary, opacity: glow }]} /><View style={[styles.frameCorner, styles.frameTopLeft, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameTopRight, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameBottomLeft, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameBottomRight, { borderColor: colors.primary }]} />{mode === 'barcode' ? <Animated.View style={[styles.scanLine, { backgroundColor: colors.primary, shadowColor: colors.primary, transform: [{ translateY: scanLine.interpolate({ inputRange: [0, 1], outputRange: [0, 145] }) }] }]} /> : null}</View><Text style={[styles.scannerHint, { color: colors.foreground }]}>{hint}</Text></View> : null}
+      />{mode === 'barcode' ? <Animated.View style={[styles.scanLine, { backgroundColor: colors.primary, shadowColor: colors.primary, transform: [{ translateY: scanLine.interpolate({ inputRange: [0, 1], outputRange: [0, 145] }) }] }]} /> : null}</View><Animated.View style={[styles.neonFrameGlow, { borderColor: colors.primary, shadowColor: colors.primary, opacity: glow }]} /><View style={[styles.frameCorner, styles.frameTopLeft, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameTopRight, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameBottomLeft, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameBottomRight, { borderColor: colors.primary }]} /></LinearGradient><Text style={[styles.scannerHint, { color: colors.foreground }]}>{hint}</Text></View> : null}
       {cameraReady ? <View style={[styles.scannerBottom, { paddingBottom: insets.bottom + 22 }]}>{mode === 'meal' ? <View style={styles.mealCameraControls}><Pressable accessibilityLabel={flipLabel} onPress={() => setFacing((current) => current === 'back' ? 'front' : 'back')} style={[styles.cameraControlButton, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}65` }]}><Ionicons name="camera-outline" size={20} color={colors.foreground} /><Text style={[styles.cameraControlText, { color: colors.foreground }]}>{flipLabel}</Text></Pressable><Pressable accessibilityLabel={captureLabel} onPress={capturePhoto} disabled={capturing} style={[styles.shutterButton, { backgroundColor: `${colors.background}AA`, borderColor: colors.primary, opacity: capturing ? 0.55 : 1 }]}><View style={[styles.shutterInner, { backgroundColor: colors.primary }]} /></Pressable><View style={styles.cameraControlSpacer} /></View> : <View style={[styles.barcodeReady, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}55` }]}><Ionicons name="scan-outline" size={16} color={colors.primary} /><Text style={[styles.barcodeReadyText, { color: colors.foreground }]}>{hint}</Text></View>}</View> : null}
     </View>
   </Modal>;
@@ -97,6 +143,7 @@ export default function NutritionScreen() {
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
   const [analyzing, setAnalyzing] = React.useState(false);
+  const [analysisPhase, setAnalysisPhase] = React.useState<AnalysisPhase>('idle');
   const [mealCameraVisible, setMealCameraVisible] = React.useState(false);
   const [barcodeScannerVisible, setBarcodeScannerVisible] = React.useState(false);
   const normalizedSearch = search.trim();
@@ -120,8 +167,11 @@ export default function NutritionScreen() {
   const analyzeFoodPhoto = async (uri: string, base64?: string) => {
     setPhotoUri(uri);
     if (!base64) { Alert.alert(t('scanMeal'), t('photoComing')); return; }
+    setAnalysisPhase('flying');
     setAnalyzing(true);
     try {
+      await new Promise<void>((resolve) => setTimeout(resolve, 1050));
+      setAnalysisPhase('analyzing');
       const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/food-analysis`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageData: base64, language }) });
       if (!response.ok) throw new Error('analysis failed');
       const analyzed = await response.json() as Meal;
@@ -132,6 +182,8 @@ export default function NutritionScreen() {
       Alert.alert(t('analyzePhoto'), t('photoComing'));
     } finally {
       setAnalyzing(false);
+      await new Promise<void>((resolve) => setTimeout(resolve, 650));
+      setAnalysisPhase('idle');
     }
   };
 
@@ -179,6 +231,7 @@ export default function NutritionScreen() {
       <View style={[styles.captureFrame, { borderColor: `${colors.primary}70`, backgroundColor: `${colors.primary}0D` }]}>
         {photoUri ? <Image source={{ uri: photoUri }} style={styles.captureImage} /> : <><Ionicons name="scan-outline" size={31} color={colors.primary} /><Text style={[styles.capturePlaceholder, { color: colors.mutedForeground }]}>{t('mealCaptureHint')}</Text></>}
       </View>
+      {photoUri ? <PhotoAnalysisTransfer uri={photoUri} phase={analysisPhase} sendingLabel={t('photoSendingToAi')} aiBoxLabel={t('photoAiBox')} analyzingLabel={t('photoAnalyzingStep')} /> : null}
       {photoUri ? <View style={styles.captureStatus}><Text style={[styles.mealName, { color: colors.foreground }]}>{analyzing ? t('analyzing') : t('analyzePhoto')}</Text></View> : null}
       <View style={styles.captureOptions}>
         <Pressable testID="camera-scan" onPress={openMealCamera} style={({ pressed }) => [styles.captureOptionPrimary, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="camera-outline" size={18} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('scanMeal')}</Text></Pressable>
@@ -230,6 +283,17 @@ const styles = StyleSheet.create({
   resultServing: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 3 },
   nutritionLine: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 8 },
   nutritionValue: { fontFamily: 'Inter_500Medium', fontSize: 10 },
+  analysisStage: { marginTop: 13, paddingHorizontal: 4, paddingVertical: 12, borderRadius: 18, backgroundColor: 'rgba(103,199,255,0.07)' },
+  analysisStageHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 },
+  analysisStageDot: { width: 7, height: 7, borderRadius: 4 },
+  analysisStageLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  analysisTrack: { height: 78, position: 'relative', justifyContent: 'center', overflow: 'hidden' },
+  analysisTrackLine: { position: 'absolute', left: 38, right: 38, top: 38, height: 1, borderRadius: 1 },
+  analysisPhoto: { position: 'absolute', left: 8, top: 4, width: 70, height: 70, borderRadius: 17, overflow: 'hidden', borderWidth: 2, zIndex: 2 },
+  analysisPhotoImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  analysisAiBox: { position: 'absolute', right: 8, top: 3, width: 111, height: 72, borderRadius: 18, overflow: 'hidden', zIndex: 1 },
+  analysisAiGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 9 },
+  analysisAiText: { fontFamily: 'Inter_700Bold', fontSize: 11, flexShrink: 1 },
   summaryTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
   caption: { fontFamily: 'Inter_400Regular', fontSize: 12 },
   summaryNumber: { fontFamily: 'Inter_700Bold', fontSize: 32, letterSpacing: -1.2, marginTop: 5 },
@@ -240,8 +304,7 @@ const styles = StyleSheet.create({
   footerValue: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   scanText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   scannerScreen: { flex: 1, justifyContent: 'center', overflow: 'hidden' },
-  camera: { ...StyleSheet.absoluteFillObject },
-  scannerShade: StyleSheet.absoluteFillObject,
+  camera: { flex: 1 },
   scannerHeader: { position: 'absolute', left: 22, right: 22, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', zIndex: 3 },
   scannerHeaderCopy: { gap: 8 },
   scannerTitle: { fontFamily: 'Inter_700Bold', fontSize: 20 },
@@ -250,7 +313,9 @@ const styles = StyleSheet.create({
   scannerLiveText: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 0.5 },
   scannerClose: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   scannerCenter: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  neonFrame: { position: 'relative', borderRadius: 26, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  neonFrame: { position: 'relative', borderRadius: 26, overflow: 'hidden' },
+  neonFrameGradient: { padding: 3, alignItems: 'stretch', justifyContent: 'center' },
+  neonCameraInner: { flex: 1, borderRadius: 23, overflow: 'hidden', position: 'relative', backgroundColor: 'transparent' },
   neonMealFrame: { width: 310, height: 310 },
   neonBarcodeFrame: { width: 310, height: 178 },
   neonFrameGlow: { ...StyleSheet.absoluteFillObject, borderWidth: 1, borderRadius: 26, shadowOpacity: 0.95, shadowRadius: 22, shadowOffset: { width: 0, height: 0 }, elevation: 12 },
