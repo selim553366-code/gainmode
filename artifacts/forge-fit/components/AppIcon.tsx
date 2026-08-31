@@ -5,6 +5,7 @@ import {
   AlertCircle,
   ArrowRight,
   ArrowUp,
+  Bell,
   Camera,
   Check,
   ChevronDown,
@@ -93,6 +94,7 @@ export type IconName =
   | 'language-outline'
   | 'ellipsis-horizontal'
   | 'nutrition-outline'
+  | 'notifications-outline'
   | 'options-outline'
   | 'pause-outline'
   | 'people-outline'
@@ -163,6 +165,7 @@ const iconMap: Record<IconName, IconComponent> = {
   'language-outline': Languages,
   'ellipsis-horizontal': Ellipsis,
   'nutrition-outline': Apple,
+  'notifications-outline': Bell,
   'options-outline': SlidersHorizontal,
   'pause-outline': Pause,
   'people-outline': Users,

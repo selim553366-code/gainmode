@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { Language, TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
+import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
@@ -71,6 +72,7 @@ type FitState = {
   friends: Friend[];
   challenges: Challenge[];
   weightLogs: { id: string; value: number; date: string }[];
+  notificationSettings: NotificationSettings;
 };
 
 type FitContextValue = FitState & {
@@ -92,6 +94,7 @@ type FitContextValue = FitState & {
   addFriend: (username: string) => void;
   addChallenge: (name: string, target: number) => void;
   addWeight: (value: number) => void;
+  setNotificationSetting: (key: NotificationSettingKey, enabled: boolean) => void;
 };
 
 const initialState: FitState = {
@@ -118,6 +121,13 @@ const initialState: FitState = {
   challenges: [],
   weightLogs: [],
   meals: [],
+  notificationSettings: {
+    workoutReminder: false,
+    waterReminder: false,
+    mealReminder: false,
+    coachCheckIn: false,
+    weeklySummary: false,
+  },
 };
 
 const FitContext = createContext<FitContextValue | null>(null);
@@ -204,7 +214,12 @@ export function FitProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(stored) as Partial<FitState> & { water?: unknown; hydrationGoal?: unknown };
         if (parsed.version === initialState.version || parsed.version === 3) {
           const { water: _legacyWater, hydrationGoal: _legacyHydrationGoal, ...storedState } = parsed;
-          const merged = { ...initialState, ...storedState, version: initialState.version };
+          const merged = {
+            ...initialState,
+            ...storedState,
+            notificationSettings: { ...initialState.notificationSettings, ...(parsed.notificationSettings ?? {}) },
+            version: initialState.version,
+          };
           if (!merged.goalProjection && merged.profile && merged.calorieGoal) {
             merged.goalProjection = createGoalProjection(merged.profile, merged.calorieGoal, merged.workouts, merged.goalWeight ?? undefined);
           }
@@ -224,6 +239,13 @@ export function FitProvider({ children }: { children: ReactNode }) {
     if (isSubscribed === undefined) return;
     setState((current) => current.isPremium === isSubscribed ? current : { ...current, isPremium: isSubscribed });
   }, [isSubscribed]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    syncFitnessNotifications({ settings: state.notificationSettings, profile: state.profile, language: state.language }).catch((error) => {
+      console.warn('Forge Fit notifications could not be synchronized.', error);
+    });
+  }, [hydrated, state.notificationSettings, state.profile, state.language]);
 
   const calculatePlan = (profile: Profile): Workout[] => {
     const isLossGoal = profile.goal === 'weightLoss' || profile.goal === 'fatLoss';
@@ -338,6 +360,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
     addFriend: (username) => setState((current) => current.friends.some((friend) => friend.username.toLowerCase() === username.toLowerCase()) ? current : { ...current, friends: [...current.friends, { id: `${Date.now()}-${Math.random()}`, username }] }),
     addChallenge: (name, target) => setState((current) => ({ ...current, challenges: [...current.challenges, { id: `${Date.now()}-${Math.random()}`, name, target, progress: 0 }] })),
     addWeight: (value) => setState((current) => ({ ...current, weight: value, weightLogs: [...current.weightLogs, { id: `${Date.now()}-${Math.random()}`, value, date: new Date().toISOString() }] })),
+    setNotificationSetting: (key, enabled) => setState((current) => ({ ...current, notificationSettings: { ...current.notificationSettings, [key]: enabled } })),
   }), [state, coachThinking]);
 
   return <FitContext.Provider value={value}>{children}</FitContext.Provider>;

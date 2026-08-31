@@ -285,6 +285,10 @@ function OnboardingQuestions() {
   const recommendedTargetWeight = React.useMemo(() => recommendTargetWeight({ height, weight, age: currentAge, goal, sex, activity, goalRate }), [height, weight, currentAge, goal, sex, activity, goalRate]);
 
   React.useEffect(() => {
+    setPreferredDays((current) => current.length > trainingDays ? current.slice(0, trainingDays) : current);
+  }, [trainingDays]);
+
+  React.useEffect(() => {
     if (!hasTargetWeightStep || step !== targetStep || targetWeight !== null) return;
     setTargetWeight(recommendedTargetWeight);
     setTargetWeightText(targetWeightUnit === 'kg' ? recommendedTargetWeight.toFixed(1) : (recommendedTargetWeight / KG_PER_POUND).toFixed(1));
@@ -441,6 +445,7 @@ function OnboardingQuestions() {
       if ((goal === 'weightGain' && valueKg <= weight) || (goal === 'weightLoss' && valueKg >= weight)) return setError(t('targetWeightDirectionError'));
       updateTargetWeightFromKg(valueKg);
     }
+    if (step === 14 && preferredDays.length !== trainingDays) return setError(t('preferredDaysCountError'));
     if (step === total - 1) return advance();
     advance();
   };
@@ -463,7 +468,11 @@ function OnboardingQuestions() {
     },
   }), [language, step, username, equipment, gymLevel, currentAge, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, birthDayText, birthMonthText, birthYearText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
   const titleKeys = ['nameFirstQuestion', 'equipmentQuestion', 'heightQuestion', 'weightQuestion', 'birthDateQuestion', 'goalQuestion', 'sexQuestion', 'activityQuestion', 'trainingDaysQuestion', 'durationQuestion', 'speedQuestion', 'dietQuestion', 'proteinQuestion', 'experienceQuestion', 'preferredDaysQuestion'] as const;
-  const selectedDays = (day: string) => setPreferredDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
+  const selectedDays = (day: string) => setPreferredDays((current) => {
+    if (current.includes(day)) return current.filter((item) => item !== day);
+    if (current.length >= trainingDays) return current;
+    return [...current, day];
+  });
   const renderBody = () => {
     if (step === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></>;
      if (step === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View> : null}</>;
@@ -485,7 +494,7 @@ function OnboardingQuestions() {
     if (step === 12) return <View style={styles.choiceList}><ChoiceButton label={t('proteinBalanced')} selected={proteinPreference === 'balanced'} onPress={() => setProteinPreference('balanced')} /><ChoiceButton label={t('proteinHigh')} selected={proteinPreference === 'high'} onPress={() => setProteinPreference('high')} /><ChoiceButton label={t('proteinLower')} selected={proteinPreference === 'lower'} onPress={() => setProteinPreference('lower')} /></View>;
     if (step === 13) return <View style={styles.choiceList}><ChoiceButton label={t('experienceBeginner')} selected={experience === 'beginner'} onPress={() => setExperience('beginner')} /><ChoiceButton label={t('experienceIntermediate')} selected={experience === 'intermediate'} onPress={() => setExperience('intermediate')} /><ChoiceButton label={t('experienceAdvanced')} selected={experience === 'advanced'} onPress={() => setExperience('advanced')} /></View>;
      if (step === targetStep && hasTargetWeightStep) return <><GoalWeightPicker valueKg={targetWeight ?? recommendedTargetWeight} recommendedKg={recommendedTargetWeight} unit={targetWeightUnit} inputValue={targetWeightText} recommendedLabel={t('recommendedTarget')} onInputChange={updateTargetWeightText} onChange={updateTargetWeightFromKg} onUnitChange={changeTargetWeightUnit} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('targetWeightHint')}</Text></>;
-    return <><View style={styles.dayGrid}>{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => <Pressable key={day} onPress={() => selectedDays(day)} style={[styles.dayButton, { backgroundColor: preferredDays.includes(day) ? colors.primary : colors.card, borderColor: preferredDays.includes(day) ? colors.primary : colors.border }]}><Text style={[styles.dayText, { color: preferredDays.includes(day) ? colors.primaryForeground : colors.foreground }]}>{day}</Text></Pressable>)}</View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('preferredDaysQuestion')}</Text></>;
+    return <><View style={styles.dayGrid}>{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => <Pressable key={day} onPress={() => selectedDays(day)} style={[styles.dayButton, { backgroundColor: preferredDays.includes(day) ? colors.primary : colors.card, borderColor: preferredDays.includes(day) ? colors.primary : colors.border, opacity: !preferredDays.includes(day) && preferredDays.length >= trainingDays ? 0.45 : 1 }]}><Text style={[styles.dayText, { color: preferredDays.includes(day) ? colors.primaryForeground : colors.foreground }]}>{day}</Text></Pressable>)}</View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{preferredDays.length}/{trainingDays} · {t('preferredDaysQuestion')}</Text></>;
   };
 
     if (!started) return <WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} />;

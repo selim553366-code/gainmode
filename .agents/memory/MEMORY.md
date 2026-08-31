@@ -5,3 +5,4 @@
 - [Forge Fit live pose tracking](forge-fit-live-pose.md) — native MediaPipe camera flow needs a development build; previews should use an explicit fallback.
 - [Forge Fit Android release builds](forge-fit-android-build.md) — native checks work locally; Android cloud builds must resolve Expo config from the Forge Fit artifact, not the workspace root.
 - [OpenAPI and Zod codegen](openapi-zod-codegen.md) — this workspace’s Zod 3 generator mishandles OpenAPI integer response fields; verify generated schemas after API changes.
+- [Forge Fit local notifications](forge-fit-notifications.md) — reminder scheduling is native-device behavior; web previews only validate the settings UI.
