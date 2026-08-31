@@ -14,3 +14,9 @@ Expo dependencies in this pnpm monorepo must be added to the Forge Fit workspace
 **Why:** The package helper targeted the monorepo root and the latest clipboard package did not match Expo SDK 54, while the workspace-scoped SDK version bundled cleanly.
 
 **How to apply:** Prefer the package’s workspace filter and the version requested by Expo’s compatibility check when adding native Expo modules.
+
+Expo CLI may fail before Metro starts when its online dependency-version request returns an empty JSON response; offline mode skips that check and still serves the managed preview.
+
+**Why:** The Forge Fit workflow encountered `Unexpected end of JSON input` inside Expo’s remote version lookup while local dependency checks were already clean.
+
+**How to apply:** If this exact startup failure recurs, use `EXPO_OFFLINE=1` in the Forge Fit dev command, then restart the managed workflow and verify Metro opens its configured port.
