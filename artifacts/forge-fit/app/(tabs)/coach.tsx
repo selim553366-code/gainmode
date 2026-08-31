@@ -12,8 +12,10 @@ import { Card, Header, Pill } from '@/components/FitUI';
 import { DAILY_COACH_MESSAGE_LIMIT, DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
 import { runPhotoCoachRequest } from '@/lib/photoCoach';
+import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 
-type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; imageUri?: string };
+type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; imageUri?: string; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
+type CoachApiResponse = { content?: string; actions?: unknown[] };
 
 type SelectedPhoto = { uri: string; base64: string };
 
@@ -38,7 +40,7 @@ function TypingIndicator({ label, colors, lightBackground = false }: { label: st
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, photoAnalysesUsed, coachMessagesUsed, incrementPhotoUsage, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen } = useFit();
+  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, photoAnalysesUsed, coachMessagesUsed, incrementPhotoUsage, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateNutritionGoals } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { weeklyAnalysis, analysisId } = useLocalSearchParams<{ weeklyAnalysis?: string; analysisId?: string }>();
   const [text, setText] = useState('');
@@ -91,7 +93,7 @@ export default function CoachScreen() {
     const profileContext = isMuscleGoal && profile
       ? Object.fromEntries(Object.entries(profile).filter(([key]) => key !== 'weight' && key !== 'targetWeight'))
       : profile;
-    const context = JSON.stringify({ username, profile: profileContext, equipmentDetails: profile?.equipmentDetails ?? '', weight: isMuscleGoal ? null : weight, calorieGoal, macroGoals: { protein: proteinGoal, carbs: carbsGoal, fat: fatGoal }, meals, workouts: workouts.map((item) => ({ name: item.name, completed: item.completed, duration: item.duration, sets: item.exercises.reduce((sum, exercise) => sum + exercise.sets, 0), exercises: item.exercises.length })), weeklySummary });
+    const context = JSON.stringify({ username, profile: profileContext, equipmentDetails: profile?.equipmentDetails ?? '', weight: isMuscleGoal ? null : weight, calorieGoal, macroGoals: { protein: proteinGoal, carbs: carbsGoal, fat: fatGoal }, meals, workouts: workouts.map((item) => ({ id: item.id, day: item.day, name: item.name, completed: item.completed, duration: item.duration, exercises: item.exercises.map((exercise) => ({ id: exercise.id, name: translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name, sets: exercise.sets, reps: exercise.reps })) })), weeklySummary });
     if (hasPhoto) {
       await runPhotoCoachRequest({
         photoAnalysesUsed,
@@ -104,11 +106,12 @@ export default function CoachScreen() {
         request: async () => {
           const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/coach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, imageData: photo?.base64 }) });
           if (!response.ok) throw new Error('coach unavailable');
-          return await response.json() as { content?: string };
+           return await response.json() as CoachApiResponse;
         },
         onSuccess: (result) => {
           incrementPhotoUsage();
-          setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach' }]);
+           const actions = validateCoachActions(result.actions, workouts);
+           setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach', ...(actions.length > 0 ? { actions, actionStatus: 'pending' as const } : {}) }]);
         },
         onError: () => {
           setMessages((current) => [...current, { id: `${Date.now()}-error`, text: t('photoCoachError'), from: 'coach' }]);
@@ -127,9 +130,10 @@ export default function CoachScreen() {
     try {
       const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/coach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, imageData: photo?.base64 }) });
       if (!response.ok) throw new Error('coach unavailable');
-      const result = await response.json() as { content?: string };
+       const result = await response.json() as CoachApiResponse;
       incrementCoachUsage();
-      setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach' }]);
+       const actions = validateCoachActions(result.actions, workouts);
+        setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach', ...(actions.length > 0 ? { actions, actionStatus: 'pending' as const } : {}) }]);
     } catch {
       setMessages((current) => [...current, { id: `${Date.now()}-error`, text: t('weeklyAnalysisFailed'), from: 'coach' }]);
     } finally {
@@ -178,6 +182,44 @@ export default function CoachScreen() {
     setText('');
     setSelectedPhoto(null);
     void requestCoach(trimmed, { id: `${Date.now()}`, text: trimmed, from: 'user', imageUri: photo?.uri }, photo ?? undefined);
+  };
+  const actionLabel = (action: CoachAction) => {
+    if (action.type === 'update_nutrition') {
+      const details = [
+        action.calories !== undefined ? `${action.calories} ${t('caloriesShort')}` : '',
+        action.protein !== undefined ? `${action.protein}g ${t('protein')}` : '',
+        action.carbs !== undefined ? `${action.carbs}g ${t('carbs')}` : '',
+        action.fat !== undefined ? `${action.fat}g ${t('fat')}` : '',
+      ].filter(Boolean).join(' · ');
+      return `${t('coachChangeNutrition')}: ${details}`;
+    }
+    const workout = workouts.find((item) => item.id === action.workoutId);
+    const workoutName = workout ? (translate(language, workout.name as Parameters<typeof translate>[1]) || workout.name) : '';
+    if (action.type === 'add_exercise') return `${t('coachChangeAdd')}: ${action.name} · ${workoutName} · ${action.sets} ${t('coachChangeSets')}, ${action.reps} ${t('coachChangeReps')}`;
+    if (action.type === 'remove_exercise') {
+      const exercise = workout?.exercises.find((item) => item.id === action.exerciseId);
+      const exerciseName = exercise ? (translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name) : action.exerciseId;
+      return `${t('coachChangeRemove')}: ${exerciseName} · ${workoutName}`;
+    }
+    if (action.type === 'update_exercise') {
+      const exercise = workout?.exercises.find((item) => item.id === action.exerciseId);
+      const exerciseName = exercise ? (translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name) : action.exerciseId;
+      const details = [action.sets !== undefined ? `${action.sets} ${t('coachChangeSets')}` : '', action.reps !== undefined ? `${action.reps} ${t('coachChangeReps')}` : ''].filter(Boolean).join(', ');
+      return `${t('coachChangeUpdate')}: ${exerciseName} · ${details}`;
+    }
+    return '';
+  };
+  const applyActions = (messageId: string, actions: CoachAction[]) => {
+    actions.forEach((action) => {
+      if (action.type === 'add_exercise') addExercise(action.workoutId, action.name, action.sets, action.reps);
+      if (action.type === 'remove_exercise') removeExercise(action.workoutId, action.exerciseId);
+      if (action.type === 'update_exercise') updateExercise(action.workoutId, action.exerciseId, { sets: action.sets, reps: action.reps });
+      if (action.type === 'update_nutrition') updateNutritionGoals({ calories: action.calories, protein: action.protein, carbs: action.carbs, fat: action.fat });
+    });
+    setMessages((current) => current.map((item) => item.id === messageId ? { ...item, actionStatus: 'applied' } : item));
+  };
+  const rejectActions = (messageId: string) => {
+    setMessages((current) => current.map((item) => item.id === messageId ? { ...item, actionStatus: 'rejected' } : item));
   };
   React.useEffect(() => {
     if (weeklyAnalysis !== '1' || !analysisId || lastAnalysisId.current === analysisId) return undefined;
@@ -231,6 +273,7 @@ export default function CoachScreen() {
         >
           {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.84, 0.96, 1], outputRange: [0, 0, 0.42, 1] }) : 1 }]} /> : null}
            {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: `${colors.primaryForeground}F2`, borderColor: `${colors.primaryForeground}45` }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: `${colors.foreground}8C` }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primaryForeground }] : [styles.coachBubble, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]]}>{item.imageUri ? <Image source={{ uri: item.imageUri }} style={styles.messageImage} /> : null}{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.foreground : colors.primaryForeground }]}>{item.text}</Text> : null}</View>}
+           {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: `${colors.foreground}D9`, borderColor: `${colors.primaryForeground}25` }]}><Text style={[styles.actionTitle, { color: colors.primaryForeground }]}>{t('coachChangeTitle')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: `${colors.primaryForeground}D9` }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachApply')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: `${colors.primaryForeground}45`, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachReject')}</Text></Pressable></View> : <Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>}</View> : null}
         </View>}
         ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} lightBackground /> : null}
         contentContainerStyle={styles.messageList}
@@ -283,6 +326,13 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: '84%', paddingHorizontal: 15, paddingVertical: 12, borderRadius: 18 },
   userBubble: { borderBottomRightRadius: 6 },
   coachBubble: { borderWidth: 1, borderBottomLeftRadius: 6 },
+  actionCard: { marginTop: 8, borderRadius: 16, borderWidth: 1, padding: 12, width: '100%' },
+  actionTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, marginBottom: 7 },
+  actionLine: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 17, marginBottom: 3 },
+  actionButtons: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  actionButton: { minHeight: 34, borderRadius: 11, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  actionButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  actionStatus: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 7 },
   messageImage: { width: 190, height: 145, borderRadius: 12, marginBottom: 7 },
   bubbleText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20 },
   typingBubble: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 18, borderBottomLeftRadius: 6, paddingHorizontal: 14, paddingVertical: 11 },

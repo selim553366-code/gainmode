@@ -89,8 +89,10 @@ type FitContextValue = FitState & {
   incrementCoachUsage: () => void;
   incrementPhotoUsage: () => void;
   toggleWorkout: (id: string) => void;
-  addExercise: (workoutId: string, name: TranslationKey) => void;
+  addExercise: (workoutId: string, name: string, sets?: number, reps?: number) => void;
   removeExercise: (workoutId: string, exerciseId: string) => void;
+  updateExercise: (workoutId: string, exerciseId: string, patch: { sets?: number; reps?: number }) => void;
+  updateNutritionGoals: (patch: { calories?: number; protein?: number; carbs?: number; fat?: number }) => void;
   addFriend: (username: string) => void;
   addChallenge: (name: string, target: number) => void;
   addWeight: (value: number) => void;
@@ -355,8 +357,21 @@ export function FitProvider({ children }: { children: ReactNode }) {
       return current.usageDate === today ? { ...current, photoAnalysesUsed: current.photoAnalysesUsed + 1 } : { ...current, usageDate: today, coachMessagesUsed: 0, photoAnalysesUsed: 1 };
     }),
     toggleWorkout: (id) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === id ? { ...workout, completed: !workout.completed } : workout) })),
-    addExercise: (workoutId, name) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, exercises: [...workout.exercises, { id: `${Date.now()}-${Math.random()}`, name, sets: 3, reps: 10 }] } : workout) })),
+     addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, exercises: [...workout.exercises, { id: `${Date.now()}-${Math.random()}`, name, sets, reps }] } : workout) })),
     removeExercise: (workoutId, exerciseId) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, exercises: workout.exercises.filter((exercise) => exercise.id !== exerciseId) } : workout) })),
+     updateExercise: (workoutId, exerciseId, patch) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, exercises: workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, ...patch } : exercise) } : workout) })),
+     updateNutritionGoals: (patch) => setState((current) => {
+       const nextGoals = {
+         calories: patch.calories ?? current.calorieGoal,
+         protein: patch.protein ?? current.proteinGoal,
+         carbs: patch.carbs ?? current.carbsGoal,
+         fat: patch.fat ?? current.fatGoal,
+       };
+       const goalProjection = current.profile && nextGoals.calories
+         ? createGoalProjection(current.profile, nextGoals.calories, current.workouts, current.goalWeight ?? undefined)
+         : current.goalProjection;
+       return { ...current, calorieGoal: nextGoals.calories, proteinGoal: nextGoals.protein, carbsGoal: nextGoals.carbs, fatGoal: nextGoals.fat, goalProjection };
+     }),
     addFriend: (username) => setState((current) => current.friends.some((friend) => friend.username.toLowerCase() === username.toLowerCase()) ? current : { ...current, friends: [...current.friends, { id: `${Date.now()}-${Math.random()}`, username }] }),
     addChallenge: (name, target) => setState((current) => ({ ...current, challenges: [...current.challenges, { id: `${Date.now()}-${Math.random()}`, name, target, progress: 0 }] })),
     addWeight: (value) => setState((current) => ({ ...current, weight: value, weightLogs: [...current.weightLogs, { id: `${Date.now()}-${Math.random()}`, value, date: new Date().toISOString() }] })),

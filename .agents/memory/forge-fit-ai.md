@@ -14,3 +14,9 @@ GPT-5 mini needs a generous completion budget for internal reasoning; keep short
 **Why:** An overly small `max_completion_tokens` value can consume the model's reasoning budget and return an empty visible answer, which the client surfaces as a generic failure.
 
 **How to apply:** Use the provider-recommended completion budget for coach calls, then constrain user-facing length with explicit sentence, paragraph, and word guidance.
+
+FitBud plan changes should travel as a small structured action list, but the mobile client must validate every action against its current local workout IDs and safe numeric ranges before showing an approval control.
+
+**Why:** The app's source of truth is local AsyncStorage, so model output cannot be trusted to identify or mutate user data directly.
+
+**How to apply:** Keep model actions pending until explicit user approval; apply only validated actions and recompute dependent projections when nutrition targets change.
