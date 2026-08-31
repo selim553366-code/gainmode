@@ -1,6 +1,5 @@
 import React from 'react';
-import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Accelerometer } from 'expo-sensors';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,47 +9,16 @@ import { useColors } from '@/hooks/useColors';
 import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
 import { AnimatedNumber, Card, ForgeFitMark, Header, Metric, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
 
-function CalorieWaterFill({ progress, color }: { progress: number; color: string }) {
+function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
   const level = React.useRef(new Animated.Value(0)).current;
-  const wave = React.useRef(new Animated.Value(0)).current;
-  const tiltX = React.useRef(new Animated.Value(0)).current;
-  const tiltY = React.useRef(new Animated.Value(0)).current;
   React.useEffect(() => {
     Animated.timing(level, { toValue: Math.max(0.035, Math.min(progress, 1)), duration: 650, useNativeDriver: false }).start();
   }, [level, progress]);
-  React.useEffect(() => {
-    const animation = Animated.loop(Animated.timing(wave, { toValue: 1, duration: 2200, useNativeDriver: true }));
-    animation.start();
-    return () => animation.stop();
-  }, [wave]);
-  React.useEffect(() => {
-    if (Platform.OS === 'web') return;
-    let subscription: { remove: () => void } | undefined;
-    try {
-      Accelerometer.setUpdateInterval(55);
-      subscription = Accelerometer.addListener(({ x, y }) => {
-        Animated.parallel([
-          Animated.spring(tiltX, { toValue: Math.max(-1, Math.min(1, x)), friction: 8, tension: 55, useNativeDriver: true }),
-          Animated.spring(tiltY, { toValue: Math.max(-1, Math.min(1, y)), friction: 8, tension: 55, useNativeDriver: true }),
-        ]).start();
-      });
-    } catch {
-      // Sensor access is unavailable in web previews and restricted native environments.
-    }
-    return () => subscription?.remove();
-  }, [tiltX, tiltY]);
-  const height = level.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
-  const translateX = wave.interpolate({ inputRange: [0, 1], outputRange: [0, -92] });
-  const fluidTranslateX = tiltX.interpolate({ inputRange: [-1, 1], outputRange: [-10, 10] });
-  const fluidTranslateY = tiltY.interpolate({ inputRange: [-1, 1], outputRange: [7, -7] });
-  const fluidRotation = tiltX.interpolate({ inputRange: [-1, 1], outputRange: ['-5deg', '5deg'] });
-  return <View pointerEvents="none" style={styles.waterFrame}>
-    <Animated.View style={[styles.waterFill, { height, backgroundColor: color }]}>
-      <Animated.View style={[styles.waterMotion, { transform: [{ translateX: fluidTranslateX }, { translateY: fluidTranslateY }, { rotate: fluidRotation }] }]}>
-        <Animated.View style={[styles.waterWave, { backgroundColor: color, transform: [{ translateX }] }]} />
-        <Animated.View style={[styles.waterWave, styles.waterWaveSecond, { backgroundColor: color, transform: [{ translateX }] }]} />
-      </Animated.View>
-    </Animated.View>
+  const width = level.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+  return <View pointerEvents="none" style={styles.progressFrame}>
+    <View style={[styles.progressTrack, { backgroundColor: `${color}26` }]}>
+      <Animated.View style={[styles.progressFill, { width, backgroundColor: color }]} />
+    </View>
   </View>;
 }
 
@@ -84,7 +52,7 @@ export default function TodayScreen() {
 
        <View style={styles.homeContent}>
        <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
-        <CalorieWaterFill progress={calorieGoal ? calories / calorieGoal : 0} color={colors.primaryForeground} />
+        <CalorieProgressFill progress={calorieGoal ? calories / calorieGoal : 0} color={colors.primaryForeground} />
         <View style={styles.heroGlow} />
          <View style={styles.homeGreeting}>
            <Text style={[styles.homeGreetingTitle, { color: colors.primaryForeground }]}>{`${t('goodMorning')}, ${username ?? ''}`.trim()}</Text>
@@ -147,11 +115,9 @@ const styles = StyleSheet.create({
   homeGreeting: { marginBottom: 18 },
   homeGreetingTitle: { fontFamily: 'Inter_700Bold', fontSize: 22, lineHeight: 27, letterSpacing: -0.5 },
   homeGreetingSubtitle: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, marginTop: 3 },
-  waterFrame: { position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, justifyContent: 'flex-end', overflow: 'hidden' },
-  waterFill: { width: '100%', opacity: 0.13, minHeight: 2 },
-  waterMotion: { flex: 1, width: '100%' },
-  waterWave: { position: 'absolute', width: '145%', height: 26, borderRadius: 80, top: -13, left: '-22%' },
-  waterWaveSecond: { top: -8, left: '30%', opacity: 0.72 },
+  progressFrame: { marginTop: 1, marginBottom: 17 },
+  progressTrack: { height: 6, borderRadius: 99, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 99, opacity: 0.78 },
   heroGlow: { position: 'absolute', right: -56, top: -70, width: 180, height: 180, borderRadius: 100, backgroundColor: '#FFFFFF18' },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   heroLead: { flex: 1, minWidth: 0 },

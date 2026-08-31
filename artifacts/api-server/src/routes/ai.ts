@@ -32,11 +32,16 @@ async function askOpenAi(messages: unknown[]) {
 
 router.post("/ai/coach", async (req, res) => {
   try {
-    const { message, context, language } = req.body as { message?: string; context?: string; language?: string };
-    if (!message?.trim()) return res.status(400).json({ error: "Message is required." });
+    const { message, context, language, imageData } = req.body as { message?: string; context?: string; language?: string; imageData?: string };
+    if (!message?.trim() && !imageData) return res.status(400).json({ error: "Message or image is required." });
+    if (imageData && imageData.length > 8_000_000) return res.status(413).json({ error: "Image is too large." });
+    const prompt = message?.trim() || "Please assess this photo and give useful fitness and nutrition guidance.";
+    const userContent = imageData
+      ? [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageData.replace(/^data:image\/[^;]+;base64,/, "")}` } }]
+      : prompt;
     const content = await askOpenAi([
       { role: "system", content: `You are Forge Coach, a concise, encouraging fitness and nutrition coach. Use the user's app data below to personalize answers. Never invent logged data. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[language ?? ""] ?? "the user's selected language"}; do not switch languages. User app data: ${context ?? "No profile data yet."}` },
-      { role: "user", content: message.trim() },
+      { role: "user", content: userContent },
     ]);
     return res.json({ content });
   } catch (error) {

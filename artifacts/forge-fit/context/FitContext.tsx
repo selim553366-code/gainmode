@@ -380,10 +380,14 @@ export function FitProvider({ children }: { children: ReactNode }) {
       const trainingAdjustment = Math.round(((profile.trainingDays ?? 3) * (profile.sessionDuration ?? 45)) / 12);
       const equipmentAdjustment = profile.equipment === 'gym' ? (profile.gymLevel === 'full' ? 70 : profile.gymLevel === 'intermediate' ? 45 : 25) : profile.equipment === 'home' ? 20 : 0;
       const calorieGoal = Math.max(profile.age < 18 ? 1600 : 1200, Math.round(bmr * activityMultiplier + goalAdjustment + targetAdjustment + trainingAdjustment + equipmentAdjustment));
-      const preferenceProteinMultiplier = profile.proteinPreference === 'high' ? 2.2 : profile.proteinPreference === 'lower' ? 1.4 : isGainGoal ? 1.9 : 1.6;
-      const dietProteinMultiplier = profile.diet === 'vegan' ? 1.85 : profile.diet === 'vegetarian' ? 1.75 : profile.diet === 'halal' ? 1.68 : 1.6;
-      const proteinGoal = Math.round(profile.weight * Math.max(preferenceProteinMultiplier, dietProteinMultiplier));
-      const fatRatio = profile.diet === 'vegan' ? 0.3 : profile.diet === 'vegetarian' ? 0.28 : isLossGoal ? 0.25 : 0.27;
+       const preferenceProteinMultiplier = profile.proteinPreference === 'high' ? 2.2 : profile.proteinPreference === 'lower' ? 1.4 : isGainGoal ? 1.9 : 1.6;
+       const dietProteinMultiplier = profile.diet === 'vegan' ? 1.85 : profile.diet === 'vegetarian' ? 1.75 : profile.diet === 'halal' ? 1.68 : 1.6;
+       const activityProteinBonus = { sedentary: -0.1, light: 0, moderate: 0.1, high: 0.2 }[profile.activity ?? 'light'];
+       const experienceProteinBonus = { beginner: 0, intermediate: 0.05, advanced: 0.1 }[profile.experience ?? 'beginner'];
+       const goalProteinBonus = isLossGoal ? 0.1 : isGainGoal ? 0.15 : 0;
+       const proteinMultiplier = clamp(Math.max(preferenceProteinMultiplier, dietProteinMultiplier) + activityProteinBonus + experienceProteinBonus + goalProteinBonus, 1.4, 2.4);
+       const proteinGoal = Math.round(profile.weight * proteinMultiplier);
+       const fatRatio = profile.diet === 'vegan' ? 0.3 : profile.diet === 'vegetarian' ? 0.28 : isLossGoal ? (profile.goalRate === 'fast' ? 0.23 : 0.25) : isGainGoal ? 0.28 : 0.27;
       const fatGoal = Math.round((calorieGoal * fatRatio) / 9);
       const carbsGoal = Math.max(0, Math.round((calorieGoal - proteinGoal * 4 - fatGoal * 9) / 4));
       const workouts = calculatePlan(profile);

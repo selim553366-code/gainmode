@@ -137,7 +137,7 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
 
 export default function NutritionScreen() {
   const colors = useColors();
-  const { language, meals, calorieGoal, addMeal, removeMeal, photoAnalysesUsed, incrementPhotoUsage } = useFit();
+  const { language, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, addMeal, removeMeal, photoAnalysesUsed, incrementPhotoUsage } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { openCamera } = useLocalSearchParams<{ openCamera?: string }>();
   const [range, setRange] = React.useState<'daily' | 'weekly' | 'monthly'>('daily');
@@ -231,10 +231,23 @@ export default function NutritionScreen() {
       <View style={styles.summaryTop}><View><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('calories')}</Text><Text style={[styles.summaryNumber, { color: colors.foreground }]}>{calories.toLocaleString()} <Text style={styles.summaryUnit}>{t('caloriesShort')}</Text></Text></View><View style={[styles.summaryBadge, { backgroundColor: `${colors.success}22` }]}><Ionicons name="checkmark-circle" size={15} color={colors.success} /><Text style={[styles.badgeText, { color: colors.success }]}>{calorieGoal ? `${Math.round((calories / calorieGoal) * 100)}%` : '—'}</Text></View></View>
       <ProgressBar value={calorieGoal ? calories / calorieGoal : 0} />
       <View style={styles.summaryFooter}><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('remaining')}</Text><Text style={[styles.footerValue, { color: colors.foreground }]}>{calorieGoal ? `${Math.max(calorieGoal - calories, 0)} ${t('caloriesShort')}` : '—'}</Text></View>
-      <View style={[styles.macroSummary, { borderTopColor: colors.border }]}>
-        <View><Text style={[styles.macroValue, { color: colors.foreground }]}>{formatNutrition(macros.protein)}g</Text><Text style={[styles.macroLabel, { color: colors.mutedForeground }]}>{t('protein')}</Text></View>
-        <View><Text style={[styles.macroValue, { color: colors.foreground }]}>{formatNutrition(macros.carbs)}g</Text><Text style={[styles.macroLabel, { color: colors.mutedForeground }]}>{t('carbs')}</Text></View>
-        <View><Text style={[styles.macroValue, { color: colors.foreground }]}>{formatNutrition(macros.fat)}g</Text><Text style={[styles.macroLabel, { color: colors.mutedForeground }]}>{t('fat')}</Text></View>
+      <View style={[styles.macroTargets, { borderTopColor: colors.border }]}>
+        <Text style={[styles.macroTargetsTitle, { color: colors.foreground }]}>{t('dailyTargets')}</Text>
+        {[
+          { label: t('protein'), current: macros.protein, target: proteinGoal, color: colors.blue },
+          { label: t('carbs'), current: macros.carbs, target: carbsGoal, color: colors.orange },
+          { label: t('fat'), current: macros.fat, target: fatGoal, color: colors.plum },
+        ].map((macro) => (
+          <View key={macro.label} style={styles.macroTarget}>
+            <View style={styles.macroTargetRow}>
+              <Text style={[styles.macroLabel, { color: colors.mutedForeground }]}>{macro.label}</Text>
+              <Text style={[styles.macroValue, { color: colors.foreground }]}>{formatNutrition(macro.current)} / {macro.target ? `${formatNutrition(macro.target)}g` : '—'}</Text>
+            </View>
+            <View style={[styles.macroTrack, { backgroundColor: `${macro.color}20` }]}>
+              <View style={[styles.macroFill, { width: `${macro.target ? Math.min((macro.current / macro.target) * 100, 100) : 0}%`, backgroundColor: macro.color }]} />
+            </View>
+          </View>
+        ))}
       </View>
     </Card>
     <Card style={styles.captureCard}>
@@ -272,7 +285,12 @@ export default function NutritionScreen() {
 const styles = StyleSheet.create({
   rangeRow: { flexDirection: 'row', marginBottom: 14 },
   summaryCard: { padding: 20 },
-  macroSummary: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, marginTop: 17, paddingTop: 14 },
+  macroTargets: { borderTopWidth: 1, marginTop: 17, paddingTop: 14 },
+  macroTargetsTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, marginBottom: 10 },
+  macroTarget: { marginBottom: 9 },
+  macroTargetRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  macroTrack: { height: 5, borderRadius: 99, overflow: 'hidden', marginTop: 5 },
+  macroFill: { height: '100%', borderRadius: 99 },
   macroValue: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
   macroLabel: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 3 },
   captureCard: { padding: 13, marginBottom: 2 },
