@@ -39,8 +39,6 @@ function AmbientBackdrop({ children }: { children: ReactNode }) {
     end={{ x: 0.95, y: 1 }}
     style={styles.ambientBackdrop}
   >
-    <View pointerEvents="none" style={[styles.ambientGlowTop, { backgroundColor: `${colors.blue}1A` }]} />
-    <View pointerEvents="none" style={[styles.ambientGlowBottom, { backgroundColor: `${colors.primary}12` }]} />
     {children}
   </LinearGradient>;
 }
@@ -273,8 +271,6 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
 
 export const styles = StyleSheet.create({
   ambientBackdrop: { flex: 1, minHeight: '100%', overflow: 'hidden' },
-  ambientGlowTop: { position: 'absolute', width: 260, height: 260, borderRadius: 140, top: -150, right: -70, opacity: 0.45 },
-  ambientGlowBottom: { position: 'absolute', width: 300, height: 300, borderRadius: 160, bottom: -190, left: -110, opacity: 0.38 },
   screen: { paddingHorizontal: 20, minHeight: '100%' },
   header: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 26 },
   headerText: { flex: 1 },
