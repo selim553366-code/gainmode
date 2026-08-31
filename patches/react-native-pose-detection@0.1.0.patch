@@ -1,0 +1,59 @@
+diff --git a/android/src/main/java/com/posedetection/PoseDetectionModule.kt b/android/src/main/java/com/posedetection/PoseDetectionModule.kt
+index 2ceaf41..06874dc 100644
+--- a/android/src/main/java/com/posedetection/PoseDetectionModule.kt
++++ b/android/src/main/java/com/posedetection/PoseDetectionModule.kt
+@@ -21,7 +21,6 @@ import com.posedetection.view.parseOverlay
+ import expo.modules.interfaces.permissions.PermissionsResponse
+ import expo.modules.interfaces.permissions.PermissionsStatus
+ import expo.modules.kotlin.functions.Queues
+-import expo.modules.kotlin.jni.NativeArrayBuffer
+ import expo.modules.kotlin.modules.Module
+ import expo.modules.kotlin.modules.ModuleDefinition
+ 
+@@ -60,7 +59,7 @@ class PoseDetectionModule : Module() {
+                         angleJoints = angleJointsFrom(options),
+                         selection = selectionFrom(options),
+                     )
+-                }.onSuccess { promise.resolve(NativeArrayBuffer.wrap(it)) }
++                }.onSuccess { promise.resolve(it) }
+                     .onFailure { promise.reject("DETECTION_FAILED", it.message ?: "detection failed", null) }
+             }
+ 
+@@ -84,7 +83,7 @@ class PoseDetectionModule : Module() {
+                             sendEvent("onVideoProgress", mapOf("taskId" to taskId, "progress" to progress))
+                         },
+                     )
+-                }.onSuccess { promise.resolve(NativeArrayBuffer.wrap(it)) }
++                }.onSuccess { promise.resolve(it) }
+                     .onFailure { promise.reject("DETECTION_FAILED", it.message ?: "detection failed", null) }
+             }
+ 
+diff --git a/android/src/main/java/com/posedetection/view/PoseCameraView.kt b/android/src/main/java/com/posedetection/view/PoseCameraView.kt
+index 64a4740..07e2296 100644
+--- a/android/src/main/java/com/posedetection/view/PoseCameraView.kt
++++ b/android/src/main/java/com/posedetection/view/PoseCameraView.kt
+@@ -51,7 +51,6 @@ import com.posedetection.performance.ThermalPolicy
+ import com.posedetection.performance.ThermalState
+ import com.posedetection.performance.Tiers
+ import expo.modules.kotlin.AppContext
+-import expo.modules.kotlin.jni.NativeArrayBuffer
+ import expo.modules.kotlin.viewevent.EventDispatcher
+ import expo.modules.kotlin.views.ExpoView
+ import java.util.concurrent.Executors
+@@ -1379,13 +1378,12 @@ class PoseCameraView(
+         frames.setLayout(next)
+     }
+ 
+-    fun drainFrames(): NativeArrayBuffer = NativeArrayBuffer.wrap(frames.drain())
++    fun drainFrames(): ByteArray = frames.drain()
+ 
+-    fun snapshotFrame(): NativeArrayBuffer = NativeArrayBuffer.wrap(frames.snapshot())
++    fun snapshotFrame(): ByteArray = frames.snapshot()
+ 
+     /** An unknown or spent ticket is an empty buffer, which is the documented contract. */
+-    fun takeTriggerSnapshot(snapshotId: Int): NativeArrayBuffer =
+-        NativeArrayBuffer.wrap(frames.takeSnapshot(snapshotId))
++    fun takeTriggerSnapshot(snapshotId: Int): ByteArray = frames.takeSnapshot(snapshotId)
+ 
+     fun currentState(): Map<String, Any?> =
+         mapOf(

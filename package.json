@@ -16,5 +16,10 @@
   "devDependencies": {
     "prettier": "^3.9.6",
     "typescript": "~5.9.3"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "react-native-pose-detection@0.1.0": "patches/react-native-pose-detection@0.1.0.patch"
+    }
   }
 }

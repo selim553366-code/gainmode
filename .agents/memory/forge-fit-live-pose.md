@@ -8,3 +8,9 @@ Forge Fit live workouts use a native MediaPipe pose component with its Expo conf
 **Why:** Native camera inference keeps video off the server and avoids external AI costs, while camera scanning and motion sensors are unavailable or unreliable in browser/Expo Go previews.
 
 **How to apply:** Keep rep/form logic in JavaScript over throttled native landmark frames, use the native skeleton overlay for rendering, gate barcode and motion effects by platform support, and verify camera behavior with an Android development build.
+
+The pose package’s published compatibility range is broader than its actual native source compatibility: its Android code can reference Expo Modules APIs introduced after Expo 54 even though Expo 51+ is declared.
+
+**Why:** A cloud release build failed in Kotlin compilation because the package expected a newer binary-buffer wrapper unavailable in Expo Modules Core 3.x; Expo 54 already supports direct byte-array typed-array returns.
+
+**How to apply:** Preserve the workspace-level pnpm compatibility patch while Forge Fit remains on Expo 54, and reassess/remove it only after upgrading Expo and confirming the package compiles unmodified.
