@@ -11,6 +11,7 @@ import { useColors } from '@/hooks/useColors';
 import { Card, Header, Pill } from '@/components/FitUI';
 import { DAILY_COACH_MESSAGE_LIMIT, DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
+import { runPhotoCoachRequest } from '@/lib/photoCoach';
 
 type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; imageUri?: string };
 
@@ -81,35 +82,56 @@ export default function CoachScreen() {
     const hasPhoto = Boolean(photo);
     const prompt = message.trim() || t('photoCoachPrompt');
     if ((!message.trim() && !photo) || loading) return;
-    if (hasPhoto && photoAnalysesUsed >= DAILY_PHOTO_ANALYSIS_LIMIT) {
-      setMessages((current) => [...current, { id: `${Date.now()}-photo-limit`, text: t('photoLimitReached'), from: 'coach' }]);
-      return;
-    }
     if (!hasPhoto && coachMessagesUsed >= DAILY_COACH_MESSAGE_LIMIT) {
       setMessages((current) => [...current, { id: `${Date.now()}-limit`, text: t('coachLimitReached'), from: 'coach' }]);
+      return;
+    }
+    const weeklySummary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
+    const isMuscleGoal = profile?.goal === 'muscle';
+    const profileContext = isMuscleGoal && profile
+      ? Object.fromEntries(Object.entries(profile).filter(([key]) => key !== 'weight' && key !== 'targetWeight'))
+      : profile;
+    const context = JSON.stringify({ username, profile: profileContext, equipmentDetails: profile?.equipmentDetails ?? '', weight: isMuscleGoal ? null : weight, calorieGoal, macroGoals: { protein: proteinGoal, carbs: carbsGoal, fat: fatGoal }, meals, workouts: workouts.map((item) => ({ name: item.name, completed: item.completed, duration: item.duration, sets: item.exercises.reduce((sum, exercise) => sum + exercise.sets, 0), exercises: item.exercises.length })), weeklySummary });
+    if (hasPhoto) {
+      await runPhotoCoachRequest({
+        photoAnalysesUsed,
+        limit: DAILY_PHOTO_ANALYSIS_LIMIT,
+        onStart: () => {
+          setMessages((current) => [...current, displayMessage]);
+          setLoading(true);
+          setCoachThinking(true);
+        },
+        request: async () => {
+          const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/coach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, imageData: photo?.base64 }) });
+          if (!response.ok) throw new Error('coach unavailable');
+          return await response.json() as { content?: string };
+        },
+        onSuccess: (result) => {
+          incrementPhotoUsage();
+          setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach' }]);
+        },
+        onError: () => {
+          setMessages((current) => [...current, { id: `${Date.now()}-error`, text: t('photoCoachError'), from: 'coach' }]);
+        },
+        onLimit: () => {
+          setMessages((current) => [...current, { id: `${Date.now()}-photo-limit`, text: t('photoLimitReached'), from: 'coach' }]);
+        },
+      });
+      setLoading(false);
+      setCoachThinking(false);
       return;
     }
     setMessages((current) => [...current, displayMessage]);
     setLoading(true);
     setCoachThinking(true);
     try {
-      const weeklySummary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
-      const isMuscleGoal = profile?.goal === 'muscle';
-      const profileContext = isMuscleGoal && profile
-        ? Object.fromEntries(Object.entries(profile).filter(([key]) => key !== 'weight' && key !== 'targetWeight'))
-        : profile;
-      const context = JSON.stringify({ username, profile: profileContext, equipmentDetails: profile?.equipmentDetails ?? '', weight: isMuscleGoal ? null : weight, calorieGoal, macroGoals: { protein: proteinGoal, carbs: carbsGoal, fat: fatGoal }, meals, workouts: workouts.map((item) => ({ name: item.name, completed: item.completed, duration: item.duration, sets: item.exercises.reduce((sum, exercise) => sum + exercise.sets, 0), exercises: item.exercises.length })), weeklySummary });
       const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/coach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, imageData: photo?.base64 }) });
       if (!response.ok) throw new Error('coach unavailable');
       const result = await response.json() as { content?: string };
-      if (hasPhoto) {
-        incrementPhotoUsage();
-      } else {
-        incrementCoachUsage();
-      }
+      incrementCoachUsage();
       setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach' }]);
     } catch {
-      setMessages((current) => [...current, { id: `${Date.now()}-error`, text: hasPhoto ? t('photoCoachError') : t('weeklyAnalysisFailed'), from: 'coach' }]);
+      setMessages((current) => [...current, { id: `${Date.now()}-error`, text: t('weeklyAnalysisFailed'), from: 'coach' }]);
     } finally {
       setLoading(false);
       setCoachThinking(false);
