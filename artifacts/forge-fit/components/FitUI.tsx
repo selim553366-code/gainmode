@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import * as Clipboard from 'expo-clipboard';
 import { useAudioPlayer } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
@@ -195,7 +196,7 @@ export function PremiumLock() {
 
 export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const colors = useColors();
-  const { language, isPremium, enablePremium } = useFit();
+  const { language, isPremium, enablePremium, ensureRunForgeDiscountCode } = useFit();
   const { monthlyPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const price = monthlyPackage?.product.priceString ?? getPremiumPreviewPrice(language);
@@ -203,10 +204,16 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   const appear = React.useRef(new Animated.Value(0)).current;
   const player = useAudioPlayer(require('@/assets/sounds/premium-success.wav'));
   const [celebrating, setCelebrating] = React.useState(false);
+  const [celebrationCode, setCelebrationCode] = React.useState<string | null>(null);
+  const [copiedCode, setCopiedCode] = React.useState<string | null>(null);
   const [actionError, setActionError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!visible) setCelebrating(false);
+    if (!visible) {
+      setCelebrating(false);
+      setCelebrationCode(null);
+      setCopiedCode(null);
+    }
   }, [visible]);
 
   React.useEffect(() => {
@@ -228,6 +235,10 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
       return;
     }
     enablePremium();
+    const code = ensureRunForgeDiscountCode();
+    setCelebrationCode(code);
+    setCopiedCode(null);
+    Clipboard.setStringAsync(code).catch(() => undefined);
     setCelebrating(true);
     player.seekTo(0);
     player.play();
@@ -244,6 +255,10 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
     try {
       const customerInfo = await restore();
       if (customerInfo.entitlements.active[REVENUECAT_ENTITLEMENT_IDENTIFIER]) {
+        const code = ensureRunForgeDiscountCode();
+        setCelebrationCode(code);
+        setCopiedCode(null);
+        Clipboard.setStringAsync(code).catch(() => undefined);
         setCelebrating(true);
         return;
       }
@@ -251,6 +266,11 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
     } catch {
       setActionError(t('premiumRestoreError'));
     }
+  };
+
+  const copyCode = async (code: string) => {
+    await Clipboard.setStringAsync(code);
+    setCopiedCode(code);
   };
 
   if (!visible || !SUBSCRIPTION_PURCHASE_ENABLED) return null;
@@ -266,8 +286,9 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
           <Text style={[styles.premiumModalEyebrow, { color: colors.primary }]}>{t('premiumModalEyebrow')}</Text>
           <Text style={[styles.premiumModalTitle, { color: colors.foreground }]}>{t('premiumModalTitle')}</Text>
           <Text style={[styles.premiumModalSubtitle, { color: colors.mutedForeground }]}>{t('premiumModalSubtitle')}</Text>
+          <Text style={[styles.premiumRunForgeNote, { color: colors.primary }]}>{t('runForgeDiscountSubtitle')}</Text>
           <View style={styles.premiumBenefits}>
-            {(['premiumFeature1', 'premiumFeature2', 'premiumFeature3', 'premiumBenefit4'] as const).map((key) => <View key={key} style={styles.premiumBenefit}><View style={[styles.premiumBenefitIcon, { backgroundColor: `${colors.primary}1A` }]}><Ionicons name="checkmark" size={15} color={colors.primary} /></View><Text style={[styles.premiumBenefitText, { color: colors.foreground }]}>{t(key)}</Text></View>)}
+            {(['premiumFeature1', 'premiumFeature2', 'premiumFeature3', 'runForgeDiscountBenefit'] as const).map((key) => <View key={key} style={styles.premiumBenefit}><View style={[styles.premiumBenefitIcon, { backgroundColor: `${colors.primary}1A` }]}><Ionicons name="checkmark" size={15} color={colors.primary} /></View><Text style={[styles.premiumBenefitText, { color: colors.foreground }]}>{t(key)}</Text></View>)}
           </View>
              <View style={[styles.premiumPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
              <View><Text style={[styles.premiumPriceLabel, { color: colors.mutedForeground }]}>{t('premiumPriceMonthly')}</Text><View style={styles.premiumPriceLine}><Text style={[styles.premiumPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : price}</Text>{!isLoading ? <Text style={[styles.premiumPriceUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text> : null}</View></View>
@@ -280,7 +301,25 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
           <Text style={[styles.premiumTrust, { color: colors.mutedForeground }]}>{t('premiumTrust')}</Text>
         </LinearGradient>
       </Animated.View>
-      <CelebrationBurst visible={celebrating} title={t('premiumCelebrationTitle')} subtitle={t('premiumCelebrationSubtitle')} onDone={finishCelebration} />
+       <CelebrationBurst visible={celebrating} />
+       {celebrating && celebrationCode ? <View style={styles.premiumCelebrationPanel}>
+         <View style={[styles.premiumCelebrationCard, { backgroundColor: colors.card, borderColor: `${colors.primary}70` }]}>
+           <View style={[styles.premiumCelebrationBadge, { backgroundColor: colors.primary }]}><ForgeFitMark size={42} /></View>
+           <Text style={[styles.premiumCelebrationTitle, { color: colors.foreground }]}>{t('runForgeCelebrationTitle')}</Text>
+           <Text style={[styles.premiumCelebrationSubtitle, { color: colors.mutedForeground }]}>{t('runForgeCelebrationSubtitle')}</Text>
+           <Text style={[styles.runForgeCodeLabel, { color: colors.mutedForeground }]}>{t('runForgeCodeLabel')}</Text>
+           <View style={[styles.runForgeCodeRow, { backgroundColor: `${colors.primary}14`, borderColor: `${colors.primary}45` }]}>
+             <Text selectable style={[styles.runForgeCode, { color: colors.foreground }]}>{celebrationCode}</Text>
+             <Pressable accessibilityRole="button" accessibilityLabel={t('runForgeCopy')} onPress={() => copyCode(celebrationCode)} style={({ pressed }) => [styles.runForgeCopyButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}>
+               <Ionicons name={copiedCode === celebrationCode ? 'checkmark' : 'copy-outline'} size={16} color={colors.primaryForeground} />
+               <Text style={[styles.runForgeCopyText, { color: colors.primaryForeground }]}>{copiedCode === celebrationCode ? t('runForgeCopied') : t('runForgeCopy')}</Text>
+             </Pressable>
+           </View>
+           <Pressable accessibilityRole="button" onPress={finishCelebration} style={({ pressed }) => [styles.premiumCelebrationContinue, { opacity: pressed ? 0.68 : 1 }]}>
+             <Text style={[styles.premiumCelebrationContinueText, { color: colors.primary }]}>{t('runForgeContinue')}</Text>
+           </Pressable>
+         </View>
+       </View> : null}
     </View>
   </Modal>;
 }
@@ -367,6 +406,7 @@ export const styles = StyleSheet.create({
   premiumModalEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.7, marginBottom: 8 },
   premiumModalTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, letterSpacing: -1, lineHeight: 34 },
   premiumModalSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, marginTop: 9 },
+  premiumRunForgeNote: { fontFamily: 'Inter_700Bold', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 10 },
   premiumPriceAside: { alignItems: 'flex-end', gap: 6, maxWidth: 112 },
   premiumTrialText: { fontFamily: 'Inter_700Bold', fontSize: 9, lineHeight: 12, textAlign: 'right' },
   premiumBenefits: { gap: 12, marginTop: 22, marginBottom: 20 },
@@ -387,4 +427,16 @@ export const styles = StyleSheet.create({
   premiumRestoreButton: { alignItems: 'center', justifyContent: 'center', minHeight: 36 },
   premiumRestoreText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   premiumTrust: { fontFamily: 'Inter_400Regular', fontSize: 10, textAlign: 'center', marginTop: 12 },
+  premiumCelebrationPanel: { ...StyleSheet.absoluteFillObject, zIndex: 31, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+  premiumCelebrationCard: { width: '100%', borderRadius: 26, borderWidth: 1, paddingHorizontal: 18, paddingTop: 24, paddingBottom: 14, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.24, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
+  premiumCelebrationBadge: { width: 58, height: 58, borderRadius: 21, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  premiumCelebrationTitle: { fontFamily: 'Inter_700Bold', fontSize: 22, lineHeight: 28, letterSpacing: -0.5, textAlign: 'center' },
+  premiumCelebrationSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 9 },
+  runForgeCodeLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1, textTransform: 'uppercase', marginTop: 19, marginBottom: 7 },
+  runForgeCodeRow: { width: '100%', minHeight: 54, borderRadius: 16, borderWidth: 1, padding: 7, paddingLeft: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  runForgeCode: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 14, letterSpacing: 0.8 },
+  runForgeCopyButton: { minHeight: 39, borderRadius: 12, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  runForgeCopyText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
+  premiumCelebrationContinue: { paddingHorizontal: 20, paddingVertical: 12, marginTop: 3 },
+  premiumCelebrationContinueText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
 });

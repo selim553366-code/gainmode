@@ -59,6 +59,7 @@
     "expo-asset": "~12.0.13",
     "expo-audio": "~1.1.1",
     "expo-camera": "~17.0.10",
+    "expo-clipboard": "^8.0.8",
     "expo-sensors": "~15.0.8",
     "lucide-react-native": "^1.37.0",
     "react": "19.1.0",

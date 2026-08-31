@@ -15,8 +15,11 @@ import {
   CirclePlus,
   CircleX,
   ChartNoAxesCombined,
+  Copy,
   Dumbbell,
   Ellipsis,
+  Eye,
+  EyeOff,
   FileText,
   Flame,
   Gift,
@@ -41,6 +44,7 @@ import {
   Sparkles,
   Star,
   Trash2,
+  Ticket,
   TrendingDown,
   TrendingUp,
   Trophy,
@@ -64,6 +68,7 @@ export type IconName =
   | 'camera-outline'
   | 'camera-scan'
   | 'chatbubble-ellipses-outline'
+  | 'copy-outline'
   | 'checkmark'
   | 'checkmark-circle'
   | 'checkmark-circle-outline'
@@ -83,6 +88,8 @@ export type IconName =
   | 'images-outline'
   | 'information-circle-outline'
   | 'document-text-outline'
+  | 'eye-off-outline'
+  | 'eye-outline'
   | 'language-outline'
   | 'ellipsis-horizontal'
   | 'nutrition-outline'
@@ -105,6 +112,7 @@ export type IconName =
   | 'star'
   | 'shield-checkmark-outline'
   | 'trash-outline'
+  | 'ticket-outline'
   | 'trending-down'
   | 'trending-up-outline'
   | 'trophy-outline'
@@ -130,6 +138,7 @@ const iconMap: Record<IconName, IconComponent> = {
   'camera-outline': Camera,
   'camera-scan': ScanLine,
   'chatbubble-ellipses-outline': MessageCircle,
+  'copy-outline': Copy,
   checkmark: Check,
   'checkmark-circle': CircleCheck,
   'checkmark-circle-outline': CircleCheck,
@@ -149,6 +158,8 @@ const iconMap: Record<IconName, IconComponent> = {
   'images-outline': Images,
   'information-circle-outline': Info,
   'document-text-outline': FileText,
+  'eye-off-outline': EyeOff,
+  'eye-outline': Eye,
   'language-outline': Languages,
   'ellipsis-horizontal': Ellipsis,
   'nutrition-outline': Apple,
@@ -171,6 +182,7 @@ const iconMap: Record<IconName, IconComponent> = {
   star: Star,
   'shield-checkmark-outline': ShieldCheck,
   'trash-outline': Trash2,
+  'ticket-outline': Ticket,
   'trending-down': TrendingDown,
   'trending-up-outline': TrendingUp,
   'trophy-outline': Trophy,

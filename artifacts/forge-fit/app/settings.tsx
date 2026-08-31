@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
@@ -11,10 +12,21 @@ type LegalSection = 'privacy' | 'terms' | null;
 
 export default function SettingsScreen() {
   const colors = useColors();
-  const { language, setLanguage, restartOnboarding } = useFit();
+  const { language, setLanguage, restartOnboarding, isPremium, runForgeDiscountCode, ensureRunForgeDiscountCode } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [expanded, setExpanded] = useState<LegalSection>(null);
+  const [revealedCode, setRevealedCode] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
   const languages = Object.keys(languageLabels) as Language[];
+
+  useEffect(() => {
+    if (isPremium && !runForgeDiscountCode) ensureRunForgeDiscountCode();
+  }, [ensureRunForgeDiscountCode, isPremium, runForgeDiscountCode]);
+
+  const copyCode = async (code: string) => {
+    await Clipboard.setStringAsync(code);
+    setCopiedCode(true);
+  };
 
   return (
     <Screen>
@@ -54,6 +66,44 @@ export default function SettingsScreen() {
           })}
         </View>
       </Card>
+
+      {isPremium ? (
+        <>
+          <SectionTitle title={t('runForgeCodesSettings')} />
+          <Card>
+            <View style={styles.row}>
+              <View style={[styles.iconBox, { backgroundColor: `${colors.orange}20` }]}>
+                <Ionicons name="ticket-outline" size={21} color={colors.orange} />
+              </View>
+              <View style={styles.rowCopy}>
+                <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('runForgeCodesSettings')}</Text>
+                <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('runForgeCodesSettingsSubtitle')}</Text>
+              </View>
+            </View>
+            {runForgeDiscountCode ? <View style={[styles.codeRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+              <Text selectable style={[styles.settingsCode, { color: colors.foreground }]}>{revealedCode ? runForgeDiscountCode : '••••••••••••••'}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={revealedCode ? t('runForgeHide') : t('runForgeShow')}
+                onPress={() => setRevealedCode((current) => !current)}
+                hitSlop={8}
+                style={({ pressed }) => [styles.codeIconButton, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Ionicons name={revealedCode ? 'eye-off-outline' : 'eye-outline'} size={19} color={colors.mutedForeground} />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={copiedCode ? t('runForgeCopied') : t('runForgeCopy')}
+                onPress={() => copyCode(runForgeDiscountCode)}
+                hitSlop={8}
+                style={({ pressed }) => [styles.codeIconButton, { opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Ionicons name={copiedCode ? 'checkmark' : 'copy-outline'} size={18} color={copiedCode ? colors.success : colors.primary} />
+              </Pressable>
+            </View> : null}
+          </Card>
+        </>
+      ) : null}
 
       <SectionTitle title={t('onboarding')} />
       <Card>
@@ -162,4 +212,8 @@ const styles = StyleSheet.create({
   body: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20 },
   point: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   pointText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
+  codeList: { gap: 8, marginTop: 18 },
+  codeRow: { minHeight: 48, borderRadius: 14, borderWidth: 1, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  settingsCode: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 0.6 },
+  codeIconButton: { width: 28, height: 32, alignItems: 'center', justifyContent: 'center' },
 });

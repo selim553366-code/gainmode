@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { Language, TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
+import { generateRunForgeDiscountCode } from '@/lib/runForgeCodes';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
@@ -71,12 +72,14 @@ type FitState = {
   friends: Friend[];
   challenges: Challenge[];
   weightLogs: { id: string; value: number; date: string }[];
+  runForgeDiscountCode: string | null;
 };
 
 type FitContextValue = FitState & {
   coachThinking: boolean;
   setCoachThinking: (value: boolean) => void;
   enablePremium: () => void;
+  ensureRunForgeDiscountCode: () => string;
   setLanguage: (language: Language) => void;
   restartOnboarding: () => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
@@ -118,6 +121,7 @@ const initialState: FitState = {
   challenges: [],
   weightLogs: [],
   meals: [],
+  runForgeDiscountCode: null,
 };
 
 const FitContext = createContext<FitContextValue | null>(null);
@@ -225,6 +229,13 @@ export function FitProvider({ children }: { children: ReactNode }) {
     setState((current) => current.isPremium === isSubscribed ? current : { ...current, isPremium: isSubscribed });
   }, [isSubscribed]);
 
+  useEffect(() => {
+    if (!hydrated || !state.isPremium || state.runForgeDiscountCode) return;
+    setState((current) => current.runForgeDiscountCode
+      ? current
+      : { ...current, runForgeDiscountCode: generateRunForgeDiscountCode() });
+  }, [hydrated, state.isPremium, state.runForgeDiscountCode]);
+
   const calculatePlan = (profile: Profile): Workout[] => {
     const isLossGoal = profile.goal === 'weightLoss' || profile.goal === 'fatLoss';
     const isBuildGoal = profile.goal === 'muscle' || profile.goal === 'weightGain';
@@ -274,6 +285,17 @@ export function FitProvider({ children }: { children: ReactNode }) {
     coachThinking,
     setCoachThinking,
     enablePremium: () => setState((current) => current.isPremium ? current : { ...current, isPremium: true }),
+     ensureRunForgeDiscountCode: () => {
+       let resolvedCode = generateRunForgeDiscountCode(state.runForgeDiscountCode);
+       setState((current) => {
+         const nextCode = generateRunForgeDiscountCode(current.runForgeDiscountCode);
+         resolvedCode = nextCode;
+         return nextCode === current.runForgeDiscountCode
+           ? current
+           : { ...current, runForgeDiscountCode: nextCode };
+       });
+       return resolvedCode;
+     },
     setLanguage: (language) => setState((current) => ({ ...current, language })),
     restartOnboarding: () => setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false })),
      addMeal: (meal) => setState((current) => ({ ...current, meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }] })),
