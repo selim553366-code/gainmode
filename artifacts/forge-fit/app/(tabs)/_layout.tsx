@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
@@ -44,11 +44,22 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
     }).start();
   }, [focused, logoDeparture]);
   React.useEffect(() => {
-    Animated.timing(circleCollapse, {
-      toValue: focused ? 1 : 0,
-      duration: focused ? 1100 : 650,
-      useNativeDriver: true,
-    }).start();
+    const animation = focused
+      ? Animated.timing(circleCollapse, {
+        toValue: 1,
+        duration: 820,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      })
+      : Animated.spring(circleCollapse, {
+        toValue: 0,
+        damping: 13,
+        stiffness: 155,
+        mass: 0.7,
+        useNativeDriver: true,
+      });
+    animation.start();
+    return () => animation.stop();
   }, [circleCollapse, focused]);
   React.useEffect(() => {
     Animated.timing(thinkingTransition, { toValue: coachThinking ? 1 : 0, duration: 360, useNativeDriver: true }).start();
@@ -64,7 +75,7 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
     >
       <View style={[styles.coachTabButton, { shadowColor: colors.primary }]}>
         <Animated.View style={{ transform: [{ scale: logoScale }] }}>
-          <Animated.View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary, opacity: circleCollapse.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.72, 0] }), transform: [{ translateY: circleCollapse.interpolate({ inputRange: [0, 1], outputRange: [0, 34] }) }, { scaleY: circleCollapse.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.22, 0] }) }] }]}>
+          <Animated.View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary, opacity: circleCollapse.interpolate({ inputRange: [0, 0.58, 1], outputRange: [1, 0.78, 0] }), transform: [{ translateY: circleCollapse.interpolate({ inputRange: [0, 0.72, 1], outputRange: [0, 7, 16] }) }, { scale: circleCollapse.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, 0.64, 0] }) }, { rotate: circleCollapse.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-18deg'] }) }] }]}>
             <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, { opacity: Animated.multiply(logoDeparture, thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })) }]} />
             <Animated.Image source={require('@/assets/images/coach-thinking-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, styles.coachThinkingImage, styles.coachThinkingOverlay, { opacity: thinkingTransition }]} />
           </Animated.View>
