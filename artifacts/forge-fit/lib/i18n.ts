@@ -455,6 +455,34 @@ const onboardingIntro2Translations: Record<Language, string> = {
   es: 'Calcularemos tus objetivos de calorías, macros y entrenamiento.',
 };
 
+const onboardingMotivationTranslations: Record<Language, { title: string; intro: string; welcomeSubtitle: string }> = {
+  tr: {
+    title: 'Haydi, güçlü bir başlangıç yapalım',
+    intro: 'Sana özel planını birlikte şekillendirmek için birkaç kısa soru.',
+    welcomeSubtitle: 'Küçük adımlarla hedeflerine birlikte ilerleyelim.',
+  },
+  en: {
+    title: 'Let’s make a strong start together',
+    intro: 'A few quick questions will help us shape a plan that feels like yours.',
+    welcomeSubtitle: 'Ready to take small steps toward your goals together?',
+  },
+  de: {
+    title: 'Gemeinsam stark durchstarten',
+    intro: 'Ein paar kurze Fragen helfen uns, deinen persönlichen Plan zu gestalten.',
+    welcomeSubtitle: 'Bereit, mit kleinen Schritten gemeinsam deine Ziele zu erreichen?',
+  },
+  fr: {
+    title: 'Commençons fort, ensemble',
+    intro: 'Quelques questions rapides nous aideront à créer un plan qui te ressemble.',
+    welcomeSubtitle: 'Prêt à avancer ensemble vers tes objectifs, un petit pas à la fois ?',
+  },
+  es: {
+    title: 'Empecemos con fuerza',
+    intro: 'Unas preguntas rápidas nos ayudarán a crear un plan hecho para ti.',
+    welcomeSubtitle: '¿Listo para avanzar juntos hacia tus objetivos, paso a paso?',
+  },
+};
+
 const settingsTranslations = {
   tr: {
     settingsTitle: 'Ayarlar', settingsEyebrow: 'Tercihler', settingsSubtitle: 'Forge Fit deneyimini kendine göre düzenle.',
@@ -512,6 +540,9 @@ export type TranslationKey = keyof typeof translations.tr | keyof typeof premium
 
 export function translate(language: Language, key: TranslationKey): string {
   if (key === 'onboardingIntro2') return onboardingIntro2Translations[language];
+  if (key === 'onboardingTitle') return onboardingMotivationTranslations[language].title;
+  if (key === 'onboardingIntro') return onboardingMotivationTranslations[language].intro;
+  if (key === 'welcomeSubtitle') return onboardingMotivationTranslations[language].welcomeSubtitle;
   const base = translations[language] as Record<string, string>;
   const fallbackBase = translations.en as Record<string, string>;
   const extra = onboardingTranslations[language] as Record<string, string>;
