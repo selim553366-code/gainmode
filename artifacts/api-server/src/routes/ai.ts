@@ -1,7 +1,14 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 
 const router: IRouter = Router();
 const model = "gpt-5-mini";
+const supportedLanguages = new Set(["tr", "en", "de", "fr", "es"]);
+const AI_WINDOW_MS = 60 * 60 * 1000;
+const COACH_REQUESTS_PER_WINDOW = 30;
+const FOOD_ANALYSIS_REQUESTS_PER_WINDOW = 10;
+const MAX_IMAGE_DATA_LENGTH = 8_000_000;
+const MAX_MESSAGE_LENGTH = 2_000;
+const MAX_CONTEXT_LENGTH = 12_000;
 const languageNames: Record<string, string> = {
   tr: "Turkish",
   en: "English",
@@ -9,6 +16,71 @@ const languageNames: Record<string, string> = {
   fr: "French",
   es: "Spanish",
 };
+
+type RateLimitBucket = {
+  count: number;
+  resetAt: number;
+};
+
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
+
+function getClientKey(req: Request) {
+  return req.ip || req.socket.remoteAddress || "unknown";
+}
+
+function enforceRateLimit(
+  req: Request,
+  res: Response,
+  scope: string,
+  limit: number,
+) {
+  const now = Date.now();
+  const clientKey = `${scope}:${getClientKey(req)}`;
+  const current = rateLimitBuckets.get(clientKey);
+  const bucket = !current || current.resetAt <= now
+    ? { count: 0, resetAt: now + AI_WINDOW_MS }
+    : current;
+
+  bucket.count += 1;
+  rateLimitBuckets.set(clientKey, bucket);
+
+  if (rateLimitBuckets.size > 10_000) {
+    for (const [key, value] of rateLimitBuckets) {
+      if (value.resetAt <= now) rateLimitBuckets.delete(key);
+    }
+  }
+
+  const retryAfterSeconds = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+  res.setHeader("RateLimit-Limit", limit);
+  res.setHeader("RateLimit-Remaining", Math.max(0, limit - bucket.count));
+  res.setHeader("RateLimit-Reset", Math.ceil(bucket.resetAt / 1000));
+
+  if (bucket.count > limit) {
+    res.setHeader("Retry-After", retryAfterSeconds);
+    res.status(429).json({ error: "AI usage limit temporarily reached.", retryAfterSeconds });
+    return false;
+  }
+
+  return true;
+}
+
+function normalizeLanguage(language: unknown) {
+  return typeof language === "string" && supportedLanguages.has(language) ? language : null;
+}
+
+function normalizeImageData(imageData: unknown) {
+  if (typeof imageData !== "string" || !imageData) return null;
+  const base64 = imageData.replace(/^data:image\/[^;]+;base64,/, "");
+  if (
+    base64.length > MAX_IMAGE_DATA_LENGTH
+    || base64.length === 0
+    || base64.length % 4 === 1
+    || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)
+  ) {
+    return null;
+  }
+  return base64;
+}
 
 function openAiUrl() {
   const base = process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"];
@@ -31,18 +103,26 @@ async function askOpenAi(messages: unknown[]) {
 }
 
 router.post("/ai/coach", async (req, res) => {
+  if (!enforceRateLimit(req, res, "coach", COACH_REQUESTS_PER_WINDOW)) return;
   try {
     const { message, context, language, imageData } = req.body as { message?: string; context?: string; language?: string; imageData?: string };
-    if (!message?.trim() && !imageData) return res.status(400).json({ error: "Message or image is required." });
-    if (imageData && imageData.length > 8_000_000) return res.status(413).json({ error: "Image is too large." });
-    const prompt = message?.trim() || "Please assess this photo and give useful fitness and nutrition guidance.";
-    const userContent = imageData
-      ? [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageData.replace(/^data:image\/[^;]+;base64,/, "")}` } }]
+    const selectedLanguage = normalizeLanguage(language) ?? "en";
+    const normalizedImageData = normalizeImageData(imageData);
+    const trimmedMessage = typeof message === "string" ? message.trim() : "";
+    const normalizedContext = typeof context === "string" ? context : "";
+    if (!trimmedMessage && !normalizedImageData) return res.status(400).json({ error: "Message or image is required." });
+    if (trimmedMessage.length > MAX_MESSAGE_LENGTH) return res.status(413).json({ error: "Message is too long." });
+    if (normalizedContext.length > MAX_CONTEXT_LENGTH) return res.status(413).json({ error: "Context is too large." });
+    if (imageData && !normalizedImageData) return res.status(413).json({ error: "Image is too large or invalid." });
+    const prompt = trimmedMessage || "Please assess this photo and give useful fitness and nutrition guidance.";
+    const userContent = normalizedImageData
+      ? [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${normalizedImageData}` } }]
       : prompt;
     const content = await askOpenAi([
-      { role: "system", content: `You are Forge Coach, a concise, encouraging fitness and nutrition coach. Use the user's app data below to personalize answers. Never invent logged data. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[language ?? ""] ?? "the user's selected language"}; do not switch languages. User app data: ${context ?? "No profile data yet."}` },
+      { role: "system", content: `You are Forge Coach, a concise, encouraging fitness and nutrition coach. Use the user's app data below to personalize answers. Never invent logged data. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[selectedLanguage]}; do not switch languages. User app data: ${normalizedContext || "No profile data yet."}` },
       { role: "user", content: userContent },
     ]);
+    if (!content) return res.status(502).json({ error: "AI coach returned an empty response." });
     return res.json({ content });
   } catch (error) {
     req.log?.error?.({ error }, "Coach request failed");
@@ -51,15 +131,27 @@ router.post("/ai/coach", async (req, res) => {
 });
 
 router.post("/ai/food-analysis", async (req, res) => {
+  if (!enforceRateLimit(req, res, "food-analysis", FOOD_ANALYSIS_REQUESTS_PER_WINDOW)) return;
   try {
     const { imageData, language } = req.body as { imageData?: string; language?: string };
-    if (!imageData) return res.status(400).json({ error: "Image data is required." });
+    const selectedLanguage = normalizeLanguage(language) ?? "en";
+    const normalizedImageData = normalizeImageData(imageData);
+    if (!normalizedImageData) return res.status(400).json({ error: "Valid image data is required." });
     const content = await askOpenAi([
-      { role: "system", content: `You analyze a food photo. Reply only valid JSON with keys name, calories, protein, carbs, fat. Use realistic estimates, numbers only for nutrition values, and use language ${language ?? "en"} for name. If uncertain, make the estimate explicit in the name.` },
-      { role: "user", content: [{ type: "text", text: "Identify this meal and estimate its nutrition." }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageData}` } }] },
+      { role: "system", content: `You analyze a food photo. Reply only valid JSON with keys name, calories, protein, carbs, fat. Use realistic estimates, numbers only for nutrition values, and use language ${selectedLanguage} for name. If uncertain, make the estimate explicit in the name.` },
+      { role: "user", content: [{ type: "text", text: "Identify this meal and estimate its nutrition." }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${normalizedImageData}` } }] },
     ]);
     const normalized = content.replace(/^```json\s*/i, "").replace(/\s*```$/i, "");
     const result = JSON.parse(normalized) as { name?: string; calories?: number; protein?: number; carbs?: number; fat?: number };
+    if (
+      typeof result.name !== "string"
+      || !Number.isFinite(Number(result.calories))
+      || !Number.isFinite(Number(result.protein))
+      || !Number.isFinite(Number(result.carbs))
+      || !Number.isFinite(Number(result.fat))
+    ) {
+      return res.status(502).json({ error: "Food analysis returned invalid nutrition data." });
+    }
     return res.json({ name: result.name ?? "Analyzed meal", calories: Number(result.calories) || 0, protein: Number(result.protein) || 0, carbs: Number(result.carbs) || 0, fat: Number(result.fat) || 0 });
   } catch (error) {
     req.log?.error?.({ error }, "Food analysis failed");
