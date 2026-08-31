@@ -3,6 +3,7 @@ import React, { createContext, ReactNode, useContext, useEffect, useMemo, useSta
 import { Language, TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
+import { getCurrentMonthKey } from '@/lib/profileEdit';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
@@ -73,6 +74,7 @@ type FitState = {
   challenges: Challenge[];
   weightLogs: { id: string; value: number; date: string }[];
   notificationSettings: NotificationSettings;
+  profileEditUsedMonth: string | null;
 };
 
 type FitContextValue = FitState & {
@@ -83,7 +85,7 @@ type FitContextValue = FitState & {
   restartOnboarding: () => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
   removeMeal: (id: string) => void;
-  completeOnboarding: (profile: Profile, username: string) => void;
+  completeOnboarding: (profile: Profile, username: string, options?: { profileEdit?: boolean }) => void;
   markCoachIntroSeen: () => void;
   setIntroSeen: () => void;
   incrementCoachUsage: () => void;
@@ -130,6 +132,7 @@ const initialState: FitState = {
     coachCheckIn: false,
     weeklySummary: false,
   },
+  profileEditUsedMonth: null,
 };
 
 const FitContext = createContext<FitContextValue | null>(null);
@@ -304,7 +307,9 @@ export function FitProvider({ children }: { children: ReactNode }) {
     removeMeal: (id) => setState((current) => {
       return { ...current, meals: current.meals.filter((item) => item.id !== id) };
     }),
-    completeOnboarding: (profile, username) => setState((current) => {
+    completeOnboarding: (profile, username, options) => setState((current) => {
+      const currentMonth = getCurrentMonthKey();
+      if (options?.profileEdit && current.profileEditUsedMonth === currentMonth) return current;
       const sexAdjustment = profile.sex === 'female' ? -161 : profile.sex === 'preferNot' ? -78 : 5;
       const bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + sexAdjustment;
       const activityMultiplier = { sedentary: 1.2, light: 1.35, moderate: 1.5, high: 1.7 }[profile.activity ?? 'light'];
@@ -343,7 +348,8 @@ export function FitProvider({ children }: { children: ReactNode }) {
         goalProjection: projection,
         workouts,
         onboardingComplete: true,
-        coachIntroPending: true,
+        coachIntroPending: options?.profileEdit ? current.coachIntroPending : true,
+        profileEditUsedMonth: options?.profileEdit ? currentMonth : current.profileEditUsedMonth,
       };
     }),
     markCoachIntroSeen: () => setState((current) => current.coachIntroPending ? { ...current, coachIntroPending: false } : current),

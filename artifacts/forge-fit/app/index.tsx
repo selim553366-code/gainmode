@@ -1,7 +1,7 @@
 import React from 'react';
 import { Animated, Easing, Image, PanResponder, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@/components/AppIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +24,7 @@ import { useColors } from '@/hooks/useColors';
 import { ForgeFitMark, Screen, triggerHaptic } from '@/components/FitUI';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
+import { parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
@@ -193,16 +194,20 @@ function getAge(day: number, month: number, year: number) {
 export default function EntryScreen() {
   const colors = useColors();
   const { onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen, restartOnboarding } = useFit();
+  const params = useLocalSearchParams<{ edit?: string; fields?: string }>();
+  const editMode = params.edit === '1';
+  const selectedFields = React.useMemo(() => parseProfileEditFields(params.fields), [params.fields]);
   const [redirectFailed, setRedirectFailed] = React.useState(false);
   React.useEffect(() => {
-     if (onboardingComplete && introSeen && (isPremium || !SUBSCRIPTION_PURCHASE_ENABLED)) {
+      if (!editMode && onboardingComplete && introSeen && (isPremium || !SUBSCRIPTION_PURCHASE_ENABLED)) {
        setRedirectFailed(false);
        const timeout = setTimeout(() => setRedirectFailed(true), 900);
        router.replace(coachIntroPending ? '/(tabs)/coach' : '/(tabs)');
        return () => clearTimeout(timeout);
      }
      setRedirectFailed(false);
-  }, [onboardingComplete, introSeen, isPremium, coachIntroPending]);
+  }, [editMode, onboardingComplete, introSeen, isPremium, coachIntroPending]);
+  if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
   if (!onboardingComplete) return <OnboardingQuestions />;
   if (!introSeen) return <IntroScreen onDone={setIntroSeen} />;
    if (!isPremium) return SUBSCRIPTION_PURCHASE_ENABLED ? <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)/coach')} onSkip={() => router.replace('/(tabs)')} onRestart={restartOnboarding} /> : null;
@@ -237,11 +242,11 @@ function EntryRecoveryScreen({ onRestart }: { onRestart: () => void }) {
   );
 }
 
-function OnboardingQuestions() {
+function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMode?: boolean; selectedFields?: ProfileEditField[] }) {
   const colors = useColors();
-  const { language, setLanguage, completeOnboarding } = useFit();
+  const { language, setLanguage, completeOnboarding, profile: savedProfile, username: savedUsername } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [started, setStarted] = React.useState(false);
+  const [started, setStarted] = React.useState(editMode);
   const [step, setStep] = React.useState(0);
   const [equipment, setEquipment] = React.useState<Equipment>('bodyweight');
   const [equipmentDetails, setEquipmentDetails] = React.useState('');
@@ -271,7 +276,7 @@ function OnboardingQuestions() {
   const [experience, setExperience] = React.useState<ExperienceLevel>('beginner');
   const [preferredDays, setPreferredDays] = React.useState<string[]>([]);
   const [targetWeightUnit, setTargetWeightUnit] = React.useState<TargetWeightUnit>('kg');
-  const [targetWeight, setTargetWeight] = React.useState<number | null>(null);
+  const [targetWeight, setTargetWeight] = React.useState<number | null>(editMode ? savedProfile?.targetWeight ?? null : null);
   const [targetWeightText, setTargetWeightText] = React.useState('');
   const [buildingPlan, setBuildingPlan] = React.useState(false);
   const [overloadSeen, setOverloadSeen] = React.useState(false);
@@ -280,19 +285,69 @@ function OnboardingQuestions() {
   const slide = React.useRef(new Animated.Value(1)).current;
   const targetStep = 15;
   const hasTargetWeightStep = goal === 'weightGain' || goal === 'weightLoss';
-  const total = hasTargetWeightStep ? 16 : 15;
+  const selectedStepIds = React.useMemo(() => {
+    if (!editMode) return Array.from({ length: hasTargetWeightStep ? 16 : 15 }, (_, index) => index);
+    const steps = new Set<number>();
+    if (selectedFields.includes('name')) steps.add(0);
+    if (selectedFields.includes('equipment')) steps.add(1);
+    if (selectedFields.includes('body')) { steps.add(2); steps.add(3); }
+    if (selectedFields.includes('personal')) { steps.add(4); steps.add(6); }
+    if (selectedFields.includes('goal')) { steps.add(5); if (hasTargetWeightStep) steps.add(targetStep); }
+    if (selectedFields.includes('activity')) steps.add(7);
+    if (selectedFields.includes('training')) { steps.add(8); steps.add(9); steps.add(10); steps.add(13); steps.add(14); }
+    if (selectedFields.includes('nutrition')) { steps.add(11); steps.add(12); }
+    return [...steps].sort((a, b) => a - b);
+  }, [editMode, selectedFields, hasTargetWeightStep]);
+  const total = selectedStepIds.length;
+  const activeStep = editMode ? selectedStepIds[step] : step;
   const currentAge = getAge(birthDay, birthMonth, birthYear);
   const recommendedTargetWeight = React.useMemo(() => recommendTargetWeight({ height, weight, age: currentAge, goal, sex, activity, goalRate }), [height, weight, currentAge, goal, sex, activity, goalRate]);
+
+  React.useEffect(() => {
+    if (!editMode || !savedProfile) return;
+    const savedBirth = savedProfile.birthDate?.split('-').map(Number);
+    setEquipment(savedProfile.equipment);
+    setEquipmentDetails(savedProfile.equipmentDetails ?? '');
+    setGymLevel(savedProfile.gymLevel ?? 'full');
+    setGoal(savedProfile.goal);
+    setHeight(savedProfile.height);
+    setWeight(savedProfile.weight);
+    setHeightText(String(savedProfile.height));
+    setWeightText(savedProfile.weight.toFixed(1));
+    setUsername(savedUsername ?? '');
+    setSex(savedProfile.sex ?? 'preferNot');
+    setActivity(savedProfile.activity ?? 'light');
+    setTrainingDays(savedProfile.trainingDays ?? 3);
+    setSessionDuration(savedProfile.sessionDuration ?? 45);
+    setGoalRate(savedProfile.goalRate ?? 'balanced');
+    setDiet(savedProfile.diet ?? 'everything');
+    setProteinPreference(savedProfile.proteinPreference ?? 'balanced');
+    setExperience(savedProfile.experience ?? 'beginner');
+    setPreferredDays(savedProfile.preferredDays ?? []);
+    if (savedBirth && savedBirth.length === 3 && savedBirth.every(Number.isFinite)) {
+      updateBirth(savedBirth[2], savedBirth[1], savedBirth[0]);
+    } else {
+      const fallbackYear = new Date().getFullYear() - savedProfile.age;
+      setBirthYear(fallbackYear);
+      setBirthYearText(String(fallbackYear));
+    }
+    if (savedProfile.targetWeight) {
+      setTargetWeight(savedProfile.targetWeight);
+      setTargetWeightText(savedProfile.targetWeight.toFixed(1));
+    }
+  // The edit route is mounted with the current saved profile.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editMode, savedProfile, savedUsername]);
 
   React.useEffect(() => {
     setPreferredDays((current) => current.length > trainingDays ? current.slice(0, trainingDays) : current);
   }, [trainingDays]);
 
   React.useEffect(() => {
-    if (!hasTargetWeightStep || step !== targetStep || targetWeight !== null) return;
+    if (!hasTargetWeightStep || activeStep !== targetStep || targetWeight !== null) return;
     setTargetWeight(recommendedTargetWeight);
     setTargetWeightText(targetWeightUnit === 'kg' ? recommendedTargetWeight.toFixed(1) : (recommendedTargetWeight / KG_PER_POUND).toFixed(1));
-  }, [hasTargetWeightStep, step, targetWeight, recommendedTargetWeight, targetWeightUnit]);
+  }, [hasTargetWeightStep, activeStep, targetWeight, recommendedTargetWeight, targetWeightUnit]);
 
   const updateHeightFromCm = (value: number) => {
     const next = Math.round(Math.max(130, Math.min(220, value)));
@@ -398,18 +453,22 @@ function OnboardingQuestions() {
       preferredDays,
        targetWeight: hasTargetWeightStep ? (targetWeight ?? recommendedTargetWeight) : recommendTargetWeight({ height, weight, age: currentAge, goal, sex, activity, goalRate }),
     };
-    completeOnboarding(profile, cleanUsername);
-    AsyncStorage.setItem('forge-fit-usernames', JSON.stringify([...taken, cleanUsername])).catch(() => undefined);
+    completeOnboarding(profile, cleanUsername, { profileEdit: editMode });
+    const previousUsername = savedUsername?.trim().replace(/\s+/g, '').toLowerCase();
+    const nextTaken = Array.from(new Set([...taken.filter((item) => item !== previousUsername), cleanUsername]));
+    AsyncStorage.setItem('forge-fit-usernames', JSON.stringify(nextTaken)).catch(() => undefined);
+    if (editMode) router.replace('/(tabs)');
   };
   const next = () => {
     setError('');
-    if (step === 0) {
+    if (activeStep === 0) {
       const clean = username.trim().replace(/\s+/g, '').toLowerCase();
       if (!clean) return setError(t('usernameRequired'));
-      if (taken.includes(clean)) return setError(t('usernameTaken'));
+      const previousUsername = savedUsername?.trim().replace(/\s+/g, '').toLowerCase();
+      if (taken.includes(clean) && clean !== previousUsername) return setError(t('usernameTaken'));
     }
-    if (step === 1 && equipment === 'gym' && !gymLevel) return setError(t('gymLevelQuestion'));
-    if (step === 2) {
+    if (activeStep === 1 && equipment === 'gym' && !gymLevel) return setError(t('gymLevelQuestion'));
+    if (activeStep === 2) {
       if (measurementUnit === 'metric') {
         const parsed = Number(heightText.replace(',', '.'));
         if (!Number.isFinite(parsed) || parsed < 130 || parsed > 220) return setError(t('heightRangeError'));
@@ -423,13 +482,13 @@ function OnboardingQuestions() {
         updateHeightFromCm(cm);
       }
     }
-    if (step === 3) {
+    if (activeStep === 3) {
       const parsed = Number(weightText.replace(',', '.'));
       const kg = measurementUnit === 'metric' ? parsed : parsed * KG_PER_POUND;
       if (!Number.isFinite(parsed) || kg < 35 || kg > 200) return setError(t('weightRangeError'));
       updateWeightFromKg(kg);
     }
-    if (step === 4) {
+    if (activeStep === 4) {
       const day = Number(birthDayText);
       const month = Number(birthMonthText);
       const year = Number(birthYearText);
@@ -438,14 +497,14 @@ function OnboardingQuestions() {
       if (getAge(day, month, year) < 13) return setError(t('ageQuestion'));
       updateBirth(day, month, year);
     }
-    if (step === targetStep && hasTargetWeightStep) {
+    if (activeStep === targetStep && hasTargetWeightStep) {
       const parsed = Number(targetWeightText.replace(',', '.'));
       const valueKg = targetWeightUnit === 'kg' ? parsed : parsed * KG_PER_POUND;
       if (!Number.isFinite(parsed) || valueKg < 35 || valueKg > 200) return setError(t('weightRangeError'));
       if ((goal === 'weightGain' && valueKg <= weight) || (goal === 'weightLoss' && valueKg >= weight)) return setError(t('targetWeightDirectionError'));
       updateTargetWeightFromKg(valueKg);
     }
-    if (step === 14 && preferredDays.length !== trainingDays) return setError(t('preferredDaysCountError'));
+    if (activeStep === 14 && preferredDays.length !== trainingDays) return setError(t('preferredDaysCountError'));
     if (step === total - 1) return advance();
     advance();
   };
@@ -462,11 +521,11 @@ function OnboardingQuestions() {
   const swipeResponder = React.useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
     onPanResponderRelease: (_, gesture) => {
-      if (step >= 2 && step <= 4 || step === targetStep) return;
+      if (activeStep >= 2 && activeStep <= 4 || activeStep === targetStep) return;
       if (gesture.dx < -55) next();
       if (gesture.dx > 55) goBack();
     },
-  }), [language, step, username, equipment, gymLevel, currentAge, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, birthDayText, birthMonthText, birthYearText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
+  }), [language, step, activeStep, username, equipment, gymLevel, currentAge, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, birthDayText, birthMonthText, birthYearText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
   const titleKeys = ['nameFirstQuestion', 'equipmentQuestion', 'heightQuestion', 'weightQuestion', 'birthDateQuestion', 'goalQuestion', 'sexQuestion', 'activityQuestion', 'trainingDaysQuestion', 'durationQuestion', 'speedQuestion', 'dietQuestion', 'proteinQuestion', 'experienceQuestion', 'preferredDaysQuestion'] as const;
   const selectedDays = (day: string) => setPreferredDays((current) => {
     if (current.includes(day)) return current.filter((item) => item !== day);
@@ -474,41 +533,42 @@ function OnboardingQuestions() {
     return [...current, day];
   });
   const renderBody = () => {
-    if (step === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></>;
-     if (step === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View> : null}</>;
-     if (step === 2) return <View style={styles.measurementSection}>
+    if (activeStep === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></>;
+     if (activeStep === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View> : null}</>;
+      if (activeStep === 2) return <View style={styles.measurementSection}>
        <UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} />
        <RulerPicker value={height} min={130} max={220} onChange={updateHeightFromCm} valueLabel={measurementUnit === 'metric' ? `${height} cm` : formatImperialHeightLabel(height)} minLabel={measurementUnit === 'metric' ? '130 cm' : formatImperialHeightLabel(130)} maxLabel={measurementUnit === 'metric' ? '220 cm' : formatImperialHeightLabel(220)} />
        {measurementUnit === 'metric' ? <View style={styles.measurementInputRow}><TextInput value={heightText} onChangeText={updateMetricHeightText} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>cm</Text></View> : <View style={styles.measurementInputRow}><TextInput value={heightFeetText} onChangeText={(text) => updateImperialHeightText('feet', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>{t('heightFeet')}</Text><TextInput value={heightInchesText} onChangeText={(text) => updateImperialHeightText('inches', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>{t('heightInches')}</Text></View>}
        <Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('heightRulerHint')}</Text>
      </View>;
-     if (step === 3) return <View style={styles.measurementSection}><UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} /><WeightPicker value={weight} unit={measurementUnit} inputValue={weightText} onInputChange={updateWeightText} onChange={updateWeightFromKg} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('weightInputHint')}</Text></View>;
-     if (step === 4) return <><BirthDatePicker day={birthDay} month={birthMonth} year={birthYear} dayText={birthDayText} monthText={birthMonthText} yearText={birthYearText} labels={{ day: t('day'), month: t('month'), year: t('year') }} onChange={updateBirth} onTextChange={updateBirthText} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('birthDateHint')} · {currentAge} {t('ageYears')}</Text></>;
-     if (step === 5) return <View style={styles.choiceList}><ChoiceButton label={t('goalMuscle')} selected={goal === 'muscle'} onPress={() => { setGoal('muscle'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightGain')} selected={goal === 'weightGain'} onPress={() => { setGoal('weightGain'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightLoss')} selected={goal === 'weightLoss'} onPress={() => { setGoal('weightLoss'); setTargetWeight(null); }} icon="scale-outline" /><ChoiceButton label={t('goalFatLoss')} selected={goal === 'fatLoss'} onPress={() => { setGoal('fatLoss'); setTargetWeight(null); }} icon="flame-outline" /><ChoiceButton label={t('goalMaintain')} selected={goal === 'maintain'} onPress={() => { setGoal('maintain'); setTargetWeight(null); }} icon="pause-outline" /></View>;
-    if (step === 6) return <View style={styles.choiceList}><ChoiceButton label={t('sexFemale')} selected={sex === 'female'} onPress={() => setSex('female')} /><ChoiceButton label={t('sexMale')} selected={sex === 'male'} onPress={() => setSex('male')} /><ChoiceButton label={t('sexPreferNot')} selected={sex === 'preferNot'} onPress={() => setSex('preferNot')} /></View>;
-    if (step === 7) return <View style={styles.choiceList}><ChoiceButton label={t('activitySedentary')} selected={activity === 'sedentary'} onPress={() => setActivity('sedentary')} /><ChoiceButton label={t('activityLight')} selected={activity === 'light'} onPress={() => setActivity('light')} /><ChoiceButton label={t('activityModerate')} selected={activity === 'moderate'} onPress={() => setActivity('moderate')} /><ChoiceButton label={t('activityHigh')} selected={activity === 'high'} onPress={() => setActivity('high')} /></View>;
-    if (step === 8) return <View style={styles.choiceList}>{[2, 3, 4, 5, 6].map((days) => <ChoiceButton key={days} label={`${days} ${t('dayUnit')}`} selected={trainingDays === days} onPress={() => setTrainingDays(days)} />)}</View>;
-    if (step === 9) return <View style={styles.choiceList}><ChoiceButton label={t('durationShort')} selected={sessionDuration === 25} onPress={() => setSessionDuration(25)} /><ChoiceButton label={t('durationMedium')} selected={sessionDuration === 45} onPress={() => setSessionDuration(45)} /><ChoiceButton label={t('durationLong')} selected={sessionDuration === 60} onPress={() => setSessionDuration(60)} /></View>;
-    if (step === 10) return <View style={styles.choiceList}><ChoiceButton label={t('speedSlow')} selected={goalRate === 'slow'} onPress={() => setGoalRate('slow')} /><ChoiceButton label={t('speedBalanced')} selected={goalRate === 'balanced'} onPress={() => setGoalRate('balanced')} /><ChoiceButton label={t('speedFast')} selected={goalRate === 'fast'} onPress={() => setGoalRate('fast')} /></View>;
-    if (step === 11) return <View style={styles.choiceList}><ChoiceButton label={t('dietEverything')} selected={diet === 'everything'} onPress={() => setDiet('everything')} /><ChoiceButton label={t('dietVegetarian')} selected={diet === 'vegetarian'} onPress={() => setDiet('vegetarian')} /><ChoiceButton label={t('dietVegan')} selected={diet === 'vegan'} onPress={() => setDiet('vegan')} /><ChoiceButton label={t('dietHalal')} selected={diet === 'halal'} onPress={() => setDiet('halal')} /></View>;
-    if (step === 12) return <View style={styles.choiceList}><ChoiceButton label={t('proteinBalanced')} selected={proteinPreference === 'balanced'} onPress={() => setProteinPreference('balanced')} /><ChoiceButton label={t('proteinHigh')} selected={proteinPreference === 'high'} onPress={() => setProteinPreference('high')} /><ChoiceButton label={t('proteinLower')} selected={proteinPreference === 'lower'} onPress={() => setProteinPreference('lower')} /></View>;
-    if (step === 13) return <View style={styles.choiceList}><ChoiceButton label={t('experienceBeginner')} selected={experience === 'beginner'} onPress={() => setExperience('beginner')} /><ChoiceButton label={t('experienceIntermediate')} selected={experience === 'intermediate'} onPress={() => setExperience('intermediate')} /><ChoiceButton label={t('experienceAdvanced')} selected={experience === 'advanced'} onPress={() => setExperience('advanced')} /></View>;
-     if (step === targetStep && hasTargetWeightStep) return <><GoalWeightPicker valueKg={targetWeight ?? recommendedTargetWeight} recommendedKg={recommendedTargetWeight} unit={targetWeightUnit} inputValue={targetWeightText} recommendedLabel={t('recommendedTarget')} onInputChange={updateTargetWeightText} onChange={updateTargetWeightFromKg} onUnitChange={changeTargetWeightUnit} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('targetWeightHint')}</Text></>;
+      if (activeStep === 3) return <View style={styles.measurementSection}><UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} /><WeightPicker value={weight} unit={measurementUnit} inputValue={weightText} onInputChange={updateWeightText} onChange={updateWeightFromKg} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('weightInputHint')}</Text></View>;
+      if (activeStep === 4) return <><BirthDatePicker day={birthDay} month={birthMonth} year={birthYear} dayText={birthDayText} monthText={birthMonthText} yearText={birthYearText} labels={{ day: t('day'), month: t('month'), year: t('year') }} onChange={updateBirth} onTextChange={updateBirthText} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('birthDateHint')} · {currentAge} {t('ageYears')}</Text></>;
+      if (activeStep === 5) return <View style={styles.choiceList}><ChoiceButton label={t('goalMuscle')} selected={goal === 'muscle'} onPress={() => { setGoal('muscle'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightGain')} selected={goal === 'weightGain'} onPress={() => { setGoal('weightGain'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightLoss')} selected={goal === 'weightLoss'} onPress={() => { setGoal('weightLoss'); setTargetWeight(null); }} icon="scale-outline" /><ChoiceButton label={t('goalFatLoss')} selected={goal === 'fatLoss'} onPress={() => { setGoal('fatLoss'); setTargetWeight(null); }} icon="flame-outline" /><ChoiceButton label={t('goalMaintain')} selected={goal === 'maintain'} onPress={() => { setGoal('maintain'); setTargetWeight(null); }} icon="pause-outline" /></View>;
+     if (activeStep === 6) return <View style={styles.choiceList}><ChoiceButton label={t('sexFemale')} selected={sex === 'female'} onPress={() => setSex('female')} /><ChoiceButton label={t('sexMale')} selected={sex === 'male'} onPress={() => setSex('male')} /><ChoiceButton label={t('sexPreferNot')} selected={sex === 'preferNot'} onPress={() => setSex('preferNot')} /></View>;
+     if (activeStep === 7) return <View style={styles.choiceList}><ChoiceButton label={t('activitySedentary')} selected={activity === 'sedentary'} onPress={() => setActivity('sedentary')} /><ChoiceButton label={t('activityLight')} selected={activity === 'light'} onPress={() => setActivity('light')} /><ChoiceButton label={t('activityModerate')} selected={activity === 'moderate'} onPress={() => setActivity('moderate')} /><ChoiceButton label={t('activityHigh')} selected={activity === 'high'} onPress={() => setActivity('high')} /></View>;
+     if (activeStep === 8) return <View style={styles.choiceList}>{[2, 3, 4, 5, 6].map((days) => <ChoiceButton key={days} label={`${days} ${t('dayUnit')}`} selected={trainingDays === days} onPress={() => setTrainingDays(days)} />)}</View>;
+     if (activeStep === 9) return <View style={styles.choiceList}><ChoiceButton label={t('durationShort')} selected={sessionDuration === 25} onPress={() => setSessionDuration(25)} /><ChoiceButton label={t('durationMedium')} selected={sessionDuration === 45} onPress={() => setSessionDuration(45)} /><ChoiceButton label={t('durationLong')} selected={sessionDuration === 60} onPress={() => setSessionDuration(60)} /></View>;
+     if (activeStep === 10) return <View style={styles.choiceList}><ChoiceButton label={t('speedSlow')} selected={goalRate === 'slow'} onPress={() => setGoalRate('slow')} /><ChoiceButton label={t('speedBalanced')} selected={goalRate === 'balanced'} onPress={() => setGoalRate('balanced')} /><ChoiceButton label={t('speedFast')} selected={goalRate === 'fast'} onPress={() => setGoalRate('fast')} /></View>;
+     if (activeStep === 11) return <View style={styles.choiceList}><ChoiceButton label={t('dietEverything')} selected={diet === 'everything'} onPress={() => setDiet('everything')} /><ChoiceButton label={t('dietVegetarian')} selected={diet === 'vegetarian'} onPress={() => setDiet('vegetarian')} /><ChoiceButton label={t('dietVegan')} selected={diet === 'vegan'} onPress={() => setDiet('vegan')} /><ChoiceButton label={t('dietHalal')} selected={diet === 'halal'} onPress={() => setDiet('halal')} /></View>;
+     if (activeStep === 12) return <View style={styles.choiceList}><ChoiceButton label={t('proteinBalanced')} selected={proteinPreference === 'balanced'} onPress={() => setProteinPreference('balanced')} /><ChoiceButton label={t('proteinHigh')} selected={proteinPreference === 'high'} onPress={() => setProteinPreference('high')} /><ChoiceButton label={t('proteinLower')} selected={proteinPreference === 'lower'} onPress={() => setProteinPreference('lower')} /></View>;
+     if (activeStep === 13) return <View style={styles.choiceList}><ChoiceButton label={t('experienceBeginner')} selected={experience === 'beginner'} onPress={() => setExperience('beginner')} /><ChoiceButton label={t('experienceIntermediate')} selected={experience === 'intermediate'} onPress={() => setExperience('intermediate')} /><ChoiceButton label={t('experienceAdvanced')} selected={experience === 'advanced'} onPress={() => setExperience('advanced')} /></View>;
+      if (activeStep === targetStep && hasTargetWeightStep) return <><GoalWeightPicker valueKg={targetWeight ?? recommendedTargetWeight} recommendedKg={recommendedTargetWeight} unit={targetWeightUnit} inputValue={targetWeightText} recommendedLabel={t('recommendedTarget')} onInputChange={updateTargetWeightText} onChange={updateTargetWeightFromKg} onUnitChange={changeTargetWeightUnit} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('targetWeightHint')}</Text></>;
     return <><View style={styles.dayGrid}>{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => <Pressable key={day} onPress={() => selectedDays(day)} style={[styles.dayButton, { backgroundColor: preferredDays.includes(day) ? colors.primary : colors.card, borderColor: preferredDays.includes(day) ? colors.primary : colors.border, opacity: !preferredDays.includes(day) && preferredDays.length >= trainingDays ? 0.45 : 1 }]}><Text style={[styles.dayText, { color: preferredDays.includes(day) ? colors.primaryForeground : colors.foreground }]}>{day}</Text></Pressable>)}</View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{preferredDays.length}/{trainingDays} · {t('preferredDaysQuestion')}</Text></>;
   };
 
-    if (!started) return <WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} />;
+     if (!started) return <WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} />;
     if (buildingPlan) return <PlanBuildingScreen onComplete={finish} />;
     if (step === total && equipment === 'gym' && !overloadSeen) return <ProgressiveOverloadScreen onContinue={() => setOverloadSeen(true)} />;
    if (step === total) return <CompletionScreen onContinue={() => setBuildingPlan(true)} />;
-   const optional = step >= 6 && !hasTargetWeightStep;
-   const isTargetStep = step === targetStep && hasTargetWeightStep;
-   const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[step] ?? 'preferredDaysQuestion';
+    const optional = activeStep >= 6 && !hasTargetWeightStep;
+    const isTargetStep = activeStep === targetStep && hasTargetWeightStep;
+    const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[activeStep] ?? 'preferredDaysQuestion';
    return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
      <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
        <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
           <View style={styles.coachQuestionVisual}><AnswerAnalysisStatus /><View style={styles.coachPhotoStage}><CoachMotion onboarding variant="write" /></View></View>
+          {editMode ? <View style={[styles.profileEditInfoBar, { backgroundColor: `${colors.blue}16`, borderColor: `${colors.blue}55` }]}><Ionicons name="information-circle-outline" size={18} color={colors.blue} /><Text style={[styles.profileEditInfoText, { color: colors.foreground }]}>{t('profileEditLimitBar')}</Text></View> : null}
         <Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / {total}</Text>
         {optional ? <Text style={[styles.optionalLabel, { color: colors.primary }]}>{t('optionalLabel')}</Text> : null}
          <Text style={[styles.questionTitle, { color: colors.foreground }]}>{t(titleKey)}</Text>
@@ -516,7 +576,7 @@ function OnboardingQuestions() {
         {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       </KeyboardAwareScrollViewCompat>
     </Animated.View>
-      <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>{optional ? <Pressable onPress={() => { triggerHaptic(); skip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('skipQuestion')}</Text></Pressable> : null}</View>
+       <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>{optional ? <Pressable onPress={() => { triggerHaptic(); skip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('skipQuestion')}</Text></Pressable> : null}</View>
   </LinearGradient>;
 }
 
@@ -772,6 +832,8 @@ const styles = StyleSheet.create({
   answerAnalysisPacketMiddle: { top: 15 },
   answerAnalysisPacketBottom: { top: 23 },
   answerAnalysisLabel: { maxWidth: 220, flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12.5, lineHeight: 17 },
+  profileEditInfoBar: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderWidth: 1, borderRadius: 13, padding: 11, marginTop: 10 },
+  profileEditInfoText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 17 },
   coachPhotoStage: { width: 238, height: 238, alignItems: 'center', justifyContent: 'center' },
   coachSmall: { width: 238, height: 238 },
   coachWaveQuestion: { transform: [{ translateX: 7 }] },

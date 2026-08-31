@@ -57,6 +57,149 @@ export function getPremiumPreviewPrice(language: Language, amount = 4.99) {
   }).format(amount);
 }
 
+const profileEditTranslations = {
+  tr: {
+    editPreferences: 'Hesap tercihlerini yenile',
+    editPreferencesDescription: 'FitBud ile güncellemek istediğin bilgileri seç.',
+    editPreferencesChatIntro: 'Planını birlikte güncelleyelim. Hangi bilgilerin değişti?',
+    editPreferencesSelectHint: 'Birden fazla bilgi grubu seçebilirsin.',
+    editPreferencesLimitAvailable: 'Bu ayki profil güncelleme hakkın hazır.',
+    editPreferencesLimitUsed: 'Bu ayki profil güncelleme hakkını kullandın. Yeni hak gelecek ay açılır.',
+    editPreferencesContinue: 'Seçilen bilgileri düzenle',
+    editPreferencesName: 'İsim',
+    editPreferencesNameDescription: 'FitBud’un sana nasıl hitap edeceğini değiştir.',
+    editPreferencesEquipment: 'Ekipman',
+    editPreferencesEquipmentDescription: 'Ev, gym veya vücut ağırlığı seçeneklerini güncelle.',
+    editPreferencesBody: 'Boy ve kilo',
+    editPreferencesBodyDescription: 'Güncel ölçülerini yenile.',
+    editPreferencesPersonal: 'Kişisel bilgiler',
+    editPreferencesPersonalDescription: 'Doğum tarihi ve cinsiyet bilgilerini düzenle.',
+    editPreferencesGoal: 'Hedef',
+    editPreferencesGoalDescription: 'Ana hedefini ve hedef kilonu değiştir.',
+    editPreferencesActivity: 'Aktivite',
+    editPreferencesActivityDescription: 'Günlük hareket seviyeni güncelle.',
+    editPreferencesTraining: 'Antrenman tercihleri',
+    editPreferencesTrainingDescription: 'Gün, süre, tempo ve deneyim tercihlerini düzenle.',
+    editPreferencesNutrition: 'Beslenme tercihleri',
+    editPreferencesNutritionDescription: 'Beslenme ve protein tercihlerini güncelle.',
+    profileEditLimitBar: 'Bu akışta ayda 1 profil güncelleme hakkın var. Kaydetmeden çıkarsan hakkın kullanılmaz.',
+    profileEditLimitBarUsed: 'Bu ay profil güncelleme hakkını kullandın. Yeni hak gelecek ay açılır.',
+    profileEditSaved: 'Profilin ve planın güncellendi.',
+  },
+  en: {
+    editPreferences: 'Refresh account preferences',
+    editPreferencesDescription: 'Choose the information you want to update with FitBud.',
+    editPreferencesChatIntro: 'Let’s update your plan together. What has changed?',
+    editPreferencesSelectHint: 'You can select more than one group.',
+    editPreferencesLimitAvailable: 'Your profile update for this month is ready.',
+    editPreferencesLimitUsed: 'You used this month’s profile update. A new one opens next month.',
+    editPreferencesContinue: 'Edit selected information',
+    editPreferencesName: 'Name',
+    editPreferencesNameDescription: 'Change how FitBud addresses you.',
+    editPreferencesEquipment: 'Equipment',
+    editPreferencesEquipmentDescription: 'Update your home, gym, or bodyweight options.',
+    editPreferencesBody: 'Height and weight',
+    editPreferencesBodyDescription: 'Refresh your current measurements.',
+    editPreferencesPersonal: 'Personal information',
+    editPreferencesPersonalDescription: 'Edit your birth date and sex.',
+    editPreferencesGoal: 'Goal',
+    editPreferencesGoalDescription: 'Change your main goal and target weight.',
+    editPreferencesActivity: 'Activity',
+    editPreferencesActivityDescription: 'Update your daily activity level.',
+    editPreferencesTraining: 'Training preferences',
+    editPreferencesTrainingDescription: 'Edit your days, duration, pace, and experience.',
+    editPreferencesNutrition: 'Nutrition preferences',
+    editPreferencesNutritionDescription: 'Update your diet and protein preferences.',
+    profileEditLimitBar: 'You have 1 profile update per month. Leaving before saving does not use it.',
+    profileEditLimitBarUsed: 'You used this month’s profile update. A new one opens next month.',
+    profileEditSaved: 'Your profile and plan were updated.',
+  },
+  de: {
+    editPreferences: 'Kontoeinstellungen aktualisieren',
+    editPreferencesDescription: 'Wähle die Informationen, die du mit FitBud aktualisieren möchtest.',
+    editPreferencesChatIntro: 'Lass uns deinen Plan gemeinsam aktualisieren. Was hat sich geändert?',
+    editPreferencesSelectHint: 'Du kannst mehrere Gruppen auswählen.',
+    editPreferencesLimitAvailable: 'Deine Profilaktualisierung für diesen Monat ist bereit.',
+    editPreferencesLimitUsed: 'Du hast die Profilaktualisierung dieses Monats genutzt. Nächsten Monat gibt es eine neue.',
+    editPreferencesContinue: 'Ausgewählte Informationen bearbeiten',
+    editPreferencesName: 'Name',
+    editPreferencesNameDescription: 'Ändere, wie FitBud dich anspricht.',
+    editPreferencesEquipment: 'Ausrüstung',
+    editPreferencesEquipmentDescription: 'Aktualisiere deine Optionen für Zuhause, Studio oder Körpergewicht.',
+    editPreferencesBody: 'Größe und Gewicht',
+    editPreferencesBodyDescription: 'Aktualisiere deine aktuellen Maße.',
+    editPreferencesPersonal: 'Persönliche Angaben',
+    editPreferencesPersonalDescription: 'Bearbeite Geburtsdatum und Geschlecht.',
+    editPreferencesGoal: 'Ziel',
+    editPreferencesGoalDescription: 'Ändere dein Hauptziel und Zielgewicht.',
+    editPreferencesActivity: 'Aktivität',
+    editPreferencesActivityDescription: 'Aktualisiere dein tägliches Aktivitätsniveau.',
+    editPreferencesTraining: 'Trainingseinstellungen',
+    editPreferencesTrainingDescription: 'Bearbeite Tage, Dauer, Tempo und Erfahrung.',
+    editPreferencesNutrition: 'Ernährungseinstellungen',
+    editPreferencesNutritionDescription: 'Aktualisiere Ernährungs- und Proteinpräferenzen.',
+    profileEditLimitBar: 'Du hast 1 Profilaktualisierung pro Monat. Beim Verlassen ohne Speichern wird sie nicht genutzt.',
+    profileEditLimitBarUsed: 'Du hast die Profilaktualisierung dieses Monats genutzt. Nächsten Monat gibt es eine neue.',
+    profileEditSaved: 'Dein Profil und dein Plan wurden aktualisiert.',
+  },
+  fr: {
+    editPreferences: 'Actualiser les préférences du compte',
+    editPreferencesDescription: 'Choisis les informations à mettre à jour avec FitBud.',
+    editPreferencesChatIntro: 'Mettons ton plan à jour ensemble. Qu’est-ce qui a changé ?',
+    editPreferencesSelectHint: 'Tu peux sélectionner plusieurs groupes.',
+    editPreferencesLimitAvailable: 'Ta mise à jour de profil du mois est disponible.',
+    editPreferencesLimitUsed: 'Tu as utilisé la mise à jour de ce mois. La prochaine sera disponible le mois prochain.',
+    editPreferencesContinue: 'Modifier les informations sélectionnées',
+    editPreferencesName: 'Nom',
+    editPreferencesNameDescription: 'Change la façon dont FitBud s’adresse à toi.',
+    editPreferencesEquipment: 'Équipement',
+    editPreferencesEquipmentDescription: 'Actualise tes options à la maison, en salle ou au poids du corps.',
+    editPreferencesBody: 'Taille et poids',
+    editPreferencesBodyDescription: 'Actualise tes mesures actuelles.',
+    editPreferencesPersonal: 'Informations personnelles',
+    editPreferencesPersonalDescription: 'Modifie ta date de naissance et ton sexe.',
+    editPreferencesGoal: 'Objectif',
+    editPreferencesGoalDescription: 'Change ton objectif principal et ton poids cible.',
+    editPreferencesActivity: 'Activité',
+    editPreferencesActivityDescription: 'Actualise ton niveau d’activité quotidien.',
+    editPreferencesTraining: 'Préférences d’entraînement',
+    editPreferencesTrainingDescription: 'Modifie tes jours, ta durée, ton rythme et ton expérience.',
+    editPreferencesNutrition: 'Préférences nutritionnelles',
+    editPreferencesNutritionDescription: 'Actualise tes préférences alimentaires et protéinées.',
+    profileEditLimitBar: 'Tu as 1 mise à jour de profil par mois. Quitter sans enregistrer ne la consomme pas.',
+    profileEditLimitBarUsed: 'Tu as utilisé la mise à jour de profil de ce mois. La prochaine sera disponible le mois prochain.',
+    profileEditSaved: 'Ton profil et ton plan ont été mis à jour.',
+  },
+  es: {
+    editPreferences: 'Actualizar preferencias de la cuenta',
+    editPreferencesDescription: 'Elige la información que quieres actualizar con FitBud.',
+    editPreferencesChatIntro: 'Actualicemos tu plan juntos. ¿Qué ha cambiado?',
+    editPreferencesSelectHint: 'Puedes seleccionar varios grupos.',
+    editPreferencesLimitAvailable: 'Tu actualización de perfil de este mes está disponible.',
+    editPreferencesLimitUsed: 'Has usado la actualización de este mes. Habrá una nueva el próximo mes.',
+    editPreferencesContinue: 'Editar información seleccionada',
+    editPreferencesName: 'Nombre',
+    editPreferencesNameDescription: 'Cambia cómo se dirige FitBud a ti.',
+    editPreferencesEquipment: 'Equipo',
+    editPreferencesEquipmentDescription: 'Actualiza tus opciones en casa, gimnasio o peso corporal.',
+    editPreferencesBody: 'Altura y peso',
+    editPreferencesBodyDescription: 'Actualiza tus medidas actuales.',
+    editPreferencesPersonal: 'Información personal',
+    editPreferencesPersonalDescription: 'Edita tu fecha de nacimiento y sexo.',
+    editPreferencesGoal: 'Objetivo',
+    editPreferencesGoalDescription: 'Cambia tu objetivo principal y peso objetivo.',
+    editPreferencesActivity: 'Actividad',
+    editPreferencesActivityDescription: 'Actualiza tu nivel de actividad diaria.',
+    editPreferencesTraining: 'Preferencias de entrenamiento',
+    editPreferencesTrainingDescription: 'Edita tus días, duración, ritmo y experiencia.',
+    editPreferencesNutrition: 'Preferencias de nutrición',
+    editPreferencesNutritionDescription: 'Actualiza tus preferencias de dieta y proteína.',
+    profileEditLimitBar: 'Tienes 1 actualización de perfil al mes. Salir sin guardar no la consume.',
+    profileEditLimitBarUsed: 'Has usado la actualización de perfil de este mes. Habrá una nueva el próximo mes.',
+    profileEditSaved: 'Tu perfil y tu plan se actualizaron.',
+  },
+} as const;
+
 const translations = {
   tr: {
     goalWeightGain: 'Kilo almak',
@@ -705,7 +848,7 @@ const settingsTranslations = {
   },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr;
+export type TranslationKey = keyof typeof translations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr;
 
 export function translate(language: Language, key: TranslationKey): string {
   if (key === 'premiumPriceOptions') return getPremiumPreviewPrice(language);
@@ -719,6 +862,11 @@ export function translate(language: Language, key: TranslationKey): string {
   if (key === 'onboardingTitle') return onboardingMotivationTranslations[language].title;
   if (key === 'onboardingIntro') return onboardingMotivationTranslations[language].intro;
   if (key === 'welcomeSubtitle') return onboardingMotivationTranslations[language].welcomeSubtitle;
+  if (key in profileEditTranslations.tr) {
+    const profileEdit = profileEditTranslations[language] as Record<string, string>;
+    const fallbackProfileEdit = profileEditTranslations.en as Record<string, string>;
+    return profileEdit[key] ?? fallbackProfileEdit[key] ?? key;
+  }
   const base = translations[language] as Record<string, string>;
   const fallbackBase = translations.en as Record<string, string>;
   const extra = onboardingTranslations[language] as Record<string, string>;
