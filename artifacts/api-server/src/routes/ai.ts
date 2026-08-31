@@ -9,7 +9,7 @@ const FOOD_ANALYSIS_REQUESTS_PER_WINDOW = 10;
 const MAX_IMAGE_DATA_LENGTH = 8_000_000;
 const MAX_MESSAGE_LENGTH = 2_000;
 const MAX_CONTEXT_LENGTH = 12_000;
-const COACH_MAX_COMPLETION_TOKENS = 420;
+const COACH_MAX_COMPLETION_TOKENS = 8192;
 const languageNames: Record<string, string> = {
   tr: "Turkish",
   en: "English",
