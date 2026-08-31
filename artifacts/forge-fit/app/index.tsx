@@ -594,6 +594,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void;
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const price = monthlyPackage?.product.priceString;
+  const displayPrice = price ?? t('premiumPriceOptions');
   const benefits: Array<{ icon?: React.ComponentProps<typeof Ionicons>['name']; logo?: boolean; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' }> = [
     { logo: true, key: 'premiumWelcomeBenefit1' },
     { icon: 'restaurant-outline', key: 'premiumWelcomeBenefit2' },
@@ -628,7 +629,10 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip }: { onUnlock: () => void;
        <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}>{benefit.logo ? <ForgeFitMark size={25} /> : <Ionicons name={benefit.icon!} size={17} color={colors.primary} />}</View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
     </View>
     <View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
-     {price ? <Text style={[styles.offerPrice, { color: colors.foreground }]}>{price} {t('premiumPerMonth')}</Text> : null}
+     <View style={[styles.offerPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
+       <Text style={[styles.offerPriceLabel, { color: colors.primary }]}>{t('premiumPriceMonthly')}</Text>
+       <Text style={[styles.offerPrice, { color: colors.foreground }]}>{displayPrice}{price ? ` ${t('premiumPerMonth')}` : ''}</Text>
+     </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
      <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} disabled={isLoading || isPurchasing} onPress={() => { triggerHaptic(); handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || isLoading || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isLoading || isPurchasing ? t('premiumLoading') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeSkip')} onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('premiumWelcomeSkip')}</Text></Pressable>
@@ -763,6 +767,8 @@ const styles = StyleSheet.create({
   featureText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 14 },
   offerTrial: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 14 },
   offerTrialText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
-  offerPrice: { alignSelf: 'center', fontFamily: 'Inter_700Bold', fontSize: 13, marginBottom: 10 },
+  offerPriceCard: { alignSelf: 'center', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 9, marginBottom: 10 },
+  offerPriceLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 },
+  offerPrice: { fontFamily: 'Inter_700Bold', fontSize: 15 },
   offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
 });

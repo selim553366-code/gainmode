@@ -171,8 +171,8 @@ const premiumTranslations = {
 
 const onboardingTranslations = {
   tr: {
-    welcomeTitle: 'Serüvenine hoş geldin',
-    welcomeSubtitle: 'Forge Fit seni tanısın, hedeflerine uygun yol haritanı birlikte oluşturalım.',
+    welcomeTitle: 'Serüvenine hoş geldin!',
+    welcomeSubtitle: 'Başladığın an, kazandığın andır. Hoş geldin!',
     analyzingAnswers: 'Cevapların analiz edilmek üzere alınıyor',
     startAdventure: 'Serüvenine başlamak için tıkla',
     nameFirstQuestion: 'Koçunun sana hitap etmesini istediğin isim ne?',
@@ -227,8 +227,8 @@ const onboardingTranslations = {
     premiumWelcomeSkip: 'Şimdilik keşfet',
   },
   en: {
-    welcomeTitle: 'Welcome to your journey',
-    welcomeSubtitle: 'Let Forge Fit get to know you and build your personal roadmap.',
+    welcomeTitle: 'Welcome to your journey!',
+    welcomeSubtitle: 'The moment you start is the moment you win. Welcome!',
     analyzingAnswers: 'Your answers are being captured for analysis',
     startAdventure: 'Tap to start your journey',
     nameFirstQuestion: 'What would you like your coach to call you?',
@@ -283,8 +283,8 @@ const onboardingTranslations = {
     premiumWelcomeSkip: 'Explore for now',
   },
   de: {
-    welcomeTitle: 'Willkommen auf deiner Reise',
-    welcomeSubtitle: 'Forge Fit lernt dich kennen und erstellt deinen persönlichen Weg.',
+    welcomeTitle: 'Willkommen auf deiner Reise!',
+    welcomeSubtitle: 'In dem Moment, in dem du startest, gewinnst du. Willkommen!',
     analyzingAnswers: 'Deine Antworten werden zur Analyse aufgenommen',
     startAdventure: 'Tippe, um deine Reise zu starten',
     nameFirstQuestion: 'Wie soll dein Coach dich nennen?',
@@ -339,8 +339,8 @@ const onboardingTranslations = {
     premiumWelcomeSkip: 'Erst einmal entdecken',
   },
   fr: {
-    welcomeTitle: 'Bienvenue dans ton aventure',
-    welcomeSubtitle: 'Forge Fit apprend à te connaître et crée ton parcours personnel.',
+    welcomeTitle: 'Bienvenue dans ton aventure !',
+    welcomeSubtitle: 'Dès que tu commences, tu as déjà gagné. Bienvenue !',
     analyzingAnswers: 'Tes réponses sont recueillies pour analyse',
     startAdventure: 'Appuie pour commencer ton aventure',
     nameFirstQuestion: 'Comment veux-tu que ton coach t’appelle ?',
@@ -395,8 +395,8 @@ const onboardingTranslations = {
     premiumWelcomeSkip: 'Découvrir pour le moment',
   },
   es: {
-    welcomeTitle: 'Bienvenido a tu aventura',
-    welcomeSubtitle: 'Forge Fit te conocerá y creará tu propio camino.',
+    welcomeTitle: '¡Bienvenido a tu aventura!',
+    welcomeSubtitle: 'Cuando empiezas, ya estás ganando. ¡Bienvenido!',
     analyzingAnswers: 'Estamos recopilando tus respuestas para analizarlas',
     startAdventure: 'Pulsa para comenzar tu aventura',
     nameFirstQuestion: '¿Cómo quieres que te llame tu coach?',
@@ -464,27 +464,27 @@ const onboardingMotivationTranslations: Record<Language, { title: string; intro:
   tr: {
     title: 'Haydi, güçlü bir başlangıç yapalım',
     intro: 'Sana özel planını birlikte şekillendirmek için birkaç kısa soru.',
-    welcomeSubtitle: 'Küçük adımlarla hedeflerine birlikte ilerleyelim.',
+    welcomeSubtitle: 'Başladığın an, kazandığın andır. Hoş geldin!',
   },
   en: {
     title: 'Let’s make a strong start together',
     intro: 'A few quick questions will help us shape a plan that feels like yours.',
-    welcomeSubtitle: 'Ready to take small steps toward your goals together?',
+    welcomeSubtitle: 'The moment you start is the moment you win. Welcome!',
   },
   de: {
     title: 'Gemeinsam stark durchstarten',
     intro: 'Ein paar kurze Fragen helfen uns, deinen persönlichen Plan zu gestalten.',
-    welcomeSubtitle: 'Bereit, mit kleinen Schritten gemeinsam deine Ziele zu erreichen?',
+    welcomeSubtitle: 'In dem Moment, in dem du startest, gewinnst du. Willkommen!',
   },
   fr: {
     title: 'Commençons fort, ensemble',
     intro: 'Quelques questions rapides nous aideront à créer un plan qui te ressemble.',
-    welcomeSubtitle: 'Prêt à avancer ensemble vers tes objectifs, un petit pas à la fois ?',
+    welcomeSubtitle: 'Dès que tu commences, tu as déjà gagné. Bienvenue !',
   },
   es: {
     title: 'Empecemos con fuerza',
     intro: 'Unas preguntas rápidas nos ayudarán a crear un plan hecho para ti.',
-    welcomeSubtitle: '¿Listo para avanzar juntos hacia tus objetivos, paso a paso?',
+    welcomeSubtitle: 'Cuando empiezas, ya estás ganando. ¡Bienvenido!',
   },
 };
 
