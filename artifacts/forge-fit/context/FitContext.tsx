@@ -76,6 +76,7 @@ type FitState = {
 type FitContextValue = FitState & {
   coachThinking: boolean;
   setCoachThinking: (value: boolean) => void;
+  enablePremium: () => void;
   setLanguage: (language: Language) => void;
   restartOnboarding: () => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
@@ -272,6 +273,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
     ...state,
     coachThinking,
     setCoachThinking,
+    enablePremium: () => setState((current) => current.isPremium ? current : { ...current, isPremium: true }),
     setLanguage: (language) => setState((current) => ({ ...current, language })),
     restartOnboarding: () => setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false })),
     addMeal: (meal) => setState((current) => ({ ...current, meals: [...current.meals, { ...meal, id: `${Date.now()}-${Math.random()}` }] })),

@@ -195,7 +195,7 @@ export function PremiumLock() {
 
 export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const colors = useColors();
-  const { language, isPremium } = useFit();
+  const { language, isPremium, enablePremium } = useFit();
   const { monthlyPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const price = monthlyPackage?.product.priceString ?? getPremiumPreviewPrice(language);
@@ -227,19 +227,11 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
       onClose();
       return;
     }
-    if (!isAvailable || !monthlyPackage) {
-      setActionError(t('premiumStoreUnavailable'));
-      return;
-    }
-    setActionError(null);
-    try {
-      await purchase(monthlyPackage);
-      setCelebrating(true);
-      player.seekTo(0);
-      player.play();
-    } catch {
-      setActionError(t('premiumPurchaseError'));
-    }
+    enablePremium();
+    setCelebrating(true);
+    player.seekTo(0);
+    player.play();
+    return;
   };
 
   const restorePremium = async () => {
