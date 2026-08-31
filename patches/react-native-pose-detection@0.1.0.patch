@@ -2,58 +2,88 @@ diff --git a/android/src/main/java/com/posedetection/PoseDetectionModule.kt b/an
 index 2ceaf41..06874dc 100644
 --- a/android/src/main/java/com/posedetection/PoseDetectionModule.kt
 +++ b/android/src/main/java/com/posedetection/PoseDetectionModule.kt
-@@ -21,7 +21,6 @@ import com.posedetection.view.parseOverlay
+@@ -21,7 +21,7 @@ import com.posedetection.view.parseOverlay
  import expo.modules.interfaces.permissions.PermissionsResponse
  import expo.modules.interfaces.permissions.PermissionsStatus
  import expo.modules.kotlin.functions.Queues
 -import expo.modules.kotlin.jni.NativeArrayBuffer
  import expo.modules.kotlin.modules.Module
  import expo.modules.kotlin.modules.ModuleDefinition
++import java.nio.ByteBuffer
  
-@@ -60,7 +59,7 @@ class PoseDetectionModule : Module() {
+@@ -60,7 +60,7 @@ class PoseDetectionModule : Module() {
                          angleJoints = angleJointsFrom(options),
                          selection = selectionFrom(options),
                      )
 -                }.onSuccess { promise.resolve(NativeArrayBuffer.wrap(it)) }
-+                }.onSuccess { promise.resolve(it) }
++                }.onSuccess { promise.resolve(it.toByteArray()) }
                      .onFailure { promise.reject("DETECTION_FAILED", it.message ?: "detection failed", null) }
              }
  
-@@ -84,7 +83,7 @@ class PoseDetectionModule : Module() {
+@@ -84,7 +84,7 @@ class PoseDetectionModule : Module() {
                              sendEvent("onVideoProgress", mapOf("taskId" to taskId, "progress" to progress))
                          },
                      )
 -                }.onSuccess { promise.resolve(NativeArrayBuffer.wrap(it)) }
-+                }.onSuccess { promise.resolve(it) }
++                }.onSuccess { promise.resolve(it.toByteArray()) }
                      .onFailure { promise.reject("DETECTION_FAILED", it.message ?: "detection failed", null) }
              }
  
+@@ -318,6 +318,13 @@ class PoseDetectionModule : Module() {
+         }
+ }
+ 
++private fun ByteBuffer.toByteArray(): ByteArray {
++    val source = duplicate()
++    val bytes = ByteArray(source.remaining())
++    source.get(bytes)
++    return bytes
++}
++
+ /** Resolved by JavaScript for the live path, and passed the same way here. */
+ internal fun angleJointsFrom(options: Map<String, Any?>?): Array<String> {
+     val raw = options?.get("angleJoints") as? List<*> ?: return Skeleton.ANGLE_JOINT_NAMES
 diff --git a/android/src/main/java/com/posedetection/view/PoseCameraView.kt b/android/src/main/java/com/posedetection/view/PoseCameraView.kt
 index 64a4740..07e2296 100644
 --- a/android/src/main/java/com/posedetection/view/PoseCameraView.kt
 +++ b/android/src/main/java/com/posedetection/view/PoseCameraView.kt
-@@ -51,7 +51,6 @@ import com.posedetection.performance.ThermalPolicy
+@@ -51,7 +51,7 @@ import com.posedetection.performance.ThermalPolicy
  import com.posedetection.performance.ThermalState
  import com.posedetection.performance.Tiers
  import expo.modules.kotlin.AppContext
 -import expo.modules.kotlin.jni.NativeArrayBuffer
  import expo.modules.kotlin.viewevent.EventDispatcher
  import expo.modules.kotlin.views.ExpoView
++import java.nio.ByteBuffer
  import java.util.concurrent.Executors
-@@ -1379,13 +1378,12 @@ class PoseCameraView(
+@@ -1379,13 +1379,12 @@ class PoseCameraView(
          frames.setLayout(next)
      }
  
 -    fun drainFrames(): NativeArrayBuffer = NativeArrayBuffer.wrap(frames.drain())
-+    fun drainFrames(): ByteArray = frames.drain()
++    fun drainFrames(): ByteArray = frames.drain().toByteArray()
  
 -    fun snapshotFrame(): NativeArrayBuffer = NativeArrayBuffer.wrap(frames.snapshot())
-+    fun snapshotFrame(): ByteArray = frames.snapshot()
++    fun snapshotFrame(): ByteArray = frames.snapshot().toByteArray()
  
      /** An unknown or spent ticket is an empty buffer, which is the documented contract. */
 -    fun takeTriggerSnapshot(snapshotId: Int): NativeArrayBuffer =
 -        NativeArrayBuffer.wrap(frames.takeSnapshot(snapshotId))
-+    fun takeTriggerSnapshot(snapshotId: Int): ByteArray = frames.takeSnapshot(snapshotId)
++    fun takeTriggerSnapshot(snapshotId: Int): ByteArray = frames.takeSnapshot(snapshotId).toByteArray()
  
      fun currentState(): Map<String, Any?> =
          mapOf(
+@@ -1646,6 +1645,13 @@ class PoseCameraView(
+     }
+ }
+ 
++private fun ByteBuffer.toByteArray(): ByteArray {
++    val source = duplicate()
++    val bytes = ByteArray(source.remaining())
++    source.get(bytes)
++    return bytes
++}
++
+ internal fun Facing.nameForJs(): String = if (this == Facing.FRONT) "front" else "back"
+ 
+ internal fun Size.toMap(): Map<String, Any?> = mapOf("width" to width, "height" to height)

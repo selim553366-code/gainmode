@@ -11,6 +11,6 @@ Forge Fit live workouts use a native MediaPipe pose component with its Expo conf
 
 The pose package’s published compatibility range is broader than its actual native source compatibility: its Android code can reference Expo Modules APIs introduced after Expo 54 even though Expo 51+ is declared.
 
-**Why:** A cloud release build failed in Kotlin compilation because the package expected a newer binary-buffer wrapper unavailable in Expo Modules Core 3.x; Expo 54 already supports direct byte-array typed-array returns.
+**Why:** A cloud release build failed in Kotlin compilation because the package expected a newer binary-buffer wrapper unavailable in Expo Modules Core 3.x. The pose engine returns direct byte buffers, while Expo 54’s typed-array bridge accepts byte arrays.
 
-**How to apply:** Preserve the workspace-level pnpm compatibility patch while Forge Fit remains on Expo 54, and reassess/remove it only after upgrading Expo and confirming the package compiles unmodified.
+**How to apply:** Preserve the workspace-level pnpm compatibility patch while Forge Fit remains on Expo 54. Convert buffers by duplicating and copying their remaining bytes (direct buffers cannot use `array()`), and remove the patch only after an Expo upgrade compiles the package unmodified.
