@@ -1,5 +1,13 @@
 {
   "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "970ce633-cb99-43da-992f-9217abf8ef05"
+      },
+      "router": {
+        "origin": "https://replit.com/"
+      }
+    },
     "name": "Forge Fit",
     "slug": "forge-fit",
     "version": "1.0.0",
@@ -17,7 +25,11 @@
       "supportsTablet": false
     },
     "android": {
-      "package": "com.forgefit2.app"
+      "package": "com.forgefit2.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
