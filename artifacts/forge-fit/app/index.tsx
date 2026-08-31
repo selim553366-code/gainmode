@@ -42,13 +42,48 @@ function formatImperialHeightLabel(heightCm: number) {
   return `${feet}' ${inches}"`;
 }
 
-function CoachMotion({ variant, large = false }: { variant: CoachMotionVariant; large?: boolean }) {
-  const source = variant === 'wave'
-    ? require('@/assets/images/coach-wave-direct.jpg')
-    : variant === 'write'
-      ? require('@/assets/images/coach-writing-no-bg.png')
-      : require('@/assets/images/coach-thumbs-up-no-bg.png');
+function CoachMotion({ variant, large = false, onboarding = false }: { variant: CoachMotionVariant; large?: boolean; onboarding?: boolean }) {
+  const source = onboarding
+    ? require('@/assets/images/coach-onboarding.png')
+    : variant === 'wave'
+      ? require('@/assets/images/coach-wave-direct.jpg')
+      : variant === 'write'
+        ? require('@/assets/images/coach-writing-no-bg.png')
+        : require('@/assets/images/coach-thumbs-up-no-bg.png');
   return <Image source={source} resizeMode="contain" style={[large ? styles.coachLarge : styles.coachSmall, !large && variant === 'wave' ? styles.coachWaveQuestion : null]} />;
+}
+
+function AnswerAnalysisStatus() {
+  const colors = useColors();
+  const { language } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const progress = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(progress, { toValue: 1, duration: 1900, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(progress, { toValue: 0, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.delay(320),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [progress]);
+
+  const boxScale = progress.interpolate({ inputRange: [0, 0.12, 0.72, 0.87, 1], outputRange: [0.9, 1, 1, 0.84, 0.92] });
+  const boxOpacity = progress.interpolate({ inputRange: [0, 0.1, 0.78, 0.9, 1], outputRange: [0.7, 1, 1, 0.55, 0.72] });
+  const packetTranslate = progress.interpolate({ inputRange: [0, 0.12, 0.48, 0.7, 1], outputRange: [-12, -2, 5, 13, 13] });
+  const packetOpacity = progress.interpolate({ inputRange: [0, 0.08, 0.5, 0.7, 1], outputRange: [0, 1, 1, 0, 0] });
+  const packetScale = progress.interpolate({ inputRange: [0, 0.15, 0.7, 1], outputRange: [0.7, 1, 1, 0.8] });
+
+  return <View style={styles.answerAnalysisStatus}>
+    <Animated.View style={[styles.answerAnalysisBox, { borderColor: `${colors.primary}80`, backgroundColor: `${colors.primary}16`, opacity: boxOpacity, transform: [{ scale: boxScale }] }]}>
+      <Animated.View style={[styles.answerAnalysisPacket, styles.answerAnalysisPacketTop, { backgroundColor: colors.primary, opacity: packetOpacity, transform: [{ translateX: packetTranslate }, { scale: packetScale }] }]} />
+      <Animated.View style={[styles.answerAnalysisPacket, styles.answerAnalysisPacketMiddle, { backgroundColor: colors.primary, opacity: packetOpacity, transform: [{ translateX: packetTranslate }, { scale: packetScale }] }]} />
+      <Animated.View style={[styles.answerAnalysisPacket, styles.answerAnalysisPacketBottom, { backgroundColor: colors.primary, opacity: packetOpacity, transform: [{ translateX: packetTranslate }, { scale: packetScale }] }]} />
+      <Ionicons name="analytics-outline" size={17} color={colors.primary} />
+    </Animated.View>
+    <Text style={[styles.answerAnalysisLabel, { color: colors.mutedForeground }]}>{t('analyzingAnswers')}</Text>
+  </View>;
 }
 
 function ChoiceButton({ label, selected, onPress, icon }: { label: string; selected: boolean; onPress: () => void; icon?: React.ComponentProps<typeof Ionicons>['name'] }) {
@@ -414,7 +449,7 @@ function OnboardingQuestions() {
     return <><View style={styles.dayGrid}>{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => <Pressable key={day} onPress={() => selectedDays(day)} style={[styles.dayButton, { backgroundColor: preferredDays.includes(day) ? colors.primary : colors.card, borderColor: preferredDays.includes(day) ? colors.primary : colors.border }]}><Text style={[styles.dayText, { color: preferredDays.includes(day) ? colors.primaryForeground : colors.foreground }]}>{day}</Text></Pressable>)}</View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('preferredDaysQuestion')}</Text></>;
   };
 
-   if (!started) return <WelcomeScreen onStart={() => { slide.setValue(0); setStarted(true); Animated.timing(slide, { toValue: 1, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }} />;
+    if (!started) return <WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} />;
    if (buildingPlan) return <PlanBuildingScreen onComplete={finish} />;
    if (step === total) return <CompletionScreen onContinue={() => setBuildingPlan(true)} />;
    const optional = step >= 6 && !hasTargetWeightStep;
@@ -424,7 +459,7 @@ function OnboardingQuestions() {
      <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
        <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
-        <View style={styles.coachQuestionVisual}><CoachMotion variant={step === 0 ? 'wave' : 'write'} /></View>
+          <View style={styles.coachQuestionVisual}><AnswerAnalysisStatus /><View style={styles.coachPhotoStage}><CoachMotion onboarding variant="write" /></View></View>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / {total}</Text>
         {optional ? <Text style={[styles.optionalLabel, { color: colors.primary }]}>{t('optionalLabel')}</Text> : null}
          <Text style={[styles.questionTitle, { color: colors.foreground }]}>{t(titleKey)}</Text>
@@ -615,7 +650,15 @@ const styles = StyleSheet.create({
   language: { fontFamily: 'Inter_700Bold', fontSize: 10 },
   questionBody: { flex: 1, minHeight: 0, marginTop: 10 },
   questionScrollContent: { paddingTop: 2, paddingBottom: 12 },
-  coachQuestionVisual: { width: 238, height: 238, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  coachQuestionVisual: { width: '100%', height: 282, alignSelf: 'center', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 8 },
+  answerAnalysisStatus: { minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 3, paddingHorizontal: 8 },
+  answerAnalysisBox: { width: 42, height: 34, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  answerAnalysisPacket: { position: 'absolute', left: 5, width: 13, height: 3, borderRadius: 3 },
+  answerAnalysisPacketTop: { top: 7 },
+  answerAnalysisPacketMiddle: { top: 15 },
+  answerAnalysisPacketBottom: { top: 23 },
+  answerAnalysisLabel: { maxWidth: 220, flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12.5, lineHeight: 17 },
+  coachPhotoStage: { width: 238, height: 238, alignItems: 'center', justifyContent: 'center' },
   coachSmall: { width: 238, height: 238 },
   coachWaveQuestion: { transform: [{ translateX: 7 }] },
   coachLarge: { width: 220, height: 220 },

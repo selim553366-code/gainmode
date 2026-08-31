@@ -173,6 +173,7 @@ const onboardingTranslations = {
   tr: {
     welcomeTitle: 'Serüvenine hoş geldin',
     welcomeSubtitle: 'Forge Fit seni tanısın, hedeflerine uygun yol haritanı birlikte oluşturalım.',
+    analyzingAnswers: 'Cevapların analiz edilmek üzere alınıyor',
     startAdventure: 'Serüvenine başlamak için tıkla',
     nameFirstQuestion: 'Koçunun sana hitap etmesini istediğin isim ne?',
     nameFirstHint: 'Bu isim uygulamadaki tüm kişisel mesajlarında kullanılacak.',
@@ -228,6 +229,7 @@ const onboardingTranslations = {
   en: {
     welcomeTitle: 'Welcome to your journey',
     welcomeSubtitle: 'Let Forge Fit get to know you and build your personal roadmap.',
+    analyzingAnswers: 'Your answers are being captured for analysis',
     startAdventure: 'Tap to start your journey',
     nameFirstQuestion: 'What would you like your coach to call you?',
     nameFirstHint: 'This name will be used in your personal messages.',
@@ -283,6 +285,7 @@ const onboardingTranslations = {
   de: {
     welcomeTitle: 'Willkommen auf deiner Reise',
     welcomeSubtitle: 'Forge Fit lernt dich kennen und erstellt deinen persönlichen Weg.',
+    analyzingAnswers: 'Deine Antworten werden zur Analyse aufgenommen',
     startAdventure: 'Tippe, um deine Reise zu starten',
     nameFirstQuestion: 'Wie soll dein Coach dich nennen?',
     nameFirstHint: 'Dieser Name wird in deinen persönlichen Nachrichten verwendet.',
@@ -338,6 +341,7 @@ const onboardingTranslations = {
   fr: {
     welcomeTitle: 'Bienvenue dans ton aventure',
     welcomeSubtitle: 'Forge Fit apprend à te connaître et crée ton parcours personnel.',
+    analyzingAnswers: 'Tes réponses sont recueillies pour analyse',
     startAdventure: 'Appuie pour commencer ton aventure',
     nameFirstQuestion: 'Comment veux-tu que ton coach t’appelle ?',
     nameFirstHint: 'Ce nom sera utilisé dans tes messages personnalisés.',
@@ -393,6 +397,7 @@ const onboardingTranslations = {
   es: {
     welcomeTitle: 'Bienvenido a tu aventura',
     welcomeSubtitle: 'Forge Fit te conocerá y creará tu propio camino.',
+    analyzingAnswers: 'Estamos recopilando tus respuestas para analizarlas',
     startAdventure: 'Pulsa para comenzar tu aventura',
     nameFirstQuestion: '¿Cómo quieres que te llame tu coach?',
     nameFirstHint: 'Este nombre se usará en tus mensajes personalizados.',
