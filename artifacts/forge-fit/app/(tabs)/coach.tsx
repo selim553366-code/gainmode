@@ -95,7 +95,7 @@ export default function CoachScreen() {
     <View pointerEvents="none" style={styles.coachBackgroundLayer}><Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: coachReveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} /></View>
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.foreground, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
     <Header eyebrow="Intelligence / 05" title={t('coachTitle')} subtitle={t('coachSubtitle')} action="sparkles-outline" actionLogo onAction={() => undefined} lightBackground />
-    <Card style={[styles.coachCard, { backgroundColor: `${colors.foreground}B8`, borderColor: `${colors.foreground}99` }]}><Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={styles.coachAvatar} /><View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.primaryForeground }]}>{t('coachTitle')}</Text></View><View style={styles.limit}><Text style={[styles.limitNumber, { color: colors.primaryForeground }]}>{String(5 - coachMessagesUsed).padStart(2, '0')}</Text><Text style={[styles.caption, { color: `${colors.primaryForeground}99` }]}>/ 05</Text></View></Card>
+    <Card style={[styles.coachCard, { backgroundColor: `${colors.foreground}B8`, borderColor: `${colors.foreground}99` }]}><View style={styles.coachCapabilityCopy}><Text style={[styles.coachCapabilityLabel, { color: `${colors.primaryForeground}99` }]}>{t('coachAiLabel').toUpperCase()}</Text><Text style={[styles.coachCapabilityText, { color: colors.primaryForeground }]}>{t('coachAiCapabilities')}</Text></View><View style={styles.limit}><Text style={[styles.limitNumber, { color: colors.primaryForeground }]}>{String(5 - coachMessagesUsed).padStart(2, '0')}</Text><Text style={[styles.caption, { color: `${colors.primaryForeground}99` }]}>/ 05</Text></View></Card>
     <View pointerEvents="none" style={styles.coachFlightLayer}>
       <Animated.Image
         source={require('@/assets/images/coach-tab-custom.jpeg')}
@@ -146,8 +146,9 @@ const styles = StyleSheet.create({
   coachFlightLayer: { ...StyleSheet.absoluteFillObject, zIndex: 4 },
   coachFlyingAvatar: { position: 'absolute', width: 72, height: 72, borderRadius: 36, shadowColor: '#FFFFFF', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
   coachCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15 },
-  coachAvatar: { width: 48, height: 48, borderRadius: 17 },
-  cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
+  coachCapabilityCopy: { flex: 1, paddingRight: 4 },
+  coachCapabilityLabel: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1.2 },
+  coachCapabilityText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18, marginTop: 5 },
   caption: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
   limit: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   limitNumber: { fontFamily: 'Inter_700Bold', fontSize: 18 },
