@@ -16,8 +16,16 @@ function NativeTabLayout() {
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: 'house', selected: 'house.fill' }} />
-        <Label>RunForge</Label>
+        <Icon sf={{ default: 'map', selected: 'map.fill' }} />
+        <Label>Run</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="record">
+        <Icon sf={{ default: 'camera', selected: 'camera.fill' }} />
+        <Label>Record</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="history">
+        <Icon sf={{ default: 'chart.bar', selected: 'chart.bar.fill' }} />
+        <Label>History</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -44,6 +52,7 @@ function ClassicTabLayout() {
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
+        tabBarShowLabel: false,
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
@@ -71,6 +80,22 @@ function ClassicTabLayout() {
             ) : (
               <Feather name="home" size={22} color={color} />
             ),
+        }}
+      />
+      <Tabs.Screen
+        name="record"
+        options={{
+          title: 'Record',
+          tabBarIcon: ({ color }) =>
+            isIOS ? <SymbolView name="camera" tintColor={color} size={24} /> : <Feather name="camera" size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'History',
+          tabBarIcon: ({ color }) =>
+            isIOS ? <SymbolView name="chart.bar" tintColor={color} size={24} /> : <Feather name="bar-chart-2" size={22} color={color} />,
         }}
       />
     </Tabs>

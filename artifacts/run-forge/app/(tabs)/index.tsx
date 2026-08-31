@@ -53,10 +53,10 @@ function NeonIconButton({ icon, onPress, colors, accessibilityLabel }: { icon: R
   );
 }
 
-function SatelliteMap({ region, route, current, start, finish, colors, onPress, interactive }: { region: Region; route: Coordinate[]; current: Coordinate | null; start: Coordinate | null; finish: Coordinate | null; colors: ReturnType<typeof useColors>; onPress?: (event: MapPressEvent) => void; interactive?: boolean }) {
+function SatelliteMap({ region, route, current, start, finish, colors, onPress, interactive, containerStyle }: { region: Region; route: Coordinate[]; current: Coordinate | null; start: Coordinate | null; finish: Coordinate | null; colors: ReturnType<typeof useColors>; onPress?: (event: MapPressEvent) => void; interactive?: boolean; containerStyle?: object }) {
   if (Platform.OS === 'web') {
     return (
-      <View style={[styles.webMap, { borderColor: `${colors.primary}36` }]}>
+      <View style={[styles.webMap, containerStyle, { borderColor: `${colors.primary}36` }]}>
         <View style={[styles.mapGrid, { borderColor: `${colors.foreground}12` }]} />
         <View style={[styles.webRoad, styles.webRoadOne, { backgroundColor: `${colors.primary}40` }]} />
         <View style={[styles.webRoad, styles.webRoadTwo, { backgroundColor: `${colors.accent}45` }]} />
@@ -69,7 +69,7 @@ function SatelliteMap({ region, route, current, start, finish, colors, onPress, 
   }
   return (
     <MapView
-      style={StyleSheet.absoluteFill}
+      style={[StyleSheet.absoluteFill, containerStyle]}
       mapType="satellite"
       region={region}
       showsUserLocation={Boolean(current)}
@@ -321,60 +321,56 @@ export default function RunForgeHome() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
+      <SatelliteMap region={region} route={route} current={current} start={recordStart} finish={recordFinish} colors={colors} onPress={handleMapPress} interactive={Boolean(recordPicker)} containerStyle={styles.fullMap} />
+      <View style={[styles.mapShade, { backgroundColor: `${colors.background}18` }]} pointerEvents="none" />
+      <View style={[styles.headerOverlay, { paddingTop: insets.top + 12 }]}>
         <View>
-          <View style={styles.brandLine}><View style={[styles.brandDot, { backgroundColor: colors.primary }]} /><Text style={[styles.brand, { color: colors.foreground }]}>RUNFORGE</Text><View style={[styles.livePill, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}55` }]}><Text style={[styles.livePillText, { color: colors.primary }]}>{t('connected')}</Text></View></View>
+          <View style={styles.brandLine}><View style={[styles.brandDot, { backgroundColor: colors.primary }]} /><Text style={[styles.brand, { color: colors.foreground }]}>RUNFORGE</Text></View>
           <Text style={[styles.greeting, { color: colors.foreground }]}>{t('greeting')}</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('subtitle')}</Text>
         </View>
-        <Pressable onPress={() => setLanguage(language === 'tr' ? 'en' : language === 'en' ? 'de' : language === 'de' ? 'fr' : language === 'fr' ? 'es' : 'tr')} style={[styles.languageButton, { borderColor: colors.border, backgroundColor: colors.card }]}><Text style={[styles.languageText, { color: colors.primary }]}>{languageLabels[language]}</Text></Pressable>
+        <Pressable onPress={() => setLanguage(language === 'tr' ? 'en' : language === 'en' ? 'de' : language === 'de' ? 'fr' : language === 'fr' ? 'es' : 'tr')} style={[styles.languageButton, { borderColor: `${colors.foreground}55`, backgroundColor: `${colors.background}AA` }]}><Text style={[styles.languageText, { color: colors.foreground }]}>{languageLabels[language]}</Text></Pressable>
       </View>
-
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 28 }]} showsVerticalScrollIndicator={false}>
-        <View style={[styles.mapCard, { borderColor: `${colors.primary}40` }]}>
-          <SatelliteMap region={region} route={route} current={current} start={recordStart} finish={recordFinish} colors={colors} onPress={handleMapPress} interactive={Boolean(recordPicker)} />
-          <View style={styles.mapOverlayTop}><View style={[styles.mapBadge, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}55` }]}><Ionicons name="map" size={15} color={colors.primary} /><Text style={[styles.mapBadgeText, { color: colors.primary }]}>{t('satellite')}</Text></View>{phase === 'running' ? <View style={[styles.liveBadge, { backgroundColor: colors.destructive }]}><View style={styles.liveDot} /><Text style={styles.liveText}>{t('live')}</Text></View> : null}</View>
-          {phase === 'countdown' && countdown !== null ? <View style={[styles.countdownOverlay, { backgroundColor: `${colors.background}CC` }]}><Text style={[styles.countdownNumber, { color: colors.primary }]}>{countdown}</Text><Text style={[styles.countdownLabel, { color: colors.foreground }]}>{t('seconds')}</Text></View> : null}
-          {phase === 'running' ? <View style={[styles.liveStats, { backgroundColor: `${colors.background}E6`, borderColor: `${colors.primary}44` }]}><Text style={[styles.liveTimer, { color: colors.foreground }]}>{formatDuration(elapsedSec)}</Text><Text style={[styles.liveDistance, { color: colors.primary }]}>{distanceKm.toFixed(2)} {t('kilometers')}</Text></View> : null}
-          {recordPicker ? <View style={[styles.mapPickerHint, { backgroundColor: `${colors.background}E8`, borderColor: `${colors.primary}66` }]}><Ionicons name="location-outline" size={17} color={colors.primary} /><Text style={[styles.mapPickerText, { color: colors.foreground }]}>{recordPicker === 'start' ? t('chooseStart') : t('chooseFinish')}</Text></View> : null}
-        </View>
-
-        {locationStatus !== 'granted' && phase === 'ready' ? <View style={[styles.permissionCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.permissionIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="navigate-outline" size={21} color={colors.primary} /></View><View style={styles.permissionCopy}><Text style={[styles.permissionTitle, { color: colors.foreground }]}>{t('locationPermission')}</Text><Text style={[styles.permissionBody, { color: colors.mutedForeground }]}>{locationError || t('gpsWaiting')}</Text></View><Pressable onPress={() => { void requestLocation(); }}><Ionicons name="chevron-forward" size={21} color={colors.primary} /></Pressable></View> : null}
-
-        <View style={styles.statsGrid}>
-          <StatCard icon="footsteps-outline" label={t('dailySteps')} value={dailySteps === null ? '—' : dailySteps.toLocaleString(localeFor(language))} unit={t('steps')} colors={colors} />
-          <StatCard icon="navigate-outline" label={t('distance')} value={shownDistance.toFixed(2)} unit={t('kilometers')} colors={colors} />
-          <StatCard icon="speedometer-outline" label={t('averageSpeed')} value={todaySpeed ? todaySpeed.toFixed(1) : '—'} unit={t('kilometersPerHour')} colors={colors} />
-        </View>
-
+      <View style={[styles.mapTopBadge, { top: insets.top + 13, backgroundColor: `${colors.background}C9`, borderColor: `${colors.primary}66` }]}><Ionicons name="map" size={14} color={colors.primary} /><Text style={[styles.mapBadgeText, { color: colors.primary }]}>{t('satellite')}</Text></View>
+      {phase === 'running' ? <View style={[styles.runningPill, { top: insets.top + 66, backgroundColor: `${colors.background}DE`, borderColor: colors.destructive }]}><View style={[styles.liveDot, { backgroundColor: colors.destructive }]} /><Text style={[styles.runningPillText, { color: colors.foreground }]}>{t('live')} · {formatDuration(elapsedSec)}</Text></View> : null}
+      {phase === 'countdown' && countdown !== null ? <View style={[styles.countdownOverlay, { backgroundColor: `${colors.background}C8` }]}><Text style={[styles.countdownNumber, { color: colors.primary }]}>{countdown}</Text><Text style={[styles.countdownLabel, { color: colors.foreground }]}>{t('seconds')}</Text></View> : null}
+      <ScrollView style={[styles.commandSheet, { backgroundColor: `${colors.background}F2`, borderColor: `${colors.primary}42` }]} contentContainerStyle={[styles.sheetContent, { paddingBottom: insets.bottom + 18 }]} showsVerticalScrollIndicator={false}>
+        <View style={[styles.sheetHandle, { backgroundColor: colors.mutedForeground }]} />
+        <View style={styles.sheetHeader}><View><Text style={[styles.sheetTitle, { color: colors.foreground }]}>{phase === 'running' ? t('yourRun') : phase === 'summary' ? t('summaryTitle') : t('ready')}</Text><Text style={[styles.sheetHint, { color: colors.mutedForeground }]}>{phase === 'running' ? `${distanceKm.toFixed(2)} ${t('kilometers')} · ${formatDuration(elapsedSec)}` : t('subtitle')}</Text></View><View style={[styles.gpsPill, { backgroundColor: locationStatus === 'granted' ? `${colors.success}16` : `${colors.primary}16`, borderColor: locationStatus === 'granted' ? `${colors.success}66` : `${colors.primary}66` }]}><View style={[styles.gpsDot, { backgroundColor: locationStatus === 'granted' ? colors.success : colors.primary }]} /><Text style={[styles.gpsText, { color: colors.foreground }]}>{locationStatus === 'granted' ? 'GPS' : t('gpsWaiting')}</Text></View></View>
+        {locationStatus !== 'granted' && phase === 'ready' ? <Pressable onPress={() => { void requestLocation(); }} style={[styles.locationPrompt, { borderColor: colors.border }]}><Ionicons name="navigate-outline" size={18} color={colors.primary} /><Text style={[styles.locationPromptText, { color: colors.foreground }]}>{locationError || t('locationPermission')}</Text><Ionicons name="chevron-forward" size={18} color={colors.primary} /></Pressable> : null}
+        <View style={styles.compactStats}><View style={[styles.compactStat, { borderRightColor: colors.border }]}><Text style={[styles.compactValue, { color: colors.foreground }]}>{dailySteps === null ? '—' : dailySteps.toLocaleString(localeFor(language))}</Text><Text style={[styles.compactLabel, { color: colors.mutedForeground }]}>{t('dailySteps')}</Text></View><View style={[styles.compactStat, { borderRightColor: colors.border }]}><Text style={[styles.compactValue, { color: colors.foreground }]}>{shownDistance.toFixed(2)}</Text><Text style={[styles.compactLabel, { color: colors.mutedForeground }]}>{t('kilometers')}</Text></View><View style={styles.compactStat}><Text style={[styles.compactValue, { color: colors.foreground }]}>{todaySpeed ? todaySpeed.toFixed(1) : '—'}</Text><Text style={[styles.compactLabel, { color: colors.mutedForeground }]}>{t('kilometersPerHour')}</Text></View></View>
         {phase === 'summary' ? <View style={[styles.summaryCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}55` }]}><View style={styles.summaryIcon}><Ionicons name="checkmark-circle" size={27} color={colors.primary} /></View><View style={styles.summaryCopy}><Text style={[styles.summaryTitle, { color: colors.foreground }]}>{t('summaryTitle')}</Text><Text style={[styles.summarySubtitle, { color: colors.mutedForeground }]}>{t('summarySubtitle')}</Text></View><Text style={[styles.summaryDistance, { color: colors.primary }]}>{distanceKm.toFixed(2)}<Text style={styles.summaryUnit}> {t('kilometers')}</Text></Text></View> : null}
-
         {phase === 'running' ? <MainButton label={t('stopRun')} icon="stop-circle-outline" onPress={() => { void finishRun(); }} colors={colors} /> : phase === 'summary' ? <MainButton label={t('newRun')} icon="refresh-outline" onPress={resetRun} colors={colors} /> : <MainButton label={phase === 'countdown' ? `${countdown}...` : t('startRun')} icon="play" onPress={() => { void startCountdown(false); }} colors={colors} disabled={phase === 'countdown' || locationStatus === 'loading'} />}
-
-        <Pressable onPress={() => { void openRecord(); }} style={({ pressed }) => [styles.recordCard, { borderColor: `${colors.accent}88`, backgroundColor: `${colors.accent}0D`, opacity: pressed ? 0.78 : 1 }]}>
-          <View style={[styles.recordIcon, { backgroundColor: `${colors.accent}22`, borderColor: `${colors.accent}66` }]}><Ionicons name="flame-outline" size={22} color={colors.accent} /></View>
-          <View style={styles.recordCopy}><Text style={[styles.recordEyebrow, { color: colors.accent }]}>{t('recordMode')}</Text><Text style={[styles.recordTitle, { color: colors.foreground }]}>{t('record')}</Text><Text style={[styles.recordSubtitle, { color: colors.mutedForeground }]}>{t('recordSubtitle')}</Text></View><Ionicons name="chevron-forward" size={21} color={colors.accent} /></Pressable>
-
-        <View style={[styles.linkCard, { borderColor: colors.border, backgroundColor: colors.card }]}><View style={[styles.linkIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="link-outline" size={18} color={colors.primary} /></View><View style={styles.linkCopy}><Text style={[styles.linkTitle, { color: colors.foreground }]}>{t('forgeFitCode')}</Text><Text style={[styles.linkBody, { color: colors.mutedForeground }]}>{recordCode || t('linkNote')}</Text></View>{recordCode ? <Text style={[styles.codeText, { color: colors.primary }]}>{recordCode}</Text> : <Pressable onPress={() => { void loadForgeCode(); }} style={[styles.smallButton, { borderColor: `${colors.primary}66` }]}><Text style={[styles.smallButtonText, { color: colors.primary }]}>{codeLoading ? '...' : t('claimCode')}</Text></Pressable>}</View>
-        {codeError ? <Text style={[styles.codeError, { color: colors.destructive }]}>{t('codeUnavailable')}</Text> : null}
-
-        <View style={styles.sectionHeader}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('history')}</Text><Text style={[styles.sectionMeta, { color: colors.mutedForeground }]}>{todayRuns.length} / {t('today')}</Text></View>
-        {runs.length === 0 ? <View style={[styles.emptyCard, { borderColor: colors.border, backgroundColor: colors.card }]}><Ionicons name="footsteps-outline" size={22} color={colors.mutedForeground} /><Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t('noRuns')}</Text></View> : runs.slice(0, 3).map((run) => <View key={run.id} style={[styles.historyRow, { borderBottomColor: colors.border }]}><View style={[styles.historyDot, { backgroundColor: colors.primary }]} /><View style={styles.historyCopy}><Text style={[styles.historyDate, { color: colors.foreground }]}>{new Date(run.date).toLocaleDateString(localeFor(language), { day: 'numeric', month: 'short' })}</Text><Text style={[styles.historyMeta, { color: colors.mutedForeground }]}>{formatDuration(run.durationSec)} · {run.averageSpeed.toFixed(1)} {t('kilometersPerHour')}</Text></View><Text style={[styles.historyDistance, { color: colors.primary }]}>{run.distanceKm.toFixed(2)} {t('kilometers')}</Text></View>)}
+        <View style={[styles.sheetFooter, { borderTopColor: colors.border }]}><Ionicons name="radio-outline" size={16} color={colors.primary} /><Text style={[styles.sheetFooterText, { color: colors.mutedForeground }]}>{t('connected')}</Text><Text style={[styles.sheetFooterText, { color: colors.mutedForeground }]}>·</Text><Text style={[styles.sheetFooterText, { color: colors.mutedForeground }]}>{t('satellite')}</Text></View>
       </ScrollView>
-
-      {showRecordCamera ? <View style={[styles.cameraLayer, { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: colors.background }]}>
-        {Platform.OS === 'web' ? <View style={[styles.cameraFallback, { backgroundColor: colors.card }]}><Ionicons name="camera-outline" size={48} color={colors.primary} /><Text style={[styles.cameraFallbackTitle, { color: colors.foreground }]}>{t('cameraUnavailable')}</Text></View> : cameraPermission?.granted ? <CameraView style={StyleSheet.absoluteFill} facing="back" /> : <View style={styles.cameraFallback}><Ionicons name="camera-outline" size={48} color={colors.primary} /><Text style={[styles.cameraFallbackTitle, { color: colors.foreground }]}>{t('cameraPermission')}</Text><Pressable onPress={() => { void requestCameraPermission(); }}><Text style={[styles.cameraFallbackLink, { color: colors.primary }]}>{t('allowCamera')}</Text></Pressable></View>}
-        <View style={styles.cameraTint} pointerEvents="none" />
-        <View style={styles.cameraHeader}><View><Text style={[styles.cameraEyebrow, { color: colors.primary }]}>{t('recordMode')}</Text><Text style={[styles.cameraTitle, { color: colors.foreground }]}>{t('record')}</Text></View><NeonIconButton icon="close" onPress={() => { setShowRecordCamera(false); setRecordPicker(null); }} colors={colors} accessibilityLabel={t('close')} /></View>
-        <View style={[styles.neonFrame, { borderColor: colors.primary, shadowColor: colors.primary }]}><View style={[styles.corner, styles.cornerTL, { borderColor: colors.primary }]} /><View style={[styles.corner, styles.cornerTR, { borderColor: colors.primary }]} /><View style={[styles.corner, styles.cornerBL, { borderColor: colors.primary }]} /><View style={[styles.corner, styles.cornerBR, { borderColor: colors.primary }]} /><View style={[styles.cameraTarget, { backgroundColor: `${colors.primary}22`, borderColor: colors.primary }]}><Ionicons name="location" size={25} color={colors.primary} /></View></View>
-        <View style={styles.cameraBottom}><Text style={[styles.recordHint, { color: colors.foreground }]}>{t('recordHint')}</Text><View style={styles.selectionRow}>{<Pressable onPress={() => selectRecordPoint('start')} style={[styles.selectionButton, { borderColor: recordStart ? colors.success : colors.primary, backgroundColor: `${colors.background}D9` }]}><Ionicons name={recordStart ? 'checkmark-circle' : 'flag-outline'} size={17} color={recordStart ? colors.success : colors.primary} /><Text style={[styles.selectionText, { color: colors.foreground }]}>{recordStart ? t('selectedStart') : t('chooseStart')}</Text></Pressable>}<Pressable onPress={() => selectRecordPoint('finish')} style={[styles.selectionButton, { borderColor: recordFinish ? colors.success : colors.primary, backgroundColor: `${colors.background}D9` }]}><Ionicons name={recordFinish ? 'checkmark-circle' : 'flag-outline'} size={17} color={recordFinish ? colors.success : colors.primary} /><Text style={[styles.selectionText, { color: colors.foreground }]}>{recordFinish ? t('selectedFinish') : t('chooseFinish')}</Text></Pressable></View>{targetDistance > 0 ? <Text style={[styles.targetDistance, { color: colors.primary }]}>{t('targetRoute')} · {targetDistance.toFixed(2)} {t('kilometers')}</Text> : null}<MainButton label={t('recordStart')} icon="flame" onPress={() => { if (!recordStart || !recordFinish) { setRecordPicker(!recordStart ? 'start' : 'finish'); return; } setShowRecordCamera(false); void startCountdown(true); }} colors={colors} disabled={phase === 'countdown'} /></View>
-      </View> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1 },
+  screen: { flex: 1, overflow: 'hidden' },
+  fullMap: { ...StyleSheet.absoluteFillObject },
+  mapShade: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+  headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 3, paddingHorizontal: 20, paddingBottom: 14, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  mapTopBadge: { position: 'absolute', right: 20, zIndex: 3, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, borderWidth: 1 },
+  runningPill: { position: 'absolute', right: 20, zIndex: 3, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, borderWidth: 1 },
+  runningPillText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
+  commandSheet: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 4, maxHeight: '58%', borderTopWidth: 1, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  sheetContent: { paddingHorizontal: 20, paddingTop: 10, gap: 14 },
+  sheetHandle: { alignSelf: 'center', width: 38, height: 4, borderRadius: 2, opacity: 0.5, marginBottom: 2 },
+  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sheetTitle: { fontFamily: 'Inter_700Bold', fontSize: 23, letterSpacing: -0.5 },
+  sheetHint: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 3 },
+  gpsPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 12, paddingHorizontal: 9, paddingVertical: 7 },
+  gpsDot: { width: 7, height: 7, borderRadius: 4 },
+  gpsText: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 0.7 },
+  locationPrompt: { minHeight: 48, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  locationPromptText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16 },
+  compactStats: { flexDirection: 'row', borderWidth: 1, borderColor: '#FFFFFF14', borderRadius: 16, paddingVertical: 12, backgroundColor: '#FFFFFF08' },
+  compactStat: { flex: 1, alignItems: 'center', borderRightWidth: 1 },
+  compactValue: { fontFamily: 'Inter_700Bold', fontSize: 18, letterSpacing: -0.3 },
+  compactLabel: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 4 },
+  sheetFooter: { flexDirection: 'row', alignItems: 'center', gap: 7, borderTopWidth: 1, paddingTop: 12 },
+  sheetFooterText: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 0.4 },
   header: { paddingHorizontal: 20, paddingBottom: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   brandLine: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 12 },
   brandDot: { width: 8, height: 8, borderRadius: 4 },
