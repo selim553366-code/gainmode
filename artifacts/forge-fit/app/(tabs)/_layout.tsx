@@ -101,7 +101,7 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
     if (name === 'index') return 'home';
     if (name === 'nutrition') return 'pie-chart';
     if (name === 'plan') return 'activity';
-    if (name === 'progress') return 'trending-up';
+    if (name === 'progress') return 'trending-up-outline';
     return 'users';
   };
 

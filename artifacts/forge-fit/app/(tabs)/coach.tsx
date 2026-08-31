@@ -46,7 +46,7 @@ export default function CoachScreen() {
   const aura = useRef(new Animated.Value(0)).current;
   const coachReveal = useRef(new Animated.Value(0)).current;
   const weeklyCardReveal = useRef(new Animated.Value(0)).current;
-  const lastAnalysisId = useRef<string | undefined>();
+  const lastAnalysisId = useRef<string | undefined>(undefined);
   const screenSize = Dimensions.get('window');
   const revealScale = Math.max(34, Math.ceil(Math.hypot(screenSize.width, screenSize.height) / 28));
   const flyingAvatarSize = 72;

@@ -70,16 +70,16 @@ export default function ProgressScreen() {
         <View pointerEvents="none" style={[styles.heroOrbSmall, { backgroundColor: `${colors.primaryForeground}10` }]} />
         <View style={styles.heroHeader}>
           <View style={styles.heroEyebrowRow}><View style={[styles.liveDot, { backgroundColor: colors.success }]} /><Text style={[styles.heroEyebrow, { color: `${colors.primaryForeground}B8` }]}>{t('weeklyAiLive')}</Text></View>
-          <View style={[styles.weekPill, { backgroundColor: `${colors.primaryForeground}18`, borderColor: `${colors.primaryForeground}26` }]}><Ionicons name="calendar-outline" size={13} color={colors.primaryForeground} /><Text style={[styles.weekPillText, { color: colors.primaryForeground }]}>{t('weeklyAiLastSeven')}</Text></View>
+          <View style={[styles.weekPill, { backgroundColor: `${colors.primaryForeground}18`, borderColor: `${colors.primaryForeground}26` }]}><Ionicons name="sparkles-outline" size={13} color={colors.primaryForeground} /><Text style={[styles.weekPillText, { color: colors.primaryForeground }]}>{t('weeklyAiLastSeven')}</Text></View>
         </View>
         <Text style={[styles.heroTitle, { color: colors.primaryForeground }]}>{t('weeklyAiCardTitle')}</Text>
         <Text style={[styles.heroSubtitle, { color: `${colors.primaryForeground}B8` }]}>{t('weeklyAiCardSubtitle')}</Text>
         <View style={styles.heroWeightRow}>
           <View style={{ flex: 1 }}><Text style={[styles.heroLabel, { color: `${colors.primaryForeground}A8` }]}>{t('weeklyWeightChange')}</Text><Text style={[styles.heroWeight, { color: colors.primaryForeground }]}>{formatChange(summary.weightChangeKg)}</Text><Text style={[styles.heroOutcome, { color: colors.primaryForeground }]}>{outcomeCopy(summary.weightOutcome, t)}</Text></View>
-          <View style={[styles.heroBadge, { backgroundColor: `${colors.primaryForeground}18`, borderColor: `${colors.primaryForeground}2C` }]}><Ionicons name={summary.weightOutcome === 'gained' ? 'trending-up' : summary.weightOutcome === 'lost' ? 'trending-down' : 'analytics-outline'} size={28} color={colors.primaryForeground} /><Text style={[styles.heroBadgeText, { color: `${colors.primaryForeground}C2` }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View>
+          <View style={[styles.heroBadge, { backgroundColor: `${colors.primaryForeground}18`, borderColor: `${colors.primaryForeground}2C` }]}><Ionicons name={summary.weightOutcome === 'gained' ? 'trending-up-outline' : summary.weightOutcome === 'lost' ? 'trending-down' : 'analytics-outline'} size={28} color={colors.primaryForeground} /><Text style={[styles.heroBadgeText, { color: `${colors.primaryForeground}C2` }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View>
         </View>
         <Pressable testID="get-weekly-ai-analysis" accessibilityRole="button" accessibilityLabel={t('weeklyAnalysisCta')} onPress={requestAnalysis} style={({ pressed }) => [styles.analysisButton, { backgroundColor: colors.primaryForeground, opacity: pressed || launching ? 0.8 : 1 }]}>
-          <View style={[styles.analysisButtonIcon, { backgroundColor: `${colors.primary}24` }]}><Ionicons name={launching ? 'arrow-up-outline' : 'sparkles-outline'} size={17} color={colors.primary} /></View>
+          <View style={[styles.analysisButtonIcon, { backgroundColor: `${colors.primary}24` }]}><Ionicons name={launching ? 'arrow-up' : 'sparkles-outline'} size={17} color={colors.primary} /></View>
           <Text style={[styles.analysisButtonText, { color: colors.primary }]}>{launching ? t('weeklyAnalysisSending') : t('weeklyAnalysisCta')}</Text>
           {!launching ? <Ionicons name="arrow-forward" size={17} color={colors.primary} /> : <Ionicons name="ellipsis-horizontal" size={17} color={colors.primary} />}
         </Pressable>
@@ -88,9 +88,9 @@ export default function ProgressScreen() {
 
     <View style={styles.sectionHeading}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('weeklyStatsTitle')}</Text><Text style={[styles.sectionCaption, { color: colors.mutedForeground }]}>{t('weeklyStatsSubtitle')}</Text></View>
     <View style={styles.statsGrid}>
-      <StatTile icon="time-outline" value={<><AnimatedNumber value={summary.workoutMinutes} /> <Text style={styles.inlineUnit}>{t('minutesShort')}</Text></>} label={t('weeklyWorkoutMinutes')} color={colors.orange} />
-      <StatTile icon="layers-outline" value={<AnimatedNumber value={summary.totalSets} />} label={t('weeklyTotalSets')} color={colors.primary} />
-      <StatTile icon="repeat-outline" value={<AnimatedNumber value={summary.totalExercises} />} label={t('weeklyTotalExercises')} color={colors.blue} />
+      <StatTile icon="activity" value={<><AnimatedNumber value={summary.workoutMinutes} /> <Text style={styles.inlineUnit}>{t('minutesShort')}</Text></>} label={t('weeklyWorkoutMinutes')} color={colors.orange} />
+      <StatTile icon="barbell-outline" value={<AnimatedNumber value={summary.totalSets} />} label={t('weeklyTotalSets')} color={colors.primary} />
+      <StatTile icon="activity" value={<AnimatedNumber value={summary.totalExercises} />} label={t('weeklyTotalExercises')} color={colors.blue} />
       <StatTile icon="flame-outline" value={summary.calorieConsistency === null ? '—' : `${summary.calorieConsistency}%`} label={t('weeklyCalorieConsistency')} color={colors.success} />
     </View>
 
@@ -100,7 +100,7 @@ export default function ProgressScreen() {
     </Card>
 
     <Card style={styles.chartCard}>
-      <View style={styles.chartHeader}><View><Text style={[styles.chartEyebrow, { color: colors.mutedForeground }]}>{t('weeklyWeightChart')}</Text><Text style={[styles.chartWeight, { color: colors.foreground }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View><View style={[styles.changePill, { backgroundColor: `${colors.primary}14` }]}><Ionicons name="pulse-outline" size={14} color={colors.primary} /><Text style={[styles.changePillText, { color: colors.primary }]}>{formatChange(summary.weightChangeKg)}</Text></View></View>
+      <View style={styles.chartHeader}><View><Text style={[styles.chartEyebrow, { color: colors.mutedForeground }]}>{t('weeklyWeightChart')}</Text><Text style={[styles.chartWeight, { color: colors.foreground }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View><View style={[styles.changePill, { backgroundColor: `${colors.primary}14` }]}><Ionicons name="analytics-outline" size={14} color={colors.primary} /><Text style={[styles.changePillText, { color: colors.primary }]}>{formatChange(summary.weightChangeKg)}</Text></View></View>
       <View style={styles.chart}>{points.length > 0 ? points.map((point) => <View key={point.id} style={styles.chartColumn}><View style={[styles.bar, { height: 20 + ((point.value - minPoint) / pointRange) * 78, backgroundColor: point.id === points.at(-1)?.id ? colors.primary : `${colors.primary}42` }]} /></View>) : <Text style={[styles.chartEmpty, { color: colors.mutedForeground }]}>{t('weeklyWeightNoData')}</Text>}</View>
     </Card>
 
