@@ -737,6 +737,12 @@ function OfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () =>
 
 const styles = StyleSheet.create({
   full: { flex: 1, paddingHorizontal: 24, paddingTop: 58, paddingBottom: 30, justifyContent: 'space-between' },
+  entryRedirecting: { flex: 1 },
+  entryRecovery: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
+  entryRecoveryTitle: { fontFamily: 'Inter_700Bold', fontSize: 26, lineHeight: 32, textAlign: 'center', marginTop: 22 },
+  entryRecoveryBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, textAlign: 'center', maxWidth: 310, marginTop: 10 },
+  entryRecoveryButton: { minHeight: 54, width: '100%', borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10, marginTop: 28 },
+  entryRecoveryButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   questionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brandMark: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   languageRow: { flexDirection: 'row', gap: 11 },
