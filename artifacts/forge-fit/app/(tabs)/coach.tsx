@@ -11,7 +11,7 @@ import { Card, Header, Pill } from '@/components/FitUI';
 
 type Message = { id: string; text: string; from: 'coach' | 'user' };
 
-function TypingIndicator({ label, colors }: { label: string; colors: ReturnType<typeof useColors> }) {
+function TypingIndicator({ label, colors, lightBackground = false }: { label: string; colors: ReturnType<typeof useColors>; lightBackground?: boolean }) {
   const dots = React.useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
   React.useEffect(() => {
     const animations = dots.map((dot, index) => Animated.loop(Animated.sequence([
@@ -23,8 +23,8 @@ function TypingIndicator({ label, colors }: { label: string; colors: ReturnType<
     animations.forEach((animation) => animation.start());
     return () => animations.forEach((animation) => animation.stop());
   }, [dots]);
-  return <View style={[styles.typingBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <Text style={[styles.typingLabel, { color: colors.mutedForeground }]}>{label}</Text>
+  return <View style={[styles.typingBubble, { backgroundColor: lightBackground ? `${colors.foreground}C7` : colors.card, borderColor: lightBackground ? `${colors.primaryForeground}20` : colors.border }]}>
+    <Text style={[styles.typingLabel, { color: lightBackground ? `${colors.primaryForeground}B3` : colors.mutedForeground }]}>{label}</Text>
     <View style={styles.typingDots}>{dots.map((dot, index) => <Animated.View key={index} style={[styles.typingDot, { backgroundColor: colors.primary, transform: [{ translateY: dot.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }]} />)}</View>
   </View>;
 }
@@ -94,8 +94,8 @@ export default function CoachScreen() {
   return <View style={[styles.root, { backgroundColor: 'transparent', paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
     <View pointerEvents="none" style={styles.coachBackgroundLayer}><Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: coachReveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} /></View>
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.foreground, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
-    <Header eyebrow="Intelligence / 05" title={t('coachTitle')} subtitle={t('coachSubtitle')} action="sparkles-outline" actionLogo onAction={() => undefined} />
-    <Card style={styles.coachCard}><Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={styles.coachAvatar} /><View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{t('coachTitle')}</Text></View><View style={styles.limit}><Text style={[styles.limitNumber, { color: colors.foreground }]}>{String(5 - coachMessagesUsed).padStart(2, '0')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>/ 05</Text></View></Card>
+    <Header eyebrow="Intelligence / 05" title={t('coachTitle')} subtitle={t('coachSubtitle')} action="sparkles-outline" actionLogo onAction={() => undefined} lightBackground />
+    <Card style={[styles.coachCard, { backgroundColor: `${colors.foreground}B8`, borderColor: `${colors.foreground}99` }]}><Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={styles.coachAvatar} /><View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.primaryForeground }]}>{t('coachTitle')}</Text></View><View style={styles.limit}><Text style={[styles.limitNumber, { color: colors.primaryForeground }]}>{String(5 - coachMessagesUsed).padStart(2, '0')}</Text><Text style={[styles.caption, { color: `${colors.primaryForeground}99` }]}>/ 05</Text></View></Card>
     <View pointerEvents="none" style={styles.coachFlightLayer}>
       <Animated.Image
         source={require('@/assets/images/coach-tab-custom.jpeg')}
@@ -112,7 +112,7 @@ export default function CoachScreen() {
         }]}
       />
     </View>
-    <View style={styles.suggestions}><Pill label={t('coachExample')} onPress={() => setText(t('coachExample'))} /><Pill label={t('protein')} onPress={() => setText(t('protein'))} /></View>
+    <View style={styles.suggestions}><Pill label={t('coachExample')} onPress={() => setText(t('coachExample'))} lightBackground /><Pill label={t('protein')} onPress={() => setText(t('protein'))} lightBackground /></View>
     <KeyboardAvoidingView onLayout={({ nativeEvent }) => setChatOriginY(nativeEvent.layout.y)} style={styles.chatWrap} behavior="padding" keyboardVerticalOffset={0}>
       <FlatList
         style={styles.messagesList}
@@ -123,16 +123,16 @@ export default function CoachScreen() {
           style={[styles.messageRow, item.from === 'user' ? styles.userMessageRow : styles.coachMessageRow]}
         >
           {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.9, 0.999, 1], outputRange: [0, 0, 0, 1] }) : 1 }]} /> : null}
-          <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card, borderColor: colors.border }]]}><Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text></View>
+          <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primaryForeground }] : [styles.coachBubble, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]]}><Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.foreground : colors.primaryForeground }]}>{item.text}</Text></View>
         </View>}
-        ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : null}
+        ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} lightBackground /> : null}
         contentContainerStyle={styles.messageList}
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
       />
       <View style={[styles.inputRow, { paddingBottom: insets.bottom + 8, backgroundColor: 'transparent' }]}>
-        <Animated.View style={[styles.auraInput, { borderColor: colors.primary, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]}><TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { backgroundColor: colors.card, color: colors.foreground }]} /></Animated.View>
-        <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.primaryForeground} /></Pressable>
+        <Animated.View style={[styles.auraInput, { borderColor: colors.primaryForeground, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]}><TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={`${colors.primaryForeground}8C`} style={[styles.input, { backgroundColor: `${colors.foreground}C7`, color: colors.primaryForeground, borderColor: `${colors.primaryForeground}20` }]} /></Animated.View>
+         <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.primaryForeground, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.foreground} /></Pressable>
       </View>
     </KeyboardAvoidingView>
   </View>;

@@ -55,14 +55,16 @@ export function Screen({ children, scroll = true, bottomPadding = 104 }: { child
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{backdrop}</ScrollView> : backdrop;
 }
 
-export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, premiumLabel, premiumAction, premiumOwned = false, streak, streakLabel, centered = false }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean }) {
+export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, premiumLabel, premiumAction, premiumOwned = false, streak, streakLabel, centered = false, lightBackground = false }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean; lightBackground?: boolean }) {
   const colors = useColors();
   const premiumColor = premiumOwned ? colors.success : colors.primary;
+  const headingColor = lightBackground ? colors.primaryForeground : colors.foreground;
+  const supportingColor = lightBackground ? `${colors.primaryForeground}B3` : colors.mutedForeground;
   return <View style={styles.header}>
     <View style={[styles.headerText, centered ? styles.headerTextCentered : null]}>
-      {eyebrow ? <Text style={[styles.eyebrow, { color: colors.primary }]}>{eyebrow.toUpperCase()}</Text> : null}
-      <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
-      {subtitle ? <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{subtitle}</Text> : null}
+      {eyebrow ? <Text style={[styles.eyebrow, { color: lightBackground ? colors.primaryForeground : colors.primary }]}>{eyebrow.toUpperCase()}</Text> : null}
+      <Text style={[styles.title, { color: headingColor }]}>{title}</Text>
+      {subtitle ? <Text style={[styles.subtitle, { color: supportingColor }]}>{subtitle}</Text> : null}
     </View>
     <View style={styles.headerActions}>
       {streak !== undefined ? <View accessibilityLabel={`${streak} ${streakLabel ?? ''}`} style={[styles.streakPill, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Ionicons name="flame" size={15} color={colors.orange} /><Text style={[styles.streakValue, { color: colors.orange }]}>{streak}</Text>{streakLabel ? <Text style={[styles.streakLabel, { color: colors.orange }]}>{streakLabel}</Text> : null}</View> : null}
@@ -119,9 +121,9 @@ export function ActionTile({ icon, title, subtitle, onPress, color }: { icon: Ic
   return <Pressable testID={title} onPress={() => { triggerHaptic(); onPress?.(); }} onPressIn={() => setPressed(1)} onPressOut={() => setPressed(0)}><Animated.View style={[styles.actionTile, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: color, shadowOpacity: pressed.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.3] }), shadowRadius: pressed.interpolate({ inputRange: [0, 1], outputRange: [5, 14] }), elevation: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 6] }), transform: [{ translateY: pressed.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }, { scale: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) }] }]}><View style={[styles.actionIcon, { backgroundColor: `${color}20` }]}><Ionicons name={icon} size={20} color={color} /></View><Text style={[styles.actionTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.actionSubtitle, { color: colors.mutedForeground }]}>{subtitle}</Text></Animated.View></Pressable>;
 }
 
-export function Pill({ label, active, onPress }: { label: string; active?: boolean; onPress?: () => void }) {
+export function Pill({ label, active, onPress, lightBackground = false }: { label: string; active?: boolean; onPress?: () => void; lightBackground?: boolean }) {
   const colors = useColors();
-  return <Pressable onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.pill, { backgroundColor: active ? colors.primary : colors.secondary, opacity: pressed ? 0.72 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}><Text style={[styles.pillText, { color: active ? colors.primaryForeground : colors.mutedForeground }]}>{label}</Text></Pressable>;
+  return <Pressable onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.pill, { backgroundColor: lightBackground ? (active ? `${colors.primary}D9` : `${colors.foreground}B8`) : (active ? colors.primary : colors.secondary), borderWidth: lightBackground ? 1 : 0, borderColor: lightBackground ? `${colors.primaryForeground}20` : 'transparent', opacity: pressed ? 0.72 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}><Text style={[styles.pillText, { color: lightBackground || active ? colors.primaryForeground : colors.mutedForeground }]}>{label}</Text></Pressable>;
 }
 
 export function CelebrationBurst({ visible, onDone, title, subtitle }: { visible: boolean; onDone?: () => void; title?: string; subtitle?: string }) {
