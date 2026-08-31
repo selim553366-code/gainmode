@@ -38,11 +38,13 @@ const dayToWeekday: Record<string, number> = {
 
 async function prepareNotifications() {
   if (Platform.OS === 'web') return false;
-  await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-    name: 'Forge Fit reminders',
-    importance: Notifications.AndroidImportance.DEFAULT,
-    sound: undefined,
-  });
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+      name: 'Forge Fit reminders',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: undefined,
+    });
+  }
   const permissions = await Notifications.getPermissionsAsync();
   return permissions.granted;
 }
@@ -51,6 +53,7 @@ export async function requestNotificationPermission() {
   if (Platform.OS === 'web') return true;
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
+  if (!current.canAskAgain) return false;
   const requested = await Notifications.requestPermissionsAsync();
   return requested.granted;
 }
@@ -67,18 +70,20 @@ function content(language: Language, titleKey: Parameters<typeof translate>[1], 
 async function scheduleDaily(language: Language, titleKey: Parameters<typeof translate>[1], bodyKey: Parameters<typeof translate>[1], hour: number, minute = 0) {
   await Notifications.scheduleNotificationAsync({
     content: content(language, titleKey, bodyKey),
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, channelId: CHANNEL_ID, hour, minute },
   });
 }
 
 async function scheduleWeekly(language: Language, titleKey: Parameters<typeof translate>[1], bodyKey: Parameters<typeof translate>[1], weekday: number, hour: number, minute = 0) {
   await Notifications.scheduleNotificationAsync({
     content: content(language, titleKey, bodyKey),
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, weekday, hour, minute },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, channelId: CHANNEL_ID, weekday, hour, minute },
   });
 }
 
-export async function syncFitnessNotifications({
+let notificationSync = Promise.resolve();
+
+async function syncFitnessNotificationsNow({
   settings,
   profile,
   language,
@@ -93,7 +98,7 @@ export async function syncFitnessNotifications({
   if (!(await prepareNotifications())) return;
 
   if (settings.workoutReminder && profile) {
-    const workoutDays = profile.preferredDays?.length ? profile.preferredDays : ['MON', 'WED', 'FRI'];
+    const workoutDays = profile.preferredDays ?? [];
     await Promise.all(workoutDays.map((day) => {
       const weekday = dayToWeekday[day];
       return weekday ? scheduleWeekly(language, 'notificationWorkoutTitle', 'notificationWorkoutBody', weekday, 18) : Promise.resolve();
@@ -115,4 +120,14 @@ export async function syncFitnessNotifications({
   if (settings.weeklySummary) {
     await scheduleWeekly(language, 'notificationSummaryTitle', 'notificationSummaryBody', 1, 18);
   }
+}
+
+export function syncFitnessNotifications(args: {
+  settings: NotificationSettings;
+  profile: Profile | null;
+  language: Language;
+}) {
+  const nextSync = notificationSync.catch(() => undefined).then(() => syncFitnessNotificationsNow(args));
+  notificationSync = nextSync.catch(() => undefined);
+  return nextSync;
 }

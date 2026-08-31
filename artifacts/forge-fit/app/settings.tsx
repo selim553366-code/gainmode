@@ -104,6 +104,7 @@ export default function SettingsScreen() {
                 <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{item.description}</Text>
               </View>
               <Switch
+                testID={`notification-toggle-${item.key}`}
                 accessibilityLabel={item.title}
                 value={notificationSettings[item.key]}
                 onValueChange={(value) => { void handleNotificationToggle(item.key, value); }}
