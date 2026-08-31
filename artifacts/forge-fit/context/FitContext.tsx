@@ -3,7 +3,7 @@ import React, { createContext, ReactNode, useContext, useEffect, useMemo, useSta
 import { Language, TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
 
-export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string };
+export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
 export type GymLevel = 'basic' | 'intermediate' | 'full';
 export type FitnessGoal = 'muscle' | 'weightGain' | 'weightLoss' | 'fatLoss' | 'maintain';
@@ -276,7 +276,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
     enablePremium: () => setState((current) => current.isPremium ? current : { ...current, isPremium: true }),
     setLanguage: (language) => setState((current) => ({ ...current, language })),
     restartOnboarding: () => setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false })),
-    addMeal: (meal) => setState((current) => ({ ...current, meals: [...current.meals, { ...meal, id: `${Date.now()}-${Math.random()}` }] })),
+     addMeal: (meal) => setState((current) => ({ ...current, meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }] })),
     removeMeal: (id) => setState((current) => {
       return { ...current, meals: current.meals.filter((item) => item.id !== id) };
     }),

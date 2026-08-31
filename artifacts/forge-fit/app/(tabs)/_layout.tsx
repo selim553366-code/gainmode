@@ -9,7 +9,7 @@ import { PremiumLock } from '@/components/FitUI';
 import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const tabOrder = ['index', 'nutrition', 'coach', 'plan', 'friends'];
+const tabOrder = ['index', 'nutrition', 'coach', 'plan', 'progress'];
 
 type TabRoute = { key: string; name: string };
 type TabBarProps = {
@@ -101,6 +101,7 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
     if (name === 'index') return 'home';
     if (name === 'nutrition') return 'pie-chart';
     if (name === 'plan') return 'activity';
+    if (name === 'progress') return 'trending-up';
     return 'users';
   };
 
@@ -153,8 +154,7 @@ export default function TabLayout() {
       <Tabs.Screen name="nutrition" options={{ title: t('nutrition') }} />
       <Tabs.Screen name="plan" options={{ title: t('plan') }} />
       <Tabs.Screen name="coach" options={{ title: t('coachTitle') }} />
-      <Tabs.Screen name="progress" options={{ href: null }} />
-      <Tabs.Screen name="friends" options={{ title: t('friends') }} />
+       <Tabs.Screen name="progress" options={{ title: t('progress') }} />
     </Tabs>
   );
 }
