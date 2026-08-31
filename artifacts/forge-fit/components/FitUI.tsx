@@ -13,7 +13,10 @@ import { Ionicons } from '@/components/AppIcon';
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export function ForgeFitMark({ size = 28, style }: { size?: number; style?: object }) {
-  return <Image source={require('@/assets/images/forge-fit-logo.jpeg')} resizeMode="cover" style={[{ width: size, height: size, borderRadius: size * 0.24 }, style]} />;
+  const colors = useColors();
+  return <View style={[{ width: size, height: size, borderRadius: size * 0.24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary }, style]}>
+    <Ionicons name="barbell-outline" size={size * 0.64} color={colors.primaryForeground} />
+  </View>;
 }
 
 export function triggerHaptic(style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) {
