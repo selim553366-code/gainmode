@@ -25,6 +25,7 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
   const { coachThinking } = useFit();
   const logoScale = React.useRef(new Animated.Value(focused ? 0.8 : 1)).current;
   const logoDeparture = React.useRef(new Animated.Value(focused ? 0 : 1)).current;
+  const circleCollapse = React.useRef(new Animated.Value(focused ? 1 : 0)).current;
   const thinkingTransition = React.useRef(new Animated.Value(coachThinking ? 1 : 0)).current;
 
   React.useEffect(() => {
@@ -43,6 +44,13 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
     }).start();
   }, [focused, logoDeparture]);
   React.useEffect(() => {
+    Animated.timing(circleCollapse, {
+      toValue: focused ? 1 : 0,
+      duration: focused ? 1100 : 650,
+      useNativeDriver: true,
+    }).start();
+  }, [circleCollapse, focused]);
+  React.useEffect(() => {
     Animated.timing(thinkingTransition, { toValue: coachThinking ? 1 : 0, duration: 360, useNativeDriver: true }).start();
   }, [coachThinking, thinkingTransition]);
 
@@ -56,10 +64,10 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
     >
       <View style={[styles.coachTabButton, { shadowColor: colors.primary }]}>
         <Animated.View style={{ transform: [{ scale: logoScale }] }}>
-          <View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary }]}>
+          <Animated.View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary, opacity: circleCollapse.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.72, 0] }), transform: [{ translateY: circleCollapse.interpolate({ inputRange: [0, 1], outputRange: [0, 34] }) }, { scaleY: circleCollapse.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.22, 0] }) }] }]}>
             <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, { opacity: Animated.multiply(logoDeparture, thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })) }]} />
             <Animated.Image source={require('@/assets/images/coach-thinking-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, styles.coachThinkingImage, styles.coachThinkingOverlay, { opacity: thinkingTransition }]} />
-          </View>
+          </Animated.View>
         </Animated.View>
         <Text style={[styles.coachTabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
         {focused ? <View style={[styles.coachTabDot, { backgroundColor: colors.primary }]} /> : null}
