@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useAudioPlayer } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
-import { translate, type Language, type TranslationKey } from '@/lib/i18n';
+import { getPremiumPreviewPrice, translate, type Language, type TranslationKey } from '@/lib/i18n';
 import { REVENUECAT_ENTITLEMENT_IDENTIFIER, SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -198,7 +198,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   const { language, isPremium } = useFit();
   const { monthlyPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const price = monthlyPackage?.product.priceString ?? '—';
+  const price = monthlyPackage?.product.priceString ?? getPremiumPreviewPrice(language);
   const currency = monthlyPackage?.product.currencyCode;
   const appear = React.useRef(new Animated.Value(0)).current;
   const player = useAudioPlayer(require('@/assets/sounds/premium-success.wav'));
