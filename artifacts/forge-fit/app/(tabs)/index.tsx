@@ -45,9 +45,11 @@ function CalorieWaterFill({ progress, color }: { progress: number; color: string
   const fluidTranslateY = tiltY.interpolate({ inputRange: [-1, 1], outputRange: [7, -7] });
   const fluidRotation = tiltX.interpolate({ inputRange: [-1, 1], outputRange: ['-5deg', '5deg'] });
   return <View pointerEvents="none" style={styles.waterFrame}>
-    <Animated.View style={[styles.waterFill, { height, backgroundColor: color, transform: [{ translateX: fluidTranslateX }, { translateY: fluidTranslateY }, { rotate: fluidRotation }] }]}>
-      <Animated.View style={[styles.waterWave, { backgroundColor: color, transform: [{ translateX }] }]} />
-      <Animated.View style={[styles.waterWave, styles.waterWaveSecond, { backgroundColor: color, transform: [{ translateX }] }]} />
+    <Animated.View style={[styles.waterFill, { height, backgroundColor: color }]}>
+      <Animated.View style={[styles.waterMotion, { transform: [{ translateX: fluidTranslateX }, { translateY: fluidTranslateY }, { rotate: fluidRotation }] }]}>
+        <Animated.View style={[styles.waterWave, { backgroundColor: color, transform: [{ translateX }] }]} />
+        <Animated.View style={[styles.waterWave, styles.waterWaveSecond, { backgroundColor: color, transform: [{ translateX }] }]} />
+      </Animated.View>
     </Animated.View>
   </View>;
 }
@@ -147,6 +149,7 @@ const styles = StyleSheet.create({
   homeGreetingSubtitle: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, marginTop: 3 },
   waterFrame: { position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, justifyContent: 'flex-end', overflow: 'hidden' },
   waterFill: { width: '100%', opacity: 0.13, minHeight: 2 },
+  waterMotion: { flex: 1, width: '100%' },
   waterWave: { position: 'absolute', width: '145%', height: 26, borderRadius: 80, top: -13, left: '-22%' },
   waterWaveSecond: { top: -8, left: '30%', opacity: 0.72 },
   heroGlow: { position: 'absolute', right: -56, top: -70, width: 180, height: 180, borderRadius: 100, backgroundColor: '#FFFFFF18' },
