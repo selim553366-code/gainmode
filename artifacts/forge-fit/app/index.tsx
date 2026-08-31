@@ -528,11 +528,27 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
    </AnimatedLinearGradient>;
 }
 
+function CompletionCheckmark() {
+  const colors = useColors();
+  const appear = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.sequence([
+      Animated.delay(180),
+      Animated.spring(appear, { toValue: 1, friction: 5, tension: 90, useNativeDriver: true }),
+    ]).start();
+  }, [appear]);
+
+  return <Animated.View style={[styles.completionCheckmark, { backgroundColor: `${colors.success}20`, borderColor: `${colors.success}90`, opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1] }) }, { translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
+    <Ionicons name="checkmark" size={25} color={colors.success} />
+  </Animated.View>;
+}
+
 function CompletionScreen({ onContinue }: { onContinue: () => void }) {
   const colors = useColors();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.completionContent}><View style={[styles.completionCoach, { backgroundColor: `${colors.primary}18` }]}><CoachMotion variant="done" large /></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('finishQuestionsTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('finishQuestionsBody')}</Text></View><Pressable onPress={() => { triggerHaptic(); onContinue(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continueToPlan')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></LinearGradient>;
+    return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}><View style={styles.completionContent}><View style={styles.completionCoachStage}><CompletionCheckmark /><View style={[styles.completionCoach, { backgroundColor: `${colors.primary}18` }]}><CoachMotion variant="done" large /></View></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('finishQuestionsTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('finishQuestionsBody')}</Text></View><Pressable onPress={() => { triggerHaptic(); onContinue(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continueToPlan')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></LinearGradient>;
 }
 
 function PlanBuildingScreen({ onComplete }: { onComplete: () => void }) {
@@ -728,7 +744,9 @@ const styles = StyleSheet.create({
   welcomeTitle: { textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 33, lineHeight: 38, letterSpacing: -1.2 },
   welcomeSubtitle: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 23, marginTop: 12, maxWidth: 310 },
   completionContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  completionCoach: { width: 245, height: 245, borderRadius: 122, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
+  completionCoachStage: { alignItems: 'center', marginBottom: 22 },
+  completionCheckmark: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginBottom: -6, zIndex: 2 },
+  completionCoach: { width: 245, height: 245, borderRadius: 122, alignItems: 'center', justifyContent: 'center' },
   planBuildingContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   planBuildingOrb: { width: 154, height: 154, borderRadius: 77, borderWidth: 2, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', marginBottom: 34 },
   planBuildingOrbInner: { width: 104, height: 104, borderRadius: 52, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
