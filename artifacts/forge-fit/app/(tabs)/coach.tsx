@@ -84,7 +84,11 @@ export default function CoachScreen() {
     setCoachThinking(true);
     try {
       const weeklySummary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
-      const context = JSON.stringify({ username, profile, equipmentDetails: profile?.equipmentDetails ?? '', weight, calorieGoal, proteinGoal, meals, workouts: workouts.map((item) => ({ name: item.name, completed: item.completed, duration: item.duration, sets: item.exercises.reduce((sum, exercise) => sum + exercise.sets, 0), exercises: item.exercises.length })), weeklySummary });
+      const isMuscleGoal = profile?.goal === 'muscle';
+      const profileContext = isMuscleGoal && profile
+        ? Object.fromEntries(Object.entries(profile).filter(([key]) => key !== 'weight' && key !== 'targetWeight'))
+        : profile;
+      const context = JSON.stringify({ username, profile: profileContext, equipmentDetails: profile?.equipmentDetails ?? '', weight: isMuscleGoal ? null : weight, calorieGoal, proteinGoal, meals, workouts: workouts.map((item) => ({ name: item.name, completed: item.completed, duration: item.duration, sets: item.exercises.reduce((sum, exercise) => sum + exercise.sets, 0), exercises: item.exercises.length })), weeklySummary });
       const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/coach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message.trim(), language, context }) });
       if (!response.ok) throw new Error('coach unavailable');
       const result = await response.json() as { content?: string };
@@ -110,7 +114,7 @@ export default function CoachScreen() {
     const animation = Animated.timing(weeklyCardReveal, { toValue: 1, duration: 1050, easing: Easing.out(Easing.cubic), useNativeDriver: true });
     animation.start();
     const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
-    const weeklyPrompt = `Create a concise written weekly fitness analysis from the user's real data. Mention progress, training volume, calorie consistency, one clear next step, and end with warm motivation. Never invent missing data. This is a weekly review, not medical advice. Weekly summary: ${JSON.stringify(summary)}`;
+    const weeklyPrompt = `Create a concise written weekly fitness analysis from the user's real data. Mention progress, training volume, calorie consistency, one clear next step, and end with warm motivation. Never invent missing data. This is a weekly review, not medical advice. If the user's goal is muscle building, focus on training volume, consistency, and strength progress; do not mention weight change or weight logs. Reply entirely in the user's selected language. Weekly summary: ${JSON.stringify(summary)}`;
     const timeout = setTimeout(() => {
       void requestCoach(weeklyPrompt, { id: `weekly-${analysisId}`, text: t('weeklyAnalysisCard'), from: 'user', variant: 'weeklyAnalysis' });
     }, 760);

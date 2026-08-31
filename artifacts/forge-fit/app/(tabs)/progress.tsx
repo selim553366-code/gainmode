@@ -38,6 +38,7 @@ export default function ProgressScreen() {
   const [draftWeight, setDraftWeight] = React.useState('');
   const [launching, setLaunching] = React.useState(false);
   const launchProgress = React.useRef(new Animated.Value(0)).current;
+  const tracksWeight = Boolean(profile && profile.goal !== 'muscle');
   const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
   const points = weightLogs.filter((item) => item.date >= summary.weekStart).slice(-7);
   const maxPoint = Math.max(...points.map((item) => item.value), summary.currentWeightKg ?? 0, 1);
@@ -74,10 +75,10 @@ export default function ProgressScreen() {
         </View>
         <Text style={[styles.heroTitle, { color: colors.primaryForeground }]}>{t('weeklyAiCardTitle')}</Text>
         <Text style={[styles.heroSubtitle, { color: `${colors.primaryForeground}B8` }]}>{t('weeklyAiCardSubtitle')}</Text>
-        <View style={styles.heroWeightRow}>
+        {tracksWeight ? <View style={styles.heroWeightRow}>
           <View style={{ flex: 1 }}><Text style={[styles.heroLabel, { color: `${colors.primaryForeground}A8` }]}>{t('weeklyWeightChange')}</Text><Text style={[styles.heroWeight, { color: colors.primaryForeground }]}>{formatChange(summary.weightChangeKg)}</Text><Text style={[styles.heroOutcome, { color: colors.primaryForeground }]}>{outcomeCopy(summary.weightOutcome, t)}</Text></View>
           <View style={[styles.heroBadge, { backgroundColor: `${colors.primaryForeground}18`, borderColor: `${colors.primaryForeground}2C` }]}><Ionicons name={summary.weightOutcome === 'gained' ? 'trending-up-outline' : summary.weightOutcome === 'lost' ? 'trending-down' : 'analytics-outline'} size={28} color={colors.primaryForeground} /><Text style={[styles.heroBadgeText, { color: `${colors.primaryForeground}C2` }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View>
-        </View>
+        </View> : <View style={styles.muscleFocus}><View style={[styles.muscleFocusIcon, { backgroundColor: `${colors.primaryForeground}18` }]}><Ionicons name="barbell-outline" size={26} color={colors.primaryForeground} /></View><View style={{ flex: 1 }}><Text style={[styles.heroLabel, { color: `${colors.primaryForeground}A8` }]}>{t('weeklyMuscleFocus')}</Text><Text style={[styles.muscleFocusText, { color: colors.primaryForeground }]}>{t('weeklyMuscleSubtitle')}</Text></View></View>}
         <Pressable testID="get-weekly-ai-analysis" accessibilityRole="button" accessibilityLabel={t('weeklyAnalysisCta')} onPress={requestAnalysis} style={({ pressed }) => [styles.analysisButton, { backgroundColor: colors.primaryForeground, opacity: pressed || launching ? 0.8 : 1 }]}>
           <View style={[styles.analysisButtonIcon, { backgroundColor: `${colors.primary}24` }]}><Ionicons name={launching ? 'arrow-up' : 'sparkles-outline'} size={17} color={colors.primary} /></View>
           <Text style={[styles.analysisButtonText, { color: colors.primary }]}>{launching ? t('weeklyAnalysisSending') : t('weeklyAnalysisCta')}</Text>
@@ -99,13 +100,13 @@ export default function ProgressScreen() {
       <View style={[styles.track, { backgroundColor: colors.secondary }]}><View style={[styles.fill, { width: `${summary.calorieConsistency ?? 0}%`, backgroundColor: colors.success }]} /></View>
     </Card>
 
-    <Card style={styles.chartCard}>
+    {tracksWeight ? <Card style={styles.chartCard}>
       <View style={styles.chartHeader}><View><Text style={[styles.chartEyebrow, { color: colors.mutedForeground }]}>{t('weeklyWeightChart')}</Text><Text style={[styles.chartWeight, { color: colors.foreground }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View><View style={[styles.changePill, { backgroundColor: `${colors.primary}14` }]}><Ionicons name="analytics-outline" size={14} color={colors.primary} /><Text style={[styles.changePillText, { color: colors.primary }]}>{formatChange(summary.weightChangeKg)}</Text></View></View>
       <View style={styles.chart}>{points.length > 0 ? points.map((point) => <View key={point.id} style={styles.chartColumn}><View style={[styles.bar, { height: 20 + ((point.value - minPoint) / pointRange) * 78, backgroundColor: point.id === points.at(-1)?.id ? colors.primary : `${colors.primary}42` }]} /></View>) : <Text style={[styles.chartEmpty, { color: colors.mutedForeground }]}>{t('weeklyWeightNoData')}</Text>}</View>
-    </Card>
+    </Card> : null}
 
-    <View style={styles.logHeader}><Text style={[styles.logTitle, { color: colors.foreground }]}>{t('weeklyAddWeight')}</Text><Text style={[styles.logHint, { color: colors.mutedForeground }]}>{t('weeklyWeightLogHint')}</Text></View>
-    <Card style={styles.addCard}><TextInput value={draftWeight} onChangeText={setDraftWeight} keyboardType="decimal-pad" placeholder={t('currentWeight')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground }]} /><Pressable accessibilityLabel={t('add')} onPress={saveWeight} style={({ pressed }) => [styles.addButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Ionicons name="add" size={19} color={colors.primaryForeground} /></Pressable></Card>
+    {tracksWeight ? <><View style={styles.logHeader}><Text style={[styles.logTitle, { color: colors.foreground }]}>{t('weeklyAddWeight')}</Text><Text style={[styles.logHint, { color: colors.mutedForeground }]}>{t('weeklyWeightLogHint')}</Text></View>
+    <Card style={styles.addCard}><TextInput value={draftWeight} onChangeText={setDraftWeight} keyboardType="decimal-pad" placeholder={t('currentWeight')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground }]} /><Pressable accessibilityLabel={t('add')} onPress={saveWeight} style={({ pressed }) => [styles.addButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Ionicons name="add" size={19} color={colors.primaryForeground} /></Pressable></Card></> : null}
   </Screen>;
 }
 
@@ -125,6 +126,9 @@ const styles = StyleSheet.create({
   heroLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 0.7, textTransform: 'uppercase' },
   heroWeight: { fontFamily: 'Inter_700Bold', fontSize: 39, letterSpacing: -1.8, marginTop: 3 },
   heroOutcome: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 2 },
+  muscleFocus: { flexDirection: 'row', alignItems: 'center', gap: 13, minHeight: 92, marginTop: 22 },
+  muscleFocusIcon: { width: 62, height: 62, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  muscleFocusText: { fontFamily: 'Inter_700Bold', fontSize: 18, lineHeight: 23, marginTop: 5, maxWidth: 220 },
   heroBadge: { width: 82, height: 82, borderRadius: 25, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   heroBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
   analysisButton: { minHeight: 51, borderRadius: 17, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, marginTop: 22 },

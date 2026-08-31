@@ -2,6 +2,13 @@ import { Router, type IRouter } from "express";
 
 const router: IRouter = Router();
 const model = "gpt-5-mini";
+const languageNames: Record<string, string> = {
+  tr: "Turkish",
+  en: "English",
+  de: "German",
+  fr: "French",
+  es: "Spanish",
+};
 
 function openAiUrl() {
   const base = process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"];
@@ -28,7 +35,7 @@ router.post("/ai/coach", async (req, res) => {
     const { message, context, language } = req.body as { message?: string; context?: string; language?: string };
     if (!message?.trim()) return res.status(400).json({ error: "Message is required." });
     const content = await askOpenAi([
-      { role: "system", content: `You are Forge Coach, a concise, encouraging fitness and nutrition coach. Use the user's app data below to personalize answers. Never invent logged data. If medical concerns arise, recommend a clinician. Reply in ${language ?? "the user's language"}. User app data: ${context ?? "No profile data yet."}` },
+      { role: "system", content: `You are Forge Coach, a concise, encouraging fitness and nutrition coach. Use the user's app data below to personalize answers. Never invent logged data. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[language ?? ""] ?? "the user's selected language"}; do not switch languages. User app data: ${context ?? "No profile data yet."}` },
       { role: "user", content: message.trim() },
     ]);
     return res.json({ content });

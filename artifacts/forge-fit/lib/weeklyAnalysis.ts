@@ -58,18 +58,21 @@ export function getWeeklySummary({
   const weekWeights = weightLogs
     .filter((item) => inCurrentWeek(item.date, start, end))
     .sort((a, b) => a.date.localeCompare(b.date));
-  const firstWeight = weekWeights[0]?.value;
-  const lastWeight = weekWeights.at(-1)?.value ?? weight;
+  const tracksWeight = goal !== 'muscle';
+  const firstWeight = tracksWeight ? weekWeights[0]?.value : undefined;
+  const lastWeight = tracksWeight ? weekWeights.at(-1)?.value ?? weight : null;
   const weightChangeKg = firstWeight !== undefined && lastWeight !== null && lastWeight !== undefined
     ? roundKg(lastWeight - firstWeight)
     : null;
-  const weightOutcome: WeightOutcome = weightChangeKg === null
+  const weightOutcome: WeightOutcome = !tracksWeight
     ? 'missing'
-    : weightChangeKg < -0.05
-      ? 'lost'
-      : weightChangeKg > 0.05
-        ? 'gained'
-        : 'steady';
+    : weightChangeKg === null
+      ? 'missing'
+      : weightChangeKg < -0.05
+        ? 'lost'
+        : weightChangeKg > 0.05
+          ? 'gained'
+          : 'steady';
 
   const completedWorkouts = workouts.filter((item) => item.completed);
   const workoutMinutes = completedWorkouts.reduce((sum, item) => sum + item.duration, 0);
