@@ -16,7 +16,6 @@ export const HealthCheckResponse = zod.object({
   "status": zod.string()
 })
 
-
 /**
  * Searches a broad food database and returns normalized nutrition values.
  * @summary Search food nutrition
@@ -47,3 +46,28 @@ export const SearchFoodResponse = zod.object({
   "fat": zod.number()
 }))
 })
+
+
+/**
+ * Assigns the shared RunForge discount code to one unique client within the campaign limit.
+ * @summary Claim the shared RunForge discount code
+ */
+export const claimRunForgeDiscountBodyClientIdMax = 200;
+
+
+
+export const ClaimRunForgeDiscountBody = zod.object({
+  "clientId": zod.string().min(1).max(claimRunForgeDiscountBodyClientIdMax)
+})
+
+export const claimRunForgeDiscountResponseRemainingMin = 0;
+
+
+
+
+export const ClaimRunForgeDiscountResponse = zod.object({
+  "available": zod.boolean(),
+  "code": zod.string().nullable(),
+  "remaining": zod.number().min(claimRunForgeDiscountResponseRemainingMin),
+  "limit": zod.number().min(1)
+});

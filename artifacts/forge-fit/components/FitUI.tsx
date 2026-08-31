@@ -230,15 +230,24 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
 
   const activatePremium = async () => {
     triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
+    setActionError(null);
     if (isSubscribed || isPremium) {
       onClose();
       return;
     }
     enablePremium();
-    const code = ensureRunForgeDiscountCode();
-    setCelebrationCode(code);
+    const result = await ensureRunForgeDiscountCode();
+    if (result.status === 'error') {
+      setActionError(t('runForgeAllocationError'));
+      return;
+    }
+    if (result.status === 'exhausted') {
+      setActionError(t('runForgeLimitReached'));
+      return;
+    }
+    setCelebrationCode(result.code);
     setCopiedCode(null);
-    Clipboard.setStringAsync(code).catch(() => undefined);
+    Clipboard.setStringAsync(result.code).catch(() => undefined);
     setCelebrating(true);
     player.seekTo(0);
     player.play();
@@ -255,10 +264,18 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
     try {
       const customerInfo = await restore();
       if (customerInfo.entitlements.active[REVENUECAT_ENTITLEMENT_IDENTIFIER]) {
-        const code = ensureRunForgeDiscountCode();
-        setCelebrationCode(code);
+        const result = await ensureRunForgeDiscountCode();
+        if (result.status === 'error') {
+          setActionError(t('runForgeAllocationError'));
+          return;
+        }
+        if (result.status === 'exhausted') {
+          setActionError(t('runForgeLimitReached'));
+          return;
+        }
+        setCelebrationCode(result.code);
         setCopiedCode(null);
-        Clipboard.setStringAsync(code).catch(() => undefined);
+        Clipboard.setStringAsync(result.code).catch(() => undefined);
         setCelebrating(true);
         return;
       }

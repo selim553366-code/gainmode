@@ -4,3 +4,4 @@
 - [Expo static build workflow](forge-fit-build-workflow.md) — managed preview ports can conflict with the static Expo helper’s fixed 8081 probe.
 - [Forge Fit live pose tracking](forge-fit-live-pose.md) — native MediaPipe camera flow needs a development build; previews should use an explicit fallback.
 - [Forge Fit Android release builds](forge-fit-android-build.md) — local native prebuild works, but signed AAB delivery needs an Android SDK and secure production signing outside the preview workspace.
+- [OpenAPI and Zod codegen](openapi-zod-codegen.md) — this workspace’s Zod 3 generator mishandles OpenAPI integer response fields; verify generated schemas after API changes.

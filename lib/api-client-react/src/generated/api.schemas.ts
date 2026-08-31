@@ -28,6 +28,24 @@ export interface ErrorResponse {
   error: string;
 }
 
+export interface RunForgeDiscountClaimRequest {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  clientId: string;
+}
+
+export interface RunForgeDiscountResponse {
+  available: boolean;
+  /** @nullable */
+  code: string | null;
+  /** @minimum 0 */
+  remaining: number;
+  /** @minimum 1 */
+  limit: number;
+}
+
 export type SearchFoodParams = {
 /**
  * Food or drink search text

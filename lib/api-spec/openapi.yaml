@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: food
     description: Food search operations
+  - name: runforge
+    description: RunForge discount operations
 paths:
   /healthz:
     get:
@@ -76,6 +78,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /runforge/discount:
+    post:
+      operationId: claimRunForgeDiscount
+      tags: [runforge]
+      summary: Claim the shared RunForge discount code
+      description: Assigns the shared RunForge discount code to one unique client within the campaign limit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunForgeDiscountClaimRequest"
+      responses:
+        "200":
+          description: Discount code claim status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunForgeDiscountResponse"
+        "400":
+          description: Invalid client ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Discount allocation unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -129,4 +162,33 @@ components:
           type: string
       required:
         - error
+    RunForgeDiscountClaimRequest:
+      type: object
+      properties:
+        clientId:
+          type: string
+          minLength: 1
+          maxLength: 200
+      required:
+        - clientId
+    RunForgeDiscountResponse:
+      type: object
+      properties:
+        available:
+          type: boolean
+        code:
+          type:
+            - string
+            - "null"
+        remaining:
+          type: number
+          minimum: 0
+        limit:
+          type: number
+          minimum: 1
+      required:
+        - available
+        - code
+        - remaining
+        - limit
 

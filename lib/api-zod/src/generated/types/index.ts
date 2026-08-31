@@ -10,5 +10,7 @@ export * from './errorResponse';
 export * from './foodSearchItem';
 export * from './foodSearchResponse';
 export * from './healthStatus';
+export * from './runForgeDiscountClaimRequest';
+export * from './runForgeDiscountResponse';
 export * from './searchFoodLanguage';
 export * from './searchFoodParams';
