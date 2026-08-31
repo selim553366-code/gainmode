@@ -3,6 +3,7 @@ import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-nat
 import { Accelerometer } from 'expo-sensors';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
@@ -104,6 +105,13 @@ export default function TodayScreen() {
           <View><Text style={[styles.heroSmallLabel, { color: `${colors.primaryForeground}A8` }]}>{t('remaining')}</Text><Text style={[styles.heroSmallValue, { color: colors.primaryForeground }]}>{calorieGoal ? `${Math.max(calorieGoal - calories, 0)} ${t('caloriesShort')}` : '—'}</Text></View>
            <View style={styles.heroStatus}><Ionicons name="information-circle-outline" size={15} color={colors.primaryForeground} /><Text style={[styles.heroStatusText, { color: colors.primaryForeground }]}>{t('noData')}</Text></View>
         </View>
+         <Pressable testID="analyze-meal-photo" onPress={() => router.push({ pathname: '/(tabs)/nutrition', params: { openCamera: 'meal' } })} style={({ pressed }) => [styles.heroPhotoAction, { borderColor: `${colors.primaryForeground}35`, opacity: pressed ? 0.8 : 1 }]}>
+           <LinearGradient colors={[`${colors.primaryForeground}F2`, `${colors.primaryForeground}C7`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroPhotoActionGradient}>
+             <View style={[styles.heroPhotoActionIcon, { backgroundColor: `${colors.primary}35` }]}><Ionicons name="camera-outline" size={16} color={colors.primary} /></View>
+             <Text style={[styles.heroPhotoActionText, { color: colors.primary }]}>{t('analyzeMealPhoto')}</Text>
+             <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+           </LinearGradient>
+         </Pressable>
       </View>
 
       <View style={styles.metricRow}>
@@ -156,6 +164,10 @@ const styles = StyleSheet.create({
   heroSmallValue: { fontFamily: 'Inter_700Bold', fontSize: 16, marginTop: 3 },
   heroStatus: { flex: 1, flexDirection: 'row', gap: 5, alignItems: 'center', justifyContent: 'flex-end', minWidth: 0 },
   heroStatusText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 11, textAlign: 'right' },
+  heroPhotoAction: { marginTop: 17, borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
+  heroPhotoActionGradient: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 11 },
+  heroPhotoActionIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  heroPhotoActionText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 0.1 },
   metricRow: { flexDirection: 'row', justifyContent: 'center', gap: 22, marginBottom: 16 },
   cardTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   cardCaption: { fontFamily: 'Inter_400Regular', fontSize: 12, marginTop: 5 },

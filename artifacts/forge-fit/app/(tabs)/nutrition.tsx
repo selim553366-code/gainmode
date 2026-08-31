@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Animated, Easing, Image, Modal, Platform, Pre
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
 import { useSearchFood, type FoodSearchItem } from '@workspace/api-client-react';
 import { useFit, Meal } from '@/context/FitContext';
@@ -138,6 +139,7 @@ export default function NutritionScreen() {
   const colors = useColors();
   const { language, meals, calorieGoal, addMeal, removeMeal, photoAnalysesUsed, incrementPhotoUsage } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const { openCamera } = useLocalSearchParams<{ openCamera?: string }>();
   const [range, setRange] = React.useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [search, setSearch] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
@@ -146,6 +148,7 @@ export default function NutritionScreen() {
   const [analysisPhase, setAnalysisPhase] = React.useState<AnalysisPhase>('idle');
   const [mealCameraVisible, setMealCameraVisible] = React.useState(false);
   const [barcodeScannerVisible, setBarcodeScannerVisible] = React.useState(false);
+  const autoOpenedCamera = React.useRef(false);
   const normalizedSearch = search.trim();
   const searchEnabled = debouncedSearch.length >= 2;
   const foodSearch = useSearchFood(
@@ -211,6 +214,13 @@ export default function NutritionScreen() {
     if (photoAnalysesUsed >= DAILY_PHOTO_ANALYSIS_LIMIT) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
     setMealCameraVisible(true);
   };
+
+  React.useEffect(() => {
+    if (openCamera !== 'meal' || autoOpenedCamera.current) return;
+    autoOpenedCamera.current = true;
+    const frame = requestAnimationFrame(() => openMealCamera());
+    return () => cancelAnimationFrame(frame);
+  }, [openCamera]);
 
   const loggedMeals = [...meals].reverse();
 
