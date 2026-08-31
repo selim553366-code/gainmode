@@ -76,12 +76,17 @@ export default function TodayScreen() {
          premiumAction={SUBSCRIPTION_PURCHASE_ENABLED ? () => setPremiumVisible(true) : undefined}
          streak={streak}
          streakLabel={t('streak')}
+         showText={false}
       />
 
        <View style={styles.homeContent}>
        <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
         <CalorieWaterFill progress={calorieGoal ? calories / calorieGoal : 0} color={colors.primaryForeground} />
         <View style={styles.heroGlow} />
+         <View style={styles.homeGreeting}>
+           <Text style={[styles.homeGreetingTitle, { color: colors.primaryForeground }]}>{`${t('goodMorning')}, ${username ?? ''}`.trim()}</Text>
+           <Text style={[styles.homeGreetingSubtitle, { color: `${colors.primaryForeground}A8` }]}>{t('ready')}</Text>
+         </View>
          <View style={styles.heroTop}>
            <View style={styles.heroLead}>
             <Text style={[styles.heroEyebrow, { color: colors.primaryForeground }]}>{t('calories').toUpperCase()}</Text>
@@ -127,8 +132,11 @@ export default function TodayScreen() {
 }
 
 const styles = StyleSheet.create({
-  homeContent: { paddingTop: 22 },
+  homeContent: { paddingTop: 30 },
   heroCard: { borderRadius: 28, padding: 22, overflow: 'hidden', marginBottom: 16 },
+  homeGreeting: { marginBottom: 18 },
+  homeGreetingTitle: { fontFamily: 'Inter_700Bold', fontSize: 22, lineHeight: 27, letterSpacing: -0.5 },
+  homeGreetingSubtitle: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, marginTop: 3 },
   waterFrame: { position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, justifyContent: 'flex-end', overflow: 'hidden' },
   waterFill: { width: '100%', opacity: 0.13, minHeight: 2 },
   waterWave: { position: 'absolute', width: '145%', height: 26, borderRadius: 80, top: -13, left: '-22%' },

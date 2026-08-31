@@ -55,17 +55,17 @@ export function Screen({ children, scroll = true, bottomPadding = 104 }: { child
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{backdrop}</ScrollView> : backdrop;
 }
 
-export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, premiumLabel, premiumAction, premiumOwned = false, streak, streakLabel, centered = false, lightBackground = false }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean; lightBackground?: boolean }) {
+export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, premiumLabel, premiumAction, premiumOwned = false, streak, streakLabel, centered = false, lightBackground = false, showText = true }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean; lightBackground?: boolean; showText?: boolean }) {
   const colors = useColors();
   const premiumColor = premiumOwned ? colors.success : colors.primary;
   const headingColor = lightBackground ? colors.primaryForeground : colors.foreground;
   const supportingColor = lightBackground ? `${colors.primaryForeground}B3` : colors.mutedForeground;
   return <View style={styles.header}>
-    <View style={[styles.headerText, centered ? styles.headerTextCentered : null]}>
+    {showText ? <View style={[styles.headerText, centered ? styles.headerTextCentered : null]}>
       {eyebrow ? <Text style={[styles.eyebrow, { color: lightBackground ? colors.primaryForeground : colors.primary }]}>{eyebrow.toUpperCase()}</Text> : null}
       <Text style={[styles.title, { color: headingColor }]}>{title}</Text>
       {subtitle ? <Text style={[styles.subtitle, { color: supportingColor }]}>{subtitle}</Text> : null}
-    </View>
+    </View> : null}
     <View style={[styles.headerActions, centered ? styles.headerActionsCentered : null]}>
       {streak !== undefined ? <View accessibilityLabel={`${streak} ${streakLabel ?? ''}`} style={[styles.streakPill, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Ionicons name="flame" size={15} color={colors.orange} /><Text style={[styles.streakValue, { color: colors.orange }]}>{streak}</Text>{streakLabel ? <Text style={[styles.streakLabel, { color: colors.orange }]}>{streakLabel}</Text> : null}</View> : null}
       {premiumAction ? <Pressable accessibilityLabel={premiumLabel} testID="header-premium" onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); premiumAction(); }} style={({ pressed }) => [styles.premiumPill, { backgroundColor: `${premiumColor}20`, borderColor: `${premiumColor}70`, opacity: pressed ? 0.72 : 1 }]}>{premiumOwned ? <Ionicons name="checkmark-circle" size={13} color={premiumColor} /> : <ForgeFitMark size={18} />}<Text style={[styles.premiumPillText, { color: premiumColor }]}>{premiumLabel}</Text></Pressable> : null}
