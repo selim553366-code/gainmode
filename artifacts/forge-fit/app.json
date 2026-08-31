@@ -1,10 +1,5 @@
 {
   "expo": {
-    "extra": {
-      "eas": {
-        "projectId": "c8e900fc-0f57-4177-93c3-5eb03f676a44"
-      }
-    },
     "name": "Forge Fit",
     "slug": "forge-fit",
     "version": "1.0.0",
