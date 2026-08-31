@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Image, PanResponder, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Easing, Image, PanResponder, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,6 +30,7 @@ type MeasurementUnit = 'metric' | 'imperial';
 type TargetWeightUnit = 'kg' | 'lb';
 
 const KG_PER_POUND = 1 / 2.20462;
+const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
 
 function formatImperialHeight(heightCm: number) {
   const totalInches = Math.round(heightCm / 2.54);
@@ -413,7 +414,7 @@ function OnboardingQuestions() {
     return <><View style={styles.dayGrid}>{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((day) => <Pressable key={day} onPress={() => selectedDays(day)} style={[styles.dayButton, { backgroundColor: preferredDays.includes(day) ? colors.primary : colors.card, borderColor: preferredDays.includes(day) ? colors.primary : colors.border }]}><Text style={[styles.dayText, { color: preferredDays.includes(day) ? colors.primaryForeground : colors.foreground }]}>{day}</Text></Pressable>)}</View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('preferredDaysQuestion')}</Text></>;
   };
 
-  if (!started) return <WelcomeScreen onStart={() => setStarted(true)} />;
+   if (!started) return <WelcomeScreen onStart={() => { slide.setValue(0); setStarted(true); Animated.timing(slide, { toValue: 1, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(); }} />;
    if (buildingPlan) return <PlanBuildingScreen onComplete={finish} />;
    if (step === total) return <CompletionScreen onContinue={() => setBuildingPlan(true)} />;
    const optional = step >= 6 && !hasTargetWeightStep;
@@ -439,11 +440,57 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   const colors = useColors();
   const { language, setLanguage } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-   return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
-     <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
-    <View style={styles.welcomeContent}><View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18` }]}><View style={styles.welcomeCoachCenter}><CoachMotion variant="wave" large /></View></View><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text></View>
-     <Pressable onPress={() => { triggerHaptic(); onStart(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
-  </LinearGradient>;
+   const { width } = useWindowDimensions();
+   const [leaving, setLeaving] = React.useState(false);
+   const orbScale = React.useRef(new Animated.Value(0.78)).current;
+   const orbRotation = React.useRef(new Animated.Value(0)).current;
+   const copyOpacity = React.useRef(new Animated.Value(0)).current;
+   const copyTranslateY = React.useRef(new Animated.Value(22)).current;
+   const buttonOpacity = React.useRef(new Animated.Value(0)).current;
+   const buttonTranslateY = React.useRef(new Animated.Value(28)).current;
+   const pageTranslateX = React.useRef(new Animated.Value(0)).current;
+   const pageOpacity = React.useRef(new Animated.Value(1)).current;
+
+   React.useEffect(() => {
+     Animated.parallel([
+       Animated.spring(orbScale, { toValue: 1, damping: 13, stiffness: 145, mass: 0.8, useNativeDriver: true }),
+       Animated.timing(orbRotation, { toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+       Animated.sequence([
+         Animated.delay(120),
+         Animated.parallel([
+           Animated.timing(copyOpacity, { toValue: 1, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+           Animated.timing(copyTranslateY, { toValue: 0, duration: 620, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+         ]),
+       ]),
+       Animated.sequence([
+         Animated.delay(250),
+         Animated.parallel([
+           Animated.timing(buttonOpacity, { toValue: 1, duration: 460, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+           Animated.timing(buttonTranslateY, { toValue: 0, duration: 560, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+         ]),
+       ]),
+     ]).start();
+   }, [buttonOpacity, buttonTranslateY, copyOpacity, copyTranslateY, orbRotation, orbScale]);
+
+   const startAdventure = () => {
+     if (leaving) return;
+     triggerHaptic();
+     setLeaving(true);
+     Animated.parallel([
+       Animated.timing(pageTranslateX, { toValue: -width, duration: 560, easing: Easing.bezier(0.22, 0.61, 0.36, 1), useNativeDriver: true }),
+       Animated.timing(pageOpacity, { toValue: 0.96, duration: 440, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+       Animated.timing(orbScale, { toValue: 1.08, duration: 560, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+     ]).start(({ finished }) => {
+       if (finished) onStart();
+     });
+   };
+
+   const orbRotateValue = orbRotation.interpolate({ inputRange: [0, 1], outputRange: ['-5deg', '0deg'] });
+   return <AnimatedLinearGradient colors={[colors.background, '#0B2340', colors.background]} style={[styles.full, { opacity: pageOpacity, transform: [{ translateX: pageTranslateX }] }]}>
+      <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
+     <View style={styles.welcomeContent}><Animated.View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18`, transform: [{ scale: orbScale }, { rotate: orbRotateValue }] }]}><Image source={require('@/assets/images/coach-welcome.png')} resizeMode="cover" style={styles.welcomeCoachImage} /></Animated.View><Animated.View style={{ opacity: copyOpacity, transform: [{ translateY: copyTranslateY }] }}><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text></Animated.View></View>
+      <Animated.View style={{ opacity: buttonOpacity, transform: [{ translateY: buttonTranslateY }] }}><Pressable onPress={startAdventure} disabled={leaving} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></Animated.View>
+   </AnimatedLinearGradient>;
 }
 
 function CompletionScreen({ onContinue }: { onContinue: () => void }) {
@@ -629,8 +676,8 @@ const styles = StyleSheet.create({
   nextText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   skip: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 12 },
   welcomeContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-  welcomeOrb: { width: 245, height: 245, borderRadius: 122, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
-  welcomeCoachCenter: { alignItems: 'center', justifyContent: 'center', transform: [{ translateX: -14 }, { translateY: -10 }] },
+   welcomeOrb: { width: 245, height: 245, borderRadius: 122, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 22 },
+   welcomeCoachImage: { width: 245, height: 245 },
   welcomeTitle: { textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 33, lineHeight: 38, letterSpacing: -1.2 },
   welcomeSubtitle: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 23, marginTop: 12, maxWidth: 310 },
   completionContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
