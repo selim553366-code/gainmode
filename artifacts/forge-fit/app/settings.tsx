@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { Alert, Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, AppState, Linking, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
-import { NotificationSettingKey, requestNotificationPermission } from '@/lib/notifications';
+import { hasNotificationPermission, NotificationSettingKey, requestNotificationPermission } from '@/lib/notifications';
 
 type LegalSection = 'privacy' | 'terms' | null;
 
@@ -21,6 +21,7 @@ export default function SettingsScreen() {
   } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [expanded, setExpanded] = useState<LegalSection>(null);
+  const [permissionRetryKey, setPermissionRetryKey] = useState<NotificationSettingKey | null>(null);
   const languages = Object.keys(languageLabels) as Language[];
   const notificationRows: Array<{ key: NotificationSettingKey; icon: React.ComponentProps<typeof Ionicons>['name']; title: string; description: string }> = [
     { key: 'workoutReminder', icon: 'barbell-outline', title: t('workoutReminder'), description: t('workoutReminderDescription') },
@@ -31,6 +32,7 @@ export default function SettingsScreen() {
   ];
   const handleNotificationToggle = async (key: NotificationSettingKey, enabled: boolean) => {
     if (enabled) {
+      setPermissionRetryKey(key);
       const granted = await requestNotificationPermission().catch(() => false);
       if (!granted) {
         Alert.alert(t('notificationsPermissionTitle'), t('notificationsPermissionBody'), [
@@ -40,8 +42,22 @@ export default function SettingsScreen() {
         return;
       }
     }
+    setPermissionRetryKey(null);
     setNotificationSetting(key, enabled);
   };
+
+  React.useEffect(() => {
+    if (!permissionRetryKey) return;
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active') return;
+      void hasNotificationPermission().then((granted) => {
+        if (!granted) return;
+        setNotificationSetting(permissionRetryKey, true);
+        setPermissionRetryKey(null);
+      }).catch(() => undefined);
+    });
+    return () => subscription.remove();
+  }, [permissionRetryKey, setNotificationSetting]);
 
   return (
     <Screen>

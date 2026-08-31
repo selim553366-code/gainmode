@@ -58,6 +58,12 @@ export async function requestNotificationPermission() {
   return requested.granted;
 }
 
+export async function hasNotificationPermission() {
+  if (Platform.OS === 'web') return true;
+  const permissions = await Notifications.getPermissionsAsync();
+  return permissions.granted;
+}
+
 function content(language: Language, titleKey: Parameters<typeof translate>[1], bodyKey: Parameters<typeof translate>[1]) {
   return {
     title: translate(language, titleKey),
