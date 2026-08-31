@@ -61,6 +61,7 @@ export default function RootLayout() {
       require('@/assets/images/icon.png'),
       require('@/assets/images/coach.png'),
       require('@/assets/images/coach-tab-custom.jpeg'),
+      require('@/assets/images/coach-background.jpeg'),
       require('@/assets/images/coach-thinking.png'),
       require('@/assets/images/coach-thinking-custom.jpeg'),
       require('@/assets/images/coach-writing-no-bg.png'),
