@@ -15,6 +15,7 @@ export type ProteinPreference = 'balanced' | 'high' | 'lower';
 export type ExperienceLevel = 'beginner' | 'intermediate' | 'advanced';
 export type Profile = {
   equipment: Equipment;
+  equipmentDetails?: string;
   gymLevel?: GymLevel;
   height: number;
   weight: number;
@@ -229,11 +230,23 @@ export function FitProvider({ children }: { children: ReactNode }) {
       ? ['workoutConditioning', 'workoutStrength', 'workoutFullBody', 'workoutLower', 'workoutUpper', 'workoutPull']
       : ['workoutUpper', 'workoutPull', 'workoutLower', 'workoutFullBody', 'workoutStrength', 'workoutConditioning'];
     const bodyweight = profile.equipment === 'bodyweight';
-    const homeEquipment = profile.equipment === 'home' || (profile.equipment === 'gym' && profile.gymLevel === 'basic');
-    const exerciseSets: TranslationKey[][] = bodyweight
+     const homeEquipment = profile.equipment === 'home' || (profile.equipment === 'gym' && profile.gymLevel === 'basic');
+     const equipmentText = (profile.equipmentDetails ?? '').toLocaleLowerCase();
+     const hasDumbbells = /dumbbell|halter|mancuerna|hantel|haltère/.test(equipmentText);
+     const hasBands = /band|bant|direnç|resistance|elastique|gummiband|banda/.test(equipmentText);
+     const hasKettlebell = /kettlebell|girya/.test(equipmentText);
+     const hasBench = /bench|bank|banco|banc/.test(equipmentText);
+     const homeExerciseSets: TranslationKey[][] = hasDumbbells || hasKettlebell
+       ? [['exerciseShoulderPress', 'exerciseRow', 'exerciseSquat'], ['exerciseRdl', 'exerciseCurl', 'exerciseLunge'], ['exerciseSquat', 'exerciseShoulderPress', 'exerciseGluteBridge'], ['exerciseRow', 'exerciseRdl', 'exerciseSidePlank'], ['exerciseLunge', 'exerciseCurl', 'exercisePlank'], ['exerciseSquat', 'exerciseRow', 'exerciseDeadBug']]
+       : hasBands
+         ? [['exerciseRow', 'exercisePushup', 'exerciseSquat'], ['exerciseShoulderPress', 'exerciseLunge', 'exerciseGluteBridge'], ['exerciseRow', 'exercisePushup', 'exerciseSidePlank'], ['exerciseShoulderPress', 'exerciseSquat', 'exerciseDeadBug'], ['exercisePushup', 'exerciseLunge', 'exercisePlank'], ['exerciseRow', 'exerciseGluteBridge', 'exerciseMountain']]
+         : hasBench
+           ? [['exerciseBench', 'exercisePushup', 'exerciseSquat'], ['exerciseRow', 'exerciseLunge', 'exerciseGluteBridge'], ['exerciseBench', 'exerciseShoulderPress', 'exerciseSidePlank'], ['exercisePushup', 'exerciseSquat', 'exerciseDeadBug'], ['exerciseBench', 'exerciseRdl', 'exercisePlank'], ['exerciseRow', 'exerciseLunge', 'exerciseMountain']]
+           : [['exercisePushup', 'exerciseSquat', 'exerciseGluteBridge'], ['exerciseRow', 'exerciseLunge', 'exerciseDeadBug'], ['exerciseShoulderPress', 'exerciseMountain', 'exerciseSidePlank'], ['exercisePushup', 'exerciseLunge', 'exercisePlank'], ['exerciseSquat', 'exerciseGluteBridge', 'exerciseDeadBug'], ['exerciseMountain', 'exerciseRow', 'exerciseSidePlank']];
+     const exerciseSets: TranslationKey[][] = bodyweight
       ? [['exercisePushup', 'exerciseSquat', 'exercisePlank'], ['exerciseRow', 'exerciseLunge', 'exerciseDeadBug'], ['exerciseMountain', 'exerciseGluteBridge', 'exerciseSidePlank'], ['exercisePushup', 'exerciseLunge', 'exerciseSidePlank'], ['exerciseSquat', 'exerciseGluteBridge', 'exercisePlank'], ['exerciseMountain', 'exercisePushup', 'exerciseDeadBug']]
       : homeEquipment
-        ? [['exercisePushup', 'exerciseSquat', 'exerciseGluteBridge'], ['exerciseRow', 'exerciseLunge', 'exerciseDeadBug'], ['exerciseShoulderPress', 'exerciseMountain', 'exerciseSidePlank'], ['exercisePushup', 'exerciseLunge', 'exercisePlank'], ['exerciseSquat', 'exerciseGluteBridge', 'exerciseDeadBug'], ['exerciseMountain', 'exerciseRow', 'exerciseSidePlank']]
+        ? homeExerciseSets
         : [['exerciseBench', 'exerciseShoulderPress', 'exerciseTriceps'], ['exerciseRow', 'exerciseLatPulldown', 'exerciseCurl'], ['exerciseLegPress', 'exerciseRdl', 'exerciseCalfRaise'], ['exerciseBench', 'exerciseRow', 'exerciseLegPress'], ['exerciseShoulderPress', 'exerciseCurl', 'exerciseRdl'], ['exerciseLatPulldown', 'exerciseTriceps', 'exerciseCalfRaise']];
     const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
     const count = Math.min(Math.max(profile.trainingDays ?? 3, 2), 6);

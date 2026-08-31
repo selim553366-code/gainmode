@@ -32,7 +32,7 @@ function TypingIndicator({ label, colors, lightBackground = false }: { label: st
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, profile, username, meals, calorieGoal, proteinGoal, workouts, weight, coachMessagesUsed, incrementCoachUsage, setCoachThinking } = useFit();
+  const { language, profile, username, meals, calorieGoal, proteinGoal, workouts, weight, coachMessagesUsed, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<Message[]>([{ id: 'welcome', text: t('coachWelcome'), from: 'coach' }]);
@@ -55,6 +55,7 @@ export default function CoachScreen() {
     return () => loop.stop();
   }, [aura]);
   useFocusEffect(React.useCallback(() => {
+    if (coachIntroPending) markCoachIntroSeen();
     coachReveal.setValue(0);
     const animation = Animated.timing(coachReveal, {
       toValue: 1,
@@ -64,7 +65,7 @@ export default function CoachScreen() {
     });
     animation.start();
     return () => animation.stop();
-  }, [coachReveal]));
+  }, [coachIntroPending, coachReveal, markCoachIntroSeen]));
   const send = async () => {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
@@ -78,7 +79,7 @@ export default function CoachScreen() {
     setLoading(true);
     setCoachThinking(true);
     try {
-      const context = JSON.stringify({ username, profile, weight, calorieGoal, proteinGoal, meals, workouts: workouts.map((item) => ({ name: item.name, completed: item.completed, exercises: item.exercises.length })) });
+      const context = JSON.stringify({ username, profile, equipmentDetails: profile?.equipmentDetails ?? '', weight, calorieGoal, proteinGoal, meals, workouts: workouts.map((item) => ({ name: item.name, completed: item.completed, exercises: item.exercises.length })) });
       const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/coach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: trimmed, language, context }) });
       if (!response.ok) throw new Error('coach unavailable');
       const result = await response.json() as { content?: string };

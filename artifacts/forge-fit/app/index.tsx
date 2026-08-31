@@ -208,6 +208,7 @@ function OnboardingQuestions() {
   const [started, setStarted] = React.useState(false);
   const [step, setStep] = React.useState(0);
   const [equipment, setEquipment] = React.useState<Equipment>('bodyweight');
+  const [equipmentDetails, setEquipmentDetails] = React.useState('');
   const [gymLevel, setGymLevel] = React.useState<GymLevel>('full');
   const [goal, setGoal] = React.useState<FitnessGoal>('maintain');
   const [measurementUnit, setMeasurementUnit] = React.useState<MeasurementUnit>('metric');
@@ -237,6 +238,7 @@ function OnboardingQuestions() {
   const [targetWeight, setTargetWeight] = React.useState<number | null>(null);
   const [targetWeightText, setTargetWeightText] = React.useState('');
   const [buildingPlan, setBuildingPlan] = React.useState(false);
+  const [overloadSeen, setOverloadSeen] = React.useState(false);
   const [taken, setTaken] = React.useState<string[]>([]);
   const [error, setError] = React.useState('');
   const slide = React.useRef(new Animated.Value(1)).current;
@@ -338,6 +340,7 @@ function OnboardingQuestions() {
     const cleanUsername = username.trim().replace(/\s+/g, '').toLowerCase();
     const profile: Profile = {
       equipment,
+      equipmentDetails: equipment === 'home' ? equipmentDetails.trim() : undefined,
       gymLevel: equipment === 'gym' ? gymLevel : undefined,
       height,
       weight,
@@ -427,7 +430,7 @@ function OnboardingQuestions() {
   const selectedDays = (day: string) => setPreferredDays((current) => current.includes(day) ? current.filter((item) => item !== day) : [...current, day]);
   const renderBody = () => {
     if (step === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></>;
-    if (step === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View> : null}</>;
+     if (step === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View> : null}</>;
      if (step === 2) return <View style={styles.measurementSection}>
        <UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} />
        <RulerPicker value={height} min={130} max={220} onChange={updateHeightFromCm} valueLabel={measurementUnit === 'metric' ? `${height} cm` : formatImperialHeightLabel(height)} minLabel={measurementUnit === 'metric' ? '130 cm' : formatImperialHeightLabel(130)} maxLabel={measurementUnit === 'metric' ? '220 cm' : formatImperialHeightLabel(220)} />
@@ -450,7 +453,8 @@ function OnboardingQuestions() {
   };
 
     if (!started) return <WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} />;
-   if (buildingPlan) return <PlanBuildingScreen onComplete={finish} />;
+    if (buildingPlan) return <PlanBuildingScreen onComplete={finish} />;
+    if (step === total && equipment === 'gym' && !overloadSeen) return <ProgressiveOverloadScreen onContinue={() => setOverloadSeen(true)} />;
    if (step === total) return <CompletionScreen onContinue={() => setBuildingPlan(true)} />;
    const optional = step >= 6 && !hasTargetWeightStep;
    const isTargetStep = step === targetStep && hasTargetWeightStep;
@@ -542,6 +546,39 @@ function CompletionCheckmark() {
   return <Animated.View style={[styles.completionCheckmark, { backgroundColor: `${colors.success}20`, borderColor: `${colors.success}90`, opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1] }) }, { translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [-8, 0] }) }] }]}>
     <Ionicons name="checkmark" size={25} color={colors.success} />
   </Animated.View>;
+}
+
+function ProgressiveOverloadScreen({ onContinue }: { onContinue: () => void }) {
+  const colors = useColors();
+  const { language } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const pulse = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0, duration: 1100, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+
+  return <LinearGradient colors={[colors.background, '#0B2340', colors.background]} style={styles.full}>
+    <View style={styles.overloadTop}><ForgeFitMark size={38} /><View style={[styles.overloadBadge, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}55` }]}><Ionicons name="barbell-outline" size={13} color={colors.primary} /><Text style={[styles.overloadBadgeText, { color: colors.primary }]}>{t('overloadEyebrow')}</Text></View></View>
+    <View style={styles.overloadContent}>
+      <Animated.View style={[styles.overloadOrb, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}55`, transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.04] }) }] }]}>
+        <View style={[styles.overloadOrbInner, { backgroundColor: colors.primary }]}><Ionicons name="barbell-outline" size={48} color={colors.primaryForeground} /></View>
+      </Animated.View>
+      <Text style={[styles.overloadTitle, { color: colors.foreground }]}>{t('overloadTitle')}</Text>
+      <Text style={[styles.overloadBody, { color: colors.mutedForeground }]}>{t('overloadBody')}</Text>
+      <View style={[styles.overloadRule, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.overloadRuleNumber, { backgroundColor: `${colors.primary}18` }]}><Text style={[styles.overloadRuleNumberText, { color: colors.primary }]}>12+</Text></View>
+        <View style={{ flex: 1 }}><Text style={[styles.overloadRuleTitle, { color: colors.foreground }]}>{t('overloadRuleTitle')}</Text><Text style={[styles.overloadRuleText, { color: colors.mutedForeground }]}>{t('overloadRule')}</Text></View>
+      </View>
+      <View style={[styles.overloadTip, { backgroundColor: `${colors.success}15`, borderColor: `${colors.success}40` }]}><Ionicons name="bulb-outline" size={18} color={colors.success} /><Text style={[styles.overloadTipText, { color: colors.foreground }]}>{t('overloadTip')}</Text></View>
+    </View>
+    <Pressable onPress={() => { triggerHaptic(); onContinue(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('overloadContinue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
+  </LinearGradient>;
 }
 
 function CompletionScreen({ onContinue }: { onContinue: () => void }) {
@@ -682,6 +719,8 @@ const styles = StyleSheet.create({
   coachSmall: { width: 238, height: 238 },
   coachWaveQuestion: { transform: [{ translateX: 7 }] },
   coachLarge: { width: 220, height: 220 },
+  homeEquipmentDetails: { gap: 8, marginTop: 16 },
+  equipmentDetailsInput: { minHeight: 92, borderWidth: 1, borderRadius: 17, paddingHorizontal: 14, paddingVertical: 12, textAlignVertical: 'top', fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19 },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.5, marginBottom: 9 },
   optionalLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   questionTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, lineHeight: 35, letterSpacing: -1, marginBottom: 20 },
@@ -757,6 +796,21 @@ const styles = StyleSheet.create({
   planBuildingPhase: { fontFamily: 'Inter_700Bold', fontSize: 12, marginTop: 18 },
   planBuildingDots: { flexDirection: 'row', gap: 8, marginTop: 20 },
   planBuildingDot: { width: 8, height: 8, borderRadius: 4 },
+  overloadTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  overloadBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 7 },
+  overloadBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1.1 },
+  overloadContent: { flex: 1, justifyContent: 'center' },
+  overloadOrb: { width: 142, height: 142, borderRadius: 71, borderWidth: 1, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginBottom: 28 },
+  overloadOrbInner: { width: 94, height: 94, borderRadius: 47, alignItems: 'center', justifyContent: 'center' },
+  overloadTitle: { fontFamily: 'Inter_700Bold', fontSize: 31, lineHeight: 37, letterSpacing: -1, textAlign: 'center' },
+  overloadBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 11 },
+  overloadRule: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 20, padding: 14, marginTop: 24 },
+  overloadRuleNumber: { width: 52, height: 52, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  overloadRuleNumberText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
+  overloadRuleTitle: { fontFamily: 'Inter_700Bold', fontSize: 13, marginBottom: 4 },
+  overloadRuleText: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16 },
+  overloadTip: { flexDirection: 'row', alignItems: 'center', gap: 9, borderWidth: 1, borderRadius: 16, padding: 12, marginTop: 12 },
+  overloadTipText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 16 },
   introVisual: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   auraLarge: { position: 'absolute', width: 220, height: 220, borderRadius: 110 },
   introIcon: { width: 150, height: 150, borderRadius: 50 },
