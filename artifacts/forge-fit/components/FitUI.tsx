@@ -66,7 +66,7 @@ export function Header({ eyebrow, title, subtitle, action, actionLogo = false, o
       <Text style={[styles.title, { color: headingColor }]}>{title}</Text>
       {subtitle ? <Text style={[styles.subtitle, { color: supportingColor }]}>{subtitle}</Text> : null}
     </View>
-    <View style={styles.headerActions}>
+    <View style={[styles.headerActions, centered ? styles.headerActionsCentered : null]}>
       {streak !== undefined ? <View accessibilityLabel={`${streak} ${streakLabel ?? ''}`} style={[styles.streakPill, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Ionicons name="flame" size={15} color={colors.orange} /><Text style={[styles.streakValue, { color: colors.orange }]}>{streak}</Text>{streakLabel ? <Text style={[styles.streakLabel, { color: colors.orange }]}>{streakLabel}</Text> : null}</View> : null}
       {premiumAction ? <Pressable accessibilityLabel={premiumLabel} testID="header-premium" onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); premiumAction(); }} style={({ pressed }) => [styles.premiumPill, { backgroundColor: `${premiumColor}20`, borderColor: `${premiumColor}70`, opacity: pressed ? 0.72 : 1 }]}>{premiumOwned ? <Ionicons name="checkmark-circle" size={13} color={premiumColor} /> : <ForgeFitMark size={18} />}<Text style={[styles.premiumPillText, { color: premiumColor }]}>{premiumLabel}</Text></Pressable> : null}
       {action && onAction ? <Pressable testID="header-action" onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}>{actionLogo ? <ForgeFitMark size={27} /> : <Ionicons name={action} size={20} color={colors.foreground} />}</Pressable> : null}
@@ -294,6 +294,7 @@ export const styles = StyleSheet.create({
   headerText: { flex: 1 },
   headerTextCentered: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 0 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerActionsCentered: { position: 'absolute', right: 0, top: 0, zIndex: 2 },
   streakPill: { height: 38, borderRadius: 15, borderWidth: 1, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 4 },
   streakValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   streakLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },

@@ -78,7 +78,8 @@ export default function TodayScreen() {
          streakLabel={t('streak')}
       />
 
-      <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
+       <View style={styles.homeContent}>
+       <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
         <CalorieWaterFill progress={calorieGoal ? calories / calorieGoal : 0} color={colors.primaryForeground} />
         <View style={styles.heroGlow} />
          <View style={styles.heroTop}>
@@ -119,12 +120,14 @@ export default function TodayScreen() {
         <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
       </Card> : null}
 
-      <PremiumOfferModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
+       </View>
+       <PremiumOfferModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  homeContent: { paddingTop: 22 },
   heroCard: { borderRadius: 28, padding: 22, overflow: 'hidden', marginBottom: 16 },
   waterFrame: { position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, justifyContent: 'flex-end', overflow: 'hidden' },
   waterFill: { width: '100%', opacity: 0.13, minHeight: 2 },

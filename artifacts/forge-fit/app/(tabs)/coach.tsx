@@ -46,10 +46,12 @@ export default function CoachScreen() {
   const screenSize = Dimensions.get('window');
   const revealScale = Math.max(34, Math.ceil(Math.hypot(screenSize.width, screenSize.height) / 28));
   const flyingAvatarSize = 72;
+  const targetAvatarSize = 30;
+  const tabBarBottomPadding = Math.max(insets.bottom, 10);
   const flyingStartX = screenSize.width / 2 - flyingAvatarSize / 2;
-  const flyingStartY = screenSize.height - insets.bottom - 100;
+  const flyingStartY = screenSize.height - tabBarBottomPadding - 120;
   const flyingTargetX = 20;
-  const flyingTargetY = chatOriginY + coachMessageOffsetY;
+  const flyingTargetY = chatOriginY + coachMessageOffsetY + 2;
   React.useEffect(() => {
     const loop = Animated.loop(Animated.sequence([Animated.timing(aura, { toValue: 1, duration: 1800, useNativeDriver: true }), Animated.timing(aura, { toValue: 0, duration: 1800, useNativeDriver: true })]));
     loop.start();
@@ -105,11 +107,11 @@ export default function CoachScreen() {
         style={[styles.coachFlyingAvatar, {
           left: flyingStartX,
           top: flyingStartY,
-          opacity: coachReveal.interpolate({ inputRange: [0, 0.72, 0.95, 1], outputRange: [1, 1, 0.35, 0] }),
+           opacity: coachReveal.interpolate({ inputRange: [0, 0.78, 0.96, 1], outputRange: [1, 1, 0.98, 0] }),
           transform: [
             { translateX: coachReveal.interpolate({ inputRange: [0, 1], outputRange: [0, flyingTargetX - flyingStartX] }) },
             { translateY: coachReveal.interpolate({ inputRange: [0, 1], outputRange: [0, flyingTargetY - flyingStartY] }) },
-            { scale: coachReveal.interpolate({ inputRange: [0, 1], outputRange: [1, 2 / 3] }) },
+             { scale: coachReveal.interpolate({ inputRange: [0, 0.84, 1], outputRange: [1, 0.56, targetAvatarSize / flyingAvatarSize] }) },
           ],
         }]}
       />
@@ -124,7 +126,7 @@ export default function CoachScreen() {
           onLayout={item.from === 'coach' && item.id === 'welcome' ? ({ nativeEvent }) => setCoachMessageOffsetY(nativeEvent.layout.y) : undefined}
           style={[styles.messageRow, item.from === 'user' ? styles.userMessageRow : styles.coachMessageRow]}
         >
-          {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.9, 0.999, 1], outputRange: [0, 0, 0, 1] }) : 1 }]} /> : null}
+          {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.84, 0.96, 1], outputRange: [0, 0, 0.42, 1] }) : 1 }]} /> : null}
           <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primaryForeground }] : [styles.coachBubble, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]]}><Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.foreground : colors.primaryForeground }]}>{item.text}</Text></View>
         </View>}
         ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} lightBackground /> : null}
