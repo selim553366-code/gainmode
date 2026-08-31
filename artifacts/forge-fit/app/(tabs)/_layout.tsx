@@ -49,7 +49,7 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
       <View style={[styles.coachTabButton, { shadowColor: colors.primary }]}>
         <Animated.View style={{ transform: [{ scale: logoScale }] }}>
           <View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary }]}>
-            <Animated.Image source={require('@/assets/images/coach.png')} resizeMode="contain" style={[styles.coachTabImage, { opacity: thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} />
+            <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, { opacity: thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} />
             <Animated.Image source={require('@/assets/images/coach-thinking-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, styles.coachThinkingImage, styles.coachThinkingOverlay, { opacity: thinkingTransition }]} />
           </View>
         </Animated.View>
