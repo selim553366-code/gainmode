@@ -8,6 +8,7 @@ import { useFit, Meal } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { Card, Header, Pill, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
+import { DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const formatNutrition = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -135,7 +136,7 @@ export default function NutritionScreen() {
   };
 
   const pickPhoto = async () => {
-    if (photoAnalysesUsed >= 5) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
+    if (photoAnalysesUsed >= DAILY_PHOTO_ANALYSIS_LIMIT) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
     const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.65, base64: true });
     const asset = result.canceled ? undefined : result.assets?.[0];
     if (!asset) return;
@@ -155,7 +156,7 @@ export default function NutritionScreen() {
     Alert.alert(t('barcodeFound'), data);
   };
   const openMealCamera = () => {
-    if (photoAnalysesUsed >= 5) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
+    if (photoAnalysesUsed >= DAILY_PHOTO_ANALYSIS_LIMIT) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
     setMealCameraVisible(true);
   };
 
@@ -178,7 +179,7 @@ export default function NutritionScreen() {
       <View style={[styles.captureFrame, { borderColor: `${colors.primary}70`, backgroundColor: `${colors.primary}0D` }]}>
         {photoUri ? <Image source={{ uri: photoUri }} style={styles.captureImage} /> : <><Ionicons name="scan-outline" size={31} color={colors.primary} /><Text style={[styles.capturePlaceholder, { color: colors.mutedForeground }]}>{t('mealCaptureHint')}</Text></>}
       </View>
-      {photoUri ? <View style={styles.captureStatus}><Text style={[styles.mealName, { color: colors.foreground }]}>{analyzing ? t('analyzing') : t('analyzePhoto')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{photoAnalysesUsed} / 5 {t('photoLimit')}</Text></View> : null}
+      {photoUri ? <View style={styles.captureStatus}><Text style={[styles.mealName, { color: colors.foreground }]}>{analyzing ? t('analyzing') : t('analyzePhoto')}</Text></View> : null}
       <View style={styles.captureOptions}>
         <Pressable testID="camera-scan" onPress={openMealCamera} style={({ pressed }) => [styles.captureOptionPrimary, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="camera-outline" size={18} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('scanMeal')}</Text></Pressable>
         <Pressable testID="barcode-scan" onPress={() => setBarcodeScannerVisible(true)} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="scan-outline" size={18} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('scanBarcode')}</Text></Pressable>

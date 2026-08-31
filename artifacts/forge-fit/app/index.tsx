@@ -21,7 +21,7 @@ import {
 } from '@/context/FitContext';
 import { getPremiumPreviewPrice, languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { ForgeFitMark, triggerHaptic } from '@/components/FitUI';
+import { ForgeFitMark, Screen, triggerHaptic } from '@/components/FitUI';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 
@@ -191,14 +191,50 @@ function getAge(day: number, month: number, year: number) {
 }
 
 export default function EntryScreen() {
-  const { onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen } = useFit();
+  const colors = useColors();
+  const { onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen, restartOnboarding } = useFit();
+  const [redirectFailed, setRedirectFailed] = React.useState(false);
   React.useEffect(() => {
-     if (onboardingComplete && introSeen && (isPremium || !SUBSCRIPTION_PURCHASE_ENABLED)) router.replace(coachIntroPending ? '/(tabs)/coach' : '/(tabs)');
+     if (onboardingComplete && introSeen && (isPremium || !SUBSCRIPTION_PURCHASE_ENABLED)) {
+       setRedirectFailed(false);
+       const timeout = setTimeout(() => setRedirectFailed(true), 900);
+       router.replace(coachIntroPending ? '/(tabs)/coach' : '/(tabs)');
+       return () => clearTimeout(timeout);
+     }
+     setRedirectFailed(false);
   }, [onboardingComplete, introSeen, isPremium, coachIntroPending]);
   if (!onboardingComplete) return <OnboardingQuestions />;
   if (!introSeen) return <IntroScreen onDone={setIntroSeen} />;
    if (!isPremium) return SUBSCRIPTION_PURCHASE_ENABLED ? <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)/coach')} onSkip={() => router.replace('/(tabs)')} /> : null;
-  return null;
+  return redirectFailed ? <EntryRecoveryScreen onRestart={restartOnboarding} /> : <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
+}
+
+function EntryRecoveryScreen({ onRestart }: { onRestart: () => void }) {
+  const colors = useColors();
+  const { language } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+
+  return (
+    <Screen>
+      <View style={styles.entryRecovery}>
+        <ForgeFitMark size={58} />
+        <Text style={[styles.entryRecoveryTitle, { color: colors.foreground }]}>{t('restartOnboarding')}</Text>
+        <Text style={[styles.entryRecoveryBody, { color: colors.mutedForeground }]}>{t('restartOnboardingDescription')}</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            triggerHaptic();
+            onRestart();
+            router.replace('/');
+          }}
+          style={({ pressed }) => [styles.entryRecoveryButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}
+        >
+          <Text style={[styles.entryRecoveryButtonText, { color: colors.primaryForeground }]}>{t('restartOnboarding')}</Text>
+          <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
+        </Pressable>
+      </View>
+    </Screen>
+  );
 }
 
 function OnboardingQuestions() {

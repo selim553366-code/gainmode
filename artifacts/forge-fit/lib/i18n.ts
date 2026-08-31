@@ -8,8 +8,10 @@ export const languageLabels: Record<Language, string> = {
   es: 'Español',
 };
 
-const premiumPreviewPriceByLanguage: Record<Language, { locale: string; currency: string }> = {
-  tr: { locale: 'tr-TR', currency: 'TRY' },
+type PremiumCurrency = 'USD' | 'EUR' | 'GBP';
+
+const premiumPreviewPriceByLanguage: Record<Language, { locale: string; currency: PremiumCurrency }> = {
+  tr: { locale: 'en-US', currency: 'USD' },
   en: { locale: 'en-US', currency: 'USD' },
   de: { locale: 'de-DE', currency: 'EUR' },
   fr: { locale: 'fr-FR', currency: 'EUR' },
@@ -24,8 +26,29 @@ const homeEquipmentDetailsCopy: Record<Language, { hint: string; placeholder: st
   es: { hint: 'Indica con el mayor detalle posible qué equipo tienes en casa.', placeholder: 'Ej. dos mancuernas de 10 kg, bandas de resistencia, esterilla de yoga...' },
 };
 
+const premiumBenefitCopy: Record<Language, { photo: string; coach: string }> = {
+  tr: { photo: 'Gelişmiş yemek fotoğrafı analizi', coach: 'FitBud ile kişisel koçluk' },
+  en: { photo: 'Advanced food photo analysis', coach: 'Personal coaching with FitBud' },
+  de: { photo: 'Erweiterte Essensfotoanalyse', coach: 'Persönliches Coaching mit FitBud' },
+  fr: { photo: 'Analyse avancée des photos de repas', coach: 'Coaching personnel avec FitBud' },
+  es: { photo: 'Análisis avanzado de fotos de comida', coach: 'Coaching personal con FitBud' },
+};
+
+const usageLimitCopy: Record<Language, { coach: string; photo: string }> = {
+  tr: { coach: 'Bugünkü koç mesajı hakkın doldu.', photo: 'Bugünkü fotoğraf analizi hakkın doldu.' },
+  en: { coach: 'You have used today’s coach messages.', photo: 'You have used today’s photo analyses.' },
+  de: { coach: 'Deine Coach-Nachrichten für heute sind aufgebraucht.', photo: 'Deine Fotoanalysen für heute sind aufgebraucht.' },
+  fr: { coach: 'Tes messages au coach du jour sont épuisés.', photo: 'Tes analyses photo du jour sont épuisées.' },
+  es: { coach: 'Has usado tus mensajes al coach de hoy.', photo: 'Has usado tus análisis de fotos de hoy.' },
+};
+
 export function getPremiumPreviewPrice(language: Language, amount = 4.99) {
-  const { locale, currency } = premiumPreviewPriceByLanguage[language];
+  const selected = premiumPreviewPriceByLanguage[language];
+  const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale.replace('_', '-').toLowerCase();
+  const usesBritishEnglish = language === 'en' && deviceLocale.startsWith('en-gb');
+  const locale = usesBritishEnglish ? 'en-GB' : selected.locale;
+  const currency: PremiumCurrency = usesBritishEnglish ? 'GBP' : selected.currency;
+
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
@@ -552,6 +575,7 @@ const onboardingMotivationTranslations: Record<Language, { title: string; intro:
 const settingsTranslations = {
   tr: {
     settingsTitle: 'Ayarlar', settingsEyebrow: 'Tercihler', settingsSubtitle: 'Forge Fit deneyimini kendine göre düzenle.',
+    onboarding: 'Onboarding', restartOnboarding: 'Onboarding’i yeniden başlat', restartOnboardingDescription: 'Mevcut verilerini koruyarak profil sorularını tekrar aç.',
     preferences: 'Tercihler', appLanguage: 'Uygulama dili', languageDescription: 'Forge Fit’in tüm metinlerini tercih ettiğin dilde kullan.', currentLanguage: 'Seçili dil',
     legal: 'Yasal', privacyPolicy: 'Gizlilik Politikamız', privacyPolicySummary: 'Verilerin ve uygulama içi kullanımın hakkında bilgi.',
     privacyPolicyBody: 'Forge Fit, planını kişiselleştirmek için paylaştığın profil ve antrenman bilgilerini kullanır. Verilerini satmayız ve reklam profili oluşturmak için kullanmayız.',
@@ -562,6 +586,7 @@ const settingsTranslations = {
   },
   en: {
     settingsTitle: 'Settings', settingsEyebrow: 'Preferences', settingsSubtitle: 'Shape your Forge Fit experience.',
+    onboarding: 'Onboarding', restartOnboarding: 'Restart onboarding', restartOnboardingDescription: 'Reopen your profile questions while keeping your existing data.',
     preferences: 'Preferences', appLanguage: 'App language', languageDescription: 'Use every Forge Fit message in your preferred language.', currentLanguage: 'Selected language',
     legal: 'Legal', privacyPolicy: 'Our Privacy Policy', privacyPolicySummary: 'How your data and in-app activity are handled.',
     privacyPolicyBody: 'Forge Fit uses the profile and training information you share to personalize your plan. We do not sell your data or use it to build advertising profiles.',
@@ -572,6 +597,7 @@ const settingsTranslations = {
   },
   de: {
     settingsTitle: 'Einstellungen', settingsEyebrow: 'Präferenzen', settingsSubtitle: 'Passe dein Forge Fit-Erlebnis an.',
+    onboarding: 'Onboarding', restartOnboarding: 'Onboarding neu starten', restartOnboardingDescription: 'Öffne deine Profilfragen erneut, ohne deine vorhandenen Daten zu löschen.',
     preferences: 'Präferenzen', appLanguage: 'App-Sprache', languageDescription: 'Nutze alle Forge Fit-Texte in deiner bevorzugten Sprache.', currentLanguage: 'Ausgewählte Sprache',
     legal: 'Rechtliches', privacyPolicy: 'Unsere Datenschutzrichtlinie', privacyPolicySummary: 'Wie deine Daten und deine Nutzung behandelt werden.',
     privacyPolicyBody: 'Forge Fit verwendet deine Profil- und Trainingsangaben, um deinen Plan zu personalisieren. Wir verkaufen deine Daten nicht und erstellen damit keine Werbeprofile.',
@@ -582,6 +608,7 @@ const settingsTranslations = {
   },
   fr: {
     settingsTitle: 'Réglages', settingsEyebrow: 'Préférences', settingsSubtitle: 'Personnalise ton expérience Forge Fit.',
+    onboarding: 'Onboarding', restartOnboarding: 'Recommencer l’onboarding', restartOnboardingDescription: 'Rouvre tes questions de profil sans supprimer tes données existantes.',
     preferences: 'Préférences', appLanguage: 'Langue de l’app', languageDescription: 'Utilise tous les textes Forge Fit dans ta langue préférée.', currentLanguage: 'Langue sélectionnée',
     legal: 'Informations légales', privacyPolicy: 'Notre politique de confidentialité', privacyPolicySummary: 'Comment tes données et ton activité sont traitées.',
     privacyPolicyBody: 'Forge Fit utilise les informations de profil et d’entraînement que tu partages pour personnaliser ton plan. Nous ne vendons pas tes données et ne créons pas de profil publicitaire avec celles-ci.',
@@ -592,6 +619,7 @@ const settingsTranslations = {
   },
   es: {
     settingsTitle: 'Ajustes', settingsEyebrow: 'Preferencias', settingsSubtitle: 'Personaliza tu experiencia en Forge Fit.',
+    onboarding: 'Onboarding', restartOnboarding: 'Reiniciar onboarding', restartOnboardingDescription: 'Vuelve a abrir las preguntas de perfil sin borrar tus datos actuales.',
     preferences: 'Preferencias', appLanguage: 'Idioma de la app', languageDescription: 'Usa todos los textos de Forge Fit en tu idioma preferido.', currentLanguage: 'Idioma seleccionado',
     legal: 'Información legal', privacyPolicy: 'Nuestra política de privacidad', privacyPolicySummary: 'Cómo tratamos tus datos y tu actividad en la app.',
     privacyPolicyBody: 'Forge Fit usa la información de perfil y entrenamiento que compartes para personalizar tu plan. No vendemos tus datos ni los usamos para crear perfiles publicitarios.',
@@ -606,6 +634,10 @@ export type TranslationKey = keyof typeof translations.tr | keyof typeof premium
 
 export function translate(language: Language, key: TranslationKey): string {
   if (key === 'premiumPriceOptions') return getPremiumPreviewPrice(language);
+  if (key === 'premiumFeature2') return premiumBenefitCopy[language].photo;
+  if (key === 'premiumFeature3') return premiumBenefitCopy[language].coach;
+  if (key === 'coachLimitReached') return usageLimitCopy[language].coach;
+  if (key === 'photoLimitReached') return usageLimitCopy[language].photo;
   if (key === 'homeEquipmentDetailsHint') return homeEquipmentDetailsCopy[language].hint;
   if (key === 'homeEquipmentDetailsPlaceholder') return homeEquipmentDetailsCopy[language].placeholder;
   if (key === 'onboardingIntro2') return onboardingIntro2Translations[language];

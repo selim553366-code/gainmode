@@ -1,0 +1,2 @@
+export const DAILY_COACH_MESSAGE_LIMIT = 6;
+export const DAILY_PHOTO_ANALYSIS_LIMIT = 6;

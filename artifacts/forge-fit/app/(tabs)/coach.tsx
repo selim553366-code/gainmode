@@ -8,6 +8,7 @@ import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { Card, Header, Pill } from '@/components/FitUI';
+import { DAILY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
 
 type Message = { id: string; text: string; from: 'coach' | 'user' };
 
@@ -69,7 +70,7 @@ export default function CoachScreen() {
   const send = async () => {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
-    if (coachMessagesUsed >= 5) {
+    if (coachMessagesUsed >= DAILY_COACH_MESSAGE_LIMIT) {
       setMessages((current) => [...current, { id: `${Date.now()}-limit`, text: t('coachLimitReached'), from: 'coach' }]);
       return;
     }
@@ -96,7 +97,7 @@ export default function CoachScreen() {
     <View pointerEvents="none" style={styles.coachBackgroundLayer}><Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: coachReveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} /></View>
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.foreground, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
     <Header eyebrow="Intelligence / 05" title={t('coachTitle')} subtitle={t('coachSubtitle')} action="sparkles-outline" actionLogo onAction={() => undefined} lightBackground />
-    <Card style={[styles.coachCard, { backgroundColor: `${colors.foreground}B8`, borderColor: `${colors.foreground}99` }]}><View style={styles.coachCapabilityCopy}><Text style={[styles.coachCapabilityLabel, { color: `${colors.primaryForeground}99` }]}>{t('coachAiLabel').toUpperCase()}</Text><Text style={[styles.coachCapabilityText, { color: colors.primaryForeground }]}>{t('coachAiCapabilities')}</Text></View><View style={styles.limit}><Text style={[styles.limitNumber, { color: colors.primaryForeground }]}>{String(5 - coachMessagesUsed).padStart(2, '0')}</Text><Text style={[styles.caption, { color: `${colors.primaryForeground}99` }]}>/ 05</Text></View></Card>
+    <Card style={[styles.coachCard, { backgroundColor: `${colors.foreground}B8`, borderColor: `${colors.foreground}99` }]}><View style={styles.coachCapabilityCopy}><Text style={[styles.coachCapabilityLabel, { color: `${colors.primaryForeground}99` }]}>{t('coachAiLabel').toUpperCase()}</Text><Text style={[styles.coachCapabilityText, { color: colors.primaryForeground }]}>{t('coachAiCapabilities')}</Text></View></Card>
     <View pointerEvents="none" style={styles.coachFlightLayer}>
       <Animated.Image
         source={require('@/assets/images/coach-tab-custom.jpeg')}

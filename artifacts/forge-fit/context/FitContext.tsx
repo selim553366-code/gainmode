@@ -77,6 +77,7 @@ type FitContextValue = FitState & {
   coachThinking: boolean;
   setCoachThinking: (value: boolean) => void;
   setLanguage: (language: Language) => void;
+  restartOnboarding: () => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
   removeMeal: (id: string) => void;
   completeOnboarding: (profile: Profile, username: string) => void;
@@ -272,6 +273,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
     coachThinking,
     setCoachThinking,
     setLanguage: (language) => setState((current) => ({ ...current, language })),
+    restartOnboarding: () => setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false })),
     addMeal: (meal) => setState((current) => ({ ...current, meals: [...current.meals, { ...meal, id: `${Date.now()}-${Math.random()}` }] })),
     removeMeal: (id) => setState((current) => {
       return { ...current, meals: current.meals.filter((item) => item.id !== id) };

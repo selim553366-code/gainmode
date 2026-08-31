@@ -11,7 +11,7 @@ type LegalSection = 'privacy' | 'terms' | null;
 
 export default function SettingsScreen() {
   const colors = useColors();
-  const { language, setLanguage } = useFit();
+  const { language, setLanguage, restartOnboarding } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [expanded, setExpanded] = useState<LegalSection>(null);
   const languages = Object.keys(languageLabels) as Language[];
@@ -53,6 +53,27 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+      </Card>
+
+      <SectionTitle title={t('onboarding')} />
+      <Card>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            restartOnboarding();
+            router.replace('/');
+          }}
+          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
+        >
+          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
+            <Ionicons name="flash-outline" size={21} color={colors.primary} />
+          </View>
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('restartOnboarding')}</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('restartOnboardingDescription')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
+        </Pressable>
       </Card>
 
       <SectionTitle title={t('legal')} />
@@ -125,6 +146,7 @@ function LegalCard({
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  restartRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowCopy: { flex: 1 },
   iconBox: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
