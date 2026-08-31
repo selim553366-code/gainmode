@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/run-forge/"
+title = "RunForge"
+description = "Forge Fit ile bağlantılı, koşucuların gerçek konumunu uydu haritasında izleyen, rota ve günlük performans istatistiklerini gösteren neon odaklı mobil koşu uygulaması."
+version = "1.0.0"
+id = "artifacts/run-forge"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/run-forge/" ]
+localPort = 26051
+
+[services.development]
+run = "pnpm --filter @workspace/run-forge run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/run-forge", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/run-forge", "run", "serve" ]
+
+[services.env]
+PORT = "26051"
+BASE_PATH = "/run-forge/"
