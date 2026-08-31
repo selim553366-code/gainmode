@@ -122,7 +122,7 @@ export default function CoachScreen() {
           onLayout={item.from === 'coach' && item.id === 'welcome' ? ({ nativeEvent }) => setCoachMessageOffsetY(nativeEvent.layout.y) : undefined}
           style={[styles.messageRow, item.from === 'user' ? styles.userMessageRow : styles.coachMessageRow]}
         >
-          {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.72, 1], outputRange: [0, 0.3, 1] }) : 1 }]} /> : null}
+          {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.9, 0.999, 1], outputRange: [0, 0, 0, 1] }) : 1 }]} /> : null}
           <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card, borderColor: colors.border }]]}><Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text></View>
         </View>}
         ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : null}

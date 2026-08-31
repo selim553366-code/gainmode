@@ -24,6 +24,7 @@ type TabBarProps = {
 function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean; label: string; onPress: () => void; colors: ReturnType<typeof useColors> }) {
   const { coachThinking } = useFit();
   const logoScale = React.useRef(new Animated.Value(focused ? 0.8 : 1)).current;
+  const logoDeparture = React.useRef(new Animated.Value(focused ? 0 : 1)).current;
   const thinkingTransition = React.useRef(new Animated.Value(coachThinking ? 1 : 0)).current;
 
   React.useEffect(() => {
@@ -34,6 +35,13 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
       useNativeDriver: true,
     }).start();
   }, [focused, logoScale]);
+  React.useEffect(() => {
+    Animated.timing(logoDeparture, {
+      toValue: focused ? 0 : 1,
+      duration: focused ? 180 : 260,
+      useNativeDriver: true,
+    }).start();
+  }, [focused, logoDeparture]);
   React.useEffect(() => {
     Animated.timing(thinkingTransition, { toValue: coachThinking ? 1 : 0, duration: 360, useNativeDriver: true }).start();
   }, [coachThinking, thinkingTransition]);
@@ -49,7 +57,7 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
       <View style={[styles.coachTabButton, { shadowColor: colors.primary }]}>
         <Animated.View style={{ transform: [{ scale: logoScale }] }}>
           <View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary }]}>
-            <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, { opacity: thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} />
+            <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, { opacity: Animated.multiply(logoDeparture, thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })) }]} />
             <Animated.Image source={require('@/assets/images/coach-thinking-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, styles.coachThinkingImage, styles.coachThinkingOverlay, { opacity: thinkingTransition }]} />
           </View>
         </Animated.View>
