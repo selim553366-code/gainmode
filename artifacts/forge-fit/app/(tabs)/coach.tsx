@@ -40,7 +40,7 @@ function TypingIndicator({ label, colors, lightBackground = false }: { label: st
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, photoAnalysesUsed, coachMessagesUsed, incrementPhotoUsage, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateNutritionGoals } = useFit();
+  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, photoAnalysesUsed, coachMessagesUsed, incrementPhotoUsage, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateNutritionGoals, enablePremiumForTesting } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { weeklyAnalysis, analysisId } = useLocalSearchParams<{ weeklyAnalysis?: string; analysisId?: string }>();
   const [text, setText] = useState('');
@@ -171,6 +171,12 @@ export default function CoachScreen() {
     const trimmed = text.trim();
     const photo = selectedPhoto;
     if ((!trimmed && !photo) || loading) return;
+    if (!photo && trimmed.replace(/\s+/g, ' ').toLocaleLowerCase() === 'start premium') {
+      setText('');
+      setMessages((current) => [...current, { id: `${Date.now()}-command`, text: trimmed, from: 'user' }, { id: `${Date.now()}-premium`, text: t('premiumTestActivated'), from: 'coach' }]);
+      enablePremiumForTesting();
+      return;
+    }
     if (photo && photoAnalysesUsed >= DAILY_PHOTO_ANALYSIS_LIMIT) {
       setMessages((current) => [...current, { id: `${Date.now()}-photo-limit`, text: t('photoLimitReached'), from: 'coach' }]);
       return;

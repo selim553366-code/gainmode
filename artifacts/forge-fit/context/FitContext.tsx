@@ -69,6 +69,7 @@ type FitState = {
   coachIntroPending: boolean;
   introSeen: boolean;
   isPremium: boolean;
+  premiumTestOverride: boolean;
   coachMessagesUsed: number;
   photoAnalysesUsed: number;
   usageDate: string;
@@ -84,6 +85,7 @@ type FitContextValue = FitState & {
   coachThinking: boolean;
   setCoachThinking: (value: boolean) => void;
   enablePremium: () => void;
+  enablePremiumForTesting: () => void;
   setLanguage: (language: Language) => void;
   restartOnboarding: () => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
@@ -121,6 +123,7 @@ const initialState: FitState = {
   coachIntroPending: false,
   introSeen: false,
   isPremium: false,
+  premiumTestOverride: false,
   coachMessagesUsed: 0,
   photoAnalysesUsed: 0,
   usageDate: '',
@@ -261,7 +264,10 @@ export function FitProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isSubscribed === undefined) return;
-    setState((current) => current.isPremium === isSubscribed ? current : { ...current, isPremium: isSubscribed });
+    setState((current) => {
+      const nextPremium = current.premiumTestOverride || isSubscribed;
+      return current.isPremium === nextPremium ? current : { ...current, isPremium: nextPremium };
+    });
   }, [isSubscribed]);
 
   useEffect(() => {
@@ -276,6 +282,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
     coachThinking,
     setCoachThinking,
      enablePremium: () => setState((current) => current.isPremium ? current : { ...current, isPremium: true }),
+     enablePremiumForTesting: () => setState((current) => current.premiumTestOverride ? current : { ...current, isPremium: true, premiumTestOverride: true }),
     setLanguage: (language) => setState((current) => ({ ...current, language })),
     restartOnboarding: () => setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false })),
      addMeal: (meal) => setState((current) => ({ ...current, meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }] })),
