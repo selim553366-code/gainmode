@@ -87,6 +87,42 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
   );
 }
 
+function IconTabButton({ focused, label, icon, onPress, colors }: { focused: boolean; label: string; icon: React.ComponentProps<typeof Feather>['name']; onPress: () => void; colors: ReturnType<typeof useColors> }) {
+  const iconScale = React.useRef(new Animated.Value(1)).current;
+  const iconLift = React.useRef(new Animated.Value(0)).current;
+
+  const animateIcon = () => {
+    Animated.parallel([
+      Animated.sequence([
+        Animated.spring(iconScale, { toValue: 1.22, friction: 5, tension: 170, useNativeDriver: true }),
+        Animated.spring(iconScale, { toValue: 1, friction: 6, tension: 150, useNativeDriver: true }),
+      ]),
+      Animated.sequence([
+        Animated.timing(iconLift, { toValue: -4, duration: 110, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.spring(iconLift, { toValue: 0, friction: 6, tension: 150, useNativeDriver: true }),
+      ]),
+    ]).start();
+  };
+
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: focused }}
+      accessibilityLabel={label}
+      onPress={() => {
+        animateIcon();
+        onPress();
+      }}
+      style={styles.tabItem}
+    >
+      <Animated.View style={{ transform: [{ translateY: iconLift }, { scale: iconScale }] }}>
+        <Feather name={icon} size={22} color={focused ? colors.primary : colors.mutedForeground} />
+      </Animated.View>
+      <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -124,17 +160,14 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
             );
           }
           return (
-            <Pressable
+            <IconTabButton
               key={route.key}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: focused }}
-              accessibilityLabel={label}
+              focused={focused}
+              label={label}
+              icon={iconForRoute(route.name)}
               onPress={() => handlePress(route)}
-              style={styles.tabItem}
-            >
-              <Feather name={iconForRoute(route.name)} size={22} color={focused ? colors.primary : colors.mutedForeground} />
-              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
-            </Pressable>
+              colors={colors}
+            />
           );
         })}
       </View>
