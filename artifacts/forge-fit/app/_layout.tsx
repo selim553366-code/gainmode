@@ -37,6 +37,7 @@ function RootLayoutNav() {
       <Stack.Screen name="live-workout" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
       <Stack.Screen name="update-preferences" options={{ headerShown: false, presentation: 'card' }} />
+      <Stack.Screen name="streak" options={{ headerShown: false, presentation: 'card' }} />
     </Stack>
   );
 }

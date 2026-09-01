@@ -64,6 +64,23 @@ const usageLimitCopy: Record<Language, { coach: string; photo: string }> = {
   es: { coach: 'Has usado tus mensajes al coach de hoy.', photo: 'Has usado tus análisis de fotos de hoy.' },
 };
 
+const streakUiTranslations: Record<Language, {
+  streakTitle: string;
+  streakSubtitle: string;
+  currentStreak: string;
+  streakDays: string;
+  streakCalendarTitle: string;
+  streakToday: string;
+  streakCompleted: string;
+  streakKeepGoing: string;
+}> = {
+  tr: { streakTitle: 'Daily Streak', streakSubtitle: 'Her gün biraz daha güçlü.', currentStreak: 'Mevcut seri', streakDays: 'gün', streakCalendarTitle: 'Son 7 gün', streakToday: 'Bugün', streakCompleted: 'Tamamlandı', streakKeepGoing: 'Ateşini canlı tutmak için bugün bir aktivite tamamla.' },
+  en: { streakTitle: 'Daily Streak', streakSubtitle: 'A little stronger every day.', currentStreak: 'Current streak', streakDays: 'days', streakCalendarTitle: 'Last 7 days', streakToday: 'Today', streakCompleted: 'Completed', streakKeepGoing: 'Complete an activity today to keep your fire alive.' },
+  de: { streakTitle: 'Daily Streak', streakSubtitle: 'Jeden Tag ein bisschen stärker.', currentStreak: 'Aktuelle Serie', streakDays: 'Tage', streakCalendarTitle: 'Letzte 7 Tage', streakToday: 'Heute', streakCompleted: 'Erledigt', streakKeepGoing: 'Schließe heute eine Aktivität ab, damit dein Feuer weiter brennt.' },
+  fr: { streakTitle: 'Daily Streak', streakSubtitle: 'Un peu plus fort chaque jour.', currentStreak: 'Série actuelle', streakDays: 'jours', streakCalendarTitle: '7 derniers jours', streakToday: 'Aujourd’hui', streakCompleted: 'Terminé', streakKeepGoing: 'Termine une activité aujourd’hui pour garder ton feu allumé.' },
+  es: { streakTitle: 'Daily Streak', streakSubtitle: 'Un poco más fuerte cada día.', currentStreak: 'Racha actual', streakDays: 'días', streakCalendarTitle: 'Últimos 7 días', streakToday: 'Hoy', streakCompleted: 'Completado', streakKeepGoing: 'Completa una actividad hoy para mantener vivo tu fuego.' },
+};
+
 export function getPremiumPreviewPrice(language: Language, amount = 7.99) {
   const selected = premiumPreviewPriceByLanguage[language];
   const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale.replace('_', '-').toLowerCase();
@@ -1238,11 +1255,12 @@ const settingsTranslations = {
   },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof premiumPlanTranslations.tr;
+export type TranslationKey = keyof typeof translations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr;
 
 export function translate(language: Language, key: TranslationKey): string {
   if (key === 'premiumPriceOptions') return getPremiumPreviewPriceOptions(language);
   if (key in premiumPlanTranslations.tr) return premiumPlanTranslations[language][key as keyof typeof premiumPlanTranslations.tr];
+  if (key in streakUiTranslations.tr) return streakUiTranslations[language][key as keyof typeof streakUiTranslations.tr];
   if (key === 'premiumFeature2') return premiumBenefitCopy[language].photo;
   if (key === 'premiumFeature3') return premiumBenefitCopy[language].coach;
   if (key === 'coachLimitReached') return usageLimitCopy[language].coach;

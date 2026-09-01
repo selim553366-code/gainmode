@@ -5,6 +5,7 @@ import { useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
 import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey } from '@/lib/nutritionDates';
+import { addStreakActivity, normalizeStreakDates } from '@/lib/streak';
 import { buildWorkoutPlan, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
@@ -74,6 +75,7 @@ type FitState = {
   photoAnalysesUsed: number;
   usageDate: string;
   workouts: Workout[];
+  streakDates: string[];
   friends: Friend[];
   challenges: Challenge[];
   weightLogs: { id: string; value: number; date: string }[];
@@ -128,6 +130,7 @@ const initialState: FitState = {
   photoAnalysesUsed: 0,
   usageDate: '',
   workouts: [],
+  streakDates: [],
   friends: [],
   challenges: [],
   weightLogs: [],
@@ -146,6 +149,7 @@ const FitContext = createContext<FitContextValue | null>(null);
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 const roundKg = (value: number) => Math.round(value * 10) / 10;
+const recordStreakActivity = (current: FitState) => ({ ...current, streakDates: addStreakActivity(current.streakDates) });
 
 export function recommendTargetWeight(profile: Pick<Profile, 'height' | 'weight' | 'age' | 'goal' | 'sex' | 'activity' | 'goalRate'>) {
   const heightMeters = profile.height / 100;
@@ -230,6 +234,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
             ...initialState,
             ...storedState,
             notificationSettings: { ...initialState.notificationSettings, ...(parsed.notificationSettings ?? {}) },
+             streakDates: normalizeStreakDates(Array.isArray(parsed.streakDates) ? parsed.streakDates : []),
             version: initialState.version,
           };
            const restoredWorkouts = normalizeWorkoutSets(restoreWorkoutProgress(merged.workouts));
@@ -285,7 +290,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
      enablePremiumForTesting: () => setState((current) => current.premiumTestOverride ? current : { ...current, isPremium: true, premiumTestOverride: true }),
     setLanguage: (language) => setState((current) => ({ ...current, language })),
     restartOnboarding: () => setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false })),
-     addMeal: (meal) => setState((current) => ({ ...current, meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }] })),
+     addMeal: (meal) => setState((current) => recordStreakActivity({ ...current, meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }] })),
     removeMeal: (id) => setState((current) => {
       return { ...current, meals: current.meals.filter((item) => item.id !== id) };
     }),
@@ -344,16 +349,26 @@ export function FitProvider({ children }: { children: ReactNode }) {
       const today = new Date().toISOString().slice(0, 10);
       return current.usageDate === today ? { ...current, photoAnalysesUsed: current.photoAnalysesUsed + 1 } : { ...current, usageDate: today, coachMessagesUsed: 0, photoAnalysesUsed: 1 };
     }),
-    toggleWorkout: (id) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => {
-      if (workout.id !== id) return workout;
-      const completed = !workout.completed;
-      return { ...workout, completed, exercises: workout.exercises.map((exercise) => ({ ...exercise, completed })) };
-    }) })),
-    toggleExercise: (workoutId, exerciseId) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => {
-      if (workout.id !== workoutId) return workout;
-      const exercises = workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, completed: !exercise.completed } : exercise);
-      return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
-    }) })),
+     toggleWorkout: (id) => setState((current) => {
+       const workouts = current.workouts.map((workout) => {
+         if (workout.id !== id) return workout;
+         const completed = !workout.completed;
+         return { ...workout, completed, exercises: workout.exercises.map((exercise) => ({ ...exercise, completed })) };
+       });
+       const changedWorkout = workouts.find((workout) => workout.id === id);
+       const nextState = { ...current, workouts };
+       return changedWorkout?.completed ? recordStreakActivity(nextState) : nextState;
+     }),
+     toggleExercise: (workoutId, exerciseId) => setState((current) => {
+       const workouts = current.workouts.map((workout) => {
+         if (workout.id !== workoutId) return workout;
+         const exercises = workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, completed: !exercise.completed } : exercise);
+         return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
+       });
+       const changedWorkout = workouts.find((workout) => workout.id === workoutId);
+       const nextState = { ...current, workouts };
+       return changedWorkout?.completed ? recordStreakActivity(nextState) : nextState;
+     }),
       addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => {
         const sharedSets = getSharedWorkoutSets(current.workouts, clampWorkoutSets(sets));
         const workouts = normalizeWorkoutSets(current.workouts, sharedSets).map((workout) => workout.id === workoutId
@@ -390,7 +405,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
      }),
     addFriend: (username) => setState((current) => current.friends.some((friend) => friend.username.toLowerCase() === username.toLowerCase()) ? current : { ...current, friends: [...current.friends, { id: `${Date.now()}-${Math.random()}`, username }] }),
     addChallenge: (name, target) => setState((current) => ({ ...current, challenges: [...current.challenges, { id: `${Date.now()}-${Math.random()}`, name, target, progress: 0 }] })),
-    addWeight: (value) => setState((current) => ({ ...current, weight: value, weightLogs: [...current.weightLogs, { id: `${Date.now()}-${Math.random()}`, value, date: new Date().toISOString() }] })),
+     addWeight: (value) => setState((current) => recordStreakActivity({ ...current, weight: value, weightLogs: [...current.weightLogs, { id: `${Date.now()}-${Math.random()}`, value, date: new Date().toISOString() }] })),
     setNotificationSetting: (key, enabled) => setState((current) => ({ ...current, notificationSettings: { ...current.notificationSettings, [key]: enabled } })),
   }), [state, coachThinking]);
 

@@ -3,6 +3,7 @@ import {
   Activity,
   Apple,
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
   ArrowUp,
   Bell,
@@ -62,6 +63,7 @@ export type IconName =
   | 'add'
   | 'add-circle-outline'
   | 'alert-circle'
+  | 'arrow-back'
   | 'arrow-forward'
   | 'arrow-up'
   | 'barbell-outline'
@@ -133,6 +135,7 @@ const iconMap: Record<IconName, IconComponent> = {
   add: Plus,
   'add-circle-outline': CirclePlus,
   'alert-circle': AlertCircle,
+  'arrow-back': ArrowLeft,
   'arrow-forward': ArrowRight,
   'arrow-up': ArrowUp,
   'barbell-outline': Dumbbell,
