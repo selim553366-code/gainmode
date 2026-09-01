@@ -1,4 +1,5 @@
 import type { FitnessGoal, Meal, Workout } from '@/context/FitContext';
+import { localDateKey, mealDateKey } from '@/lib/nutritionDates';
 
 export type WeightOutcome = 'lost' | 'gained' | 'steady' | 'missing';
 
@@ -17,17 +18,12 @@ export type WeeklySummary = {
   weekEnd: string;
 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-function isoDate(date: Date) {
-  return date.toISOString().slice(0, 10);
-}
-
 function getWeekRange() {
   const end = new Date();
   end.setHours(23, 59, 59, 999);
-  const start = new Date(end.getTime() - 6 * DAY_MS);
-  return { start: isoDate(start), end: isoDate(end) };
+  const start = new Date(end);
+  start.setDate(start.getDate() - 6);
+  return { start: localDateKey(start), end: localDateKey(end) };
 }
 
 function roundKg(value: number) {
@@ -35,7 +31,7 @@ function roundKg(value: number) {
 }
 
 function inCurrentWeek(date: string | undefined, start: string, end: string) {
-  const normalized = date?.slice(0, 10) ?? isoDate(new Date());
+  const normalized = mealDateKey(date);
   return normalized >= start && normalized <= end;
 }
 
@@ -57,7 +53,7 @@ export function getWeeklySummary({
   const { start, end } = getWeekRange();
   const weekWeights = weightLogs
     .filter((item) => inCurrentWeek(item.date, start, end))
-    .sort((a, b) => a.date.localeCompare(b.date));
+    .sort((a, b) => mealDateKey(a.date).localeCompare(mealDateKey(b.date)));
   const tracksWeight = goal !== 'muscle';
   const firstWeight = tracksWeight ? weekWeights[0]?.value : undefined;
   const lastWeight = tracksWeight ? weekWeights.at(-1)?.value ?? weight : null;
@@ -81,7 +77,7 @@ export function getWeeklySummary({
 
   const caloriesByDay = new Map<string, number>();
   meals.forEach((meal) => {
-    const date = meal.date?.slice(0, 10) ?? isoDate(new Date());
+    const date = mealDateKey(meal.date);
     if (date >= start && date <= end) caloriesByDay.set(date, (caloriesByDay.get(date) ?? 0) + meal.calories);
   });
   const trackedCalorieDays = caloriesByDay.size;

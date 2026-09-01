@@ -11,6 +11,7 @@ import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { Card, ForgeFitMark, Header, Pill, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 import { DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
+import { getMealsForRange } from '@/lib/nutritionDates';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const formatNutrition = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -155,8 +156,9 @@ export default function NutritionScreen() {
     { q: searchEnabled ? debouncedSearch : '  ', language, limit: 12 },
     { query: { enabled: searchEnabled, staleTime: 5 * 60 * 1000, queryKey: ['food-search', debouncedSearch, language] } },
   );
-  const calories = meals.reduce((sum, meal) => sum + meal.calories, 0);
-  const macros = meals.reduce((totals, meal) => ({
+  const visibleMeals = getMealsForRange(meals, range);
+  const calories = visibleMeals.reduce((sum, meal) => sum + meal.calories, 0);
+  const macros = visibleMeals.reduce((totals, meal) => ({
     protein: totals.protein + meal.protein,
     carbs: totals.carbs + meal.carbs,
     fat: totals.fat + meal.fat,
@@ -222,7 +224,7 @@ export default function NutritionScreen() {
     return () => cancelAnimationFrame(frame);
   }, [openCamera]);
 
-  const loggedMeals = [...meals].reverse();
+  const loggedMeals = [...visibleMeals].reverse();
 
   return <Screen>
     <Header eyebrow="Fuel / 01" title={t('nutritionTitle')} subtitle={t('nutritionSubtitle')} action="ellipsis-horizontal" onAction={() => Alert.alert(t('nutrition'), t('premiumDesc'))} />

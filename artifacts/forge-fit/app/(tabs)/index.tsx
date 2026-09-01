@@ -7,6 +7,7 @@ import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
+import { getMealsForRange } from '@/lib/nutritionDates';
 import { AnimatedNumber, Card, ForgeFitMark, Header, Metric, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
@@ -27,9 +28,10 @@ export default function TodayScreen() {
   const { language, meals, username, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, isPremium } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [premiumVisible, setPremiumVisible] = React.useState(false);
-  const calories = meals.reduce((sum, meal) => sum + meal.calories, 0);
+  const todayMeals = getMealsForRange(meals, 'daily');
+  const calories = todayMeals.reduce((sum, meal) => sum + meal.calories, 0);
   const streak = workouts.filter((workout) => workout.completed).length;
-  const macros = meals.reduce((totals, meal) => ({
+  const macros = todayMeals.reduce((totals, meal) => ({
     protein: totals.protein + meal.protein,
     carbs: totals.carbs + meal.carbs,
     fat: totals.fat + meal.fat,

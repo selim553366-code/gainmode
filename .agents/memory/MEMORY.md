@@ -1,6 +1,7 @@
 - [Forge Fit AI and access model](forge-fit-ai.md) — local-first user state with server-side GPT-5 mini and premium usage gates.
 - [Forge Fit onboarding personalization](forge-fit-onboarding.md) — required profile first, optional refinements second, with native-friendly transparent coach media.
 - [Food search provider resilience](food-search-providers.md) — Open Food Facts may rate-limit the .org endpoint; keep the alternate .net source available and combine USDA for generic foods.
+- [Forge Fit nutrition date ranges](forge-fit-nutrition-dates.md) — daily totals use the local calendar day while historical meals remain available for weekly/monthly views.
 - [Expo static build workflow](forge-fit-build-workflow.md) — managed preview ports can conflict with the static Expo helper’s fixed 8081 probe.
 - [Forge Fit live pose tracking](forge-fit-live-pose.md) — native MediaPipe camera flow needs a development build; previews should use an explicit fallback.
 - [Forge Fit Android release builds](forge-fit-android-build.md) — native checks work locally; Android cloud builds must resolve Expo config from the Forge Fit artifact, not the workspace root.

@@ -4,6 +4,7 @@ import { Language, TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
 import { getCurrentMonthKey } from '@/lib/profileEdit';
+import { localDateKey } from '@/lib/nutritionDates';
 import { buildWorkoutPlan, restoreWorkoutProgress, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
@@ -246,7 +247,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
           if (!merged.goalProjection && merged.profile && merged.calorieGoal) {
             merged.goalProjection = createGoalProjection(merged.profile, merged.calorieGoal, merged.workouts, merged.goalWeight ?? undefined);
           }
-          const today = new Date().toISOString().slice(0, 10);
+          const today = localDateKey();
           setState(merged.usageDate === today ? merged : { ...merged, usageDate: today, coachMessagesUsed: 0, photoAnalysesUsed: 0 });
         }
       }
