@@ -18,6 +18,14 @@ const premiumPreviewPriceByLanguage: Record<Language, { locale: string; currency
   es: { locale: 'es-ES', currency: 'EUR' },
 };
 
+const premiumPriceOptionLabels: Record<Language, { monthly: string; annual: string }> = {
+  tr: { monthly: 'Aylık', annual: 'yıllık' },
+  en: { monthly: 'Monthly', annual: 'yearly' },
+  de: { monthly: 'Monatlich', annual: 'jährlich' },
+  fr: { monthly: 'Mensuel', annual: 'annuel' },
+  es: { monthly: 'Mensual', annual: 'anual' },
+};
+
 const homeEquipmentDetailsCopy: Record<Language, { hint: string; placeholder: string }> = {
   tr: { hint: 'Evde bulunan ekipmanları mümkün olduğunca ayrıntılı yaz.', placeholder: 'Örn. 2 adet 10 kg dambıl, direnç bantları, yoga matı...' },
   en: { hint: 'List the equipment you have at home in as much detail as possible.', placeholder: 'E.g. two 10 kg dumbbells, resistance bands, yoga mat...' },
@@ -42,7 +50,7 @@ const usageLimitCopy: Record<Language, { coach: string; photo: string }> = {
   es: { coach: 'Has usado tus mensajes al coach de hoy.', photo: 'Has usado tus análisis de fotos de hoy.' },
 };
 
-export function getPremiumPreviewPrice(language: Language, amount = 4.99) {
+export function getPremiumPreviewPrice(language: Language, amount = 7.99) {
   const selected = premiumPreviewPriceByLanguage[language];
   const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale.replace('_', '-').toLowerCase();
   const usesBritishEnglish = language === 'en' && deviceLocale.startsWith('en-gb');
@@ -55,6 +63,11 @@ export function getPremiumPreviewPrice(language: Language, amount = 4.99) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount);
+}
+
+export function getPremiumPreviewPriceOptions(language: Language) {
+  const labels = premiumPriceOptionLabels[language];
+  return `${labels.monthly} ${getPremiumPreviewPrice(language, 7.99)} • ${labels.annual} ${getPremiumPreviewPrice(language, 59.99)}`;
 }
 
 const profileEditTranslations = {
@@ -1214,7 +1227,7 @@ const settingsTranslations = {
 export type TranslationKey = keyof typeof translations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr;
 
 export function translate(language: Language, key: TranslationKey): string {
-  if (key === 'premiumPriceOptions') return getPremiumPreviewPrice(language);
+  if (key === 'premiumPriceOptions') return getPremiumPreviewPriceOptions(language);
   if (key === 'premiumFeature2') return premiumBenefitCopy[language].photo;
   if (key === 'premiumFeature3') return premiumBenefitCopy[language].coach;
   if (key === 'coachLimitReached') return usageLimitCopy[language].coach;

@@ -792,6 +792,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
      <View style={[styles.offerPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
        <Text style={[styles.offerPriceLabel, { color: colors.primary }]}>{t('premiumPriceMonthly')}</Text>
        <Text style={[styles.offerPrice, { color: colors.foreground }]}>{displayPrice}{price ? ` ${t('premiumPerMonth')}` : ''}</Text>
+       <Text style={[styles.offerPriceOptions, { color: colors.mutedForeground }]}>{t('premiumPriceOptions')}</Text>
      </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
       <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} onPress={() => { triggerHaptic(); handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
@@ -964,6 +965,7 @@ const styles = StyleSheet.create({
   offerPriceCard: { alignSelf: 'center', alignItems: 'center', borderWidth: 1, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 9, marginBottom: 10 },
   offerPriceLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 },
   offerPrice: { fontFamily: 'Inter_700Bold', fontSize: 15 },
+  offerPriceOptions: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 4 },
   offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
   premiumRestoreButton: { alignItems: 'center', justifyContent: 'center', minHeight: 36 },
   premiumRestoreText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
