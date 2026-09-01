@@ -9,7 +9,7 @@ import { useSearchFood, type FoodSearchItem } from '@workspace/api-client-react'
 import { useFit, Meal } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { Card, ForgeFitMark, Header, Pill, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
+import { Card, ForgeFitMark, Header, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 import { DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -141,7 +141,6 @@ export default function NutritionScreen() {
   const { language, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, addMeal, removeMeal, photoAnalysesUsed, incrementPhotoUsage } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { openCamera } = useLocalSearchParams<{ openCamera?: string }>();
-  const [range, setRange] = React.useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [search, setSearch] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
@@ -156,7 +155,7 @@ export default function NutritionScreen() {
     { q: searchEnabled ? debouncedSearch : '  ', language, limit: 12 },
     { query: { enabled: searchEnabled, staleTime: 5 * 60 * 1000, queryKey: ['food-search', debouncedSearch, language] } },
   );
-  const visibleMeals = getMealsForRange(meals, range);
+  const visibleMeals = getMealsForRange(meals, 'daily');
   const calories = visibleMeals.reduce((sum, meal) => sum + meal.calories, 0);
   const macros = visibleMeals.reduce((totals, meal) => ({
     protein: totals.protein + meal.protein,
@@ -228,7 +227,6 @@ export default function NutritionScreen() {
 
   return <Screen>
     <Header eyebrow="Fuel / 01" title={t('nutritionTitle')} subtitle={t('nutritionSubtitle')} action="ellipsis-horizontal" onAction={() => Alert.alert(t('nutrition'), t('premiumDesc'))} />
-    <View style={styles.rangeRow}><Pill label={t('daily')} active={range === 'daily'} onPress={() => setRange('daily')} /><Pill label={t('weekly')} active={range === 'weekly'} onPress={() => setRange('weekly')} /><Pill label={t('monthly')} active={range === 'monthly'} onPress={() => setRange('monthly')} /></View>
     <Card style={styles.summaryCard}>
       <View style={styles.summaryTop}><View><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('calories')}</Text><Text style={[styles.summaryNumber, { color: colors.foreground }]}>{calories.toLocaleString()} <Text style={styles.summaryUnit}>{t('caloriesShort')}</Text></Text></View><View style={[styles.summaryBadge, { backgroundColor: `${colors.success}22` }]}><Ionicons name="checkmark-circle" size={15} color={colors.success} /><Text style={[styles.badgeText, { color: colors.success }]}>{calorieGoal ? `${Math.round((calories / calorieGoal) * 100)}%` : '—'}</Text></View></View>
       <ProgressBar value={calorieGoal ? calories / calorieGoal : 0} />
@@ -285,7 +283,6 @@ export default function NutritionScreen() {
 }
 
 const styles = StyleSheet.create({
-  rangeRow: { flexDirection: 'row', marginBottom: 14 },
   summaryCard: { padding: 20 },
   macroTargets: { borderTopWidth: 1, marginTop: 17, paddingTop: 14 },
   macroTargetsTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, marginBottom: 10 },
