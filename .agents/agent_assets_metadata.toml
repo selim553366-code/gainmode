@@ -28,3 +28,17 @@ mtime_ms = 1788104275557
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/98d5c2fb-e2d1-47f3-9e90-151864d449a5/79a8bf98-d723-4f5d-b586-4aa80e8f2de1"
 storage_version_token = "1788104280912877"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "TJWguG6OCEXY-tOxZjdei"
+uri = "file://artifacts/forge-fit-video/public/audio/bg_music.mp3"
+type = "audio"
+title = "Forge Fit reklam müziği"
+description = "30 saniyelik, 112 BPM, sözsüz ve spor odaklı arka plan müziği."
+logical_id = "5f2d3cd6-3929-4dcd-bc59-3b94c899b37a"
+content_hash = "sha256:6c21f3afd24127da0579e5b07bdb545d7d6f2a0bd312287a38663482ee174ed3"
+size = 601383
+mtime_ms = 1788264219842
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/5f2d3cd6-3929-4dcd-bc59-3b94c899b37a/0a9b602e-c71b-4b0d-856a-cd86b6813dd5"
+storage_version_token = "1788264285473389"
+content_type = "audio/mpeg"

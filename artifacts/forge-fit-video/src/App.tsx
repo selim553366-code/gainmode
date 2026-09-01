@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useVideoPlayer } from "@/lib/video";
 
@@ -40,12 +40,35 @@ function Phone({ screen }: { screen: "meal" | "goals" }) {
 
 function App() {
   const { currentScene } = useVideoPlayer({ durations: SCENE_DURATIONS });
+  const audioRef = useRef<HTMLAudioElement>(null);
   const scene = currentScene;
   const elapsed = SCENE_STARTS[scene] ?? 0;
   const progress = elapsed / TOTAL;
   const orb = scene === 0 ? { x: "68%", y: "15%", scale: 1.35 } : scene === 1 ? { x: "90%", y: "34%", scale: .82 } : scene === 2 ? { x: "24%", y: "70%", scale: .68 } : scene === 3 ? { x: "10%", y: "30%", scale: 1.1 } : scene === 4 ? { x: "82%", y: "73%", scale: .88 } : scene === 5 ? { x: "24%", y: "24%", scale: 1.2 } : { x: "50%", y: "38%", scale: 1.45 };
 
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = 0;
+    void audio.play().catch(() => {
+      // Browser autoplay policies may require a user gesture in preview.
+    });
+    return () => {
+      audio.pause();
+      audio.currentTime = 0;
+    };
+  }, []);
+
   return <main className="video-canvas">
+    <audio
+      ref={audioRef}
+      className="audio-track"
+      src={`${BASE}audio/bg_music.mp3`}
+      preload="auto"
+      autoPlay
+      loop
+      aria-label="Arka plan müziği"
+    />
     <div className="ambient-grid" />
     <motion.div className="glow-orb" animate={orb} transition={{ duration: 1.4, ease: [0.16, 1, .3, 1] }} />
     <motion.div className="camera-ring" animate={{ rotate: [0, 8, -5, 0], scale: scene === 0 ? 1.1 : .8, opacity: scene === 6 ? .9 : .45 }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />

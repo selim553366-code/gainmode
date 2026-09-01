@@ -25,6 +25,14 @@ body { background: #06111c; }
     linear-gradient(151deg, #071727 0%, #071321 52%, #06111c 100%);
 }
 
+.audio-track {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .video-canvas::after {
   content: "";
   position: absolute;
