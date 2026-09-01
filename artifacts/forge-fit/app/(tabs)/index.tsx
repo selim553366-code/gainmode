@@ -51,7 +51,6 @@ export default function TodayScreen() {
          premiumAction={SUBSCRIPTION_PURCHASE_ENABLED ? () => setPremiumVisible(true) : undefined}
          streak={streak}
          streakLabel={t('streak')}
-          onStreakPress={() => router.push('/streak')}
          showText={false}
       />
 
