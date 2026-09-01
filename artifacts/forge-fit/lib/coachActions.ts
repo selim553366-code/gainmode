@@ -26,7 +26,7 @@ export function validateCoachActions(rawActions: unknown, workouts: Workout[]): 
   for (const raw of rawActions.slice(0, 6)) {
     if (!isRecord(raw) || typeof raw.type !== 'string') continue;
     if (raw.type === 'add_exercise') {
-      if (!validWorkout(workouts, raw.workoutId) || !isString(raw.name) || !isIntegerInRange(raw.sets, 1, 6) || !isIntegerInRange(raw.reps, 1, 100)) continue;
+      if (!validWorkout(workouts, raw.workoutId) || !isString(raw.name) || !isIntegerInRange(raw.sets, 1, 3) || !isIntegerInRange(raw.reps, 1, 100)) continue;
       valid.push({ type: 'add_exercise', workoutId: raw.workoutId as string, name: raw.name.trim(), sets: raw.sets, reps: raw.reps });
       continue;
     }
@@ -40,7 +40,7 @@ export function validateCoachActions(rawActions: unknown, workouts: Workout[]): 
       const workout = validWorkout(workouts, raw.workoutId);
       const hasSets = raw.sets !== undefined;
       const hasReps = raw.reps !== undefined;
-      if (!workout || !validExercise(workout, raw.exerciseId) || (!hasSets && !hasReps) || (hasSets && !isIntegerInRange(raw.sets, 1, 6)) || (hasReps && !isIntegerInRange(raw.reps, 1, 100))) continue;
+      if (!workout || !validExercise(workout, raw.exerciseId) || (!hasSets && !hasReps) || (hasSets && !isIntegerInRange(raw.sets, 1, 3)) || (hasReps && !isIntegerInRange(raw.reps, 1, 100))) continue;
       valid.push({ type: 'update_exercise', workoutId: raw.workoutId as string, exerciseId: raw.exerciseId as string, ...(hasSets ? { sets: raw.sets as number } : {}), ...(hasReps ? { reps: raw.reps as number } : {}) });
       continue;
     }

@@ -132,6 +132,27 @@ function preferredDayNames(profile: Profile, count: number) {
   return Array.from({ length: count }, (_, index) => profile.preferredDays?.[index] ?? fallback[index]);
 }
 
+export const MIN_WORKOUT_SETS = 1;
+export const MAX_WORKOUT_SETS = 3;
+
+export function clampWorkoutSets(value: number, fallback = 2) {
+  const safeValue = Number.isFinite(value) ? Math.round(value) : fallback;
+  return Math.min(MAX_WORKOUT_SETS, Math.max(MIN_WORKOUT_SETS, safeValue));
+}
+
+export function getSharedWorkoutSets(workouts: Workout[], fallback = 2) {
+  const firstExercise = workouts.flatMap((workout) => workout.exercises).find((exercise) => Number.isFinite(exercise.sets));
+  return clampWorkoutSets(firstExercise?.sets ?? fallback, fallback);
+}
+
+export function normalizeWorkoutSets(workouts: Workout[], fallback = 2) {
+  const sharedSets = getSharedWorkoutSets(workouts, fallback);
+  return workouts.map((workout) => ({
+    ...workout,
+    exercises: workout.exercises.map((exercise) => ({ ...exercise, sets: sharedSets })),
+  }));
+}
+
 export function buildWorkoutPlan(profile: Profile): Workout[] {
   const count = Math.min(Math.max(profile.trainingDays ?? 3, 2), 6);
   const areasByDay = splitAreas[count];
@@ -145,7 +166,7 @@ export function buildWorkoutPlan(profile: Profile): Workout[] {
       ? 10
       : isLossGoal ? 14 : 12;
   const baseSets = profile.experience === 'advanced' ? 4 : profile.experience === 'intermediate' ? 3 : 2;
-  const sets = Math.min(5, baseSets + (profile.sessionDuration && profile.sessionDuration >= 55 ? 1 : 0) + (profile.activity === 'high' ? 1 : 0) + (isBuildGoal ? 1 : 0));
+  const sets = clampWorkoutSets(baseSets + (profile.sessionDuration && profile.sessionDuration >= 55 ? 1 : 0) + (profile.activity === 'high' ? 1 : 0) + (isBuildGoal ? 1 : 0));
   const days = preferredDayNames(profile, count);
 
   return areasByDay.map((areas, dayIndex) => {

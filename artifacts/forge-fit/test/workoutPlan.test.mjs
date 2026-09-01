@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildWorkoutPlan, restoreWorkoutProgress, workoutIsComplete } from '../lib/workoutPlan.ts';
+import { buildWorkoutPlan, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete } from '../lib/workoutPlan.ts';
 
 const profile = (overrides = {}) => ({
   equipment: 'bodyweight',
@@ -43,6 +43,26 @@ test('bodyweight plans never use gym or weight-specific exercises', () => {
   ]);
 
   assert.ok(workouts.flatMap((workout) => workout.exercises).every((exercise) => !gymOnly.has(exercise.name)));
+});
+
+test('uses one safe set count for every generated exercise', () => {
+  const workouts = buildWorkoutPlan(profile({ experience: 'advanced', sessionDuration: 60, activity: 'high' }));
+  const sets = workouts.flatMap((workout) => workout.exercises).map((exercise) => exercise.sets);
+
+  assert.ok(sets.length > 0);
+  assert.ok(sets.every((value) => value === sets[0]));
+  assert.ok(sets[0] >= 1 && sets[0] <= 3);
+});
+
+test('normalizes persisted exercises to one set count between one and three', () => {
+  const workouts = buildWorkoutPlan(profile({ trainingDays: 2 }));
+  const restored = normalizeWorkoutSets(workouts.map((workout, workoutIndex) => ({
+    ...workout,
+    exercises: workout.exercises.map((exercise, exerciseIndex) => ({ ...exercise, sets: workoutIndex + exerciseIndex + 4 })),
+  })));
+  const sets = restored.flatMap((workout) => workout.exercises).map((exercise) => exercise.sets);
+
+  assert.ok(sets.every((value) => value === 3));
 });
 
 test('equipment details choose matching home movement variations', () => {

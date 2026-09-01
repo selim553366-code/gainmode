@@ -5,7 +5,7 @@ import { useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
 import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey } from '@/lib/nutritionDates';
-import { buildWorkoutPlan, restoreWorkoutProgress, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
+import { buildWorkoutPlan, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
@@ -229,7 +229,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
             notificationSettings: { ...initialState.notificationSettings, ...(parsed.notificationSettings ?? {}) },
             version: initialState.version,
           };
-          const restoredWorkouts = restoreWorkoutProgress(merged.workouts);
+           const restoredWorkouts = normalizeWorkoutSets(restoreWorkoutProgress(merged.workouts));
           const needsWorkoutUpgrade = merged.profile && merged.workouts.length > 0 && merged.workouts.some((workout) => (
             !workout.focusAreas?.length || workout.exercises.some((exercise) => !exercise.muscleGroup)
           ));
@@ -347,13 +347,28 @@ export function FitProvider({ children }: { children: ReactNode }) {
       const exercises = workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, completed: !exercise.completed } : exercise);
       return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
     }) })),
-     addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, completed: false, exercises: [...workout.exercises, { id: `${Date.now()}-${Math.random()}`, name, sets, reps, muscleGroup: 'other', completed: false }] } : workout) })),
+      addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => {
+        const sharedSets = getSharedWorkoutSets(current.workouts, clampWorkoutSets(sets));
+        const workouts = normalizeWorkoutSets(current.workouts, sharedSets).map((workout) => workout.id === workoutId
+          ? { ...workout, completed: false, exercises: [...workout.exercises, { id: `${Date.now()}-${Math.random()}`, name, sets: sharedSets, reps, muscleGroup: 'other' as MuscleGroup, completed: false }] }
+          : workout);
+        return { ...current, workouts };
+      }),
     removeExercise: (workoutId, exerciseId) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => {
       if (workout.id !== workoutId) return workout;
       const exercises = workout.exercises.filter((exercise) => exercise.id !== exerciseId);
       return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
     }) })),
-     updateExercise: (workoutId, exerciseId, patch) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, exercises: workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, ...patch } : exercise) } : workout) })),
+      updateExercise: (workoutId, exerciseId, patch) => setState((current) => {
+        const sharedSets = patch.sets === undefined ? getSharedWorkoutSets(current.workouts) : clampWorkoutSets(patch.sets);
+        const workouts = normalizeWorkoutSets(current.workouts, sharedSets).map((workout) => ({
+          ...workout,
+          exercises: workout.exercises.map((exercise) => exercise.id === exerciseId && workout.id === workoutId
+            ? { ...exercise, ...patch, sets: sharedSets }
+            : exercise),
+        }));
+        return { ...current, workouts };
+      }),
      updateNutritionGoals: (patch) => setState((current) => {
        const nextGoals = {
          calories: patch.calories ?? current.calorieGoal,
