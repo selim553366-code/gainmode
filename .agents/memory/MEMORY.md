@@ -8,3 +8,4 @@
 - [OpenAPI and Zod codegen](openapi-zod-codegen.md) — this workspace’s Zod 3 generator mishandles OpenAPI integer response fields; verify generated schemas after API changes.
 - [Forge Fit local notifications](forge-fit-notifications.md) — reminder scheduling is native-device behavior; web previews only validate the settings UI.
 - [Forge Fit workout planning](forge-fit-workout-plan.md) — group every workout by muscle area, filter movements by equipment, and derive completion from exercises.
+- [Video artifact metadata](video-artifact-metadata.md) — preserve immutable artifact metadata and repair missing services through verified TOML replacement.

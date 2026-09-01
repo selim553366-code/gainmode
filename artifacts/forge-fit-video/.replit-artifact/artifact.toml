@@ -1,0 +1,16 @@
+kind = "video"
+videoAspectRatio = "9:16"
+previewPath = "/forge-fit-video/"
+title = "Forge Fit 30-Second Ad"
+
+[[services]]
+name = "web"
+localPort = 5178
+paths = ["/forge-fit-video/"]
+
+[services.development]
+run = "pnpm --filter @workspace/forge-fit-video run dev"
+
+[services.env]
+PORT = "5178"
+BASE_PATH = "/forge-fit-video/"
