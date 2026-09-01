@@ -25,6 +25,7 @@ type SubscriptionContextValue = {
   customerInfo?: CustomerInfo;
   offerings?: PurchasesOfferings;
   monthlyPackage?: PurchasesPackage;
+  annualPackage?: PurchasesPackage;
   isAvailable: boolean;
   isLoading: boolean;
   isSubscribed: boolean | undefined;
@@ -89,6 +90,7 @@ function useSubscriptionContext(): SubscriptionContextValue {
       customerInfo: customerInfoQuery.data,
       offerings: offeringsQuery.data,
       monthlyPackage: currentOffering?.monthly ?? undefined,
+      annualPackage: currentOffering?.annual ?? undefined,
       isAvailable,
       isLoading: isAvailable && (customerInfoQuery.isLoading || offeringsQuery.isLoading),
        isSubscribed: customerInfoQuery.data ? hasActivePremiumEntitlement(customerInfoQuery.data) : undefined,

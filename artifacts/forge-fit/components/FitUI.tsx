@@ -197,10 +197,13 @@ export function PremiumLock() {
 export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const colors = useColors();
   const { language, isPremium, enablePremium, enablePremiumForTesting } = useFit();
-  const { monthlyPackage, isAvailable, isLoading, isSubscribed, restore, isPurchasing, isRestoring } = useSubscription();
+  const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const price = monthlyPackage?.product.priceString ?? getPremiumPreviewPrice(language);
-  const currency = monthlyPackage?.product.currencyCode;
+  const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>('annual');
+  const monthlyPrice = monthlyPackage?.product.priceString ?? getPremiumPreviewPrice(language, 7.99);
+  const annualPrice = annualPackage?.product.priceString ?? getPremiumPreviewPrice(language, 59.99);
+  const selectedPrice = selectedPlan === 'annual' ? annualPrice : monthlyPrice;
+  const selectedCurrency = (selectedPlan === 'annual' ? annualPackage : monthlyPackage)?.product.currencyCode;
   const appear = React.useRef(new Animated.Value(0)).current;
   const [actionError, setActionError] = React.useState<string | null>(null);
 
@@ -258,11 +261,23 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
           <View style={styles.premiumBenefits}>
             {(['premiumFeature1', 'premiumFeature2', 'premiumFeature3'] as const).map((key) => <View key={key} style={styles.premiumBenefit}><View style={[styles.premiumBenefitIcon, { backgroundColor: `${colors.primary}1A` }]}><Ionicons name="checkmark" size={15} color={colors.primary} /></View><Text style={[styles.premiumBenefitText, { color: colors.foreground }]}>{t(key)}</Text></View>)}
           </View>
-             <View style={[styles.premiumPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
-             <View><Text style={[styles.premiumPriceLabel, { color: colors.mutedForeground }]}>{t('premiumPriceMonthly')}</Text><View style={styles.premiumPriceLine}><Text style={[styles.premiumPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : price}</Text>{!isLoading ? <Text style={[styles.premiumPriceUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text> : null}</View></View>
-             <View style={styles.premiumPriceAside}>{currency ? <Text style={[styles.premiumCurrencyCode, { color: colors.primary }]}>{currency}</Text> : null}<Text style={[styles.premiumTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
-          </View>
-           <Text style={[styles.premiumPriceOptions, { color: colors.mutedForeground }]}>{t('premiumPriceOptions')}</Text>
+           <View style={styles.premiumPlanChoices}>
+             <Pressable testID="premium-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.premiumPlanOption, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.border }]}>
+               <Text style={[styles.premiumPlanLabel, { color: colors.foreground }]}>{t('premiumMonthlyPlan')}</Text>
+               <Text style={[styles.premiumPlanPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : monthlyPrice}</Text>
+               {!isLoading ? <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text> : null}
+             </Pressable>
+             <Pressable testID="premium-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual' }} onPress={() => setSelectedPlan('annual')} style={[styles.premiumPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border }]}>
+               <View style={styles.premiumPlanHeader}><Text style={[styles.premiumPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text><Text style={[styles.premiumSavingsBadge, { color: colors.success }]}>{t('premiumAnnualSavings')}</Text></View>
+               <Text style={[styles.premiumPlanPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : annualPrice}</Text>
+               <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumAnnualPlan')}</Text>
+             </Pressable>
+           </View>
+           <Text style={[styles.premiumPlanBenefit, { color: selectedPlan === 'annual' ? colors.success : colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualBenefit') : t('premiumMonthlyBenefit')}</Text>
+           <View style={[styles.premiumPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
+              <View><Text style={[styles.premiumPriceLabel, { color: colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualPlan') : t('premiumMonthlyPlan')}</Text><View style={styles.premiumPriceLine}><Text style={[styles.premiumPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : selectedPrice}</Text>{!isLoading && selectedPlan === 'monthly' ? <Text style={[styles.premiumPriceUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text> : null}</View></View>
+              <View style={styles.premiumPriceAside}>{selectedCurrency ? <Text style={[styles.premiumCurrencyCode, { color: colors.primary }]}>{selectedCurrency}</Text> : null}<Text style={[styles.premiumTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
+           </View>
           <Text style={[styles.premiumTrialBody, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
            {actionError ? <Text style={[styles.premiumActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
            <Pressable testID="start-premium" disabled={isPurchasing || isLoading} onPress={isPremium ? onClose : activatePremium} style={({ pressed }) => [styles.premiumCta, { backgroundColor: colors.primary, opacity: pressed || isPurchasing || isLoading ? 0.58 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}><Text style={[styles.premiumCtaText, { color: colors.primaryForeground }]}>{isPremium ? t('premiumActiveNow') : isPurchasing ? t('premiumLoading') : t('premiumStart')}</Text><Ionicons name={isPremium ? 'checkmark-circle' : 'arrow-forward'} size={18} color={colors.primaryForeground} /></Pressable>
@@ -360,6 +375,14 @@ export const styles = StyleSheet.create({
   premiumBenefit: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   premiumBenefitIcon: { width: 25, height: 25, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   premiumBenefitText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17 },
+  premiumPlanChoices: { flexDirection: 'row', gap: 8, marginBottom: 9 },
+  premiumPlanOption: { flex: 1, minHeight: 84, borderRadius: 16, borderWidth: 1, padding: 11 },
+  premiumPlanHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
+  premiumPlanLabel: { fontFamily: 'Inter_700Bold', fontSize: 11 },
+  premiumPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 18, marginTop: 10 },
+  premiumPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 1 },
+  premiumSavingsBadge: { fontFamily: 'Inter_700Bold', fontSize: 8 },
+  premiumPlanBenefit: { fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 15, textAlign: 'center', marginBottom: 10 },
   premiumPriceCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 7 },
   premiumPriceLabel: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 0.3 },
   premiumPriceLine: { flexDirection: 'row', alignItems: 'baseline', gap: 5, marginTop: 3 },

@@ -42,6 +42,20 @@ const premiumBenefitCopy: Record<Language, { photo: string; coach: string }> = {
   es: { photo: 'Análisis avanzado de fotos de comida', coach: 'Coaching personal con FitBud' },
 };
 
+const premiumPlanTranslations: Record<Language, {
+  premiumMonthlyPlan: string;
+  premiumAnnualPlan: string;
+  premiumAnnualSavings: string;
+  premiumAnnualBenefit: string;
+  premiumMonthlyBenefit: string;
+}> = {
+  tr: { premiumMonthlyPlan: 'Aylık', premiumAnnualPlan: 'Yıllık', premiumAnnualSavings: '%37 tasarruf', premiumAnnualBenefit: 'Yıllık planla daha az öde ve tüm yıl Premium erişimini koru.', premiumMonthlyBenefit: 'Aylık planla istediğin zaman esnekçe devam et.' },
+  en: { premiumMonthlyPlan: 'Monthly', premiumAnnualPlan: 'Annual', premiumAnnualSavings: 'Save 37%', premiumAnnualBenefit: 'Pay less with the annual plan and keep Premium all year.', premiumMonthlyBenefit: 'Stay flexible with a month-to-month plan.' },
+  de: { premiumMonthlyPlan: 'Monatlich', premiumAnnualPlan: 'Jährlich', premiumAnnualSavings: '37 % sparen', premiumAnnualBenefit: 'Mit dem Jahresplan weniger zahlen und Premium das ganze Jahr nutzen.', premiumMonthlyBenefit: 'Mit dem Monatsplan flexibel bleiben.' },
+  fr: { premiumMonthlyPlan: 'Mensuel', premiumAnnualPlan: 'Annuel', premiumAnnualSavings: 'Économise 37 %', premiumAnnualBenefit: 'Paie moins avec l’offre annuelle et garde Premium toute l’année.', premiumMonthlyBenefit: 'Reste flexible avec une formule mensuelle.' },
+  es: { premiumMonthlyPlan: 'Mensual', premiumAnnualPlan: 'Anual', premiumAnnualSavings: 'Ahorra un 37 %', premiumAnnualBenefit: 'Paga menos con el plan anual y disfruta de Premium todo el año.', premiumMonthlyBenefit: 'Mantén la flexibilidad con el plan mensual.' },
+};
+
 const usageLimitCopy: Record<Language, { coach: string; photo: string }> = {
   tr: { coach: 'Bugünkü koç mesajı hakkın doldu.', photo: 'Bugünkü fotoğraf analizi hakkın doldu.' },
   en: { coach: 'You have used today’s coach messages.', photo: 'You have used today’s photo analyses.' },
@@ -1224,10 +1238,11 @@ const settingsTranslations = {
   },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr;
+export type TranslationKey = keyof typeof translations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof premiumPlanTranslations.tr;
 
 export function translate(language: Language, key: TranslationKey): string {
   if (key === 'premiumPriceOptions') return getPremiumPreviewPriceOptions(language);
+  if (key in premiumPlanTranslations.tr) return premiumPlanTranslations[language][key as keyof typeof premiumPlanTranslations.tr];
   if (key === 'premiumFeature2') return premiumBenefitCopy[language].photo;
   if (key === 'premiumFeature3') return premiumBenefitCopy[language].coach;
   if (key === 'coachLimitReached') return usageLimitCopy[language].coach;
