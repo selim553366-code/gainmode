@@ -196,8 +196,8 @@ export function PremiumLock() {
 
 export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const colors = useColors();
-  const { language, isPremium, enablePremium } = useFit();
-  const { monthlyPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
+  const { language, isPremium, enablePremium, enablePremiumForTesting } = useFit();
+  const { monthlyPackage, isAvailable, isLoading, isSubscribed, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const price = monthlyPackage?.product.priceString ?? getPremiumPreviewPrice(language);
   const currency = monthlyPackage?.product.currencyCode;
@@ -211,28 +211,15 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
     return () => appear.stopAnimation();
   }, [appear, visible]);
 
-  const activatePremium = async () => {
+  const activatePremium = () => {
     triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
     setActionError(null);
     if (isSubscribed || isPremium) {
       onClose();
       return;
     }
-    if (!isAvailable || !monthlyPackage) {
-      setActionError(t('premiumStoreUnavailable'));
-      return;
-    }
-    try {
-      const customerInfo = await purchase(monthlyPackage);
-      if (!hasActivePremiumEntitlement(customerInfo)) {
-        setActionError(t('premiumPurchaseError'));
-        return;
-      }
-      enablePremium();
-      onClose();
-    } catch {
-      setActionError(t('premiumPurchaseError'));
-    }
+    enablePremiumForTesting();
+    onClose();
   };
 
   const restorePremium = async () => {

@@ -213,7 +213,7 @@ export default function EntryScreen() {
   if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
   if (entryRoute === 'onboarding') return <OnboardingQuestions />;
   if (entryRoute === 'intro') return <IntroScreen onDone={setIntroSeen} />;
-   if (entryRoute === 'premium') return <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)/coach')} onSkip={() => router.replace('/(tabs)')} onRestart={restartOnboarding} />;
+   if (entryRoute === 'premium') return <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)')} onSkip={() => router.replace('/(tabs)')} onRestart={restartOnboarding} />;
   return redirectFailed ? <EntryRecoveryScreen onRestart={restartOnboarding} /> : <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
 }
 
@@ -740,8 +740,8 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
 function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: () => void; onSkip: () => void; onRestart: () => void }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, isPremium } = useFit();
-  const { monthlyPackage, isAvailable, isLoading, isPurchasing, isSubscribed, purchase, restore, isRestoring } = useSubscription();
+   const { language, isPremium, enablePremiumForTesting } = useFit();
+   const { monthlyPackage, isAvailable, isSubscribed, restore, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const price = monthlyPackage?.product.priceString;
@@ -751,23 +751,11 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
     { icon: 'restaurant-outline', key: 'premiumWelcomeBenefit2' },
     { icon: 'chatbubble-ellipses-outline', key: 'premiumWelcomeBenefit3' },
   ];
-  const handlePurchase = async () => {
-    if (!isAvailable || !monthlyPackage) {
-      setActionError(t('premiumStoreUnavailable'));
-      return;
-    }
-    setActionError(null);
-    try {
-      const customerInfo = await purchase(monthlyPackage);
-      if (!hasActivePremiumEntitlement(customerInfo)) {
-        setActionError(t('premiumPurchaseError'));
-        return;
-      }
-      onUnlock();
-    } catch {
-      setActionError(t('premiumPurchaseError'));
-    }
-  };
+   const handlePurchase = () => {
+     setActionError(null);
+     enablePremiumForTesting();
+     onUnlock();
+   };
   const handleRestore = async () => {
     if (!isAvailable) {
       setActionError(t('premiumStoreUnavailable'));
@@ -806,7 +794,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
        <Text style={[styles.offerPrice, { color: colors.foreground }]}>{displayPrice}{price ? ` ${t('premiumPerMonth')}` : ''}</Text>
      </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
-     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} disabled={isLoading || isPurchasing} onPress={() => { triggerHaptic(); handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || isLoading || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isLoading || isPurchasing ? t('premiumLoading') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} onPress={() => { triggerHaptic(); handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeSkip')} onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('premiumWelcomeSkip')}</Text></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={t('restartOnboarding')} onPress={() => { triggerHaptic(); onRestart(); router.replace('/'); }} style={({ pressed }) => [styles.restartOnboardingLink, { opacity: pressed ? 0.6 : 1 }]}>
