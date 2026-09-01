@@ -15,3 +15,23 @@ test('profile edit fields are deduplicated and invalid values are ignored', () =
     ['goal', 'body', 'nutrition'],
   );
 });
+
+test('profile edit groups map to the complete set of affected onboarding steps', () => {
+  assert.deepEqual(
+    profileEdit.getProfileEditStepIds(['training'], false),
+    [8, 9, 10, 13, 14],
+  );
+  assert.deepEqual(
+    profileEdit.getProfileEditStepIds(['goal'], true),
+    [5, 15],
+  );
+  assert.deepEqual(
+    profileEdit.getProfileEditStepIds(['body', 'personal', 'nutrition'], false),
+    [2, 3, 4, 6, 11, 12],
+  );
+});
+
+test('an empty or invalid profile edit selection cannot create an edit flow', () => {
+  assert.deepEqual(profileEdit.getProfileEditStepIds([], false), []);
+  assert.deepEqual(profileEdit.getProfileEditStepIds(profileEdit.parseProfileEditFields('unknown'), false), []);
+});

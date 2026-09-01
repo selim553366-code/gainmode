@@ -24,7 +24,9 @@ import { useColors } from '@/hooks/useColors';
 import { ForgeFitMark, Screen, triggerHaptic } from '@/components/FitUI';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
-import { parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
+import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
+import { getEntryRoute } from '@/lib/entryFlow';
+import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
@@ -197,20 +199,21 @@ export default function EntryScreen() {
   const params = useLocalSearchParams<{ edit?: string; fields?: string }>();
   const editMode = params.edit === '1';
   const selectedFields = React.useMemo(() => parseProfileEditFields(params.fields), [params.fields]);
+  const entryRoute = getEntryRoute({ onboardingComplete, introSeen, isPremium, subscriptionPurchaseEnabled: SUBSCRIPTION_PURCHASE_ENABLED, coachIntroPending });
   const [redirectFailed, setRedirectFailed] = React.useState(false);
   React.useEffect(() => {
-      if (!editMode && onboardingComplete && introSeen && (isPremium || !SUBSCRIPTION_PURCHASE_ENABLED)) {
+      if (!editMode && (entryRoute === 'tabs' || entryRoute === 'coach')) {
        setRedirectFailed(false);
        const timeout = setTimeout(() => setRedirectFailed(true), 900);
-       router.replace(coachIntroPending ? '/(tabs)/coach' : '/(tabs)');
+        router.replace(entryRoute === 'coach' ? '/(tabs)/coach' : '/(tabs)');
        return () => clearTimeout(timeout);
      }
      setRedirectFailed(false);
-  }, [editMode, onboardingComplete, introSeen, isPremium, coachIntroPending]);
+   }, [editMode, entryRoute]);
   if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
-  if (!onboardingComplete) return <OnboardingQuestions />;
-  if (!introSeen) return <IntroScreen onDone={setIntroSeen} />;
-   if (!isPremium) return SUBSCRIPTION_PURCHASE_ENABLED ? <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)/coach')} onSkip={() => router.replace('/(tabs)')} onRestart={restartOnboarding} /> : null;
+  if (entryRoute === 'onboarding') return <OnboardingQuestions />;
+  if (entryRoute === 'intro') return <IntroScreen onDone={setIntroSeen} />;
+   if (entryRoute === 'premium') return <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)/coach')} onSkip={() => router.replace('/(tabs)')} onRestart={restartOnboarding} />;
   return redirectFailed ? <EntryRecoveryScreen onRestart={restartOnboarding} /> : <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
 }
 
@@ -285,19 +288,9 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const slide = React.useRef(new Animated.Value(1)).current;
   const targetStep = 15;
   const hasTargetWeightStep = goal === 'weightGain' || goal === 'weightLoss';
-  const selectedStepIds = React.useMemo(() => {
-    if (!editMode) return Array.from({ length: hasTargetWeightStep ? 16 : 15 }, (_, index) => index);
-    const steps = new Set<number>();
-    if (selectedFields.includes('name')) steps.add(0);
-    if (selectedFields.includes('equipment')) steps.add(1);
-    if (selectedFields.includes('body')) { steps.add(2); steps.add(3); }
-    if (selectedFields.includes('personal')) { steps.add(4); steps.add(6); }
-    if (selectedFields.includes('goal')) { steps.add(5); if (hasTargetWeightStep) steps.add(targetStep); }
-    if (selectedFields.includes('activity')) steps.add(7);
-    if (selectedFields.includes('training')) { steps.add(8); steps.add(9); steps.add(10); steps.add(13); steps.add(14); }
-    if (selectedFields.includes('nutrition')) { steps.add(11); steps.add(12); }
-    return [...steps].sort((a, b) => a - b);
-  }, [editMode, selectedFields, hasTargetWeightStep]);
+   const selectedStepIds = React.useMemo(() => editMode
+     ? getProfileEditStepIds(selectedFields, hasTargetWeightStep)
+     : Array.from({ length: hasTargetWeightStep ? 16 : 15 }, (_, index) => index), [editMode, selectedFields, hasTargetWeightStep]);
   const total = selectedStepIds.length;
   const activeStep = editMode ? selectedStepIds[step] : step;
   const currentAge = getAge(birthDay, birthMonth, birthYear);
@@ -748,7 +741,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { language, isPremium } = useFit();
-  const { monthlyPackage, isAvailable, isLoading, isPurchasing, isSubscribed, purchase } = useSubscription();
+  const { monthlyPackage, isAvailable, isLoading, isPurchasing, isSubscribed, purchase, restore, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const price = monthlyPackage?.product.priceString;
@@ -765,10 +758,31 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
     }
     setActionError(null);
     try {
-      await purchase(monthlyPackage);
+      const customerInfo = await purchase(monthlyPackage);
+      if (!hasActivePremiumEntitlement(customerInfo)) {
+        setActionError(t('premiumPurchaseError'));
+        return;
+      }
       onUnlock();
     } catch {
       setActionError(t('premiumPurchaseError'));
+    }
+  };
+  const handleRestore = async () => {
+    if (!isAvailable) {
+      setActionError(t('premiumStoreUnavailable'));
+      return;
+    }
+    setActionError(null);
+    try {
+      const customerInfo = await restore();
+      if (!hasActivePremiumEntitlement(customerInfo)) {
+        setActionError(t('premiumRestoreNoPurchase'));
+        return;
+      }
+      onUnlock();
+    } catch {
+      setActionError(t('premiumRestoreError'));
     }
   };
   return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={[styles.full, styles.offerScreen, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 18 }]}>
@@ -793,6 +807,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
      </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
      <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} disabled={isLoading || isPurchasing} onPress={() => { triggerHaptic(); handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || isLoading || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isLoading || isPurchasing ? t('premiumLoading') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
+    <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeSkip')} onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('premiumWelcomeSkip')}</Text></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={t('restartOnboarding')} onPress={() => { triggerHaptic(); onRestart(); router.replace('/'); }} style={({ pressed }) => [styles.restartOnboardingLink, { opacity: pressed ? 0.6 : 1 }]}>
         <Ionicons name="flash-outline" size={15} color={colors.mutedForeground} />
@@ -962,4 +977,6 @@ const styles = StyleSheet.create({
   offerPriceLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 },
   offerPrice: { fontFamily: 'Inter_700Bold', fontSize: 15 },
   offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
+  premiumRestoreButton: { alignItems: 'center', justifyContent: 'center', minHeight: 36 },
+  premiumRestoreText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
 });

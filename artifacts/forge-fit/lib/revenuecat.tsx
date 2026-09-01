@@ -2,8 +2,9 @@ import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import { Platform } from 'react-native';
 import Purchases, { CustomerInfo, PurchasesOfferings, PurchasesPackage } from 'react-native-purchases';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { hasActivePremiumEntitlement, PREMIUM_ENTITLEMENT_IDENTIFIER } from '@/lib/premiumAccess';
 
-export const REVENUECAT_ENTITLEMENT_IDENTIFIER = 'forge_fit_pro';
+export const REVENUECAT_ENTITLEMENT_IDENTIFIER = PREMIUM_ENTITLEMENT_IDENTIFIER;
 export const SUBSCRIPTION_PURCHASE_ENABLED = true;
 const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
 
@@ -90,9 +91,7 @@ function useSubscriptionContext(): SubscriptionContextValue {
       monthlyPackage: currentOffering?.monthly ?? undefined,
       isAvailable,
       isLoading: isAvailable && (customerInfoQuery.isLoading || offeringsQuery.isLoading),
-      isSubscribed: customerInfoQuery.data
-        ? Boolean(customerInfoQuery.data.entitlements.active[REVENUECAT_ENTITLEMENT_IDENTIFIER])
-        : undefined,
+       isSubscribed: customerInfoQuery.data ? hasActivePremiumEntitlement(customerInfoQuery.data) : undefined,
       purchase: purchaseMutation.mutateAsync,
       restore: restoreMutation.mutateAsync,
       isPurchasing: purchaseMutation.isPending,

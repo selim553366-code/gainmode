@@ -5,7 +5,8 @@ import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { getPremiumPreviewPrice, translate, type Language, type TranslationKey } from '@/lib/i18n';
-import { REVENUECAT_ENTITLEMENT_IDENTIFIER, SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
+import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
+import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@/components/AppIcon';
@@ -217,8 +218,21 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
       onClose();
       return;
     }
-    enablePremium();
-    onClose();
+    if (!isAvailable || !monthlyPackage) {
+      setActionError(t('premiumStoreUnavailable'));
+      return;
+    }
+    try {
+      const customerInfo = await purchase(monthlyPackage);
+      if (!hasActivePremiumEntitlement(customerInfo)) {
+        setActionError(t('premiumPurchaseError'));
+        return;
+      }
+      enablePremium();
+      onClose();
+    } catch {
+      setActionError(t('premiumPurchaseError'));
+    }
   };
 
   const restorePremium = async () => {
@@ -230,7 +244,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
     }
     try {
       const customerInfo = await restore();
-      if (customerInfo.entitlements.active[REVENUECAT_ENTITLEMENT_IDENTIFIER]) {
+       if (hasActivePremiumEntitlement(customerInfo)) {
         enablePremium();
         onClose();
         return;
