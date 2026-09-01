@@ -27,14 +27,6 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
   const logoDeparture = React.useRef(new Animated.Value(focused ? 0 : 1)).current;
   const circleCollapse = React.useRef(new Animated.Value(focused ? 1 : 0)).current;
   const thinkingTransition = React.useRef(new Animated.Value(coachThinking ? 1 : 0)).current;
-  const pressBounce = React.useRef(new Animated.Value(0)).current;
-
-  const animatePress = () => {
-    Animated.sequence([
-      Animated.timing(pressBounce, { toValue: 1, duration: 120, easing: Easing.out(Easing.back(1.4)), useNativeDriver: true }),
-      Animated.spring(pressBounce, { toValue: 0, friction: 5, tension: 150, useNativeDriver: true }),
-    ]).start();
-  };
 
   React.useEffect(() => {
     Animated.spring(logoScale, {
@@ -78,13 +70,10 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
       accessibilityRole="tab"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
-      onPress={() => {
-        animatePress();
-        onPress();
-      }}
+      onPress={onPress}
       style={styles.coachTabItem}
     >
-      <Animated.View style={[styles.coachTabButton, { shadowColor: colors.primary, transform: [{ scale: pressBounce.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }]}>
+      <View style={[styles.coachTabButton, { shadowColor: colors.primary }]}>
         <Animated.View style={{ transform: [{ scale: logoScale }] }}>
           <Animated.View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary, opacity: circleCollapse.interpolate({ inputRange: [0, 0.46, 0.72, 1], outputRange: [1, 1, 0.78, 0] }), transform: [{ translateY: circleCollapse.interpolate({ inputRange: [0, 0.32, 0.58, 1], outputRange: [0, 0, 10, 18] }) }, { scale: circleCollapse.interpolate({ inputRange: [0, 0.32, 0.66, 1], outputRange: [1, 1, 0.62, 0] }) }, { rotate: circleCollapse.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-18deg'] }) }] }]}>
             <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, { opacity: Animated.multiply(logoDeparture, thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })) }]} />
@@ -93,44 +82,7 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
         </Animated.View>
         <Text style={[styles.coachTabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
         {focused ? <View style={[styles.coachTabDot, { backgroundColor: colors.primary }]} /> : null}
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-function IconTabButton({ focused, label, icon, onPress, colors }: { focused: boolean; label: string; icon: React.ComponentProps<typeof Feather>['name']; onPress: () => void; colors: ReturnType<typeof useColors> }) {
-  const iconBounce = React.useRef(new Animated.Value(0)).current;
-  const previousFocused = React.useRef(focused);
-
-  const animateIcon = React.useCallback(() => {
-    Animated.sequence([
-      Animated.timing(iconBounce, { toValue: 1, duration: 150, easing: Easing.out(Easing.back(1.4)), useNativeDriver: true }),
-      Animated.spring(iconBounce, { toValue: 0, friction: 5, tension: 150, useNativeDriver: true }),
-    ]).start();
-  }, [iconBounce]);
-
-  React.useEffect(() => {
-    if (focused && !previousFocused.current) animateIcon();
-    previousFocused.current = focused;
-  }, [animateIcon, focused]);
-
-  const handlePress = () => {
-    if (focused) animateIcon();
-    onPress();
-  };
-
-  return (
-    <Pressable
-      accessibilityRole="tab"
-      accessibilityState={{ selected: focused }}
-      accessibilityLabel={label}
-      onPress={handlePress}
-      style={styles.tabItem}
-    >
-      <Animated.View style={{ transform: [{ translateY: iconBounce.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -8, 0] }) }, { scale: iconBounce.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.38, 1] }) }, { rotate: iconBounce.interpolate({ inputRange: [0, 0.5, 1], outputRange: ['0deg', '-12deg', '0deg'] }) }] }}>
-        <Feather name={icon} size={22} color={focused ? colors.primary : colors.mutedForeground} />
-      </Animated.View>
-      <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -172,14 +124,17 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
             );
           }
           return (
-            <IconTabButton
+            <Pressable
               key={route.key}
-              focused={focused}
-              label={label}
-              icon={iconForRoute(route.name)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: focused }}
+              accessibilityLabel={label}
               onPress={() => handlePress(route)}
-              colors={colors}
-            />
+              style={styles.tabItem}
+            >
+              <Feather name={iconForRoute(route.name)} size={22} color={focused ? colors.primary : colors.mutedForeground} />
+              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
+            </Pressable>
           );
         })}
       </View>
