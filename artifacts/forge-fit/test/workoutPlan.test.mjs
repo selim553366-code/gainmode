@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildWorkoutPlan, workoutIsComplete } from '../lib/workoutPlan.ts';
+import { buildWorkoutPlan, restoreWorkoutProgress, workoutIsComplete } from '../lib/workoutPlan.ts';
 
 const profile = (overrides = {}) => ({
   equipment: 'bodyweight',
@@ -68,4 +68,51 @@ test('a workout is complete only when every exercise is complete', () => {
     ...workout,
     exercises: workout.exercises.map((exercise, index) => ({ ...exercise, completed: index > 0 })),
   }), false);
+});
+
+test('restores individual exercise completion after a persisted round-trip', () => {
+  const workout = buildWorkoutPlan(profile({ trainingDays: 2 }))[0];
+  const completedIndexes = new Set([0, 2]);
+  const beforeRestart = {
+    ...workout,
+    completed: true,
+    exercises: workout.exercises.map((exercise, index) => ({
+      ...exercise,
+      completed: completedIndexes.has(index),
+    })),
+  };
+
+  const afterRestart = restoreWorkoutProgress(JSON.parse(JSON.stringify([beforeRestart])))[0];
+
+  assert.deepEqual(afterRestart.exercises.map((exercise) => exercise.completed), workout.exercises.map((_, index) => completedIndexes.has(index)));
+  assert.equal(afterRestart.completed, false);
+});
+
+test('keeps day completion aligned with restored exercise flags', () => {
+  const workout = buildWorkoutPlan(profile({ trainingDays: 2 }))[0];
+  const beforeRestart = {
+    ...workout,
+    completed: true,
+    exercises: workout.exercises.map((exercise) => ({ ...exercise, completed: true })),
+  };
+
+  const afterRestart = restoreWorkoutProgress(JSON.parse(JSON.stringify([beforeRestart])))[0];
+
+  assert.ok(afterRestart.exercises.every((exercise) => exercise.completed));
+  assert.equal(afterRestart.completed, true);
+  assert.equal(afterRestart.completed, workoutIsComplete(afterRestart));
+});
+
+test('migrates legacy workout records without exercise completion fields', () => {
+  const workout = buildWorkoutPlan(profile({ trainingDays: 2 }))[0];
+  const legacyWorkout = {
+    ...workout,
+    completed: true,
+    exercises: workout.exercises.map(({ completed: _completed, ...exercise }) => exercise),
+  };
+
+  const restored = restoreWorkoutProgress(JSON.parse(JSON.stringify([legacyWorkout])))[0];
+
+  assert.ok(restored.exercises.every((exercise) => exercise.completed));
+  assert.equal(restored.completed, true);
 });

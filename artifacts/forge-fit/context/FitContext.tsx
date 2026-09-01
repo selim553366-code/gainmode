@@ -4,7 +4,7 @@ import { Language, TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
 import { getCurrentMonthKey } from '@/lib/profileEdit';
-import { buildWorkoutPlan, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
+import { buildWorkoutPlan, restoreWorkoutProgress, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
@@ -228,11 +228,20 @@ export function FitProvider({ children }: { children: ReactNode }) {
             notificationSettings: { ...initialState.notificationSettings, ...(parsed.notificationSettings ?? {}) },
             version: initialState.version,
           };
+          const restoredWorkouts = restoreWorkoutProgress(merged.workouts);
           const needsWorkoutUpgrade = merged.profile && merged.workouts.length > 0 && merged.workouts.some((workout) => (
             !workout.focusAreas?.length || workout.exercises.some((exercise) => !exercise.muscleGroup)
           ));
           if (needsWorkoutUpgrade && merged.profile) {
-            merged.workouts = buildWorkoutPlan(merged.profile);
+            const previousWorkouts = new Map(restoredWorkouts.map((workout) => [workout.id, workout]));
+            merged.workouts = buildWorkoutPlan(merged.profile).map((workout) => {
+              const previous = previousWorkouts.get(workout.id);
+              if (!previous) return workout;
+              const exercises = workout.exercises.map((exercise) => ({ ...exercise, completed: previous.completed }));
+              return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
+            });
+          } else {
+            merged.workouts = restoredWorkouts;
           }
           if (!merged.goalProjection && merged.profile && merged.calorieGoal) {
             merged.goalProjection = createGoalProjection(merged.profile, merged.calorieGoal, merged.workouts, merged.goalWeight ?? undefined);

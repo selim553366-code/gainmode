@@ -172,3 +172,28 @@ export function buildWorkoutPlan(profile: Profile): Workout[] {
 export function workoutIsComplete(workout: Workout) {
   return workout.exercises.length > 0 && workout.exercises.every((exercise) => Boolean(exercise.completed));
 }
+
+/**
+ * Normalize persisted workout progress after loading it from storage.
+ *
+ * Records written before per-exercise completion existed only had the
+ * workout-level flag, so use that flag to seed every exercise exactly once.
+ * Current records always derive the workout flag from the exercise flags so a
+ * stale `completed: true` value cannot turn a partial workout into a complete
+ * one during hydration.
+ */
+export function restoreWorkoutProgress(workouts: Workout[]) {
+  return workouts.map((workout) => {
+    const hasExerciseProgress = workout.exercises.some((exercise) => exercise.completed !== undefined);
+    const exercises = workout.exercises.map((exercise) => ({
+      ...exercise,
+      completed: hasExerciseProgress ? Boolean(exercise.completed) : Boolean(workout.completed),
+    }));
+
+    return {
+      ...workout,
+      exercises,
+      completed: workoutIsComplete({ ...workout, exercises }),
+    };
+  });
+}
