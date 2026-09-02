@@ -68,6 +68,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   if (!permission.granted) return <PermissionView onAllow={() => { permission.request().catch(() => setCameraError(true)); }} pending={permission.pending} canAskAgain={permission.canAskAgain} />;
 
   const title = kind === 'squat' ? t('liveSquat') : kind === 'pushup' ? t('livePushup') : t('liveLunge');
+  const directionHint = kind === 'pushup' ? t('livePushupView') : kind === 'squat' ? t('liveSquatView') : t('liveLungeView');
   const handlePose = (frame: PoseFrame) => {
     const result = analyzePose(kind, poseFromFrame(frame), stateRef.current, frame.timestamp);
     stateRef.current = result.state;
@@ -78,14 +79,14 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
     <PoseCamera
       style={StyleSheet.absoluteFillObject}
       facing="front"
-      profile="balanced"
+       profile="quality"
       resolution="720p"
-      analysisResolution="480p"
+       analysisResolution="720p"
       targetFps={30}
-      minConfidence={0.55}
+       minConfidence={0.45}
       smoothing
       data={{ mode: 'throttled', throttleMs: 90, landmarks: true }}
-      overlay={{ landmarks: true, connections: true, color: colors.primary, lineWidth: 3, pointRadius: 5, minVisibility: 0.5 }}
+       overlay={{ landmarks: true, connections: true, color: colors.primary, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
       onPose={handlePose}
       onError={() => setCameraError(true)}
     />
@@ -96,6 +97,10 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
       <View style={[styles.exerciseBadge, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}65` }]}><Ionicons name="activity" size={15} color={colors.primary} /><Text style={[styles.exerciseBadgeText, { color: colors.foreground }]}>{title}</Text></View>
       <Pressable accessibilityLabel={t('stopLiveWorkout')} onPress={() => router.back()} style={[styles.closeButton, { backgroundColor: `${colors.background}D9`, borderColor: colors.border }]}><Ionicons name="close" size={20} color={colors.foreground} /></Pressable>
     </View>
+     <View pointerEvents="none" style={[styles.directionHint, { top: insets.top + 62, backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}55` }]}>
+       <Ionicons name="information-circle-outline" size={15} color={colors.primary} />
+       <Text style={[styles.directionHintText, { color: colors.foreground }]}>{directionHint}</Text>
+     </View>
     <View style={[styles.cameraBottom, { paddingBottom: insets.bottom + 14, backgroundColor: `${colors.background}EC`, borderColor: colors.border }]}>
       <View style={styles.metricRow}><View><Text style={[styles.metricCaption, { color: colors.mutedForeground }]}>{t('reps').toUpperCase()}</Text><Text style={[styles.repNumber, { color: colors.foreground }]}>{analysis.state.reps}</Text></View><View style={[styles.confidencePill, { backgroundColor: `${analysis.confidence > 0.65 ? colors.success : colors.orange}20` }]}><View style={[styles.confidenceDot, { backgroundColor: analysis.confidence > 0.65 ? colors.success : colors.orange }]} /><Text style={[styles.confidenceText, { color: analysis.confidence > 0.65 ? colors.success : colors.orange }]}>{Math.round(analysis.confidence * 100)}%</Text></View></View>
       <View style={[styles.feedback, { backgroundColor: analysis.warning === 'liveGoodForm' ? `${colors.success}18` : `${colors.orange}18`, borderColor: analysis.warning === 'liveGoodForm' ? `${colors.success}45` : `${colors.orange}45` }]}><Ionicons name={analysis.warning === 'liveGoodForm' ? 'checkmark-circle' : 'alert-circle'} size={19} color={analysis.warning === 'liveGoodForm' ? colors.success : colors.orange} /><Text style={[styles.feedbackText, { color: colors.foreground }]}>{t(analysis.warning)}</Text></View>
@@ -124,6 +129,8 @@ const styles = StyleSheet.create({
   liveBadgeText: { color: '#FFFFFF', fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1 },
   exerciseBadge: { flex: 1, height: 38, borderRadius: 14, borderWidth: 1, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 7 },
   exerciseBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
+  directionHint: { position: 'absolute', left: 20, right: 20, minHeight: 34, borderRadius: 13, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  directionHintText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 15 },
   closeButton: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   cameraBottom: { position: 'absolute', left: 18, right: 18, bottom: 18, borderRadius: 24, borderWidth: 1, paddingHorizontal: 18, paddingTop: 16 },
   metricRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
