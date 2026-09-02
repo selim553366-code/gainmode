@@ -14,3 +14,9 @@ For this pnpm monorepo, cloud Android build configuration must resolve from `art
 **Why:** The workspace contains several artifacts and its root package is not an Expo app; a root-level EAS configuration can shadow the actual mobile artifact.
 
 **How to apply:** Keep Forge Fit’s own EAS project association beside its app configuration, and keep its build profiles there. Avoid a competing root-level Expo config or a project ID belonging to another slug.
+
+EAS cloud builds for Forge Fit validate the workspace-wide pnpm lockfile, so an unrelated artifact with package changes can block the Android build before Expo compilation starts.
+
+**Why:** The repository is a pnpm monorepo and EAS resolves dependencies across its workspace rather than only the mobile artifact.
+
+**How to apply:** Before retrying an Android build, run a workspace lockfile-only sync and verify `pnpm install --frozen-lockfile` succeeds; do not bypass the frozen install or remove unrelated workspace packages.
