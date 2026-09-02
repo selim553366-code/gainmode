@@ -213,7 +213,7 @@ export default function EntryScreen() {
   if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
   if (entryRoute === 'onboarding') return <OnboardingQuestions />;
   if (entryRoute === 'intro') return <IntroScreen onDone={setIntroSeen} />;
-   if (entryRoute === 'premium') return <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)')} onSkip={() => router.replace('/(tabs)')} onRestart={restartOnboarding} />;
+   if (entryRoute === 'premium') return <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)/coach')} onSkip={() => router.replace('/(tabs)')} onRestart={restartOnboarding} />;
   return redirectFailed ? <EntryRecoveryScreen onRestart={restartOnboarding} /> : <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
 }
 
@@ -549,10 +549,10 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     return <><View style={styles.dayGrid}>{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => <Pressable key={day} onPress={() => selectedDays(day)} style={[styles.dayButton, { backgroundColor: preferredDays.includes(day) ? colors.primary : colors.card, borderColor: preferredDays.includes(day) ? colors.primary : colors.border, opacity: !preferredDays.includes(day) && preferredDays.length >= trainingDays ? 0.45 : 1 }]}><Text style={[styles.dayText, { color: preferredDays.includes(day) ? colors.primaryForeground : colors.foreground }]}>{day}</Text></Pressable>)}</View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{preferredDays.length}/{trainingDays} · {t('preferredDaysQuestion')}</Text></>;
   };
 
-     if (!started) return <WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} />;
-    if (buildingPlan) return <PlanBuildingScreen onComplete={finish} />;
-    if (step === total && equipment === 'gym' && !overloadSeen) return <ProgressiveOverloadScreen onContinue={() => setOverloadSeen(true)} />;
-   if (step === total) return <CompletionScreen onContinue={() => setBuildingPlan(true)} />;
+     if (!started) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} /></View>;
+    if (buildingPlan) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><PlanBuildingScreen onComplete={finish} /></View>;
+    if (step === total && equipment === 'gym' && !overloadSeen) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><ProgressiveOverloadScreen onContinue={() => setOverloadSeen(true)} /></View>;
+   if (step === total) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><CompletionScreen onContinue={() => setBuildingPlan(true)} /></View>;
     const optional = activeStep >= 6 && !hasTargetWeightStep;
     const isTargetStep = activeStep === targetStep && hasTargetWeightStep;
     const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[activeStep] ?? 'preferredDaysQuestion';
@@ -814,6 +814,7 @@ function OfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () =>
 
 const styles = StyleSheet.create({
   full: { flex: 1, paddingHorizontal: 24, paddingTop: 58, paddingBottom: 30, justifyContent: 'space-between' },
+  onboardingShell: { flex: 1 },
   entryRedirecting: { flex: 1 },
   entryRecovery: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
   entryRecoveryTitle: { fontFamily: 'Inter_700Bold', fontSize: 26, lineHeight: 32, textAlign: 'center', marginTop: 22 },
