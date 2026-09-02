@@ -1,1 +1,2 @@
 forge-fit-project.zip filter=lfs diff=lfs merge=lfs -text
+artifacts/forge-fit/forge-fit-build-4.aab filter=lfs diff=lfs merge=lfs -text
