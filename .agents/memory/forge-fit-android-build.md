@@ -20,3 +20,9 @@ EAS cloud builds for Forge Fit validate the workspace-wide pnpm lockfile, so an 
 **Why:** The repository is a pnpm monorepo and EAS resolves dependencies across its workspace rather than only the mobile artifact.
 
 **How to apply:** Before retrying an Android build, run a workspace lockfile-only sync and verify `pnpm install --frozen-lockfile` succeeds; do not bypass the frozen install or remove unrelated workspace packages.
+
+When EAS resolves a mobile artifact inside this pnpm monorepo, workspace-wide patch settings must be declared in `pnpm-workspace.yaml`, not only in the workspace-root package manifest.
+
+**Why:** EAS reads the artifact package manifest while pnpm validates the workspace lockfile; root-only `pnpm.patchedDependencies` can appear missing and trigger `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`.
+
+**How to apply:** Keep `patchedDependencies` in the shared workspace configuration, regenerate the lockfile, and verify a frozen install before submitting another cloud build.
