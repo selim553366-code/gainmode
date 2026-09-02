@@ -125,7 +125,7 @@ export default function PlanScreen() {
           </Card>)}
         </View>)}
       </> : <Card style={[styles.restCard, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-        <View style={[styles.restIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="leaf-outline" size={24} color={colors.primary} /></View>
+        <View style={[styles.restIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="sparkles-outline" size={24} color={colors.primary} /></View>
         <Text style={[styles.restTitle, { color: colors.foreground }]}>{t('restDayTitle')}</Text>
         <Text style={[styles.restBody, { color: colors.mutedForeground }]}>{t('restDaySubtitle')}</Text>
       </Card>}
