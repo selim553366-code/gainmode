@@ -56,6 +56,29 @@ index 64a4740..07e2296 100644
  import expo.modules.kotlin.views.ExpoView
 +import java.nio.ByteBuffer
  import java.util.concurrent.Executors
+@@ -81,6 +81,6 @@ class PoseCameraView(
+     private val previewView =
+         PreviewView(context).apply {
+-            implementationMode = PreviewView.ImplementationMode.PERFORMANCE
++            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+             scaleType = PreviewView.ScaleType.FILL_CENTER
+         }
+     private val overlayView = OverlayView(context)
+@@ -317,13 +317,14 @@ class PoseCameraView(
+         )
+         container.addView(
+             overlayView,
+             FrameLayout.LayoutParams(
+                 FrameLayout.LayoutParams.MATCH_PARENT,
+                 FrameLayout.LayoutParams.MATCH_PARENT,
+             ),
+         )
+         addView(container)
++        overlayView.z = 1f
+
+         // Props have not arrived yet. Without this a frame landing first would find no layout and
+         // be dropped, and `snapshotFrame()` would answer empty for reasons nobody could see.
+         applyFrameLayout()
 @@ -1379,13 +1379,12 @@ class PoseCameraView(
          frames.setLayout(next)
      }
