@@ -741,28 +741,36 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
   const colors = useColors();
   const insets = useSafeAreaInsets();
     const { language } = useFit();
-    const { monthlyPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
+     const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+   const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>(() => annualPackage ? 'annual' : 'monthly');
+   const canOfferAnnual = Boolean(annualPackage);
   const [actionError, setActionError] = React.useState<string | null>(null);
-  const price = monthlyPackage?.product.priceString;
+   const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
+   const price = selectedPackage?.product.priceString;
   const displayPrice = price ?? '—';
-  const benefits: Array<{ icon?: React.ComponentProps<typeof Ionicons>['name']; logo?: boolean; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' }> = [
+   const benefits: Array<{ icon?: React.ComponentProps<typeof Ionicons>['name']; logo?: boolean; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' | 'premiumFeature4' | 'premiumFeature5' }> = [
     { logo: true, key: 'premiumWelcomeBenefit1' },
     { icon: 'restaurant-outline', key: 'premiumWelcomeBenefit2' },
     { icon: 'chatbubble-ellipses-outline', key: 'premiumWelcomeBenefit3' },
+     { icon: 'analytics-outline', key: 'premiumFeature4' },
+     { icon: 'chatbubble-ellipses-outline', key: 'premiumFeature5' },
   ];
+   React.useEffect(() => {
+     if (!canOfferAnnual && selectedPlan === 'annual') setSelectedPlan('monthly');
+   }, [canOfferAnnual, selectedPlan]);
     const handlePurchase = async () => {
      setActionError(null);
       if (isSubscribed) {
         onUnlock();
         return;
       }
-      if (!isAvailable || !monthlyPackage) {
+       if (!isAvailable || !selectedPackage) {
         setActionError(t('premiumStoreUnavailable'));
         return;
       }
       try {
-        const customerInfo = await purchase(monthlyPackage);
+         const customerInfo = await purchase(selectedPackage);
         if (!hasActivePremiumEntitlement(customerInfo)) {
           setActionError(t('premiumPurchaseError'));
           return;
@@ -805,10 +813,22 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
        <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}>{benefit.logo ? <ForgeFitMark size={25} /> : <Ionicons name={benefit.icon!} size={17} color={colors.primary} />}</View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
     </View>
     <View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
-     <View style={[styles.offerPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
-       <Text style={[styles.offerPriceLabel, { color: colors.primary }]}>{t('premiumPriceMonthly')}</Text>
-       <Text style={[styles.offerPrice, { color: colors.foreground }]}>{displayPrice}{price ? ` ${t('premiumPerMonth')}` : ''}</Text>
-       <Text style={[styles.offerPriceOptions, { color: colors.mutedForeground }]}>{t('premiumPriceOptions')}</Text>
+      <View style={styles.offerPlanChoices}>
+        <Pressable testID="welcome-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.border }]}>
+          <Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumMonthlyPlan')}</Text>
+          <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{monthlyPackage?.product.priceString ?? '—'}</Text>
+          <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text>
+        </Pressable>
+        {canOfferAnnual ? <Pressable testID="welcome-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual' }} onPress={() => setSelectedPlan('annual')} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border }]}>
+          <View style={styles.offerPlanHeader}><Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text><Text style={[styles.offerPlanSavings, { color: colors.success }]}>{t('premiumAnnualSavings')}</Text></View>
+          <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{annualPackage?.product.priceString ?? '—'}</Text>
+          <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
+        </Pressable> : null}
+      </View>
+      <View style={[styles.offerPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
+       <Text style={[styles.offerPriceLabel, { color: colors.primary }]}>{selectedPlan === 'annual' ? t('premiumAnnualPlan') : t('premiumPriceMonthly')}</Text>
+       <Text style={[styles.offerPrice, { color: colors.foreground }]}>{displayPrice}{price ? ` ${selectedPlan === 'annual' ? t('premiumPerYear') : t('premiumPerMonth')}` : ''}</Text>
+       <Text style={[styles.offerPriceOptions, { color: colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualBenefit') : t('premiumMonthlyBenefit')}</Text>
      </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
      <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} disabled={isLoading || isPurchasing} onPress={() => { triggerHaptic(); void handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || isLoading || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isPurchasing ? t('premiumLoading') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
@@ -825,7 +845,7 @@ function OfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () =>
   const colors = useColors();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={styles.full}><View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><ForgeFitMark size={74} /></View><Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('premiumSubtitle')}</Text><View style={styles.features}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3'] as const).map((key) => <View key={key} style={styles.feature}><Ionicons name="checkmark-circle" size={20} color={colors.primary} /><Text style={[styles.featureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View><View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View><Pressable onPress={() => { triggerHaptic(); onUnlock(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable><Pressable onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('cancel')}</Text></Pressable></LinearGradient>;
+  return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={styles.full}><View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><ForgeFitMark size={74} /></View><Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('premiumSubtitle')}</Text><View style={styles.features}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3', 'premiumFeature4', 'premiumFeature5'] as const).map((key) => <View key={key} style={styles.feature}><Ionicons name="checkmark-circle" size={20} color={colors.primary} /><Text style={[styles.featureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View><View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View><Pressable onPress={() => { triggerHaptic(); onUnlock(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable><Pressable onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('cancel')}</Text></Pressable></LinearGradient>;
 }
 
 const styles = StyleSheet.create({
@@ -974,6 +994,13 @@ const styles = StyleSheet.create({
   offerBenefit: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   offerBenefitIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   offerBenefitText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17 },
+   offerPlanChoices: { width: '100%', flexDirection: 'row', gap: 8, marginTop: 12, marginBottom: 10 },
+   offerPlanOption: { flex: 1, minHeight: 78, borderWidth: 1, borderRadius: 16, padding: 11 },
+   offerPlanHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5 },
+   offerPlanLabel: { fontFamily: 'Inter_700Bold', fontSize: 11 },
+   offerPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 15, marginTop: 8 },
+   offerPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 1 },
+   offerPlanSavings: { fontFamily: 'Inter_700Bold', fontSize: 8, letterSpacing: 0.3 },
   features: { gap: 17, paddingVertical: 20 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   featureText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 14 },

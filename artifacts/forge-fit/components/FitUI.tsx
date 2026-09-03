@@ -281,8 +281,8 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
           <Text style={[styles.premiumModalEyebrow, { color: colors.primary }]}>{t('premiumModalEyebrow')}</Text>
           <Text style={[styles.premiumModalTitle, { color: colors.foreground }]}>{t('premiumModalTitle')}</Text>
           <Text style={[styles.premiumModalSubtitle, { color: colors.mutedForeground }]}>{t('premiumModalSubtitle')}</Text>
-          <View style={styles.premiumBenefits}>
-            {(['premiumFeature1', 'premiumFeature2', 'premiumFeature3'] as const).map((key) => <View key={key} style={styles.premiumBenefit}><View style={[styles.premiumBenefitIcon, { backgroundColor: `${colors.primary}1A` }]}><Ionicons name="checkmark" size={15} color={colors.primary} /></View><Text style={[styles.premiumBenefitText, { color: colors.foreground }]}>{t(key)}</Text></View>)}
+           <View style={styles.premiumBenefits}>
+             {(['premiumFeature1', 'premiumFeature2', 'premiumFeature3', 'premiumFeature4', 'premiumFeature5'] as const).map((key) => <View key={key} style={styles.premiumBenefit}><View style={[styles.premiumBenefitIcon, { backgroundColor: `${colors.primary}1A` }]}><Ionicons name="checkmark" size={15} color={colors.primary} /></View><Text style={[styles.premiumBenefitText, { color: colors.foreground }]}>{t(key)}</Text></View>)}
           </View>
            <View style={styles.premiumPlanChoices}>
              <Pressable testID="premium-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.premiumPlanOption, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.border }]}>
@@ -293,12 +293,12 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
               {canOfferAnnual ? <Pressable testID="premium-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual' }} onPress={() => setSelectedPlan('annual')} style={[styles.premiumPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border }]}>
                <View style={styles.premiumPlanHeader}><Text style={[styles.premiumPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text><Text style={[styles.premiumSavingsBadge, { color: colors.success }]}>{t('premiumAnnualSavings')}</Text></View>
                <Text style={[styles.premiumPlanPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : annualPrice}</Text>
-               <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumAnnualPlan')}</Text>
+                <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
               </Pressable> : null}
            </View>
            <Text style={[styles.premiumPlanBenefit, { color: selectedPlan === 'annual' ? colors.success : colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualBenefit') : t('premiumMonthlyBenefit')}</Text>
            <View style={[styles.premiumPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
-              <View><Text style={[styles.premiumPriceLabel, { color: colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualPlan') : t('premiumMonthlyPlan')}</Text><View style={styles.premiumPriceLine}><Text style={[styles.premiumPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : selectedPrice}</Text>{!isLoading && selectedPlan === 'monthly' ? <Text style={[styles.premiumPriceUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text> : null}</View></View>
+               <View><Text style={[styles.premiumPriceLabel, { color: colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualPlan') : t('premiumMonthlyPlan')}</Text><View style={styles.premiumPriceLine}><Text style={[styles.premiumPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : selectedPrice}</Text>{!isLoading ? <Text style={[styles.premiumPriceUnit, { color: colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumPerYear') : t('premiumPerMonth')}</Text> : null}</View></View>
               <View style={styles.premiumPriceAside}>{selectedCurrency ? <Text style={[styles.premiumCurrencyCode, { color: colors.primary }]}>{selectedCurrency}</Text> : null}<Text style={[styles.premiumTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
            </View>
           <Text style={[styles.premiumTrialBody, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
