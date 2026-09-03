@@ -199,7 +199,8 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   const { language, enablePremium } = useFit();
   const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>('annual');
+  const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>(() => annualPackage ? 'annual' : 'monthly');
+  const canOfferAnnual = Boolean(annualPackage);
   const monthlyPrice = monthlyPackage?.product.priceString ?? '—';
   const annualPrice = annualPackage?.product.priceString ?? '—';
   const selectedPrice = selectedPlan === 'annual' ? annualPrice : monthlyPrice;
@@ -213,6 +214,10 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
     Animated.spring(appear, { toValue: 1, friction: 8, tension: 70, useNativeDriver: true }).start();
     return () => appear.stopAnimation();
   }, [appear, visible]);
+
+  React.useEffect(() => {
+    if (!canOfferAnnual && selectedPlan === 'annual') setSelectedPlan('monthly');
+  }, [canOfferAnnual, selectedPlan]);
 
   const activatePremium = async () => {
     triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
@@ -285,11 +290,11 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
                <Text style={[styles.premiumPlanPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : monthlyPrice}</Text>
                {!isLoading ? <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text> : null}
              </Pressable>
-             <Pressable testID="premium-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual' }} onPress={() => setSelectedPlan('annual')} style={[styles.premiumPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border }]}>
+              {canOfferAnnual ? <Pressable testID="premium-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual' }} onPress={() => setSelectedPlan('annual')} style={[styles.premiumPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border }]}>
                <View style={styles.premiumPlanHeader}><Text style={[styles.premiumPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text><Text style={[styles.premiumSavingsBadge, { color: colors.success }]}>{t('premiumAnnualSavings')}</Text></View>
                <Text style={[styles.premiumPlanPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : annualPrice}</Text>
                <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumAnnualPlan')}</Text>
-             </Pressable>
+              </Pressable> : null}
            </View>
            <Text style={[styles.premiumPlanBenefit, { color: selectedPlan === 'annual' ? colors.success : colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualBenefit') : t('premiumMonthlyBenefit')}</Text>
            <View style={[styles.premiumPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
