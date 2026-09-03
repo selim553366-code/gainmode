@@ -79,6 +79,40 @@ index 64a4740..07e2296 100644
          // Props have not arrived yet. Without this a frame landing first would find no layout and
          // be dropped, and `snapshotFrame()` would answer empty for reasons nobody could see.
          applyFrameLayout()
+@@ -927,1 +927,2 @@ class PoseCameraView(
+         if (propSmoothing) smoothing.apply(landmarkBuffer, elapsedSeconds) else smoothing.reset()
++        rotateLandmarksToDisplay(frameRotationDegrees)
+@@ -938,2 +938,25 @@ class PoseCameraView(
+         buildFrame(result, primaryIndex, pose.size, frameWidth, frameHeight, nowMs, comparable, elapsedSeconds)
+     }
++    private fun rotateLandmarksToDisplay(rotationDegrees: Int) {
++        val normalized = ((rotationDegrees % 360) + 360) % 360
++        if (normalized == 0) return
++        for (index in 0 until Skeleton.LANDMARK_COUNT) {
++            val base = index * Skeleton.LANDMARK_STRIDE
++            val x = landmarkBuffer[base + Skeleton.OFFSET_X]
++            val y = landmarkBuffer[base + Skeleton.OFFSET_Y]
++            when (normalized) {
++                90 -> {
++                    landmarkBuffer[base + Skeleton.OFFSET_X] = 1f - y
++                    landmarkBuffer[base + Skeleton.OFFSET_Y] = x
++                }
++                180 -> {
++                    landmarkBuffer[base + Skeleton.OFFSET_X] = 1f - x
++                    landmarkBuffer[base + Skeleton.OFFSET_Y] = 1f - y
++                }
++                270 -> {
++                    landmarkBuffer[base + Skeleton.OFFSET_X] = y
++                    landmarkBuffer[base + Skeleton.OFFSET_Y] = 1f - x
++                }
++            }
++        }
++    }
+@@ -1294,3 +1294,3 @@ class PoseCameraView(
+     private fun syncOverlayMirroring() {
+-        overlayView.setMirrored(camera.facing == Facing.FRONT)
++        overlayView.setMirrored(false)
+     }
 @@ -1379,13 +1379,12 @@ class PoseCameraView(
          frames.setLayout(next)
      }
@@ -110,14 +144,6 @@ index 64a4740..07e2296 100644
  internal fun Facing.nameForJs(): String = if (this == Facing.FRONT) "front" else "back"
  
  internal fun Size.toMap(): Map<String, Any?> = mapOf("width" to width, "height" to height)
-diff --git a/android/src/main/java/com/posedetection/view/PoseCameraView.kt b/android/src/main/java/com/posedetection/view/PoseCameraView.kt
---- a/android/src/main/java/com/posedetection/view/PoseCameraView.kt
-+++ b/android/src/main/java/com/posedetection/view/PoseCameraView.kt
-@@ -1294,3 +1294,3 @@ class PoseCameraView(
-     private fun syncOverlayMirroring() {
--        overlayView.setMirrored(camera.facing == Facing.FRONT)
-+        overlayView.setMirrored(false)
-     }
 diff --git a/android/src/main/java/com/posedetection/detector/PoseDetector.kt b/android/src/main/java/com/posedetection/detector/PoseDetector.kt
 --- a/android/src/main/java/com/posedetection/detector/PoseDetector.kt
 +++ b/android/src/main/java/com/posedetection/detector/PoseDetector.kt

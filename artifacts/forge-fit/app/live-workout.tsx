@@ -61,6 +61,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const permission = useCameraPermission();
   const [analysis, setAnalysis] = React.useState(() => ({ state: initialRepState, warning: 'liveLookingForBody' as LiveWarningKey, confidence: 0, metric: null as number | null }));
   const [cameraError, setCameraError] = React.useState(false);
+  const [showRepsPanel, setShowRepsPanel] = React.useState(true);
   const stateRef = React.useRef<RepState>(initialRepState);
   const repTone = useAudioPlayer(require('@/assets/sounds/rep-confirmation.wav'));
   const repPulse = React.useRef(new Animated.Value(0)).current;
@@ -119,12 +120,26 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
        <Ionicons name="information-circle-outline" size={15} color={colors.primary} />
        <Text style={[styles.directionHintText, { color: colors.foreground }]}>{directionHint}</Text>
      </View>
-     <View style={[styles.cameraBottom, { paddingBottom: insets.bottom + 8, backgroundColor: `${colors.background}EC`, borderColor: colors.border }]}>
-       <View style={styles.metricRow}><View><Text style={[styles.metricCaption, { color: colors.mutedForeground }]}>{t('reps').toUpperCase()}</Text><Animated.Text style={[styles.repNumber, { color: colors.foreground, transform: [{ scale: repPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.24] }) }] }]}>{analysis.state.reps}</Animated.Text></View><View style={[styles.confidencePill, { backgroundColor: `${analysis.confidence > 0.65 ? colors.success : colors.orange}20` }]}><View style={[styles.confidenceDot, { backgroundColor: analysis.confidence > 0.65 ? colors.success : colors.orange }]} /><Text style={[styles.confidenceText, { color: analysis.confidence > 0.65 ? colors.success : colors.orange }]}>{Math.round(analysis.confidence * 100)}%</Text></View></View>
-       <View style={[styles.cameraPlacementHint, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}><Ionicons name="camera-outline" size={15} color={colors.primary} /><Text style={[styles.cameraPlacementText, { color: colors.mutedForeground }]}>{t('liveCameraPlacement')}</Text></View>
-      <View style={[styles.feedback, { backgroundColor: analysis.warning === 'liveGoodForm' ? `${colors.success}18` : `${colors.orange}18`, borderColor: analysis.warning === 'liveGoodForm' ? `${colors.success}45` : `${colors.orange}45` }]}><Ionicons name={analysis.warning === 'liveGoodForm' ? 'checkmark-circle' : 'alert-circle'} size={19} color={analysis.warning === 'liveGoodForm' ? colors.success : colors.orange} /><Text style={[styles.feedbackText, { color: colors.foreground }]}>{t(analysis.warning)}</Text></View>
-      <Text style={[styles.privacyText, { color: colors.mutedForeground }]}>{t('livePrivacyNote')}</Text>
-    </View>
+      {showRepsPanel ? <View testID="live-workout-reps-panel" style={[styles.cameraBottom, { paddingBottom: insets.bottom + 8, backgroundColor: `${colors.background}EC`, borderColor: colors.border }]}>
+        <View style={styles.metricRow}>
+          <View>
+            <Text style={[styles.metricCaption, { color: colors.mutedForeground }]}>{t('reps').toUpperCase()}</Text>
+            <Animated.Text style={[styles.repNumber, { color: colors.foreground, transform: [{ scale: repPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.24] }) }] }]}>{analysis.state.reps}</Animated.Text>
+          </View>
+          <View style={styles.panelControls}>
+            <View style={[styles.confidencePill, { backgroundColor: `${analysis.confidence > 0.65 ? colors.success : colors.orange}20` }]}><View style={[styles.confidenceDot, { backgroundColor: analysis.confidence > 0.65 ? colors.success : colors.orange }]} /><Text style={[styles.confidenceText, { color: analysis.confidence > 0.65 ? colors.success : colors.orange }]}>{Math.round(analysis.confidence * 100)}%</Text></View>
+            <Pressable testID="hide-live-reps-panel" accessibilityRole="button" accessibilityLabel={t('hideRepsPanel')} onPress={() => setShowRepsPanel(false)} hitSlop={8} style={({ pressed }) => [styles.panelToggleButton, { backgroundColor: colors.secondary, opacity: pressed ? 0.65 : 1 }]}>
+              <Ionicons name="eye-off-outline" size={16} color={colors.foreground} />
+            </Pressable>
+          </View>
+        </View>
+        <View style={[styles.cameraPlacementHint, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}><Ionicons name="camera-outline" size={15} color={colors.primary} /><Text style={[styles.cameraPlacementText, { color: colors.mutedForeground }]}>{t('liveCameraPlacement')}</Text></View>
+        <View style={[styles.feedback, { backgroundColor: analysis.warning === 'liveGoodForm' ? `${colors.success}18` : `${colors.orange}18`, borderColor: analysis.warning === 'liveGoodForm' ? `${colors.success}45` : `${colors.orange}45` }]}><Ionicons name={analysis.warning === 'liveGoodForm' ? 'checkmark-circle' : 'alert-circle'} size={19} color={analysis.warning === 'liveGoodForm' ? colors.success : colors.orange} /><Text style={[styles.feedbackText, { color: colors.foreground }]}>{t(analysis.warning)}</Text></View>
+        <Text style={[styles.privacyText, { color: colors.mutedForeground }]}>{t('livePrivacyNote')}</Text>
+      </View> : <Pressable testID="show-live-reps-panel" accessibilityRole="button" accessibilityLabel={t('showRepsPanel')} onPress={() => setShowRepsPanel(true)} style={({ pressed }) => [styles.showRepsButton, { bottom: insets.bottom + 22, backgroundColor: `${colors.background}EC`, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
+        <Ionicons name="eye-outline" size={16} color={colors.primary} />
+        <Text style={[styles.showRepsButtonText, { color: colors.foreground }]}>{t('showRepsPanel')}</Text>
+      </Pressable>}
   </View>;
 }
 
@@ -153,6 +168,10 @@ const styles = StyleSheet.create({
   closeButton: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   cameraBottom: { position: 'absolute', left: 18, right: 18, bottom: 18, borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingTop: 10 },
   metricRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  panelControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  panelToggleButton: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  showRepsButton: { position: 'absolute', right: 20, borderRadius: 14, borderWidth: 1, minHeight: 36, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  showRepsButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   metricCaption: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.5 },
   repNumber: { fontFamily: 'Inter_700Bold', fontSize: 36, letterSpacing: -1.4, lineHeight: 40, marginTop: 1 },
   cameraPlacementHint: { minHeight: 30, borderRadius: 10, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 5, marginTop: 7, flexDirection: 'row', alignItems: 'center', gap: 6 },
