@@ -27,6 +27,7 @@
     },
     "android": {
       "package": "com.forgefit2.app",
+      "versionCode": 5,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
