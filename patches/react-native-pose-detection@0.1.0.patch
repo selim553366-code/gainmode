@@ -91,9 +91,7 @@ diff --git a/android/src/main/java/com/posedetection/camera/CameraSource.kt b/an
 index 8f8e4c5..c4c86c1 100644
 --- a/android/src/main/java/com/posedetection/camera/CameraSource.kt
 +++ b/android/src/main/java/com/posedetection/camera/CameraSource.kt
-@@ -201,5 +201,9 @@ internal class CameraSource(
-         val lens = resolveAvailable(provider, target)
-         val rotation = currentRotation()
+@@ -204,3 +204,7 @@ internal class CameraSource(
 +        // CameraX PreviewView does not mirror the front camera by default. The native pose
 +        // overlay mirrors front-camera landmarks, so mirror the preview around its center too.
 +        previewView.scaleX = if (lens == Facing.FRONT) -1f else 1f
