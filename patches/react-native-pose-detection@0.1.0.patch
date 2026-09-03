@@ -87,3 +87,17 @@ index 64a4740..07e2296 100644
  internal fun Facing.nameForJs(): String = if (this == Facing.FRONT) "front" else "back"
  
  internal fun Size.toMap(): Map<String, Any?> = mapOf("width" to width, "height" to height)
+diff --git a/android/src/main/java/com/posedetection/camera/CameraSource.kt b/android/src/main/java/com/posedetection/camera/CameraSource.kt
+index 8f8e4c5..c4c86c1 100644
+--- a/android/src/main/java/com/posedetection/camera/CameraSource.kt
++++ b/android/src/main/java/com/posedetection/camera/CameraSource.kt
+@@ -201,5 +201,9 @@ internal class CameraSource(
+         val lens = resolveAvailable(provider, target)
+         val rotation = currentRotation()
++        // CameraX PreviewView does not mirror the front camera by default. The native pose
++        // overlay mirrors front-camera landmarks, so mirror the preview around its center too.
++        previewView.scaleX = if (lens == Facing.FRONT) -1f else 1f
++
+         val preview =
+             Preview
+                 .Builder()
