@@ -32,3 +32,9 @@ EAS cloud builds need an explicit `production` environment and the RevenueCat An
 **Why:** Replit preview variables and EAS project environment variables are separate, while Expo inlines `EXPO_PUBLIC_` values into the Android bundle during the cloud build.
 
 **How to apply:** Set `environment: "production"` in Forge Fit's production profile, add `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` to the EAS production environment without exposing its value in chat, then create a new AAB from `artifacts/forge-fit`.
+
+RevenueCat product and entitlement records alone are not enough for Play Store pricing: the current offering must contain packages linked to the matching Play Store products for each base plan.
+
+**Why:** A valid Android product can exist in RevenueCat while the client still receives no package, price, or selectable plan when it is not attached to the current offering.
+
+**How to apply:** Verify the `default` offering has `$rc_monthly` and `$rc_annual`, and that each package points to the matching Google Play subscription/base-plan product before testing a new Android build.
