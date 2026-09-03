@@ -152,7 +152,7 @@ overrides:
 
 patchedDependencies:
   react-native-pose-detection@0.1.0:
-    hash: b30782f6f393476ee60bd0fe543bca805788ddcffcb88d0b38516cf7086d7476
+    hash: e2dfca5afec140c013905fc8d83d950dd7781aeeaf94a67fb2c3733dfdc0dbb4
     path: patches/react-native-pose-detection@0.1.0.patch
 
 importers:
@@ -256,7 +256,7 @@ importers:
         version: 0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0)
       react-native-pose-detection:
         specifier: 0.1.0
-        version: 0.1.0(patch_hash=b30782f6f393476ee60bd0fe543bca805788ddcffcb88d0b38516cf7086d7476)(expo@54.0.37)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+        version: 0.1.0(patch_hash=e2dfca5afec140c013905fc8d83d950dd7781aeeaf94a67fb2c3733dfdc0dbb4)(expo@54.0.37)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       react-native-purchases:
         specifier: ^10.8.1
         version: 10.8.1(react-native-web@0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
@@ -11353,7 +11353,7 @@ snapshots:
     optionalDependencies:
       react-native-web: 0.21.2(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
-  react-native-pose-detection@0.1.0(patch_hash=b30782f6f393476ee60bd0fe543bca805788ddcffcb88d0b38516cf7086d7476)(expo@54.0.37)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+  react-native-pose-detection@0.1.0(patch_hash=e2dfca5afec140c013905fc8d83d950dd7781aeeaf94a67fb2c3733dfdc0dbb4)(expo@54.0.37)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
       expo: 54.0.37(@babel/core@7.29.7)(@expo/metro-runtime@6.1.2)(expo-router@6.0.24)(react-native@0.81.5(@babel/core@7.29.7)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
       react: 19.1.0
