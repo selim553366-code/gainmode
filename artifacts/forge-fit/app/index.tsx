@@ -27,6 +27,7 @@ import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat
 import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
 import { getEntryRoute } from '@/lib/entryFlow';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
+import { isValidTestPremiumPromoCode } from '@/lib/testPremiumPromo';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
@@ -741,13 +742,16 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-    const { language } = useFit();
+    const { language, enableTestPremium } = useFit();
      const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
    const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>(() => annualPackage ? 'annual' : 'monthly');
    const canOfferAnnual = Boolean(annualPackage);
   const isNarrowScreen = width < 380;
   const [actionError, setActionError] = React.useState<string | null>(null);
+  const [promoOpen, setPromoOpen] = React.useState(false);
+  const [promoCode, setPromoCode] = React.useState('');
+  const [promoError, setPromoError] = React.useState<string | null>(null);
    const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
    const price = selectedPackage?.product.priceString;
   const displayPrice = price ?? '—';
@@ -799,6 +803,15 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
       setActionError(t('premiumRestoreError'));
     }
   };
+  const handleTestPromo = () => {
+    if (!isValidTestPremiumPromoCode(promoCode)) {
+      setPromoError(t('premiumPromoInvalid'));
+      return;
+    }
+    setPromoError(null);
+    enableTestPremium();
+    onUnlock();
+  };
   return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={styles.offerGradient}>
     <View style={[styles.offerHeader, { paddingTop: insets.top + 10 }]}>
       <ForgeFitMark size={38} />
@@ -840,6 +853,30 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
        <Text style={[styles.offerPriceOptions, { color: colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualBenefit') : t('premiumMonthlyBenefit')}</Text>
      </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
+      <View style={styles.offerPromoSection}>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: promoOpen }} onPress={() => { setPromoOpen((open) => !open); setPromoError(null); }} style={styles.offerPromoToggle}>
+          <Ionicons name="ticket-outline" size={14} color={colors.mutedForeground} />
+          <Text style={[styles.offerPromoToggleText, { color: colors.mutedForeground }]}>{t('premiumPromo')}</Text>
+          <Ionicons name={promoOpen ? 'chevron-up' : 'chevron-down'} size={14} color={colors.mutedForeground} />
+        </Pressable>
+        {promoOpen ? <View style={styles.offerPromoForm}>
+          <TextInput
+            value={promoCode}
+            onChangeText={(value) => { setPromoCode(value); setPromoError(null); }}
+            placeholder={t('premiumPromoPlaceholder')}
+            placeholderTextColor={colors.mutedForeground}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={handleTestPromo}
+            style={[styles.offerPromoInput, { backgroundColor: `${colors.secondary}88`, borderColor: colors.border, color: colors.foreground }]}
+          />
+          <Pressable accessibilityRole="button" onPress={handleTestPromo} style={({ pressed }) => [styles.offerPromoApply, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}>
+            <Text style={[styles.offerPromoApplyText, { color: colors.primaryForeground }]}>{t('premiumPromoApply')}</Text>
+          </Pressable>
+        </View> : null}
+        {promoError ? <Text style={[styles.offerPromoError, { color: colors.destructive }]}>{promoError}</Text> : null}
+      </View>
      <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} disabled={isLoading || isPurchasing} onPress={() => { triggerHaptic(); void handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || isLoading || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isPurchasing ? t('premiumLoading') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeSkip')} onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('premiumWelcomeSkip')}</Text></Pressable>
@@ -1025,6 +1062,14 @@ const styles = StyleSheet.create({
   offerPrice: { fontFamily: 'Inter_700Bold', fontSize: 15 },
   offerPriceOptions: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 4 },
   offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
+  offerPromoSection: { width: '100%', marginTop: 2, marginBottom: 8 },
+  offerPromoToggle: { minHeight: 32, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 10 },
+  offerPromoToggleText: { fontFamily: 'Inter_500Medium', fontSize: 11, textDecorationLine: 'underline' },
+  offerPromoForm: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
+  offerPromoInput: { flex: 1, minWidth: 0, height: 42, borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, fontFamily: 'Inter_500Medium', fontSize: 13 },
+  offerPromoApply: { minHeight: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 13 },
+  offerPromoApplyText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
+  offerPromoError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 14, marginTop: 6 },
   premiumRestoreButton: { alignItems: 'center', justifyContent: 'center', minHeight: 36 },
   premiumRestoreText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
 });

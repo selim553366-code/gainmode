@@ -7,6 +7,7 @@ import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey } from '@/lib/nutritionDates';
 import { addStreakActivity, normalizeStreakDates } from '@/lib/streak';
 import { buildWorkoutPlan, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
+import { TEST_PREMIUM_PROMO_STORAGE_KEY } from '@/lib/testPremiumPromo';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
@@ -86,6 +87,7 @@ type FitContextValue = FitState & {
   coachThinking: boolean;
   setCoachThinking: (value: boolean) => void;
   enablePremium: () => void;
+  enableTestPremium: () => void;
   setLanguage: (language: Language) => void;
   restartOnboarding: () => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
@@ -219,6 +221,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<FitState>(initialState);
   const [hydrated, setHydrated] = useState(false);
   const [coachThinking, setCoachThinking] = useState(false);
+  const [testPromoUnlocked, setTestPromoUnlocked] = useState(false);
   const { isSubscribed } = useSubscription();
 
   useEffect(() => {
@@ -263,16 +266,26 @@ export function FitProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    AsyncStorage.getItem(TEST_PREMIUM_PROMO_STORAGE_KEY).then((value) => {
+      if (value === 'true') setTestPromoUnlocked(true);
+    }).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (testPromoUnlocked) AsyncStorage.setItem(TEST_PREMIUM_PROMO_STORAGE_KEY, 'true').catch(() => undefined);
+  }, [testPromoUnlocked]);
+
+  useEffect(() => {
     if (hydrated) AsyncStorage.setItem('forge-fit-state', JSON.stringify(state)).catch(() => undefined);
   }, [state, hydrated]);
 
   useEffect(() => {
-    if (isSubscribed === undefined) return;
+    if (isSubscribed === undefined && !testPromoUnlocked) return;
     setState((current) => {
-      const nextPremium = isSubscribed;
+      const nextPremium = Boolean(isSubscribed) || testPromoUnlocked;
       return current.isPremium === nextPremium ? current : { ...current, isPremium: nextPremium };
     });
-  }, [isSubscribed]);
+  }, [isSubscribed, testPromoUnlocked]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -286,6 +299,10 @@ export function FitProvider({ children }: { children: ReactNode }) {
     coachThinking,
     setCoachThinking,
      enablePremium: () => setState((current) => current.isPremium ? current : { ...current, isPremium: true }),
+    enableTestPremium: () => {
+      setTestPromoUnlocked(true);
+      setState((current) => current.isPremium ? current : { ...current, isPremium: true });
+    },
     setLanguage: (language) => setState((current) => ({ ...current, language })),
     restartOnboarding: () => setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false })),
      addMeal: (meal) => setState((current) => recordStreakActivity({ ...current, meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }] })),
