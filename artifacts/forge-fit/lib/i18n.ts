@@ -42,19 +42,28 @@ const premiumBenefitCopy: Record<Language, { photo: string; coach: string }> = {
   es: { photo: 'Análisis avanzado de fotos de comida', coach: 'Coaching personal con FitBud' },
 };
 
+const premiumFeatureOneCopy: Record<Language, string> = {
+  tr: 'Hedeflerine göre kişisel AI koçluğu',
+  en: 'Personal AI coaching built around your goals',
+  de: 'Persönliches AI-Coaching für deine Ziele',
+  fr: 'Coaching AI personnel adapté à tes objectifs',
+  es: 'Coaching AI personal para tus objetivos',
+};
+
 const premiumPlanTranslations: Record<Language, {
   premiumMonthlyPlan: string;
   premiumAnnualPlan: string;
   premiumPerYear: string;
+  premiumSelectedPlan: string;
   premiumAnnualSavings: string;
   premiumAnnualBenefit: string;
   premiumMonthlyBenefit: string;
 }> = {
-  tr: { premiumMonthlyPlan: 'Aylık', premiumAnnualPlan: 'Yıllık', premiumPerYear: '/ yıl', premiumAnnualSavings: '%37 tasarruf', premiumAnnualBenefit: 'Yıllık planla daha az öde ve tüm yıl Premium erişimini koru.', premiumMonthlyBenefit: 'Aylık planla istediğin zaman esnekçe devam et.' },
-  en: { premiumMonthlyPlan: 'Monthly', premiumAnnualPlan: 'Annual', premiumPerYear: '/ year', premiumAnnualSavings: 'Save 37%', premiumAnnualBenefit: 'Pay less with the annual plan and keep Premium all year.', premiumMonthlyBenefit: 'Stay flexible with a month-to-month plan.' },
-  de: { premiumMonthlyPlan: 'Monatlich', premiumAnnualPlan: 'Jährlich', premiumPerYear: '/ Jahr', premiumAnnualSavings: '37 % sparen', premiumAnnualBenefit: 'Mit dem Jahresplan weniger zahlen und Premium das ganze Jahr nutzen.', premiumMonthlyBenefit: 'Mit dem Monatsplan flexibel bleiben.' },
-  fr: { premiumMonthlyPlan: 'Mensuel', premiumAnnualPlan: 'Annuel', premiumPerYear: '/ an', premiumAnnualSavings: 'Économise 37 %', premiumAnnualBenefit: 'Paie moins avec l’offre annuelle et garde Premium toute l’année.', premiumMonthlyBenefit: 'Reste flexible avec une formule mensuelle.' },
-  es: { premiumMonthlyPlan: 'Mensual', premiumAnnualPlan: 'Anual', premiumPerYear: '/ año', premiumAnnualSavings: 'Ahorra un 37 %', premiumAnnualBenefit: 'Paga menos con el plan anual y disfruta de Premium todo el año.', premiumMonthlyBenefit: 'Mantén la flexibilidad con el plan mensual.' },
+  tr: { premiumMonthlyPlan: 'Aylık', premiumAnnualPlan: 'Yıllık', premiumPerYear: '/ yıl', premiumSelectedPlan: 'Seçilen plan', premiumAnnualSavings: '%37 tasarruf', premiumAnnualBenefit: 'Yıllık planla daha az öde ve tüm yıl Premium erişimini koru.', premiumMonthlyBenefit: 'Aylık planla istediğin zaman esnekçe devam et.' },
+  en: { premiumMonthlyPlan: 'Monthly', premiumAnnualPlan: 'Annual', premiumPerYear: '/ year', premiumSelectedPlan: 'Selected plan', premiumAnnualSavings: 'Save 37%', premiumAnnualBenefit: 'Pay less with the annual plan and keep Premium all year.', premiumMonthlyBenefit: 'Stay flexible with a month-to-month plan.' },
+  de: { premiumMonthlyPlan: 'Monatlich', premiumAnnualPlan: 'Jährlich', premiumPerYear: '/ Jahr', premiumSelectedPlan: 'Ausgewählter Plan', premiumAnnualSavings: '37 % sparen', premiumAnnualBenefit: 'Mit dem Jahresplan weniger zahlen und Premium das ganze Jahr nutzen.', premiumMonthlyBenefit: 'Mit dem Monatsplan flexibel bleiben.' },
+  fr: { premiumMonthlyPlan: 'Mensuel', premiumAnnualPlan: 'Annuel', premiumPerYear: '/ an', premiumSelectedPlan: 'Formule choisie', premiumAnnualSavings: 'Économise 37 %', premiumAnnualBenefit: 'Paie moins avec l’offre annuelle et garde Premium toute l’année.', premiumMonthlyBenefit: 'Reste flexible avec une formule mensuelle.' },
+  es: { premiumMonthlyPlan: 'Mensual', premiumAnnualPlan: 'Anual', premiumPerYear: '/ año', premiumSelectedPlan: 'Plan seleccionado', premiumAnnualSavings: 'Ahorra un 37 %', premiumAnnualBenefit: 'Paga menos con el plan anual y disfruta de Premium todo el año.', premiumMonthlyBenefit: 'Mantén la flexibilidad con el plan mensual.' },
 };
 
 const usageLimitCopy: Record<Language, { coach: string; photo: string }> = {
@@ -1307,6 +1316,7 @@ export function translate(language: Language, key: TranslationKey): string {
   if (key === 'premiumPriceOptions') return getPremiumPreviewPriceOptions(language);
   if (key in premiumPlanTranslations.tr) return premiumPlanTranslations[language][key as keyof typeof premiumPlanTranslations.tr];
   if (key in streakUiTranslations.tr) return streakUiTranslations[language][key as keyof typeof streakUiTranslations.tr];
+  if (key === 'premiumFeature1') return premiumFeatureOneCopy[language];
   if (key === 'premiumFeature2') return premiumBenefitCopy[language].photo;
   if (key === 'premiumFeature3') return premiumBenefitCopy[language].coach;
   if (key === 'coachLimitReached') return usageLimitCopy[language].coach;

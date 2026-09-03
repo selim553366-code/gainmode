@@ -819,14 +819,14 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
           <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{monthlyPackage?.product.priceString ?? '—'}</Text>
           <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text>
         </Pressable>
-        {canOfferAnnual ? <Pressable testID="welcome-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual' }} onPress={() => setSelectedPlan('annual')} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border }]}>
-          <View style={styles.offerPlanHeader}><Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text><Text style={[styles.offerPlanSavings, { color: colors.success }]}>{t('premiumAnnualSavings')}</Text></View>
+        <Pressable disabled={!canOfferAnnual} testID="welcome-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual', disabled: !canOfferAnnual }} onPress={() => { if (canOfferAnnual) setSelectedPlan('annual'); }} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border, opacity: canOfferAnnual ? 1 : 0.58 }]}>
+          <View style={styles.offerPlanHeader}><Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{canOfferAnnual ? <Text style={[styles.offerPlanSavings, { color: colors.success }]}>{t('premiumAnnualSavings')}</Text> : null}</View>
           <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{annualPackage?.product.priceString ?? '—'}</Text>
           <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
-        </Pressable> : null}
+        </Pressable>
       </View>
       <View style={[styles.offerPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
-       <Text style={[styles.offerPriceLabel, { color: colors.primary }]}>{selectedPlan === 'annual' ? t('premiumAnnualPlan') : t('premiumPriceMonthly')}</Text>
+       <Text style={[styles.offerPriceLabel, { color: colors.primary }]}>{t('premiumSelectedPlan')}</Text>
        <Text style={[styles.offerPrice, { color: colors.foreground }]}>{displayPrice}{price ? ` ${selectedPlan === 'annual' ? t('premiumPerYear') : t('premiumPerMonth')}` : ''}</Text>
        <Text style={[styles.offerPriceOptions, { color: colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualBenefit') : t('premiumMonthlyBenefit')}</Text>
      </View>
