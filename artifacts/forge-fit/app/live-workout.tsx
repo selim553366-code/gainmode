@@ -93,7 +93,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
     setAnalysis(result);
   };
 
-  return <View style={styles.cameraRoot}>
+  return <View testID="live-workout-compact-panel" style={styles.cameraRoot}>
     <PoseCamera
       style={StyleSheet.absoluteFillObject}
       facing="front"
