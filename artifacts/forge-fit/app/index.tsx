@@ -740,11 +740,13 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
 function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: () => void; onSkip: () => void; onRestart: () => void }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
     const { language } = useFit();
      const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
    const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>(() => annualPackage ? 'annual' : 'monthly');
    const canOfferAnnual = Boolean(annualPackage);
+  const isNarrowScreen = width < 380;
   const [actionError, setActionError] = React.useState<string | null>(null);
    const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
    const price = selectedPackage?.product.priceString;
@@ -798,29 +800,35 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
     }
   };
   return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={styles.offerGradient}>
-    <ScrollView contentContainerStyle={[styles.offerScrollContent, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 18 }]} showsVerticalScrollIndicator={false} bounces={false}>
-     <View style={styles.offerHeader}>
-       <ForgeFitMark size={38} />
-        <View style={[styles.offerProPill, { backgroundColor: `${isSubscribed ? colors.success : colors.primary}18`, borderColor: `${isSubscribed ? colors.success : colors.primary}55` }]}>{isSubscribed ? <Ionicons name="checkmark-circle" size={12} color={colors.success} /> : <ForgeFitMark size={18} />}<Text style={[styles.offerProText, { color: isSubscribed ? colors.success : colors.primary }]}>{isSubscribed ? t('premiumOwned') : t('premiumShort')}</Text></View>
+    <View style={[styles.offerHeader, { paddingTop: insets.top + 10 }]}>
+      <ForgeFitMark size={38} />
+      <View style={[styles.offerProPill, { backgroundColor: `${isSubscribed ? colors.success : colors.primary}18`, borderColor: `${isSubscribed ? colors.success : colors.primary}55` }]}>{isSubscribed ? <Ionicons name="checkmark-circle" size={12} color={colors.success} /> : <ForgeFitMark size={18} />}<Text style={[styles.offerProText, { color: isSubscribed ? colors.success : colors.primary }]}>{isSubscribed ? t('premiumOwned') : t('premiumShort')}</Text></View>
     </View>
+    <ScrollView
+      contentContainerStyle={[styles.offerScrollContent, { paddingBottom: insets.bottom + 24 }]}
+      showsVerticalScrollIndicator={false}
+      bounces={false}
+      alwaysBounceVertical={false}
+      keyboardShouldPersistTaps="handled"
+    >
     <View style={styles.offerHero}>
-       <View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><ForgeFitMark size={74} /></View>
+        <View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><ForgeFitMark size={74} /></View>
       <Text style={[styles.offerEyebrow, { color: colors.primary }]}>{t('premiumWelcomeEyebrow')}</Text>
       <Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumWelcomeTitle')}</Text>
       <Text style={[styles.offerBody, { color: colors.mutedForeground }]}>{t('premiumWelcomeBody')}</Text>
-    </View>
+      </View>
     <View style={[styles.offerValueCard, { backgroundColor: `${colors.card}D9`, borderColor: colors.border }]}>
       <Text style={[styles.offerReason, { color: colors.foreground }]}>{t('premiumWelcomeReason')}</Text>
-       <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}>{benefit.logo ? <ForgeFitMark size={25} /> : <Ionicons name={benefit.icon!} size={17} color={colors.primary} />}</View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
+        <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}>{benefit.logo ? <ForgeFitMark size={25} /> : <Ionicons name={benefit.icon!} size={17} color={colors.primary} />}</View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
     </View>
     <View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
-      <View style={styles.offerPlanChoices}>
-        <Pressable testID="welcome-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.border }]}>
+      <View style={[styles.offerPlanChoices, isNarrowScreen ? styles.offerPlanChoicesNarrow : null]}>
+        <Pressable testID="welcome-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.offerPlanOption, isNarrowScreen ? styles.offerPlanOptionNarrow : null, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.border }]}>
           <Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumMonthlyPlan')}</Text>
           <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{monthlyPackage?.product.priceString ?? '—'}</Text>
           <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text>
         </Pressable>
-        <Pressable disabled={!canOfferAnnual} testID="welcome-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual', disabled: !canOfferAnnual }} onPress={() => { if (canOfferAnnual) setSelectedPlan('annual'); }} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border, opacity: canOfferAnnual ? 1 : 0.58 }]}>
+        <Pressable disabled={!canOfferAnnual} testID="welcome-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual', disabled: !canOfferAnnual }} onPress={() => { if (canOfferAnnual) setSelectedPlan('annual'); }} style={[styles.offerPlanOption, isNarrowScreen ? styles.offerPlanOptionNarrow : null, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border, opacity: canOfferAnnual ? 1 : 0.58 }]}>
           <View style={styles.offerPlanHeader}><Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{canOfferAnnual ? <Text style={[styles.offerPlanSavings, { color: colors.success }]}>{t('premiumAnnualSavings')}</Text> : null}</View>
           <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{annualPackage?.product.priceString ?? '—'}</Text>
           <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
@@ -982,29 +990,31 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: 7, justifyContent: 'center' },
   dot: { width: 28, height: 4, borderRadius: 5 },
   offerGradient: { flex: 1 },
-  offerScrollContent: { flexGrow: 1, paddingHorizontal: 20 },
+  offerScrollContent: { paddingHorizontal: 20, paddingTop: 8 },
   offerScreen: { paddingHorizontal: 20 },
-  offerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  offerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 8 },
   offerProPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 7 },
   offerProText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1 },
-  offerHero: { alignItems: 'center', justifyContent: 'center', minHeight: 205, paddingVertical: 16 },
-  offerOrb: { alignSelf: 'center', width: 74, height: 74, borderRadius: 27, alignItems: 'center', justifyContent: 'center', marginTop: 30 },
-  offerEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.6, marginTop: 20, marginBottom: 8 },
-  offerTitle: { textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 39, lineHeight: 43, letterSpacing: -1.5 },
-  offerBody: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, marginTop: 11, maxWidth: 330 },
+  offerHero: { alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
+  offerOrb: { alignSelf: 'center', width: 68, height: 68, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
+  offerEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.6, marginTop: 14, marginBottom: 7 },
+  offerTitle: { width: '100%', textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 35, lineHeight: 40, letterSpacing: -1.2 },
+  offerBody: { width: '100%', textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, marginTop: 9, maxWidth: 330 },
   offerValueCard: { width: '100%', borderWidth: 1, borderRadius: 23, padding: 16, gap: 13 },
   offerReason: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   offerBenefits: { gap: 12 },
-  offerBenefit: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  offerBenefit: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   offerBenefitIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  offerBenefitText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17 },
-   offerPlanChoices: { width: '100%', flexDirection: 'row', gap: 8, marginTop: 12, marginBottom: 10 },
-   offerPlanOption: { flex: 1, minHeight: 78, borderWidth: 1, borderRadius: 16, padding: 11 },
-   offerPlanHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5 },
-   offerPlanLabel: { fontFamily: 'Inter_700Bold', fontSize: 11 },
-   offerPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 15, marginTop: 8 },
-   offerPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 1 },
-   offerPlanSavings: { fontFamily: 'Inter_700Bold', fontSize: 8, letterSpacing: 0.3 },
+  offerBenefitText: { flex: 1, minWidth: 0, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17 },
+  offerPlanChoices: { width: '100%', flexDirection: 'row', gap: 8, marginTop: 12, marginBottom: 10 },
+  offerPlanChoicesNarrow: { flexDirection: 'column' },
+  offerPlanOption: { flex: 1, minWidth: 0, minHeight: 78, borderWidth: 1, borderRadius: 16, padding: 11, overflow: 'hidden' },
+  offerPlanOptionNarrow: { width: '100%', flex: 0 },
+  offerPlanHeader: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5 },
+  offerPlanLabel: { flex: 1, minWidth: 0, flexShrink: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
+  offerPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 15, marginTop: 8 },
+  offerPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 1 },
+  offerPlanSavings: { flexShrink: 0, fontFamily: 'Inter_700Bold', fontSize: 8, letterSpacing: 0.3 },
   features: { gap: 17, paddingVertical: 20 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   featureText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 14 },
