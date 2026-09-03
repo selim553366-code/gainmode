@@ -13,6 +13,7 @@ import { DAILY_COACH_MESSAGE_LIMIT, DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usa
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
 import { runPhotoCoachRequest } from '@/lib/photoCoach';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
+import { apiUrl } from '@/lib/api';
 
 type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; imageUri?: string; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
 type CoachApiResponse = { content?: string; actions?: unknown[] };
@@ -110,7 +111,7 @@ export default function CoachScreen() {
           setCoachThinking(true);
         },
         request: async () => {
-          const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/coach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, imageData: photo?.base64 }) });
+          const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, imageData: photo?.base64 }) });
           if (!response.ok) throw new Error('coach unavailable');
            return await response.json() as CoachApiResponse;
         },
@@ -134,7 +135,7 @@ export default function CoachScreen() {
     setLoading(true);
     setCoachThinking(true);
     try {
-      const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/coach`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, imageData: photo?.base64 }) });
+      const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, imageData: photo?.base64 }) });
       if (!response.ok) throw new Error('coach unavailable');
        const result = await response.json() as CoachApiResponse;
       incrementCoachUsage();

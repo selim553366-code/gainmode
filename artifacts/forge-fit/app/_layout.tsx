@@ -16,11 +16,12 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { FitProvider } from '@/context/FitContext';
 import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
+import { getApiBaseUrl } from '@/lib/api';
 import { setBaseUrl } from '@workspace/api-client-react';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
-setBaseUrl(process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : null);
+setBaseUrl(getApiBaseUrl());
 try {
   initializeRevenueCat();
 } catch (error) {

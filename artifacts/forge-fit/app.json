@@ -1,6 +1,7 @@
 {
   "expo": {
     "extra": {
+      "apiBaseUrl": "https://unfolded-superior-webpages.replit.app",
       "eas": {
         "projectId": "970ce633-cb99-43da-992f-9217abf8ef05"
       },

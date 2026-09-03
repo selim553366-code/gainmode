@@ -8,6 +8,7 @@ import { Ionicons } from '@/components/AppIcon';
 import { useSearchFood, type FoodSearchItem } from '@workspace/api-client-react';
 import { useFit, Meal } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
+import { apiUrl } from '@/lib/api';
 import { useColors } from '@/hooks/useColors';
 import { Card, ForgeFitMark, Header, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 import { DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
@@ -176,7 +177,7 @@ export default function NutritionScreen() {
     try {
       await new Promise<void>((resolve) => setTimeout(resolve, 1050));
       setAnalysisPhase('analyzing');
-      const response = await fetch(`https://${process.env.EXPO_PUBLIC_DOMAIN}/api/ai/food-analysis`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageData: base64, language }) });
+      const response = await fetch(apiUrl('/api/ai/food-analysis'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageData: base64, language }) });
       if (!response.ok) throw new Error('analysis failed');
       const analyzed = await response.json() as Meal;
       addMeal({ name: analyzed.name, type: 'snack', calories: analyzed.calories, protein: analyzed.protein, carbs: analyzed.carbs, fat: analyzed.fat, imageUri: uri });
