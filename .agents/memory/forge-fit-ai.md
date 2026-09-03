@@ -20,3 +20,9 @@ FitBud plan changes should travel as a small structured action list, but the mob
 **Why:** The app's source of truth is local AsyncStorage, so model output cannot be trusted to identify or mutate user data directly.
 
 **How to apply:** Keep model actions pending until explicit user approval; apply only validated actions and recompute dependent projections when nutrition targets change.
+
+Test-only Premium access must remain a separate local flag and must never alter RevenueCat entitlements, offerings, products, or purchase/restore behavior.
+
+**Why:** Android QA needs a deterministic local unlock without creating or faking a real store subscription.
+
+**How to apply:** Keep the test code and storage key isolated, preserve the real entitlement check, and treat the local unlock as temporary QA functionality.
