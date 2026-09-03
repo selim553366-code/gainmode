@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Easing, Image, PanResponder, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -797,7 +797,8 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
       setActionError(t('premiumRestoreError'));
     }
   };
-  return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={[styles.full, styles.offerScreen, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 18 }]}>
+  return <LinearGradient colors={[colors.background, '#102E53', colors.background]} style={styles.offerGradient}>
+    <ScrollView contentContainerStyle={[styles.offerScrollContent, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 18 }]} showsVerticalScrollIndicator={false} bounces={false}>
      <View style={styles.offerHeader}>
        <ForgeFitMark size={38} />
         <View style={[styles.offerProPill, { backgroundColor: `${isSubscribed ? colors.success : colors.primary}18`, borderColor: `${isSubscribed ? colors.success : colors.primary}55` }]}>{isSubscribed ? <Ionicons name="checkmark-circle" size={12} color={colors.success} /> : <ForgeFitMark size={18} />}<Text style={[styles.offerProText, { color: isSubscribed ? colors.success : colors.primary }]}>{isSubscribed ? t('premiumOwned') : t('premiumShort')}</Text></View>
@@ -838,6 +839,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
         <Ionicons name="flash-outline" size={15} color={colors.mutedForeground} />
         <Text style={[styles.restartOnboardingLinkText, { color: colors.mutedForeground }]}>{t('restartOnboarding')}</Text>
       </Pressable>
+    </ScrollView>
   </LinearGradient>;
 }
 
@@ -979,11 +981,13 @@ const styles = StyleSheet.create({
   introBottom: { gap: 18 },
   dots: { flexDirection: 'row', gap: 7, justifyContent: 'center' },
   dot: { width: 28, height: 4, borderRadius: 5 },
+  offerGradient: { flex: 1 },
+  offerScrollContent: { flexGrow: 1, paddingHorizontal: 20 },
   offerScreen: { paddingHorizontal: 20 },
   offerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   offerProPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 7 },
   offerProText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1 },
-  offerHero: { alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: 205 },
+  offerHero: { alignItems: 'center', justifyContent: 'center', minHeight: 205, paddingVertical: 16 },
   offerOrb: { alignSelf: 'center', width: 74, height: 74, borderRadius: 27, alignItems: 'center', justifyContent: 'center', marginTop: 30 },
   offerEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.6, marginTop: 20, marginBottom: 8 },
   offerTitle: { textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 39, lineHeight: 43, letterSpacing: -1.5 },
