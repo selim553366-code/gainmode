@@ -1,6 +1,5 @@
 import React from 'react';
-import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Svg, { Circle, Line } from 'react-native-svg';
+import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,77 +18,6 @@ import {
   type LiveWarningKey,
   type RepState,
 } from '@/lib/liveWorkout';
-import type { PoseJoint, PoseLandmarks } from '@/lib/liveWorkoutAnalysis';
-
-const POSE_CONNECTIONS: readonly [PoseJoint, PoseJoint][] = [
-  ['leftShoulder', 'rightShoulder'],
-  ['leftShoulder', 'leftElbow'],
-  ['leftElbow', 'leftWrist'],
-  ['rightShoulder', 'rightElbow'],
-  ['rightElbow', 'rightWrist'],
-  ['leftShoulder', 'leftHip'],
-  ['rightShoulder', 'rightHip'],
-  ['leftHip', 'rightHip'],
-  ['leftHip', 'leftKnee'],
-  ['leftKnee', 'leftAnkle'],
-  ['rightHip', 'rightKnee'],
-  ['rightKnee', 'rightAnkle'],
-];
-
-const POSE_JOINTS: readonly PoseJoint[] = [
-  'nose',
-  'leftShoulder',
-  'rightShoulder',
-  'leftElbow',
-  'rightElbow',
-  'leftWrist',
-  'rightWrist',
-  'leftHip',
-  'rightHip',
-  'leftKnee',
-  'rightKnee',
-  'leftAnkle',
-  'rightAnkle',
-];
-
-function AndroidPoseOverlay({ pose, color }: { pose: PoseLandmarks; color: string }) {
-  const { width, height } = useWindowDimensions();
-  const scale = Math.max(width / 16, height / 9);
-  const contentWidth = 16 * scale;
-  const contentHeight = 9 * scale;
-  const left = (width - contentWidth) / 2;
-  const top = (height - contentHeight) / 2;
-  const project = (point: NonNullable<PoseLandmarks[PoseJoint]>) => ({
-    x: left + (1 - point.x) * contentWidth,
-    y: top + point.y * contentHeight,
-  });
-  const isDrawable = (point: PoseLandmarks[PoseJoint] | undefined): point is NonNullable<PoseLandmarks[PoseJoint]> =>
-    Boolean(point && point.visibility >= 0.25 && Number.isFinite(point.x) && Number.isFinite(point.y));
-
-  if (!Object.values(pose).some(isDrawable)) return null;
-
-  return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-      <Svg width={width} height={height}>
-        {POSE_CONNECTIONS.map(([from, to]) => {
-          const start = pose[from];
-          const end = pose[to];
-          if (!isDrawable(start) || !isDrawable(end)) return null;
-          const projectedStart = project(start);
-          const projectedEnd = project(end);
-          return <Line key={`${from}-${to}`} x1={projectedStart.x} y1={projectedStart.y} x2={projectedEnd.x} y2={projectedEnd.y} stroke={color} strokeWidth={4} strokeLinecap="round" />;
-        })}
-        {POSE_JOINTS.map((joint) => {
-          const point = pose[joint];
-          if (!isDrawable(point)) return null;
-          const projected = project(point);
-          return <Circle key={joint} cx={projected.x} cy={projected.y} r={6} fill={color} />;
-        })}
-      </Svg>
-    </View>
-  );
-}
-
 function ActionButton({ label, icon, onPress, disabled = false }: { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void; disabled?: boolean }) {
   const colors = useColors();
   return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.primary, opacity: disabled ? 0.5 : pressed ? 0.75 : 1 }]}><Ionicons name={icon} size={18} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{label}</Text></Pressable>;
@@ -132,7 +60,6 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const t = (key: LiveWorkoutCopyKey) => liveTranslate(language, key);
   const permission = useCameraPermission();
   const [analysis, setAnalysis] = React.useState(() => ({ state: initialRepState, warning: 'liveLookingForBody' as LiveWarningKey, confidence: 0, metric: null as number | null }));
-  const [pose, setPose] = React.useState<PoseLandmarks>({});
   const [cameraError, setCameraError] = React.useState(false);
   const stateRef = React.useRef<RepState>(initialRepState);
   const repTone = useAudioPlayer(require('@/assets/sounds/rep-confirmation.wav'));
@@ -165,7 +92,6 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
     const currentPose = poseFromFrame(frame);
     const result = analyzePose(kind, currentPose, previousState, frame.timestamp);
     stateRef.current = result.state;
-    setPose(currentPose);
     if (result.state.reps > previousState.reps) {
       repPulse.stopAnimation();
       repPulse.setValue(0);
@@ -191,11 +117,10 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
        minConfidence={0.45}
       smoothing
       data={{ mode: 'throttled', throttleMs: 90, landmarks: true }}
-       overlay={Platform.OS === 'android' ? false : { landmarks: true, connections: true, color: colors.primary, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
+       overlay={{ landmarks: true, connections: true, color: colors.primary, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
       onPose={handlePose}
       onError={() => setCameraError(true)}
     />
-     {Platform.OS === 'android' ? <AndroidPoseOverlay pose={pose} color={colors.primary} /> : null}
     <View pointerEvents="none" style={styles.cameraShade} />
     <View pointerEvents="none" style={[styles.neonFrame, { borderColor: colors.primary, shadowColor: colors.primary }]} />
     <View style={[styles.liveHeader, { paddingTop: insets.top + 14 }]}>
