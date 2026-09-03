@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
-import { getPremiumPreviewPrice, translate, type Language, type TranslationKey } from '@/lib/i18n';
+import { translate, type Language, type TranslationKey } from '@/lib/i18n';
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { BlurView } from 'expo-blur';
@@ -196,12 +196,12 @@ export function PremiumLock() {
 
 export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const colors = useColors();
-  const { language, isPremium, enablePremium, enablePremiumForTesting } = useFit();
-  const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, restore, isPurchasing, isRestoring } = useSubscription();
+  const { language, enablePremium } = useFit();
+  const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>('annual');
-  const monthlyPrice = monthlyPackage?.product.priceString ?? getPremiumPreviewPrice(language, 7.99);
-  const annualPrice = annualPackage?.product.priceString ?? getPremiumPreviewPrice(language, 59.99);
+  const monthlyPrice = monthlyPackage?.product.priceString ?? '—';
+  const annualPrice = annualPackage?.product.priceString ?? '—';
   const selectedPrice = selectedPlan === 'annual' ? annualPrice : monthlyPrice;
   const selectedCurrency = (selectedPlan === 'annual' ? annualPackage : monthlyPackage)?.product.currencyCode;
   const appear = React.useRef(new Animated.Value(0)).current;
@@ -214,15 +214,33 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
     return () => appear.stopAnimation();
   }, [appear, visible]);
 
-  const activatePremium = () => {
+  const activatePremium = async () => {
     triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
     setActionError(null);
-    if (isSubscribed || isPremium) {
+    if (isSubscribed) {
       onClose();
       return;
     }
-    enablePremiumForTesting();
-    onClose();
+    if (!isAvailable) {
+      setActionError(t('premiumStoreUnavailable'));
+      return;
+    }
+    const packageToPurchase = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
+    if (!packageToPurchase) {
+      setActionError(t('premiumStoreUnavailable'));
+      return;
+    }
+    try {
+      const customerInfo = await purchase(packageToPurchase);
+      if (!hasActivePremiumEntitlement(customerInfo)) {
+        setActionError(t('premiumPurchaseError'));
+        return;
+      }
+      enablePremium();
+      onClose();
+    } catch {
+      setActionError(t('premiumPurchaseError'));
+    }
   };
 
   const restorePremium = async () => {
@@ -280,7 +298,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
            </View>
           <Text style={[styles.premiumTrialBody, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
            {actionError ? <Text style={[styles.premiumActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
-           <Pressable testID="start-premium" disabled={isPurchasing || isLoading} onPress={isPremium ? onClose : activatePremium} style={({ pressed }) => [styles.premiumCta, { backgroundColor: colors.primary, opacity: pressed || isPurchasing || isLoading ? 0.58 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}><Text style={[styles.premiumCtaText, { color: colors.primaryForeground }]}>{isPremium ? t('premiumActiveNow') : isPurchasing ? t('premiumLoading') : t('premiumStart')}</Text><Ionicons name={isPremium ? 'checkmark-circle' : 'arrow-forward'} size={18} color={colors.primaryForeground} /></Pressable>
+            <Pressable testID="start-premium" disabled={isPurchasing || isLoading} onPress={activatePremium} style={({ pressed }) => [styles.premiumCta, { backgroundColor: colors.primary, opacity: pressed || isPurchasing || isLoading ? 0.58 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}><Text style={[styles.premiumCtaText, { color: colors.primaryForeground }]}>{isSubscribed ? t('premiumActiveNow') : isPurchasing ? t('premiumLoading') : t('premiumStart')}</Text><Ionicons name={isSubscribed ? 'checkmark-circle' : 'arrow-forward'} size={18} color={colors.primaryForeground} /></Pressable>
            <Pressable testID="restore-premium" disabled={isRestoring} onPress={restorePremium} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
           <Text style={[styles.premiumTrust, { color: colors.mutedForeground }]}>{t('premiumTrust')}</Text>
         </LinearGradient>
