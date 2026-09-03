@@ -26,3 +26,9 @@ When EAS resolves a mobile artifact inside this pnpm monorepo, workspace-wide pa
 **Why:** EAS reads the artifact package manifest while pnpm validates the workspace lockfile; root-only `pnpm.patchedDependencies` can appear missing and trigger `ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`.
 
 **How to apply:** Keep `patchedDependencies` in the shared workspace configuration, regenerate the lockfile, and verify a frozen install before submitting another cloud build.
+
+EAS cloud builds need an explicit `production` environment and the RevenueCat Android SDK key must exist in EAS's production environment; a matching Replit Secret alone does not guarantee that the cloud bundle receives it.
+
+**Why:** Replit preview variables and EAS project environment variables are separate, while Expo inlines `EXPO_PUBLIC_` values into the Android bundle during the cloud build.
+
+**How to apply:** Set `environment: "production"` in Forge Fit's production profile, add `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` to the EAS production environment without exposing its value in chat, then create a new AAB from `artifacts/forge-fit`.

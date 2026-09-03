@@ -13,6 +13,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "environment": "production",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "unfolded-superior-webpages.replit.app"
       }
