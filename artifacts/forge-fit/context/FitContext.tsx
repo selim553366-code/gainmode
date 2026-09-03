@@ -6,7 +6,7 @@ import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications 
 import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey } from '@/lib/nutritionDates';
 import { addStreakActivity, normalizeStreakDates } from '@/lib/streak';
-import { buildWorkoutPlan, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
+import { addExerciseToPlan, buildWorkoutPlan, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
 import { TEST_PREMIUM_PROMO_STORAGE_KEY } from '@/lib/testPremiumPromo';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
@@ -384,13 +384,10 @@ export function FitProvider({ children }: { children: ReactNode }) {
        const nextState = { ...current, workouts };
        return changedWorkout?.completed ? recordStreakActivity(nextState) : nextState;
      }),
-      addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => {
-        const sharedSets = getSharedWorkoutSets(current.workouts, clampWorkoutSets(sets));
-        const workouts = normalizeWorkoutSets(current.workouts, sharedSets).map((workout) => workout.id === workoutId
-          ? { ...workout, completed: false, exercises: [...workout.exercises, { id: `${Date.now()}-${Math.random()}`, name, sets: sharedSets, reps, muscleGroup: 'other' as MuscleGroup, completed: false }] }
-          : workout);
-        return { ...current, workouts };
-      }),
+     addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => ({
+       ...current,
+       workouts: addExerciseToPlan(current.workouts, workoutId, name, sets, reps),
+     })),
     removeExercise: (workoutId, exerciseId) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => {
       if (workout.id !== workoutId) return workout;
       const exercises = workout.exercises.filter((exercise) => exercise.id !== exerciseId);

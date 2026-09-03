@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildWorkoutPlan, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete } from '../lib/workoutPlan.ts';
+import { addExerciseToPlan, buildWorkoutPlan, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete } from '../lib/workoutPlan.ts';
 
 const profile = (overrides = {}) => ({
   equipment: 'bodyweight',
@@ -63,6 +63,27 @@ test('normalizes persisted exercises to one set count between one and three', ()
   const sets = restored.flatMap((workout) => workout.exercises).map((exercise) => exercise.sets);
 
   assert.ok(sets.every((value) => value === 3));
+});
+
+test('adds a custom exercise to the selected workout and keeps the shared set count', () => {
+  const workouts = buildWorkoutPlan(profile({ trainingDays: 2 }));
+  const selectedId = workouts[0].id;
+  const updated = addExerciseToPlan(workouts, selectedId, 'Bulgarian split squat', 3, 8);
+  const added = updated[0].exercises.at(-1);
+
+  assert.equal(added?.name, 'Bulgarian split squat');
+  assert.equal(added?.reps, 8);
+  assert.equal(added?.muscleGroup, 'other');
+  assert.equal(added?.completed, false);
+  assert.equal(added?.sets, updated.flatMap((workout) => workout.exercises)[0].sets);
+  assert.equal(updated[1].exercises.length, workouts[1].exercises.length);
+});
+
+test('ignores blank custom exercise names', () => {
+  const workouts = buildWorkoutPlan(profile({ trainingDays: 2 }));
+  const updated = addExerciseToPlan(workouts, workouts[0].id, '   ');
+
+  assert.deepEqual(updated, workouts);
 });
 
 test('equipment details choose matching home movement variations', () => {

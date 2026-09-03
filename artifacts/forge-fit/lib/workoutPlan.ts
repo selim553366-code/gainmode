@@ -153,6 +153,30 @@ export function normalizeWorkoutSets(workouts: Workout[], fallback = 2) {
   }));
 }
 
+export function addExerciseToPlan(workouts: Workout[], workoutId: string, name: string, sets = 3, reps = 10) {
+  const trimmedName = name.trim();
+  if (!trimmedName) return workouts;
+
+  const sharedSets = getSharedWorkoutSets(workouts, clampWorkoutSets(sets));
+  return normalizeWorkoutSets(workouts, sharedSets).map((workout) => workout.id === workoutId
+    ? {
+      ...workout,
+      completed: false,
+      exercises: [
+        ...workout.exercises,
+        {
+          id: `${Date.now()}-${Math.random()}`,
+          name: trimmedName,
+          sets: sharedSets,
+          reps: Math.max(1, Math.round(reps)),
+          muscleGroup: 'other' as MuscleGroup,
+          completed: false,
+        },
+      ],
+    }
+    : workout);
+}
+
 export function buildWorkoutPlan(profile: Profile): Workout[] {
   const count = Math.min(Math.max(profile.trainingDays ?? 3, 2), 6);
   const areasByDay = splitAreas[count];
