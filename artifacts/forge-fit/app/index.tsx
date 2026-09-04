@@ -409,7 +409,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       proteinPreference,
       experience,
       preferredDays,
-       targetWeight: hasTargetWeightStep ? (targetWeight ?? recommendedTargetWeight) : recommendTargetWeight({ height, weight, age: currentAge, goal, sex, activity, goalRate }),
+      targetWeight: hasTargetWeightStep ? (targetWeight ?? recommendedTargetWeight) : recommendTargetWeight({ height, weight, age, goal, sex, activity, goalRate }),
     };
     completeOnboarding(profile, cleanUsername, { profileEdit: editMode });
     const previousUsername = savedUsername?.trim().replace(/\s+/g, '').toLowerCase();
