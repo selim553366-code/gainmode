@@ -219,7 +219,7 @@ async function searchOpenFoodFactsBarcode(code: string, language: string): Promi
     const payload = await response.json() as ProviderProductResponse;
     if (!payload.product) continue;
     const normalized = normalizeProduct(payload.product, language, 0);
-    return normalized ? [normalized] : [];
+    if (normalized) return [normalized];
   }
   if (providerStatuses.some((status) => status === 200 || status === 404)) return [];
   throw new Error(`Open Food Facts barcode lookup returned ${providerStatuses.join(", ")}.`);

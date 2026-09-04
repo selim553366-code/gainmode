@@ -168,30 +168,14 @@ function GoalWeightPicker({ valueKg, recommendedKg, unit, inputValue, recommende
   </View>;
 }
 
-function BirthDatePicker({ day, month, year, dayText, monthText, yearText, labels, onChange, onTextChange }: { day: number; month: number; year: number; dayText: string; monthText: string; yearText: string; labels: { day: string; month: string; year: string }; onChange: (day: number, month: number, year: number) => void; onTextChange: (field: 'day' | 'month' | 'year', value: string) => void }) {
+function AgePicker({ value, inputValue, yearsLabel, onInputChange, onChange }: { value: number; inputValue: string; yearsLabel: string; onInputChange: (value: string) => void; onChange: (value: number) => void }) {
   const colors = useColors();
-  const currentYear = new Date().getFullYear();
-  const adjust = (field: 'day' | 'month' | 'year', amount: number) => {
-    const nextDay = field === 'day' ? Math.max(1, Math.min(31, day + amount)) : day;
-    const nextMonth = field === 'month' ? Math.max(1, Math.min(12, month + amount)) : month;
-    const nextYear = field === 'year' ? Math.max(currentYear - 90, Math.min(currentYear - 13, year + amount)) : year;
-    onChange(nextDay, nextMonth, nextYear);
-  };
-  const column = (label: string, value: number, valueText: string, field: 'day' | 'month' | 'year') => <View style={styles.dateColumn}>
-    <Text style={[styles.dateLabel, { color: colors.mutedForeground }]}>{label}</Text>
-    <Pressable onPress={() => adjust(field, 1)}><Ionicons name="chevron-up" size={18} color={colors.primary} /></Pressable>
-    <TextInput value={valueText} onChangeText={(text) => onTextChange(field, text)} keyboardType="number-pad" maxLength={field === 'year' ? 4 : 2} selectTextOnFocus style={[styles.dateValue, styles.dateNumber, { backgroundColor: colors.secondary, color: colors.foreground }]} />
-    <Pressable onPress={() => adjust(field, -1)}><Ionicons name="chevron-down" size={18} color={colors.primary} /></Pressable>
+  const adjust = (amount: number) => onChange(Math.max(13, Math.min(90, value + amount)));
+  return <View style={[styles.weightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Pressable onPress={() => adjust(-1)} style={[styles.stepButton, { backgroundColor: colors.secondary }]}><Ionicons name="remove" size={22} color={colors.foreground} /></Pressable>
+    <View style={styles.weightValue}><TextInput value={inputValue} onChangeText={onInputChange} keyboardType="number-pad" maxLength={2} selectTextOnFocus style={[styles.weightNumberInput, { color: colors.foreground }]} /><Text style={[styles.rulerUnit, { color: colors.primary }]}>{yearsLabel}</Text></View>
+    <Pressable onPress={() => adjust(1)} style={[styles.stepButton, { backgroundColor: colors.primary }]}><Ionicons name="add" size={22} color={colors.primaryForeground} /></Pressable>
   </View>;
-  return <View style={[styles.birthCard, { backgroundColor: colors.card, borderColor: colors.border }]}>{column(labels.day, day, dayText, 'day')}<Text style={[styles.dateSlash, { color: colors.mutedForeground }]}>/</Text>{column(labels.month, month, monthText, 'month')}<Text style={[styles.dateSlash, { color: colors.mutedForeground }]}>/</Text>{column(labels.year, year, yearText, 'year')}</View>;
-}
-
-function getAge(day: number, month: number, year: number) {
-  const today = new Date();
-  let age = today.getFullYear() - year;
-  const beforeBirthday = today.getMonth() + 1 < month || (today.getMonth() + 1 === month && today.getDate() < day);
-  if (beforeBirthday) age -= 1;
-  return age;
 }
 
 export default function EntryScreen() {
@@ -263,12 +247,8 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const [heightFeetText, setHeightFeetText] = React.useState('5');
   const [heightInchesText, setHeightInchesText] = React.useState('7');
   const [weightText, setWeightText] = React.useState('70.0');
-  const [birthDay, setBirthDay] = React.useState(1);
-  const [birthMonth, setBirthMonth] = React.useState(1);
-  const [birthYear, setBirthYear] = React.useState(new Date().getFullYear() - 25);
-  const [birthDayText, setBirthDayText] = React.useState('01');
-  const [birthMonthText, setBirthMonthText] = React.useState('01');
-  const [birthYearText, setBirthYearText] = React.useState(String(new Date().getFullYear() - 25));
+  const [age, setAge] = React.useState(25);
+  const [ageText, setAgeText] = React.useState('25');
   const [username, setUsername] = React.useState('');
   const [sex, setSex] = React.useState<BiologicalSex>('preferNot');
   const [activity, setActivity] = React.useState<ActivityLevel>('light');
@@ -294,12 +274,10 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
      : Array.from({ length: hasTargetWeightStep ? 16 : 15 }, (_, index) => index), [editMode, selectedFields, hasTargetWeightStep]);
   const total = selectedStepIds.length;
   const activeStep = editMode ? selectedStepIds[step] : step;
-  const currentAge = getAge(birthDay, birthMonth, birthYear);
-  const recommendedTargetWeight = React.useMemo(() => recommendTargetWeight({ height, weight, age: currentAge, goal, sex, activity, goalRate }), [height, weight, currentAge, goal, sex, activity, goalRate]);
+  const recommendedTargetWeight = React.useMemo(() => recommendTargetWeight({ height, weight, age, goal, sex, activity, goalRate }), [height, weight, age, goal, sex, activity, goalRate]);
 
   React.useEffect(() => {
     if (!editMode || !savedProfile) return;
-    const savedBirth = savedProfile.birthDate?.split('-').map(Number);
     setEquipment(savedProfile.equipment);
     setEquipmentDetails(savedProfile.equipmentDetails ?? '');
     setGymLevel(savedProfile.gymLevel ?? 'full');
@@ -318,13 +296,8 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     setProteinPreference(savedProfile.proteinPreference ?? 'balanced');
     setExperience(savedProfile.experience ?? 'beginner');
     setPreferredDays(savedProfile.preferredDays ?? []);
-    if (savedBirth && savedBirth.length === 3 && savedBirth.every(Number.isFinite)) {
-      updateBirth(savedBirth[2], savedBirth[1], savedBirth[0]);
-    } else {
-      const fallbackYear = new Date().getFullYear() - savedProfile.age;
-      setBirthYear(fallbackYear);
-      setBirthYearText(String(fallbackYear));
-    }
+    setAge(savedProfile.age);
+    setAgeText(String(savedProfile.age));
     if (savedProfile.targetWeight) {
       setTargetWeight(savedProfile.targetWeight);
       setTargetWeightText(savedProfile.targetWeight.toFixed(1));
@@ -398,23 +371,15 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const valueKg = targetWeightUnit === 'kg' ? parsed : parsed * KG_PER_POUND;
     if (Number.isFinite(parsed) && valueKg >= 35 && valueKg <= 200) setTargetWeight(Math.round(valueKg * 10) / 10);
   };
-  const updateBirth = (day: number, month: number, year: number) => {
-    setBirthDay(day);
-    setBirthMonth(month);
-    setBirthYear(year);
-    setBirthDayText(String(day).padStart(2, '0'));
-    setBirthMonthText(String(month).padStart(2, '0'));
-    setBirthYearText(String(year));
+  const updateAge = (value: number) => {
+    const next = Math.max(13, Math.min(90, Math.round(value)));
+    setAge(next);
+    setAgeText(String(next));
   };
-  const updateBirthText = (field: 'day' | 'month' | 'year', text: string) => {
-    if (field === 'day') setBirthDayText(text);
-    if (field === 'month') setBirthMonthText(text);
-    if (field === 'year') setBirthYearText(text);
+  const updateAgeText = (text: string) => {
+    setAgeText(text);
     const parsed = Number(text);
-    if (!Number.isInteger(parsed)) return;
-    if (field === 'day' && parsed >= 1 && parsed <= 31) setBirthDay(parsed);
-    if (field === 'month' && parsed >= 1 && parsed <= 12) setBirthMonth(parsed);
-    if (field === 'year' && parsed >= new Date().getFullYear() - 90 && parsed <= new Date().getFullYear()) setBirthYear(parsed);
+    if (Number.isInteger(parsed) && parsed >= 13 && parsed <= 90) setAge(parsed);
   };
 
   React.useEffect(() => {
@@ -433,8 +398,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       gymLevel: equipment === 'gym' ? gymLevel : undefined,
       height,
       weight,
-      age: currentAge,
-      birthDate: `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`,
+      age,
       goal,
       sex,
       activity,
@@ -483,13 +447,9 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       updateWeightFromKg(kg);
     }
     if (activeStep === 4) {
-      const day = Number(birthDayText);
-      const month = Number(birthMonthText);
-      const year = Number(birthYearText);
-      const date = new Date(year, month - 1, day);
-      if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year) || date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return setError(t('birthDateError'));
-      if (getAge(day, month, year) < 13) return setError(t('ageQuestion'));
-      updateBirth(day, month, year);
+      const parsed = Number(ageText);
+      if (!Number.isInteger(parsed) || parsed < 13 || parsed > 90) return setError(t('ageRangeError'));
+      updateAge(parsed);
     }
     if (activeStep === targetStep && hasTargetWeightStep) {
       const parsed = Number(targetWeightText.replace(',', '.'));
@@ -519,8 +479,8 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       if (gesture.dx < -55) next();
       if (gesture.dx > 55) goBack();
     },
-  }), [language, step, activeStep, username, equipment, gymLevel, currentAge, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, birthDayText, birthMonthText, birthYearText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
-  const titleKeys = ['nameFirstQuestion', 'equipmentQuestion', 'heightQuestion', 'weightQuestion', 'birthDateQuestion', 'goalQuestion', 'sexQuestion', 'activityQuestion', 'trainingDaysQuestion', 'durationQuestion', 'speedQuestion', 'dietQuestion', 'proteinQuestion', 'experienceQuestion', 'preferredDaysQuestion'] as const;
+  }), [language, step, activeStep, username, equipment, gymLevel, age, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, ageText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
+  const titleKeys = ['nameFirstQuestion', 'equipmentQuestion', 'heightQuestion', 'weightQuestion', 'ageQuestion', 'goalQuestion', 'sexQuestion', 'activityQuestion', 'trainingDaysQuestion', 'durationQuestion', 'speedQuestion', 'dietQuestion', 'proteinQuestion', 'experienceQuestion', 'preferredDaysQuestion'] as const;
   const selectedDays = (day: string) => setPreferredDays((current) => {
     if (current.includes(day)) return current.filter((item) => item !== day);
     if (current.length >= trainingDays) return current;
@@ -536,7 +496,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
        <Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('heightRulerHint')}</Text>
      </View>;
       if (activeStep === 3) return <View style={styles.measurementSection}><UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} /><WeightPicker value={weight} unit={measurementUnit} inputValue={weightText} onInputChange={updateWeightText} onChange={updateWeightFromKg} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('weightInputHint')}</Text></View>;
-      if (activeStep === 4) return <><BirthDatePicker day={birthDay} month={birthMonth} year={birthYear} dayText={birthDayText} monthText={birthMonthText} yearText={birthYearText} labels={{ day: t('day'), month: t('month'), year: t('year') }} onChange={updateBirth} onTextChange={updateBirthText} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('birthDateHint')} · {currentAge} {t('ageYears')}</Text></>;
+       if (activeStep === 4) return <><AgePicker value={age} inputValue={ageText} yearsLabel={t('ageYears')} onInputChange={updateAgeText} onChange={updateAge} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{age} {t('ageYears')}</Text></>;
       if (activeStep === 5) return <View style={styles.choiceList}><ChoiceButton label={t('goalMuscle')} selected={goal === 'muscle'} onPress={() => { setGoal('muscle'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightGain')} selected={goal === 'weightGain'} onPress={() => { setGoal('weightGain'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightLoss')} selected={goal === 'weightLoss'} onPress={() => { setGoal('weightLoss'); setTargetWeight(null); }} icon="scale-outline" /><ChoiceButton label={t('goalFatLoss')} selected={goal === 'fatLoss'} onPress={() => { setGoal('fatLoss'); setTargetWeight(null); }} icon="flame-outline" /><ChoiceButton label={t('goalMaintain')} selected={goal === 'maintain'} onPress={() => { setGoal('maintain'); setTargetWeight(null); }} icon="pause-outline" /></View>;
      if (activeStep === 6) return <View style={styles.choiceList}><ChoiceButton label={t('sexFemale')} selected={sex === 'female'} onPress={() => setSex('female')} /><ChoiceButton label={t('sexMale')} selected={sex === 'male'} onPress={() => setSex('male')} /><ChoiceButton label={t('sexPreferNot')} selected={sex === 'preferNot'} onPress={() => setSex('preferNot')} /></View>;
      if (activeStep === 7) return <View style={styles.choiceList}><ChoiceButton label={t('activitySedentary')} selected={activity === 'sedentary'} onPress={() => setActivity('sedentary')} /><ChoiceButton label={t('activityLight')} selected={activity === 'light'} onPress={() => setActivity('light')} /><ChoiceButton label={t('activityModerate')} selected={activity === 'moderate'} onPress={() => setActivity('moderate')} /><ChoiceButton label={t('activityHigh')} selected={activity === 'high'} onPress={() => setActivity('high')} /></View>;

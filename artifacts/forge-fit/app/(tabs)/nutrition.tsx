@@ -223,7 +223,7 @@ export default function NutritionScreen() {
     Alert.alert(t('addFood'), t('foodAdded'));
   };
   const handleBarcode = (data: string) => {
-    const code = data.replace(/\D/g, '');
+    const code = data.trim().replace(/[\s-]/g, '');
     setBarcodeScannerVisible(false);
     setBarcodeResult(null);
     setBarcodeError(null);
@@ -258,6 +258,13 @@ export default function NutritionScreen() {
   const openMealCamera = () => {
     if (photoAnalysesUsed >= DAILY_PHOTO_ANALYSIS_LIMIT) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
     setMealCameraVisible(true);
+  };
+  const openBarcodeScanner = () => {
+    barcodeRequestId.current += 1;
+    setBarcodeResult(null);
+    setBarcodeError(null);
+    setBarcodeLoading(false);
+    setBarcodeScannerVisible(true);
   };
 
   React.useEffect(() => {
@@ -307,7 +314,7 @@ export default function NutritionScreen() {
        </Pressable> : null}
       <View style={styles.captureOptions}>
         <Pressable testID="camera-scan" onPress={openMealCamera} style={({ pressed }) => [styles.captureOptionPrimary, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="camera-outline" size={18} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('scanMeal')}</Text></Pressable>
-        <Pressable testID="barcode-scan" onPress={() => setBarcodeScannerVisible(true)} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="scan-outline" size={18} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('scanBarcode')}</Text></Pressable>
+         <Pressable testID="barcode-scan" onPress={openBarcodeScanner} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="scan-outline" size={18} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('scanBarcode')}</Text></Pressable>
         <Pressable testID="gallery-scan" onPress={pickPhoto} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="images-outline" size={18} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('add')}</Text></Pressable>
       </View>
     </Card>
