@@ -174,7 +174,7 @@ index 64a4740..07e2296 100644
 @@ -1294,3 +1294,3 @@ class PoseCameraView(
      private fun syncOverlayMirroring() {
 -        overlayView.setMirrored(camera.facing == Facing.FRONT)
-+        overlayView.setMirrored(false)
++        overlayView.setMirrored(camera.facing == Facing.FRONT)
      }
 @@ -1322,6 +1322,11 @@ class PoseCameraView(
          overlayView.visibility = if (enabled) VISIBLE else GONE
@@ -222,13 +222,12 @@ index 64a4740..07e2296 100644
 diff --git a/android/src/main/java/com/posedetection/camera/CameraSource.kt b/android/src/main/java/com/posedetection/camera/CameraSource.kt
 --- a/android/src/main/java/com/posedetection/camera/CameraSource.kt
 +++ b/android/src/main/java/com/posedetection/camera/CameraSource.kt
-@@ -200,6 +200,9 @@ internal class CameraSource(
+@@ -200,6 +200,8 @@ internal class CameraSource(
  
          val lens = resolveAvailable(provider, target)
          val rotation = currentRotation()
-+        // Keep the camera preview in real-world horizontal orientation. The pose overlay is also
-+        // unmirrored, so both layers use the same coordinate system.
-+        previewView.scaleX = 1f
++        // Mirror the front-camera preview and overlay together so left/right landmarks stay aligned.
++        previewView.scaleX = if (lens == Facing.FRONT) -1f else 1f
  
          val preview =
              Preview
@@ -236,7 +235,7 @@ diff --git a/android/src/main/java/com/posedetection/camera/CameraSource.kt b/an
          provider.unbindAll()
          provider.bindToLifecycle(owner, selectorFor(lens), preview, analysis)
          preview.surfaceProvider = previewView.surfaceProvider
-+        previewView.scaleX = 1f
++        previewView.scaleX = if (lens == Facing.FRONT) -1f else 1f
  
          this.analysis = analysis
          this.facing = lens
