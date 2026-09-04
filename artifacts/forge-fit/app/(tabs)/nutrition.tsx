@@ -153,6 +153,8 @@ export default function NutritionScreen() {
   const [search, setSearch] = React.useState('');
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = React.useState<Meal | null>(null);
+  const [analysisDetailsVisible, setAnalysisDetailsVisible] = React.useState(false);
   const [analyzing, setAnalyzing] = React.useState(false);
   const [analysisPhase, setAnalysisPhase] = React.useState<AnalysisPhase>('idle');
   const [mealCameraVisible, setMealCameraVisible] = React.useState(false);
@@ -183,6 +185,8 @@ export default function NutritionScreen() {
 
   const analyzeFoodPhoto = async (uri: string, base64?: string) => {
     setPhotoUri(uri);
+    setAnalysisResult(null);
+    setAnalysisDetailsVisible(false);
     if (!base64) { Alert.alert(t('scanMeal'), t('photoComing')); return; }
     setAnalysisPhase('flying');
     setAnalyzing(true);
@@ -193,8 +197,8 @@ export default function NutritionScreen() {
       if (!response.ok) throw new Error('analysis failed');
       const analyzed = await response.json() as Meal;
       addMeal({ name: analyzed.name, type: 'snack', calories: analyzed.calories, protein: analyzed.protein, carbs: analyzed.carbs, fat: analyzed.fat, imageUri: uri });
+      setAnalysisResult(analyzed);
       incrementPhotoUsage();
-      Alert.alert(t('analyzePhoto'), t('foodAdded'));
     } catch {
       Alert.alert(t('analyzePhoto'), t('photoComing'));
     } finally {
@@ -290,18 +294,37 @@ export default function NutritionScreen() {
         ))}
       </View>
     </Card>
-    <Card style={styles.captureCard}>
-      <View style={[styles.captureFrame, { borderColor: `${colors.primary}70`, backgroundColor: `${colors.primary}0D` }]}>
+     <Card style={styles.captureCard}>
+       <View style={[styles.captureFrame, { borderColor: `${colors.primary}70`, backgroundColor: `${colors.primary}0D` }]}>
         {photoUri ? <Image source={{ uri: photoUri }} style={styles.captureImage} /> : <><Ionicons name="scan-outline" size={31} color={colors.primary} /><Text style={[styles.capturePlaceholder, { color: colors.mutedForeground }]}>{t('mealCaptureHint')}</Text></>}
       </View>
       {photoUri ? <PhotoAnalysisTransfer uri={photoUri} phase={analysisPhase} sendingLabel={t('photoSendingToAi')} aiBoxLabel={t('photoAiBox')} analyzingLabel={t('photoAnalyzingStep')} /> : null}
       {photoUri ? <View style={styles.captureStatus}><Text style={[styles.mealName, { color: colors.foreground }]}>{analyzing ? t('analyzing') : t('analyzePhoto')}</Text></View> : null}
+       {analysisResult && !analyzing ? <Pressable accessibilityRole="button" accessibilityLabel={t('viewMacroDetails')} onPress={() => setAnalysisDetailsVisible(true)} style={({ pressed }) => [styles.analysisResultCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45`, opacity: pressed ? 0.72 : 1 }]}>
+         <View style={[styles.analysisResultIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={18} color={colors.primary} /></View>
+         <View style={styles.analysisResultCopy}><Text style={[styles.analysisResultName, { color: colors.foreground }]} numberOfLines={1}>{analysisResult.name}</Text><Text style={[styles.analysisResultHint, { color: colors.primary }]}>{t('photoAnalysisReady')} · {t('viewMacroDetails')}</Text></View>
+         <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+       </Pressable> : null}
       <View style={styles.captureOptions}>
         <Pressable testID="camera-scan" onPress={openMealCamera} style={({ pressed }) => [styles.captureOptionPrimary, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="camera-outline" size={18} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('scanMeal')}</Text></Pressable>
         <Pressable testID="barcode-scan" onPress={() => setBarcodeScannerVisible(true)} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="scan-outline" size={18} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('scanBarcode')}</Text></Pressable>
         <Pressable testID="gallery-scan" onPress={pickPhoto} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="images-outline" size={18} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('add')}</Text></Pressable>
       </View>
     </Card>
+     <Modal visible={analysisDetailsVisible} transparent animationType="fade" onRequestClose={() => setAnalysisDetailsVisible(false)}>
+       <View style={styles.analysisModalBackdrop}>
+         <View style={[styles.analysisDetailsSheet, { backgroundColor: colors.card, borderColor: colors.border }]} onStartShouldSetResponder={() => true}>
+           <View style={styles.analysisDetailsHeader}><View style={styles.analysisDetailsHeading}><Text style={[styles.analysisDetailsTitle, { color: colors.foreground }]}>{t('photoMacroDetailsTitle')}</Text><Text style={[styles.analysisDetailsHint, { color: colors.mutedForeground }]}>{t('photoMacroDetailsHint')}</Text></View><Pressable accessibilityRole="button" accessibilityLabel={t('close')} onPress={() => setAnalysisDetailsVisible(false)} hitSlop={8}><Ionicons name="close-circle-outline" size={24} color={colors.mutedForeground} /></Pressable></View>
+           {photoUri ? <Image source={{ uri: photoUri }} style={styles.analysisDetailsImage} /> : null}
+           {analysisResult ? <><Text style={[styles.analysisDetailsMealName, { color: colors.foreground }]}>{analysisResult.name}</Text><View style={styles.analysisDetailsGrid}>
+             <View style={[styles.analysisDetailMetric, { backgroundColor: `${colors.primary}12` }]}><Text style={[styles.analysisDetailLabel, { color: colors.mutedForeground }]}>{t('calories')}</Text><Text style={[styles.analysisDetailValue, { color: colors.foreground }]}>{formatNutrition(analysisResult.calories)} {t('caloriesShort')}</Text></View>
+             <View style={[styles.analysisDetailMetric, { backgroundColor: `${colors.blue}12` }]}><Text style={[styles.analysisDetailLabel, { color: colors.mutedForeground }]}>{t('protein')}</Text><Text style={[styles.analysisDetailValue, { color: colors.blue }]}>{formatNutrition(analysisResult.protein)}g</Text></View>
+             <View style={[styles.analysisDetailMetric, { backgroundColor: `${colors.orange}12` }]}><Text style={[styles.analysisDetailLabel, { color: colors.mutedForeground }]}>{t('carbs')}</Text><Text style={[styles.analysisDetailValue, { color: colors.orange }]}>{formatNutrition(analysisResult.carbs)}g</Text></View>
+             <View style={[styles.analysisDetailMetric, { backgroundColor: `${colors.plum}12` }]}><Text style={[styles.analysisDetailLabel, { color: colors.mutedForeground }]}>{t('fat')}</Text><Text style={[styles.analysisDetailValue, { color: colors.plum }]}>{formatNutrition(analysisResult.fat)}g</Text></View>
+           </View></> : null}
+         </View>
+       </View>
+     </Modal>
      {barcodeLoading ? <Card style={styles.barcodeResultCard}><View style={styles.barcodeResultHeader}><Ionicons name="search-outline" size={18} color={colors.primary} /><Text style={[styles.barcodeResultTitle, { color: colors.foreground }]}>{t('barcodeLookingUp')}</Text></View><ActivityIndicator color={colors.primary} /></Card> : null}
      {barcodeError ? <Card style={styles.barcodeResultCard}><View style={styles.barcodeResultHeader}><Ionicons name="alert-circle" size={18} color={colors.destructive} /><Text style={[styles.barcodeResultTitle, { color: colors.destructive }]}>{barcodeError}</Text></View></Card> : null}
      {barcodeResult ? <Card style={styles.barcodeResultCard}><View style={styles.barcodeResultHeader}><View style={[styles.barcodeResultIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="scan-outline" size={18} color={colors.primary} /></View><View style={styles.barcodeResultHeading}><Text style={[styles.barcodeResultEyebrow, { color: colors.primary }]}>{t('barcodeNutritionTitle')}</Text><Text style={[styles.barcodeProductName, { color: colors.foreground }]}>{barcodeResult.name}</Text><Text style={[styles.resultServing, { color: colors.mutedForeground }]}>{barcodeResult.serving}</Text></View></View><View style={[styles.barcodeMacroGrid, { borderTopColor: colors.border }]}><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('calories')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.foreground }]}>{barcodeResult.calories} {t('caloriesShort')}</Text></View><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('protein')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.blue }]}>{formatNutrition(barcodeResult.protein)}g</Text></View><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('carbs')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.orange }]}>{formatNutrition(barcodeResult.carbs)}g</Text></View><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('fat')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.plum }]}>{formatNutrition(barcodeResult.fat)}g</Text></View></View><Pressable onPress={addBarcodeResult} style={({ pressed }) => [styles.barcodeAddButton, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="add-circle-outline" size={17} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('barcodeAddMeal')}</Text></Pressable></Card> : null}
@@ -340,6 +363,11 @@ const styles = StyleSheet.create({
   captureImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   capturePlaceholder: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 9, maxWidth: 230 },
   captureStatus: { paddingHorizontal: 4, paddingTop: 11 },
+  analysisResultCard: { minHeight: 62, borderWidth: 1, borderRadius: 16, marginTop: 11, paddingHorizontal: 11, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  analysisResultIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  analysisResultCopy: { flex: 1, minWidth: 0 },
+  analysisResultName: { fontFamily: 'Inter_700Bold', fontSize: 13 },
+  analysisResultHint: { fontFamily: 'Inter_600SemiBold', fontSize: 10, marginTop: 4 },
   captureOptions: { flexDirection: 'row', gap: 8, marginTop: 13 },
   captureOptionPrimary: { flex: 1.15, minHeight: 45, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   captureOption: { flex: 1, minHeight: 45, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
@@ -375,6 +403,18 @@ const styles = StyleSheet.create({
   analysisAiBox: { position: 'absolute', right: 8, top: 3, width: 111, height: 72, borderRadius: 18, overflow: 'hidden', zIndex: 1 },
   analysisAiGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 9 },
   analysisAiText: { fontFamily: 'Inter_700Bold', fontSize: 11, flexShrink: 1 },
+  analysisModalBackdrop: { flex: 1, backgroundColor: 'rgba(3, 12, 27, 0.72)', justifyContent: 'flex-end' },
+  analysisDetailsSheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, borderWidth: 1, padding: 20, paddingBottom: 30 },
+  analysisDetailsHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  analysisDetailsHeading: { flex: 1 },
+  analysisDetailsTitle: { fontFamily: 'Inter_700Bold', fontSize: 19 },
+  analysisDetailsHint: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: 5 },
+  analysisDetailsImage: { width: '100%', height: 150, borderRadius: 16, marginTop: 16 },
+  analysisDetailsMealName: { fontFamily: 'Inter_700Bold', fontSize: 16, marginTop: 14 },
+  analysisDetailsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginTop: 13 },
+  analysisDetailMetric: { width: '48%', minHeight: 68, borderRadius: 14, padding: 11 },
+  analysisDetailLabel: { fontFamily: 'Inter_500Medium', fontSize: 11 },
+  analysisDetailValue: { fontFamily: 'Inter_700Bold', fontSize: 17, marginTop: 6 },
   summaryTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
   caption: { fontFamily: 'Inter_400Regular', fontSize: 12 },
   summaryNumber: { fontFamily: 'Inter_700Bold', fontSize: 32, letterSpacing: -1.2, marginTop: 5 },
