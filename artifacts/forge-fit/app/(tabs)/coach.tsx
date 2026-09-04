@@ -15,18 +15,10 @@ import { runPhotoCoachRequest } from '@/lib/photoCoach';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 import { apiUrl } from '@/lib/api';
 
-type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; imageUri?: string; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected'; shortened?: boolean };
+type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; imageUri?: string; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
 type CoachApiResponse = { content?: string; actions?: unknown[] };
 
 type SelectedPhoto = { uri: string; base64: string };
-
-function shortenCoachText(text: string) {
-  const normalized = text.trim();
-  const sentences = normalized.match(/[^.!?！？。]+[.!?！？。]?/g)?.map((part) => part.trim()).filter(Boolean) ?? [normalized];
-  if (sentences.length > 2) return `${sentences.slice(0, 2).join(' ')}…`;
-  if (normalized.length > 280) return `${normalized.slice(0, 277).trimEnd()}…`;
-  return normalized;
-}
 
 function TypingIndicator({ label, colors, lightBackground = false }: { label: string; colors: ReturnType<typeof useColors>; lightBackground?: boolean }) {
   const dots = React.useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
@@ -49,7 +41,7 @@ function TypingIndicator({ label, colors, lightBackground = false }: { label: st
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, photoAnalysesUsed, coachMessagesUsed, incrementPhotoUsage, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateWorkout, updateProfile, updateNutritionGoals } = useFit();
+  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, photoAnalysesUsed, coachMessagesUsed, incrementPhotoUsage, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, updateProfile } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { weeklyAnalysis, analysisId } = useLocalSearchParams<{ weeklyAnalysis?: string; analysisId?: string }>();
   const [text, setText] = useState('');
@@ -122,7 +114,7 @@ export default function CoachScreen() {
         },
         onSuccess: (result) => {
           incrementPhotoUsage();
-           const actions = validateCoachActions(result.actions, workouts);
+           const actions = validateCoachActions(result.actions, workouts).filter((action) => action.type === 'update_profile');
            setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach', ...(actions.length > 0 ? { actions, actionStatus: 'pending' as const } : {}) }]);
         },
         onError: () => {
@@ -144,7 +136,7 @@ export default function CoachScreen() {
       if (!response.ok) throw new Error('coach unavailable');
        const result = await response.json() as CoachApiResponse;
       incrementCoachUsage();
-       const actions = validateCoachActions(result.actions, workouts);
+       const actions = validateCoachActions(result.actions, workouts).filter((action) => action.type === 'update_profile');
         setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach', ...(actions.length > 0 ? { actions, actionStatus: 'pending' as const } : {}) }]);
     } catch {
       setMessages((current) => [...current, { id: `${Date.now()}-error`, text: t('weeklyAnalysisFailed'), from: 'coach' }]);
@@ -196,44 +188,12 @@ export default function CoachScreen() {
     void requestCoach(trimmed, { id: `${Date.now()}`, text: trimmed, from: 'user', imageUri: photo?.uri }, photo ?? undefined);
   };
   const actionLabel = (action: CoachAction) => {
-    if (action.type === 'update_nutrition') {
-      const details = [
-        action.calories !== undefined ? `${action.calories} ${t('caloriesShort')}` : '',
-        action.protein !== undefined ? `${action.protein}g ${t('protein')}` : '',
-        action.carbs !== undefined ? `${action.carbs}g ${t('carbs')}` : '',
-        action.fat !== undefined ? `${action.fat}g ${t('fat')}` : '',
-      ].filter(Boolean).join(' · ');
-      return `${t('coachChangeNutrition')}: ${details}`;
-    }
-    const workout = 'workoutId' in action ? workouts.find((item) => item.id === action.workoutId) : undefined;
-    const workoutName = workout ? (translate(language, workout.name as Parameters<typeof translate>[1]) || workout.name) : '';
-    if (action.type === 'add_exercise') return `${t('coachChangeAdd')}: ${action.name} · ${workoutName} · ${action.sets} ${t('coachChangeSets')}, ${action.reps} ${t('coachChangeReps')}`;
-    if (action.type === 'remove_exercise') {
-      const exercise = workout?.exercises.find((item) => item.id === action.exerciseId);
-      const exerciseName = exercise ? (translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name) : action.exerciseId;
-      return `${t('coachChangeRemove')}: ${exerciseName} · ${workoutName}`;
-    }
-     if (action.type === 'update_exercise') {
-      const exercise = workout?.exercises.find((item) => item.id === action.exerciseId);
-      const exerciseName = exercise ? (translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name) : action.exerciseId;
-       const details = [action.name ? action.name : '', action.sets !== undefined ? `${action.sets} ${t('coachChangeSets')}` : '', action.reps !== undefined ? `${action.reps} ${t('coachChangeReps')}` : ''].filter(Boolean).join(', ');
-      return `${t('coachChangeUpdate')}: ${exerciseName} · ${details}`;
-    }
-     if (action.type === 'update_workout') {
-       const dayKey = (({ MON: 'dayMon', TUE: 'dayTue', WED: 'dayWed', THU: 'dayThu', FRI: 'dayFri', SAT: 'daySat', SUN: 'daySun' } as const)[action.day ?? workout?.day ?? 'MON'] ?? 'dayMon');
-       return `${t('coachChangeWorkout')}: ${workoutName} · ${t(dayKey)} ${action.duration ? `· ${action.duration} ${t('minutesShort')}` : ''}`;
-     }
-     if (action.type === 'update_profile') return `${t('coachChangeProfile')}`;
+    if (action.type === 'update_profile') return t('coachChangeProfile');
     return '';
   };
   const applyActions = (messageId: string, actions: CoachAction[]) => {
     actions.forEach((action) => {
-      if (action.type === 'add_exercise') addExercise(action.workoutId, action.name, action.sets, action.reps);
-      if (action.type === 'remove_exercise') removeExercise(action.workoutId, action.exerciseId);
-       if (action.type === 'update_exercise') updateExercise(action.workoutId, action.exerciseId, { name: action.name, sets: action.sets, reps: action.reps });
-       if (action.type === 'update_workout') updateWorkout(action.workoutId, { day: action.day, name: action.name, duration: action.duration });
-       if (action.type === 'update_profile') updateProfile(action.patch);
-      if (action.type === 'update_nutrition') updateNutritionGoals({ calories: action.calories, protein: action.protein, carbs: action.carbs, fat: action.fat });
+      if (action.type === 'update_profile') updateProfile(action.patch);
     });
     setMessages((current) => current.map((item) => item.id === messageId ? { ...item, actionStatus: 'applied' } : item));
   };
@@ -294,7 +254,6 @@ export default function CoachScreen() {
            <View style={styles.messageContent}>
              {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: `${colors.primaryForeground}F2`, borderColor: `${colors.primaryForeground}45` }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: `${colors.foreground}8C` }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primaryForeground }] : [styles.coachBubble, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]]}>{item.imageUri ? <Image source={{ uri: item.imageUri }} style={styles.messageImage} /> : null}{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.foreground : colors.primaryForeground }]}>{item.text}</Text> : null}</View>}
              {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: `${colors.foreground}D9`, borderColor: `${colors.primaryForeground}25` }]}><Text style={[styles.actionTitle, { color: colors.primaryForeground }]}>{t('coachChangeTitle')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: `${colors.primaryForeground}D9` }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachApply')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: `${colors.primaryForeground}45`, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachReject')}</Text></Pressable></View> : <Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>}</View> : null}
-             {item.from === 'coach' && item.text && item.id !== 'welcome' && !item.media && !item.variant && !item.shortened ? <Pressable accessibilityRole="button" accessibilityLabel={t('shortenCoachResponse')} onPress={() => setMessages((current) => current.map((message) => message.id === item.id ? { ...message, text: shortenCoachText(message.text), shortened: true } : message))} style={({ pressed }) => [styles.shortenButton, { borderColor: `${colors.primaryForeground}45`, backgroundColor: `${colors.foreground}9C`, opacity: pressed ? 0.68 : 1 }]}><Ionicons name="options-outline" size={14} color={colors.primaryForeground} /><Text style={[styles.shortenButtonText, { color: colors.primaryForeground }]}>{t('shortenCoachResponse')}</Text></Pressable> : null}
            </View>
         </View>}
         ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} lightBackground /> : null}
@@ -356,8 +315,6 @@ const styles = StyleSheet.create({
   actionButton: { minHeight: 34, borderRadius: 11, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   actionButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   actionStatus: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 7 },
-  shortenButton: { alignSelf: 'flex-start', minHeight: 32, borderRadius: 11, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 10 },
-  shortenButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   messageImage: { width: 190, height: 145, borderRadius: 12, marginBottom: 7 },
   welcomeGifCard: { width: 250, borderWidth: 1, borderRadius: 18, borderBottomLeftRadius: 6, padding: 6, overflow: 'hidden' },
   welcomeGif: { width: 238, height: 178, borderRadius: 13 },
