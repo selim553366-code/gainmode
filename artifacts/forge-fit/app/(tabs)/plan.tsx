@@ -44,7 +44,7 @@ export default function PlanScreen() {
   const [activeDay, setActiveDay] = React.useState<WeekDay>('MON');
   const [newExercise, setNewExercise] = React.useState('');
   const [celebrating, setCelebrating] = React.useState(false);
-  const active = workouts.find((workout) => workout.day === activeDay) ?? workouts[0];
+  const active = workouts.find((workout) => workout.day === activeDay);
   const label = (value: string) => translate(language, value as Parameters<typeof translate>[1]) || value;
   const completedCount = active?.exercises.filter((exercise) => Boolean(exercise.completed)).length ?? 0;
   const isComplete = active ? completedCount === active.exercises.length && active.exercises.length > 0 : false;
