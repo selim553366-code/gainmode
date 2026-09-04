@@ -63,7 +63,6 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const [analysis, setAnalysis] = React.useState(() => ({ state: initialRepState, warning: 'liveLookingForBody' as LiveWarningKey, confidence: 0, metric: null as number | null }));
   const [cameraError, setCameraError] = React.useState(false);
   const [showRepsPanel, setShowRepsPanel] = React.useState(true);
-  const [skeletonOnly, setSkeletonOnly] = React.useState(false);
   const stateRef = React.useRef<RepState>(initialRepState);
   const repTone = useAudioPlayer(require('@/assets/sounds/rep-confirmation.wav'));
   const repPulse = React.useRef(new Animated.Value(0)).current;
@@ -96,7 +95,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
     setAnalysis(result);
   };
 
-  return <View testID="live-workout-compact-panel" style={[styles.cameraRoot, { backgroundColor: skeletonOnly ? colors.black : colors.background }]}>
+  return <View testID="live-workout-compact-panel" style={[styles.cameraRoot, { backgroundColor: colors.background }]}>
     <PoseCamera
        style={StyleSheet.absoluteFillObject}
       facing="front"
@@ -107,23 +106,21 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
        minConfidence={0.45}
       smoothing
       data={{ mode: 'throttled', throttleMs: 90, landmarks: true }}
-       blackout={skeletonOnly}
        overlay={{ landmarks: true, connections: true, color: colors.primary, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
       onPose={handlePose}
       onError={() => setCameraError(true)}
     />
-     {!skeletonOnly ? <View pointerEvents="none" style={styles.cameraShade} /> : null}
-     {!skeletonOnly ? <View pointerEvents="none" style={[styles.neonFrame, { borderColor: colors.primary, shadowColor: colors.primary }]} /> : null}
+      <View pointerEvents="none" style={styles.cameraShade} />
+      <View pointerEvents="none" style={[styles.neonFrame, { borderColor: colors.primary, shadowColor: colors.primary }]} />
     <View style={[styles.liveHeader, { paddingTop: insets.top + 14 }]}>
       <View style={[styles.liveBadge, { backgroundColor: `${colors.destructive}D9` }]}><View style={styles.liveDot} /><Text style={styles.liveBadgeText}>{t('live')}</Text></View>
       <View style={[styles.exerciseBadge, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}65` }]}><Ionicons name="activity" size={15} color={colors.primary} /><Text style={[styles.exerciseBadgeText, { color: colors.foreground }]}>{title}</Text></View>
-       <Pressable testID="toggle-skeleton-mode" accessibilityRole="button" accessibilityLabel={skeletonOnly ? t('cameraMode') : t('skeletonOnlyMode')} onPress={() => setSkeletonOnly((value) => !value)} style={({ pressed }) => [styles.modeToggle, { backgroundColor: `${colors.background}D9`, borderColor: colors.border, opacity: pressed ? 0.72 : 1 }]}><Ionicons name={skeletonOnly ? 'camera-outline' : 'body-outline'} size={18} color={colors.primary} /></Pressable>
       <Pressable accessibilityLabel={t('stopLiveWorkout')} onPress={() => router.back()} style={[styles.closeButton, { backgroundColor: `${colors.background}D9`, borderColor: colors.border }]}><Ionicons name="close" size={20} color={colors.foreground} /></Pressable>
     </View>
-      {!skeletonOnly ? <View pointerEvents="none" style={[styles.directionHint, { top: insets.top + 62, backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}55` }]}>
+      <View pointerEvents="none" style={[styles.directionHint, { top: insets.top + 62, backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}55` }]}>
        <Ionicons name="information-circle-outline" size={15} color={colors.primary} />
        <Text style={[styles.directionHintText, { color: colors.foreground }]}>{directionHint}</Text>
-      </View> : null}
+      </View>
       {showRepsPanel ? <View testID="live-workout-reps-panel" style={[styles.cameraBottom, { paddingBottom: insets.bottom + 8, backgroundColor: `${colors.background}EC`, borderColor: colors.border }]}>
         <View style={styles.metricRow}>
           <View>
@@ -170,7 +167,6 @@ const styles = StyleSheet.create({
   directionHint: { position: 'absolute', left: 20, right: 20, minHeight: 34, borderRadius: 13, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 7, flexDirection: 'row', alignItems: 'center', gap: 7 },
   directionHintText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 15 },
   closeButton: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  modeToggle: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   cameraBottom: { position: 'absolute', left: 18, right: 18, bottom: 18, borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingTop: 10 },
   metricRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   panelControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
