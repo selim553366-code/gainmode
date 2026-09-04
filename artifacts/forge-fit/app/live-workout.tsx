@@ -14,6 +14,7 @@ import {
   exerciseKindFromName,
   initialRepState,
   poseFromFrame,
+  selfieMirroredX,
   type ExerciseKind,
   type LiveWarningKey,
   type PoseLandmarks,
@@ -33,7 +34,7 @@ const skeletonConnections: Array<[PoseJoint, PoseJoint]> = [
 ];
 
 function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmarks; width: number; height: number; color: string }) {
-  const displayX = (normalizedX: number) => (1 - normalizedX) * width;
+  const displayX = (normalizedX: number) => selfieMirroredX(normalizedX) * width;
   return <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
     <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       {skeletonConnections.map(([from, to]) => {
@@ -141,6 +142,8 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
       data={{ mode: 'throttled', throttleMs: 90, landmarks: true }}
        overlay={{ landmarks: true, connections: true, color: colors.primary, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
       onPose={handlePose}
+       onReady={({ facing }) => { if (facing !== 'front') setCameraError(true); }}
+       onCameraChange={({ facing }) => { if (facing !== 'front') setCameraError(true); }}
       onError={() => setCameraError(true)}
     />
      {skeletonOnly ? <SkeletonOnlyOverlay pose={skeletonPose} width={width} height={height} color={colors.primary} /> : null}

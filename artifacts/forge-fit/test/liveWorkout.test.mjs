@@ -1,8 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzePose, initialRepState } from '../lib/liveWorkoutAnalysis.ts';
+import { analyzePose, initialRepState, selfieMirroredX } from '../lib/liveWorkoutAnalysis.ts';
 
 const point = (x, y, visibility = 0.95) => ({ x, y, visibility });
+
+test('uses selfie orientation for horizontal skeleton movement', () => {
+  assert.equal(selfieMirroredX(0.2), 0.8);
+  assert.ok(Math.abs(selfieMirroredX(0.8) - 0.2) < 1e-9);
+  assert.equal(selfieMirroredX(0.5), 0.5);
+});
 
 function sidePose(kneeAngle, side = 'left') {
   const prefix = side === 'left' ? 'left' : 'right';
