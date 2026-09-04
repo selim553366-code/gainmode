@@ -1,16 +1,33 @@
-import type { Workout } from '@/context/FitContext';
+import type { FitnessGoal, Profile, Workout } from '@/context/FitContext';
 
 type ActionBase = { workoutId: string };
 
 export type CoachAction =
   | (ActionBase & { type: 'add_exercise'; name: string; sets: number; reps: number })
   | (ActionBase & { type: 'remove_exercise'; exerciseId: string })
-  | (ActionBase & { type: 'update_exercise'; exerciseId: string; sets?: number; reps?: number })
+  | (ActionBase & { type: 'update_exercise'; exerciseId: string; name?: string; sets?: number; reps?: number })
+  | (ActionBase & { type: 'update_workout'; day?: string; name?: string; duration?: number })
+  | { type: 'update_profile'; patch: ProfilePatch }
   | { type: 'update_nutrition'; calories?: number; protein?: number; carbs?: number; fat?: number };
+
+export type ProfilePatch = Partial<Pick<Profile, 'equipment' | 'equipmentDetails' | 'gymLevel' | 'height' | 'weight' | 'age' | 'goal' | 'sex' | 'activity' | 'trainingDays' | 'sessionDuration' | 'goalRate' | 'diet' | 'proteinPreference' | 'experience' | 'preferredDays' | 'targetWeight'>>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const isIntegerInRange = (value: unknown, min: number, max: number): value is number => typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
+const isNumberInRange = (value: unknown, min: number, max: number): value is number => typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
 const isString = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0 && value.length <= 100;
+const weekdays = new Set(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']);
+const goals = new Set<FitnessGoal>(['muscle', 'weightGain', 'weightLoss', 'fatLoss', 'maintain']);
+const enumValues = {
+  equipment: new Set(['bodyweight', 'home', 'gym']),
+  gymLevel: new Set(['basic', 'intermediate', 'full']),
+  sex: new Set(['female', 'male', 'preferNot']),
+  activity: new Set(['sedentary', 'light', 'moderate', 'high']),
+  goalRate: new Set(['slow', 'balanced', 'fast']),
+  diet: new Set(['everything', 'vegetarian', 'vegan', 'halal']),
+  proteinPreference: new Set(['balanced', 'high', 'lower']),
+  experience: new Set(['beginner', 'intermediate', 'advanced']),
+} as const;
 
 function validWorkout(workouts: Workout[], id: unknown) {
   return typeof id === 'string' ? workouts.find((workout) => workout.id === id) : undefined;
