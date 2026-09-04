@@ -4,7 +4,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@/components/AppIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
@@ -15,10 +15,18 @@ import { runPhotoCoachRequest } from '@/lib/photoCoach';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 import { apiUrl } from '@/lib/api';
 
-type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; imageUri?: string; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
+type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; imageUri?: string; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected'; shortened?: boolean };
 type CoachApiResponse = { content?: string; actions?: unknown[] };
 
 type SelectedPhoto = { uri: string; base64: string };
+
+function shortenCoachText(text: string) {
+  const normalized = text.trim();
+  const sentences = normalized.match(/[^.!?！？。]+[.!?！？。]?/g)?.map((part) => part.trim()).filter(Boolean) ?? [normalized];
+  if (sentences.length > 2) return `${sentences.slice(0, 2).join(' ')}…`;
+  if (normalized.length > 280) return `${normalized.slice(0, 277).trimEnd()}…`;
+  return normalized;
+}
 
 function TypingIndicator({ label, colors, lightBackground = false }: { label: string; colors: ReturnType<typeof useColors>; lightBackground?: boolean }) {
   const dots = React.useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
@@ -42,14 +50,12 @@ export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, photoAnalysesUsed, coachMessagesUsed, incrementPhotoUsage, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateWorkout, updateProfile, updateNutritionGoals } = useFit();
-  const router = useRouter();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { weeklyAnalysis, analysisId } = useLocalSearchParams<{ weeklyAnalysis?: string; analysisId?: string }>();
   const [text, setText] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<SelectedPhoto | null>(null);
   const [messages, setMessages] = useState<Message[]>([{ id: 'welcome', text: t('coachWelcome'), from: 'coach' }]);
   const [loading, setLoading] = useState(false);
-  const [showRefresh, setShowRefresh] = useState(false);
   const [chatOriginY, setChatOriginY] = React.useState(0);
   const [coachMessageOffsetY, setCoachMessageOffsetY] = React.useState(12);
   const inputRef = useRef<TextInput>(null);
@@ -230,7 +236,6 @@ export default function CoachScreen() {
       if (action.type === 'update_nutrition') updateNutritionGoals({ calories: action.calories, protein: action.protein, carbs: action.carbs, fat: action.fat });
     });
     setMessages((current) => current.map((item) => item.id === messageId ? { ...item, actionStatus: 'applied' } : item));
-     setShowRefresh(true);
   };
   const rejectActions = (messageId: string) => {
     setMessages((current) => current.map((item) => item.id === messageId ? { ...item, actionStatus: 'rejected' } : item));
@@ -284,10 +289,13 @@ export default function CoachScreen() {
          renderItem={({ item }) => <View
           onLayout={item.from === 'coach' && item.id === 'welcome' ? ({ nativeEvent }) => setCoachMessageOffsetY(nativeEvent.layout.y) : undefined}
           style={[styles.messageRow, item.from === 'user' ? styles.userMessageRow : styles.coachMessageRow]}
-        >
+         >
           {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.84, 0.96, 1], outputRange: [0, 0, 0.42, 1] }) : 1 }]} /> : null}
-           {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: `${colors.primaryForeground}F2`, borderColor: `${colors.primaryForeground}45` }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: `${colors.foreground}8C` }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primaryForeground }] : [styles.coachBubble, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]]}>{item.imageUri ? <Image source={{ uri: item.imageUri }} style={styles.messageImage} /> : null}{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.foreground : colors.primaryForeground }]}>{item.text}</Text> : null}</View>}
-           {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: `${colors.foreground}D9`, borderColor: `${colors.primaryForeground}25` }]}><Text style={[styles.actionTitle, { color: colors.primaryForeground }]}>{t('coachChangeTitle')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: `${colors.primaryForeground}D9` }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachApply')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: `${colors.primaryForeground}45`, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachReject')}</Text></Pressable></View> : <Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>}</View> : null}
+           <View style={styles.messageContent}>
+             {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: `${colors.primaryForeground}F2`, borderColor: `${colors.primaryForeground}45` }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: `${colors.foreground}8C` }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primaryForeground }] : [styles.coachBubble, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]]}>{item.imageUri ? <Image source={{ uri: item.imageUri }} style={styles.messageImage} /> : null}{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.foreground : colors.primaryForeground }]}>{item.text}</Text> : null}</View>}
+             {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: `${colors.foreground}D9`, borderColor: `${colors.primaryForeground}25` }]}><Text style={[styles.actionTitle, { color: colors.primaryForeground }]}>{t('coachChangeTitle')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: `${colors.primaryForeground}D9` }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachApply')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: `${colors.primaryForeground}45`, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachReject')}</Text></Pressable></View> : <Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>}</View> : null}
+             {item.from === 'coach' && item.text && item.id !== 'welcome' && !item.media && !item.variant && !item.shortened ? <Pressable accessibilityRole="button" accessibilityLabel={t('shortenCoachResponse')} onPress={() => setMessages((current) => current.map((message) => message.id === item.id ? { ...message, text: shortenCoachText(message.text), shortened: true } : message))} style={({ pressed }) => [styles.shortenButton, { borderColor: `${colors.primaryForeground}45`, backgroundColor: `${colors.foreground}9C`, opacity: pressed ? 0.68 : 1 }]}><Ionicons name="contract-outline" size={14} color={colors.primaryForeground} /><Text style={[styles.shortenButtonText, { color: colors.primaryForeground }]}>{t('shortenCoachResponse')}</Text></Pressable> : null}
+           </View>
         </View>}
         ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} lightBackground /> : null}
         contentContainerStyle={styles.messageList}
@@ -299,7 +307,6 @@ export default function CoachScreen() {
         <View style={styles.photoPreviewCopy}><Text style={[styles.photoPreviewTitle, { color: colors.primaryForeground }]}>{t('photoReady')}</Text><Text style={[styles.photoPreviewHint, { color: `${colors.primaryForeground}A8` }]}>{t('photoCaptionPlaceholder')}</Text></View>
         <Pressable testID="remove-coach-photo" onPress={() => setSelectedPhoto(null)} accessibilityRole="button" accessibilityLabel={t('removePhoto')} hitSlop={8}><Ionicons name="close-circle" size={22} color={colors.primaryForeground} /></Pressable>
       </View> : null}
-       {showRefresh ? <Pressable onPress={() => { setShowRefresh(false); router.replace('/(tabs)/coach'); }} style={[styles.refreshButton, { backgroundColor: colors.primary }]}><Ionicons name="flash-outline" size={16} color={colors.primaryForeground} /><Text style={[styles.refreshButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}
        <View style={[styles.inputRow, { paddingBottom: insets.bottom + 8, backgroundColor: 'transparent' }]}>
         <Pressable testID="attach-coach-photo" onPress={() => void choosePhoto()} accessibilityRole="button" accessibilityLabel={t('attachPhoto')} style={({ pressed }) => [styles.attach, { backgroundColor: colors.primaryForeground, opacity: pressed || loading ? 0.68 : 1 }]}><Ionicons name="images-outline" size={19} color={colors.foreground} /></Pressable>
         <Animated.View style={[styles.auraInput, { borderColor: colors.primaryForeground, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]}><TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : selectedPhoto ? t('photoCaptionPlaceholder') : t('askCoach')} placeholderTextColor={`${colors.primaryForeground}8C`} style={[styles.input, { backgroundColor: `${colors.foreground}C7`, color: colors.primaryForeground, borderColor: `${colors.primaryForeground}20` }]} /></Animated.View>
@@ -333,6 +340,7 @@ const styles = StyleSheet.create({
   messageRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   coachMessageRow: { alignSelf: 'flex-start', maxWidth: '90%' },
   userMessageRow: { alignSelf: 'flex-end', maxWidth: '84%' },
+  messageContent: { flex: 1, minWidth: 0 },
   weeklyMessageCard: { minWidth: 255, maxWidth: '100%', borderRadius: 18, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
   weeklyMessageIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   weeklyMessageLabel: { fontFamily: 'Inter_700Bold', fontSize: 12 },
@@ -348,8 +356,8 @@ const styles = StyleSheet.create({
   actionButton: { minHeight: 34, borderRadius: 11, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   actionButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   actionStatus: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 7 },
-  refreshButton: { minHeight: 42, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 8, paddingHorizontal: 14 },
-  refreshButtonText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  shortenButton: { alignSelf: 'flex-start', minHeight: 32, borderRadius: 11, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingHorizontal: 10 },
+  shortenButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   messageImage: { width: 190, height: 145, borderRadius: 12, marginBottom: 7 },
   welcomeGifCard: { width: 250, borderWidth: 1, borderRadius: 18, borderBottomLeftRadius: 6, padding: 6, overflow: 'hidden' },
   welcomeGif: { width: 238, height: 178, borderRadius: 13 },
