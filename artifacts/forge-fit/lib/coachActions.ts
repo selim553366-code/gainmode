@@ -40,7 +40,7 @@ function validExercise(workout: Workout | undefined, id: unknown) {
 export function validateCoachActions(rawActions: unknown, workouts: Workout[]): CoachAction[] {
   if (!Array.isArray(rawActions)) return [];
   const valid: CoachAction[] = [];
-  for (const raw of rawActions.slice(0, 6)) {
+  for (const raw of rawActions.slice(0, 8)) {
     if (!isRecord(raw) || typeof raw.type !== 'string') continue;
     if (raw.type === 'add_exercise') {
       if (!validWorkout(workouts, raw.workoutId) || !isString(raw.name) || !isIntegerInRange(raw.sets, 1, 3) || !isIntegerInRange(raw.reps, 1, 100)) continue;
@@ -57,8 +57,40 @@ export function validateCoachActions(rawActions: unknown, workouts: Workout[]): 
       const workout = validWorkout(workouts, raw.workoutId);
       const hasSets = raw.sets !== undefined;
       const hasReps = raw.reps !== undefined;
-      if (!workout || !validExercise(workout, raw.exerciseId) || (!hasSets && !hasReps) || (hasSets && !isIntegerInRange(raw.sets, 1, 3)) || (hasReps && !isIntegerInRange(raw.reps, 1, 100))) continue;
-      valid.push({ type: 'update_exercise', workoutId: raw.workoutId as string, exerciseId: raw.exerciseId as string, ...(hasSets ? { sets: raw.sets as number } : {}), ...(hasReps ? { reps: raw.reps as number } : {}) });
+      const hasName = raw.name !== undefined;
+      if (!workout || !validExercise(workout, raw.exerciseId) || (!hasSets && !hasReps && !hasName) || (hasName && !isString(raw.name)) || (hasSets && !isIntegerInRange(raw.sets, 1, 3)) || (hasReps && !isIntegerInRange(raw.reps, 1, 100))) continue;
+      valid.push({ type: 'update_exercise', workoutId: raw.workoutId as string, exerciseId: raw.exerciseId as string, ...(hasName ? { name: (raw.name as string).trim() } : {}), ...(hasSets ? { sets: raw.sets as number } : {}), ...(hasReps ? { reps: raw.reps as number } : {}) });
+      continue;
+    }
+    if (raw.type === 'update_workout') {
+      const workout = validWorkout(workouts, raw.workoutId);
+      const hasDay = raw.day !== undefined;
+      const hasName = raw.name !== undefined;
+      const hasDuration = raw.duration !== undefined;
+      const dayIsAvailable = typeof raw.day === 'string' && weekdays.has(raw.day) && !workouts.some((item) => item.id !== raw.workoutId && item.day === raw.day);
+      if (!workout || (!hasDay && !hasName && !hasDuration) || (hasDay && !dayIsAvailable) || (hasName && !isString(raw.name)) || (hasDuration && !isIntegerInRange(raw.duration, 15, 180))) continue;
+      valid.push({ type: 'update_workout', workoutId: raw.workoutId as string, ...(hasDay ? { day: raw.day as string } : {}), ...(hasName ? { name: (raw.name as string).trim() } : {}), ...(hasDuration ? { duration: raw.duration as number } : {}) });
+      continue;
+    }
+    if (raw.type === 'update_profile') {
+      if (!isRecord(raw.patch)) continue;
+      const patch = raw.patch;
+      const accepted: ProfilePatch = {};
+      const stringEnumFields = ['equipment', 'gymLevel', 'sex', 'activity', 'goalRate', 'diet', 'proteinPreference', 'experience'] as const;
+      for (const field of stringEnumFields) {
+        if (patch[field] !== undefined && enumValues[field].has(patch[field] as never)) (accepted as Record<string, unknown>)[field] = patch[field];
+      }
+      if (patch.goal !== undefined && goals.has(patch.goal as FitnessGoal)) accepted.goal = patch.goal as FitnessGoal;
+      if (patch.equipmentDetails !== undefined && isString(patch.equipmentDetails)) accepted.equipmentDetails = patch.equipmentDetails.trim();
+      if (patch.height !== undefined && isNumberInRange(patch.height, 120, 230)) accepted.height = patch.height;
+      if (patch.weight !== undefined && isNumberInRange(patch.weight, 35, 250)) accepted.weight = patch.weight;
+      if (patch.age !== undefined && isIntegerInRange(patch.age, 13, 100)) accepted.age = patch.age;
+      if (patch.trainingDays !== undefined && isIntegerInRange(patch.trainingDays, 2, 6)) accepted.trainingDays = patch.trainingDays;
+      if (patch.sessionDuration !== undefined && isIntegerInRange(patch.sessionDuration, 15, 180)) accepted.sessionDuration = patch.sessionDuration;
+      if (patch.targetWeight !== undefined && isNumberInRange(patch.targetWeight, 35, 250)) accepted.targetWeight = patch.targetWeight;
+      if (patch.preferredDays !== undefined && Array.isArray(patch.preferredDays) && patch.preferredDays.length >= 2 && patch.preferredDays.length <= 6 && patch.preferredDays.every((day) => typeof day === 'string' && weekdays.has(day)) && new Set(patch.preferredDays).size === patch.preferredDays.length) accepted.preferredDays = patch.preferredDays as string[];
+      if (Object.keys(accepted).length === 0) continue;
+      valid.push({ type: 'update_profile', patch: accepted });
       continue;
     }
     if (raw.type === 'update_nutrition') {
