@@ -33,24 +33,24 @@ export default function FeaturesScreen() {
 
   const cards: Record<FeatureTab, FeatureCard[]> = {
     ai: [
-      { id: 'aiCoach', icon: 'chatbubble-ellipses-outline', image: require('@/assets/images/coach-tab-custom.jpeg'), title: t('featuresAiCoachTitle'), summary: t('featuresAiCoachSummary'), detail: t('featuresAiCoachDetail') },
-      { id: 'weeklyAi', icon: 'analytics-outline', image: require('@/assets/images/coach-thinking-custom.jpeg'), title: t('featuresWeeklyTitle'), summary: t('featuresWeeklySummary'), detail: t('featuresWeeklyDetail') },
-      { id: 'profileChanges', icon: 'person-add-outline', image: require('@/assets/images/coach-writing-no-bg.png'), title: t('featuresProfileTitle'), summary: t('featuresProfileSummary'), detail: t('featuresProfileDetail') },
+      { id: 'aiCoach', icon: 'chatbubble-ellipses-outline', image: require('@/assets/images/forge-fit-feature-aiCoach.jpg'), title: t('featuresAiCoachTitle'), summary: t('featuresAiCoachSummary'), detail: t('featuresAiCoachDetail') },
+      { id: 'weeklyAi', icon: 'analytics-outline', image: require('@/assets/images/forge-fit-feature-weeklyAi.jpg'), title: t('featuresWeeklyTitle'), summary: t('featuresWeeklySummary'), detail: t('featuresWeeklyDetail') },
+      { id: 'profileChanges', icon: 'person-add-outline', image: require('@/assets/images/forge-fit-feature-profileChanges.jpg'), title: t('featuresProfileTitle'), summary: t('featuresProfileSummary'), detail: t('featuresProfileDetail') },
     ],
     photo: [
-      { id: 'foodPhoto', icon: 'camera-scan', image: require('@/assets/images/coach-background.jpeg'), title: t('featuresFoodPhotoTitle'), summary: t('featuresFoodPhotoSummary'), detail: t('featuresFoodPhotoDetail') },
-      { id: 'barcode', icon: 'scan-outline', image: require('@/assets/images/icon_2.png'), title: t('featuresBarcodeTitle'), summary: t('featuresBarcodeSummary'), detail: t('featuresBarcodeDetail') },
-      { id: 'macroDetails', icon: 'pie-chart-outline', image: require('@/assets/images/forge-fit-logo.jpeg'), title: t('featuresMacroTitle'), summary: t('featuresMacroSummary'), detail: t('featuresMacroDetail') },
+      { id: 'foodPhoto', icon: 'camera-scan', image: require('@/assets/images/forge-fit-feature-foodPhoto.jpg'), title: t('featuresFoodPhotoTitle'), summary: t('featuresFoodPhotoSummary'), detail: t('featuresFoodPhotoDetail') },
+      { id: 'barcode', icon: 'scan-outline', image: require('@/assets/images/forge-fit-feature-barcode.jpg'), title: t('featuresBarcodeTitle'), summary: t('featuresBarcodeSummary'), detail: t('featuresBarcodeDetail') },
+      { id: 'macroDetails', icon: 'pie-chart-outline', image: require('@/assets/images/forge-fit-feature-macroDetails.jpg'), title: t('featuresMacroTitle'), summary: t('featuresMacroSummary'), detail: t('featuresMacroDetail') },
     ],
     live: [
-      { id: 'liveForm', icon: 'activity', image: require('@/assets/images/coach-thinking.png'), title: t('featuresLiveFormTitle'), summary: t('featuresLiveFormSummary'), detail: t('featuresLiveFormDetail') },
-      { id: 'supportedMoves', icon: 'barbell-outline', image: require('@/assets/images/coach-wave-static-v2.png'), title: t('featuresMovesTitle'), summary: t('featuresMovesSummary'), detail: t('featuresMovesDetail') },
-      { id: 'cameraPrivacy', icon: 'shield-checkmark-outline', image: require('@/assets/images/coach-wave-direct.jpg'), title: t('featuresCameraTitle'), summary: t('featuresCameraSummary'), detail: t('featuresCameraDetail') },
+      { id: 'liveForm', icon: 'activity', image: require('@/assets/images/forge-fit-feature-liveForm.jpg'), title: t('featuresLiveFormTitle'), summary: t('featuresLiveFormSummary'), detail: t('featuresLiveFormDetail') },
+      { id: 'supportedMoves', icon: 'barbell-outline', image: require('@/assets/images/forge-fit-feature-supportedMoves.jpg'), title: t('featuresMovesTitle'), summary: t('featuresMovesSummary'), detail: t('featuresMovesDetail') },
+      { id: 'cameraPrivacy', icon: 'shield-checkmark-outline', image: require('@/assets/images/forge-fit-feature-cameraPrivacy.jpg'), title: t('featuresCameraTitle'), summary: t('featuresCameraSummary'), detail: t('featuresCameraDetail') },
     ],
     plan: [
-      { id: 'workoutPlan', icon: 'barbell-outline', image: require('@/assets/images/coach-onboarding.png'), title: t('featuresWorkoutTitle'), summary: t('featuresWorkoutSummary'), detail: t('featuresWorkoutDetail') },
-      { id: 'nutritionTargets', icon: 'nutrition-outline', image: require('@/assets/images/coach-welcome.png'), title: t('featuresNutritionTitle'), summary: t('featuresNutritionSummary'), detail: t('featuresNutritionDetail') },
-      { id: 'restDays', icon: 'analytics-outline', image: require('@/assets/images/coach-thumbs-up-no-bg.png'), title: t('featuresRestTitle'), summary: t('featuresRestSummary'), detail: t('featuresRestDetail') },
+      { id: 'workoutPlan', icon: 'barbell-outline', image: require('@/assets/images/forge-fit-feature-workoutPlan.jpg'), title: t('featuresWorkoutTitle'), summary: t('featuresWorkoutSummary'), detail: t('featuresWorkoutDetail') },
+      { id: 'nutritionTargets', icon: 'nutrition-outline', image: require('@/assets/images/forge-fit-feature-nutritionTargets.jpg'), title: t('featuresNutritionTitle'), summary: t('featuresNutritionSummary'), detail: t('featuresNutritionDetail') },
+      { id: 'restDays', icon: 'analytics-outline', image: require('@/assets/images/forge-fit-feature-restDays.jpg'), title: t('featuresRestTitle'), summary: t('featuresRestSummary'), detail: t('featuresRestDetail') },
     ],
   };
 
