@@ -14,7 +14,7 @@ import {
   exerciseKindFromName,
   initialRepState,
   poseFromFrame,
-  selfieMirroredX,
+  cameraDisplayX,
   type ExerciseKind,
   type LiveWarningKey,
   type PoseLandmarks,
@@ -34,7 +34,7 @@ const skeletonConnections: Array<[PoseJoint, PoseJoint]> = [
 ];
 
 function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmarks; width: number; height: number; color: string }) {
-  const displayX = (normalizedX: number) => selfieMirroredX(normalizedX) * width;
+  const displayX = (normalizedX: number) => cameraDisplayX(normalizedX) * width;
   return <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
     <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       {skeletonConnections.map(([from, to]) => {

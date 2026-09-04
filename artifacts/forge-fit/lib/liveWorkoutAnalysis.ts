@@ -50,11 +50,11 @@ export type AnalysisResult = {
 export const supportedExercises: ExerciseKind[] = ['squat', 'pushup', 'lunge'];
 
 /**
- * Maps native pose coordinates into the selfie-mirrored display space used by
- * the front-camera preview and native skeleton overlay.
+ * Keeps native pose coordinates in the same real-world horizontal space as
+ * the unmirrored front-camera preview and native skeleton overlay.
  */
-export function selfieMirroredX(normalizedX: number) {
-  return 1 - normalizedX;
+export function cameraDisplayX(normalizedX: number) {
+  return normalizedX;
 }
 
 export const initialRepState: RepState = {
