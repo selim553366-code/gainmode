@@ -174,7 +174,7 @@ index 64a4740..07e2296 100644
 @@ -1294,3 +1294,3 @@ class PoseCameraView(
      private fun syncOverlayMirroring() {
 -        overlayView.setMirrored(camera.facing == Facing.FRONT)
-+        overlayView.setMirrored(camera.facing == Facing.FRONT)
++        overlayView.setMirrored(false)
      }
 @@ -1322,6 +1322,11 @@ class PoseCameraView(
          overlayView.visibility = if (enabled) VISIBLE else GONE
