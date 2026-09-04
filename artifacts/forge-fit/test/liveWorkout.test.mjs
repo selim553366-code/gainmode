@@ -22,6 +22,7 @@ function sidePose(kneeAngle, side = 'left') {
 
 function pushupPose(elbowAngle, includeRightArm = true) {
   const pose = {
+    nose: point(0.5, elbowAngle <= 110 ? 0.52 : 0.3),
     leftShoulder: point(0.25, 0.45),
     leftElbow: point(elbowAngle <= 110 ? 0.35 : 0.4, 0.45),
     leftWrist: point(elbowAngle <= 110 ? 0.35 : 0.5, elbowAngle <= 110 ? 0.55 : 0.45),
@@ -60,6 +61,17 @@ test('counts a side-view squat using the clearest single body side', () => {
   assert.equal(state.reps, 1);
 });
 
+test('counts a front-view squat from both bent knees', () => {
+  const state = runCycle('squat', [
+    { ...sidePose(170, 'left'), ...sidePose(170, 'right') },
+    { ...sidePose(95, 'left'), ...sidePose(95, 'right') },
+    { ...sidePose(130, 'left'), ...sidePose(130, 'right') },
+    { ...sidePose(170, 'left'), ...sidePose(170, 'right') },
+  ]);
+
+  assert.equal(state.reps, 1);
+});
+
 test('counts a side-view lunge without requiring both overlapping legs', () => {
   const state = runCycle('lunge', [
     sidePose(170, 'right'),
@@ -81,4 +93,16 @@ test('counts a front-view push-up when one arm is the clearest track', () => {
   ]);
 
   assert.equal(state.reps, 1);
+});
+
+test('does not count a push-up when elbows bend without the head dropping', () => {
+  const bentArmsWithoutDepth = { ...pushupPose(90, false), nose: point(0.5, 0.3) };
+  const state = runCycle('pushup', [
+    pushupPose(170, false),
+    bentArmsWithoutDepth,
+    pushupPose(130, false),
+    pushupPose(170, false),
+  ]);
+
+  assert.equal(state.reps, 0);
 });

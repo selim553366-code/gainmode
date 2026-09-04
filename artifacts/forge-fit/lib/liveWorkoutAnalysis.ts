@@ -127,6 +127,10 @@ function sideConfidence(pose: PoseLandmarks, side: 'left' | 'right') {
   ]);
 }
 
+function squatConfidence(pose: PoseLandmarks) {
+  return Math.max(sideConfidence(pose, 'left'), sideConfidence(pose, 'right'));
+}
+
 function pushupConfidence(pose: PoseLandmarks) {
   const leftArm = visibilityFor(pose, ['leftShoulder', 'leftElbow', 'leftWrist']);
   const rightArm = visibilityFor(pose, ['rightShoulder', 'rightElbow', 'rightWrist']);
@@ -155,7 +159,7 @@ function baseWarning(kind: ExerciseKind, pose: PoseLandmarks, confidence: number
   if (length !== null && length < 0.34) return 'liveStepBack';
   if (length !== null && length > 1.25) return 'liveMoveCloser';
 
-  if (kind === 'squat' || kind === 'lunge') {
+  if (kind === 'lunge') {
     const prefix = side === 'left' ? 'left' : 'right';
     const backAngle = angle(
       point(pose, `${prefix}Shoulder` as PoseJoint),
@@ -187,7 +191,7 @@ function kneeMetric(pose: PoseLandmarks, side: 'left' | 'right') {
 }
 
 function squatMetric(pose: PoseLandmarks, side: 'left' | 'right') {
-  return kneeMetric(pose, side) ?? kneeMetric(pose, side === 'left' ? 'right' : 'left');
+  return average([kneeMetric(pose, 'left'), kneeMetric(pose, 'right')]) ?? kneeMetric(pose, side);
 }
 
 function pushupMetric(pose: PoseLandmarks) {
@@ -197,13 +201,20 @@ function pushupMetric(pose: PoseLandmarks) {
   ]);
 }
 
+function pushupHeadDrop(pose: PoseLandmarks) {
+  const nose = point(pose, 'nose');
+  const shoulders = centerPoint(pose, 'leftShoulder', 'rightShoulder');
+  if (!nose || !shoulders) return null;
+  return nose.y - shoulders.y;
+}
+
 function lungeMetric(pose: PoseLandmarks, side: 'left' | 'right') {
   return kneeMetric(pose, side) ?? kneeMetric(pose, side === 'left' ? 'right' : 'left');
 }
 
 export function analyzePose(kind: ExerciseKind, pose: PoseLandmarks, previous: RepState, timestamp: number): AnalysisResult {
   const side = selectSide(pose, previous.activeSide);
-  const confidence = kind === 'pushup' ? pushupConfidence(pose) : sideConfidence(pose, side);
+  const confidence = kind === 'pushup' ? pushupConfidence(pose) : kind === 'squat' ? squatConfidence(pose) : sideConfidence(pose, side);
   let warning = baseWarning(kind, pose, confidence, side);
   const metric = kind === 'squat' ? squatMetric(pose, side) : kind === 'pushup' ? pushupMetric(pose) : lungeMetric(pose, side);
   const next: RepState = {
@@ -217,15 +228,17 @@ export function analyzePose(kind: ExerciseKind, pose: PoseLandmarks, previous: R
     return { state: next, warning, metric, confidence };
   }
 
-  const downThreshold = kind === 'pushup' ? 105 : kind === 'lunge' ? 108 : 105;
-  const startThreshold = 160;
-  const upThreshold = kind === 'pushup' ? 155 : 158;
+  const downThreshold = kind === 'pushup' ? 105 : kind === 'lunge' ? 112 : 115;
+  const startThreshold = kind === 'squat' ? 165 : 160;
+  const upThreshold = kind === 'pushup' ? 155 : 160;
+  const ascentThreshold = downThreshold + (kind === 'squat' ? 12 : 18);
+  const pushupDepthReady = kind !== 'pushup' || (pushupHeadDrop(pose) ?? 0) >= -0.06;
 
   const previousPhase = next.phase;
-  if (next.phase === 'ready' && metric <= downThreshold) next.phase = 'bottom';
+  if (next.phase === 'ready' && metric <= downThreshold && pushupDepthReady) next.phase = 'bottom';
   else if (next.phase === 'ready' && metric < startThreshold) next.phase = 'descending';
-  else if (next.phase === 'descending' && metric <= downThreshold) next.phase = 'bottom';
-  else if (next.phase === 'bottom' && metric >= downThreshold + 18) next.phase = 'ascending';
+  else if (next.phase === 'descending' && metric <= downThreshold && pushupDepthReady) next.phase = 'bottom';
+  else if (next.phase === 'bottom' && metric >= ascentThreshold) next.phase = 'ascending';
   else if (next.phase === 'ascending' && metric > upThreshold) {
     if (timestamp - next.lastRepAt > 450) {
       next.reps += 1;
