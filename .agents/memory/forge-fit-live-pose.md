@@ -19,7 +19,7 @@ Android's front-camera PreviewView must be mirrored around its center when the n
 
 **Why:** CameraX's PreviewView does not reliably mirror the front-camera preview by itself, while the pose overlay intentionally mirrors normalized landmarks for selfie alignment.
 
-**How to apply:** Keep the preview mirror and overlay mirror in sync inside the native pose package patch; reset the preview scale to `1f` for the rear camera and verify the result in a freshly rebuilt Android app.
+**How to apply:** Keep the preview mirror and overlay mirror in sync inside the native pose package patch; reset the preview scale to `1f` for the rear camera, and apply the same `1 - x` transform to any JS-rendered skeleton fallback.
 
 CameraX's `PreviewView` performance mode can composite its SurfaceView above a sibling pose overlay on some Android builds.
 
