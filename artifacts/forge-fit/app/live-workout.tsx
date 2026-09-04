@@ -33,16 +33,17 @@ const skeletonConnections: Array<[PoseJoint, PoseJoint]> = [
 ];
 
 function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmarks; width: number; height: number; color: string }) {
+  const displayX = (normalizedX: number) => (1 - normalizedX) * width;
   return <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
     <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       {skeletonConnections.map(([from, to]) => {
         const start = pose[from];
         const end = pose[to];
         if (!start || !end) return null;
-        return <Line key={`${from}-${to}`} x1={start.x * width} y1={start.y * height} x2={end.x * width} y2={end.y * height} stroke={color} strokeWidth={4} strokeLinecap="round" opacity={0.92} />;
+        return <Line key={`${from}-${to}`} x1={displayX(start.x)} y1={start.y * height} x2={displayX(end.x)} y2={end.y * height} stroke={color} strokeWidth={4} strokeLinecap="round" opacity={0.92} />;
       })}
       {(Object.entries(pose) as Array<[PoseJoint, PoseLandmarks[PoseJoint]]>).map(([joint, point]) => point
-        ? <Circle key={joint} cx={point.x * width} cy={point.y * height} r={6} fill={color} opacity={0.98} />
+        ? <Circle key={joint} cx={displayX(point.x)} cy={point.y * height} r={6} fill={color} opacity={0.98} />
         : null)}
     </Svg>
   </View>;
