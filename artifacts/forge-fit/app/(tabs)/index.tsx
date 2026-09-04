@@ -51,6 +51,8 @@ export default function TodayScreen() {
          premiumAction={SUBSCRIPTION_PURCHASE_ENABLED ? () => setPremiumVisible(true) : undefined}
          streak={streak}
          streakLabel={t('streak')}
+          featureLabel={t('ourFeatures')}
+          featureAction={() => router.push('/features')}
          showText={false}
       />
 
