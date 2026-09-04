@@ -1,3 +1,47 @@
+diff --git a/build/types/props.d.ts b/build/types/props.d.ts
+--- a/build/types/props.d.ts
++++ b/build/types/props.d.ts
+@@ -47,6 +47,8 @@ export type PoseCameraProps = {
+     /** Inference on or off. `false` releases GPU resources, the preview keeps running. */
+     detection?: boolean;
+     overlay?: boolean | OverlayConfig;
++    /** Covers the preview while keeping the native skeleton overlay visible. */
++    blackout?: boolean;
+     data?: DataConfig;
+     triggers?: readonly Trigger[];
+     /** Raises the level while this camera is mounted. `setLogLevel()` sets it globally. */
+diff --git a/src/types/props.ts b/src/types/props.ts
+--- a/src/types/props.ts
++++ b/src/types/props.ts
+@@ -64,6 +64,8 @@ export type PoseCameraProps = {
+   /** Inference on or off. `false` releases GPU resources, the preview keeps running. */
+   detection?: boolean;
+   overlay?: boolean | OverlayConfig;
++  /** Covers the preview while keeping the native skeleton overlay visible. */
++  blackout?: boolean;
+ 
+   data?: DataConfig;
+   triggers?: readonly Trigger[];
+diff --git a/src/PoseCamera.tsx b/src/PoseCamera.tsx
+--- a/src/PoseCamera.tsx
++++ b/src/PoseCamera.tsx
+@@ -56,7 +56,7 @@ export const PoseCamera = React.forwardRef<PoseCameraRef, PoseCameraProps>(functi
+   const NativeView = getNativeView();
+   const nativeRef = React.useRef<NativePoseCameraView | null>(null);
+ 
+-  const { triggers, data, overlay, active, detection } = props;
++  const { triggers, data, overlay, active, detection, blackout } = props;
+ 
+   // During render, before anything walks the conditions: a bad config fails at the call site
+   // with a path. The validator's depth limit makes the walk below safe on a cyclic config.
+@@ -297,6 +297,7 @@ export const PoseCamera = React.forwardRef<PoseCameraRef, PoseCameraProps>(functi
+   return (
+     <NativeView
+       style={props.style}
++      blackout={blackout}
+       profile={props.profile}
+       facing={props.facing}
+       delegate={props.delegate}
 diff --git a/android/src/main/java/com/posedetection/PoseDetectionModule.kt b/android/src/main/java/com/posedetection/PoseDetectionModule.kt
 index 2ceaf41..06874dc 100644
 --- a/android/src/main/java/com/posedetection/PoseDetectionModule.kt
@@ -29,6 +73,18 @@ index 2ceaf41..06874dc 100644
                      .onFailure { promise.reject("DETECTION_FAILED", it.message ?: "detection failed", null) }
              }
  
+@@ -188,8 +188,11 @@ class PoseDetectionModule : Module() {
+                 Prop("analysisResolution") { view: PoseCameraView, value: String? ->
+                     view.setAnalysisResolution(value ?: "auto")
+                 }
++                Prop("blackout") { view: PoseCameraView, value: Boolean? ->
++                    view.setBlackout(value ?: false)
++                }
+                 // `Any?` and a cast, like `overlay`: a star-projected Map has no registered type
+                 // converter, and that failure would only show up on a device.
+                 Prop("data") { view: PoseCameraView, value: Any? ->
+                     view.setData(parseData(value as? Map<*, *>))
+                 }
 @@ -318,6 +318,13 @@ class PoseDetectionModule : Module() {
          }
  }
@@ -47,6 +103,12 @@ diff --git a/android/src/main/java/com/posedetection/view/PoseCameraView.kt b/an
 index 64a4740..07e2296 100644
 --- a/android/src/main/java/com/posedetection/view/PoseCameraView.kt
 +++ b/android/src/main/java/com/posedetection/view/PoseCameraView.kt
+@@ -11,4 +11,5 @@ import android.os.Handler
+ import android.os.Looper
+ import android.os.SystemClock
+ import android.util.Size
++import android.view.View
+ import android.widget.FrameLayout
 @@ -51,7 +51,7 @@ import com.posedetection.performance.ThermalPolicy
  import com.posedetection.performance.ThermalState
  import com.posedetection.performance.Tiers
@@ -56,7 +118,8 @@ index 64a4740..07e2296 100644
  import expo.modules.kotlin.views.ExpoView
 +import java.nio.ByteBuffer
  import java.util.concurrent.Executors
-@@ -81,6 +81,6 @@ class PoseCameraView(
+@@ -80,10 +80,16 @@ class PoseCameraView(
+ 
      private val previewView =
          PreviewView(context).apply {
 -            implementationMode = PreviewView.ImplementationMode.PERFORMANCE
@@ -64,8 +127,29 @@ index 64a4740..07e2296 100644
              scaleType = PreviewView.ScaleType.FILL_CENTER
          }
      private val overlayView = OverlayView(context)
-@@ -317,13 +317,14 @@ class PoseCameraView(
++    private val blackoutView =
++        View(context).apply {
++            setBackgroundColor(Color.BLACK)
++            visibility = GONE
++            isClickable = false
++        }
+ 
+     // One dedicated thread. The analyzer runs here and calls detectAsync here, so sample buffers
+     // never hop threads and the UI never waits on inference.
+@@ -280,3 +280,4 @@ class PoseCameraView(
+     private var propAnalysis: String = "auto"
+     private var overlayEnabled: Boolean = true
++    private var blackoutEnabled: Boolean = false
+     private var pendingOverlayConfig: OverlayConfig = OverlayConfig()
+@@ -317,13 +317,22 @@ class PoseCameraView(
          )
++        container.addView(
++            blackoutView,
++            FrameLayout.LayoutParams(
++                FrameLayout.LayoutParams.MATCH_PARENT,
++                FrameLayout.LayoutParams.MATCH_PARENT,
++            ),
++        )
          container.addView(
              overlayView,
              FrameLayout.LayoutParams(
@@ -74,45 +158,36 @@ index 64a4740..07e2296 100644
              ),
          )
          addView(container)
-+        overlayView.z = 1f
++        blackoutView.z = 1f
++        overlayView.z = 2f
  
          // Props have not arrived yet. Without this a frame landing first would find no layout and
          // be dropped, and `snapshotFrame()` would answer empty for reasons nobody could see.
          applyFrameLayout()
-@@ -927,1 +927,2 @@ class PoseCameraView(
-         if (propSmoothing) smoothing.apply(landmarkBuffer, elapsedSeconds) else smoothing.reset()
-+        rotateLandmarksToDisplay(frameRotationDegrees)
-@@ -938,2 +938,25 @@ class PoseCameraView(
-         buildFrame(result, primaryIndex, pose.size, frameWidth, frameHeight, nowMs, comparable, elapsedSeconds)
-     }
-+    private fun rotateLandmarksToDisplay(rotationDegrees: Int) {
-+        val normalized = ((rotationDegrees % 360) + 360) % 360
-+        if (normalized == 0) return
-+        for (index in 0 until Skeleton.LANDMARK_COUNT) {
-+            val base = index * Skeleton.LANDMARK_STRIDE
-+            val x = landmarkBuffer[base + Skeleton.OFFSET_X]
-+            val y = landmarkBuffer[base + Skeleton.OFFSET_Y]
-+            when (normalized) {
-+                90 -> {
-+                    landmarkBuffer[base + Skeleton.OFFSET_X] = 1f - y
-+                    landmarkBuffer[base + Skeleton.OFFSET_Y] = x
-+                }
-+                180 -> {
-+                    landmarkBuffer[base + Skeleton.OFFSET_X] = 1f - x
-+                    landmarkBuffer[base + Skeleton.OFFSET_Y] = 1f - y
-+                }
-+                270 -> {
-+                    landmarkBuffer[base + Skeleton.OFFSET_X] = y
-+                    landmarkBuffer[base + Skeleton.OFFSET_Y] = 1f - x
-+                }
-+            }
-+        }
-+    }
+@@ -426,5 +426,6 @@ class PoseCameraView(
+     fun onPropsUpdated() {
+         overlayView.config = pendingOverlayConfig
+         overlayView.visibility = if (overlayEnabled) VISIBLE else GONE
++        blackoutView.visibility = if (blackoutEnabled) VISIBLE else GONE
+ 
+         applyFrameLayout()
 @@ -1294,3 +1294,3 @@ class PoseCameraView(
      private fun syncOverlayMirroring() {
 -        overlayView.setMirrored(camera.facing == Facing.FRONT)
 +        overlayView.setMirrored(false)
      }
+@@ -1322,6 +1322,11 @@ class PoseCameraView(
+         overlayView.visibility = if (enabled) VISIBLE else GONE
+     }
+ 
++    fun setBlackout(enabled: Boolean) {
++        blackoutEnabled = enabled
++        blackoutView.visibility = if (enabled) VISIBLE else GONE
++    }
++
+     /**
+      * Runs the precedence chain and adopts the result. [reason] is what `onPerformanceChange`
+      * reports; null means this is a props update rather than something the engine decided, and
 @@ -1379,13 +1379,12 @@ class PoseCameraView(
          frames.setLayout(next)
      }
@@ -147,12 +222,24 @@ index 64a4740..07e2296 100644
 diff --git a/android/src/main/java/com/posedetection/camera/CameraSource.kt b/android/src/main/java/com/posedetection/camera/CameraSource.kt
 --- a/android/src/main/java/com/posedetection/camera/CameraSource.kt
 +++ b/android/src/main/java/com/posedetection/camera/CameraSource.kt
-@@ -201,2 +201,5 @@ internal class CameraSource(
+@@ -200,6 +200,9 @@ internal class CameraSource(
+ 
          val lens = resolveAvailable(provider, target)
          val rotation = currentRotation()
 +        // Keep the camera preview in real-world horizontal orientation. The pose overlay is also
 +        // unmirrored, so both layers use the same coordinate system.
 +        previewView.scaleX = 1f
+ 
+         val preview =
+             Preview
+@@ -225,6 +225,7 @@ internal class CameraSource(
+         provider.unbindAll()
+         provider.bindToLifecycle(owner, selectorFor(lens), preview, analysis)
+         preview.surfaceProvider = previewView.surfaceProvider
++        previewView.scaleX = 1f
+ 
+         this.analysis = analysis
+         this.facing = lens
 diff --git a/android/src/main/java/com/posedetection/detector/PoseDetector.kt b/android/src/main/java/com/posedetection/detector/PoseDetector.kt
 --- a/android/src/main/java/com/posedetection/detector/PoseDetector.kt
 +++ b/android/src/main/java/com/posedetection/detector/PoseDetector.kt

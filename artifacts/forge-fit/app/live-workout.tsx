@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,37 +16,9 @@ import {
   poseFromFrame,
   type ExerciseKind,
   type LiveWarningKey,
-  type PoseLandmarks,
-  type PoseJoint,
   type RepState,
 } from '@/lib/liveWorkout';
 
-import Svg, { Circle, Line } from 'react-native-svg';
-
-const skeletonConnections: Array<[PoseJoint, PoseJoint]> = [
-  ['nose', 'leftShoulder'], ['nose', 'rightShoulder'],
-  ['leftShoulder', 'rightShoulder'], ['leftShoulder', 'leftElbow'], ['leftElbow', 'leftWrist'],
-  ['rightShoulder', 'rightElbow'], ['rightElbow', 'rightWrist'],
-  ['leftShoulder', 'leftHip'], ['rightShoulder', 'rightHip'], ['leftHip', 'rightHip'],
-  ['leftHip', 'leftKnee'], ['leftKnee', 'leftAnkle'],
-  ['rightHip', 'rightKnee'], ['rightKnee', 'rightAnkle'],
-];
-
-function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmarks; width: number; height: number; color: string }) {
-  return <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
-    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      {skeletonConnections.map(([from, to]) => {
-        const start = pose[from];
-        const end = pose[to];
-        if (!start || !end) return null;
-        return <Line key={`${from}-${to}`} x1={start.x * width} y1={start.y * height} x2={end.x * width} y2={end.y * height} stroke={color} strokeWidth={4} strokeLinecap="round" opacity={0.92} />;
-      })}
-      {(Object.entries(pose) as Array<[PoseJoint, PoseLandmarks[PoseJoint]]>).map(([joint, point]) => point
-        ? <Circle key={joint} cx={point.x * width} cy={point.y * height} r={6} fill={color} opacity={0.98} />
-        : null)}
-    </Svg>
-  </View>;
-}
 function ActionButton({ label, icon, onPress, disabled = false }: { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void; disabled?: boolean }) {
   const colors = useColors();
   return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.primary, opacity: disabled ? 0.5 : pressed ? 0.75 : 1 }]}><Ionicons name={icon} size={18} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{label}</Text></Pressable>;
@@ -92,11 +64,9 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const [cameraError, setCameraError] = React.useState(false);
   const [showRepsPanel, setShowRepsPanel] = React.useState(true);
   const [skeletonOnly, setSkeletonOnly] = React.useState(false);
-  const [skeletonPose, setSkeletonPose] = React.useState<PoseLandmarks>({});
   const stateRef = React.useRef<RepState>(initialRepState);
   const repTone = useAudioPlayer(require('@/assets/sounds/rep-confirmation.wav'));
   const repPulse = React.useRef(new Animated.Value(0)).current;
-  const { width, height } = useWindowDimensions();
 
   React.useEffect(() => {
     repTone.volume = 0.55;
@@ -112,7 +82,6 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const handlePose = (frame: PoseFrame) => {
     const previousState = stateRef.current;
     const currentPose = poseFromFrame(frame);
-    setSkeletonPose(currentPose);
     const result = analyzePose(kind, currentPose, previousState, frame.timestamp);
     stateRef.current = result.state;
     if (result.state.reps > previousState.reps) {
@@ -129,7 +98,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
 
   return <View testID="live-workout-compact-panel" style={[styles.cameraRoot, { backgroundColor: skeletonOnly ? colors.black : colors.background }]}>
     <PoseCamera
-       style={[StyleSheet.absoluteFillObject, skeletonOnly ? styles.hiddenCamera : null]}
+       style={StyleSheet.absoluteFillObject}
       facing="front"
        profile="quality"
       resolution="720p"
@@ -138,11 +107,11 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
        minConfidence={0.45}
       smoothing
       data={{ mode: 'throttled', throttleMs: 90, landmarks: true }}
+       blackout={skeletonOnly}
        overlay={{ landmarks: true, connections: true, color: colors.primary, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
       onPose={handlePose}
       onError={() => setCameraError(true)}
     />
-     {skeletonOnly ? <SkeletonOnlyOverlay pose={skeletonPose} width={width} height={height} color={colors.primary} /> : null}
      {!skeletonOnly ? <View pointerEvents="none" style={styles.cameraShade} /> : null}
      {!skeletonOnly ? <View pointerEvents="none" style={[styles.neonFrame, { borderColor: colors.primary, shadowColor: colors.primary }]} /> : null}
     <View style={[styles.liveHeader, { paddingTop: insets.top + 14 }]}>
@@ -190,7 +159,6 @@ export default function LiveWorkoutScreen() {
 
 const styles = StyleSheet.create({
   cameraRoot: { flex: 1, backgroundColor: '#020B18' },
-  hiddenCamera: { opacity: 0 },
   cameraShade: { ...StyleSheet.absoluteFillObject, backgroundColor: '#020B1830' },
   neonFrame: { ...StyleSheet.absoluteFillObject, margin: 18, borderWidth: 2, borderRadius: 30, shadowOpacity: 0.7, shadowRadius: 18 },
   liveHeader: { position: 'absolute', left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 8 },
