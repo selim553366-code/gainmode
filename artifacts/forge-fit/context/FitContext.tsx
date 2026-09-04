@@ -137,11 +137,11 @@ const initialState: FitState = {
   weightLogs: [],
   meals: [],
   notificationSettings: {
-    workoutReminder: false,
-    waterReminder: false,
-    mealReminder: false,
-    coachCheckIn: false,
-    weeklySummary: false,
+    workoutReminder: true,
+    waterReminder: true,
+    mealReminder: true,
+    coachCheckIn: true,
+    weeklySummary: true,
   },
   profileEditUsedMonth: null,
 };
@@ -261,7 +261,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
             ...storedState,
              // Premium access must come from RevenueCat, never from a locally persisted test flag.
              isPremium: false,
-            notificationSettings: { ...initialState.notificationSettings, ...(parsed.notificationSettings ?? {}) },
+            notificationSettings: initialState.notificationSettings,
              streakDates: normalizeStreakDates(Array.isArray(parsed.streakDates) ? parsed.streakDates : []),
             version: initialState.version,
           };

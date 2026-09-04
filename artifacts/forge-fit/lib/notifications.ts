@@ -101,6 +101,7 @@ async function syncFitnessNotificationsNow({
   if (Platform.OS === 'web') return;
   await Notifications.cancelAllScheduledNotificationsAsync();
   if (!Object.values(settings).some(Boolean)) return;
+  if (!(await requestNotificationPermission())) return;
   if (!(await prepareNotifications())) return;
 
   if (settings.workoutReminder && profile) {
