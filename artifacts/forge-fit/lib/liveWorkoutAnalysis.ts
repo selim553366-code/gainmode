@@ -50,11 +50,11 @@ export type AnalysisResult = {
 export const supportedExercises: ExerciseKind[] = ['squat', 'pushup', 'lunge'];
 
 /**
- * Keeps native pose coordinates in the same real-world horizontal space as
- * the unmirrored front-camera preview and native skeleton overlay.
+ * The front-camera preview is shown as a selfie mirror, so JS-rendered
+ * landmarks need the same horizontal transform as the native overlay.
  */
 export function cameraDisplayX(normalizedX: number) {
-  return normalizedX;
+  return 1 - normalizedX;
 }
 
 export const initialRepState: RepState = {

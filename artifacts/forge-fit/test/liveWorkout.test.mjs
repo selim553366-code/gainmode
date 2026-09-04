@@ -4,9 +4,9 @@ import { analyzePose, cameraDisplayX, initialRepState } from '../lib/liveWorkout
 
 const point = (x, y, visibility = 0.95) => ({ x, y, visibility });
 
-test('keeps real camera orientation for horizontal skeleton movement', () => {
-  assert.equal(cameraDisplayX(0.2), 0.2);
-  assert.ok(Math.abs(cameraDisplayX(0.8) - 0.8) < 1e-9);
+test('mirrors front-camera skeleton movement for selfie alignment', () => {
+  assert.equal(cameraDisplayX(0.2), 0.8);
+  assert.ok(Math.abs(cameraDisplayX(0.8) - 0.2) < 1e-9);
   assert.equal(cameraDisplayX(0.5), 0.5);
 });
 
