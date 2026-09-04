@@ -111,7 +111,7 @@ index 64a4740..07e2296 100644
 @@ -1294,3 +1294,3 @@ class PoseCameraView(
      private fun syncOverlayMirroring() {
 -        overlayView.setMirrored(camera.facing == Facing.FRONT)
-+        overlayView.setMirrored(true)
++        overlayView.setMirrored(false)
      }
 @@ -1379,13 +1379,12 @@ class PoseCameraView(
          frames.setLayout(next)
@@ -150,8 +150,8 @@ diff --git a/android/src/main/java/com/posedetection/camera/CameraSource.kt b/an
 @@ -201,2 +201,4 @@ internal class CameraSource(
          val lens = resolveAvailable(provider, target)
          val rotation = currentRotation()
-+        // Present the front camera as a selfie mirror, matching the mirrored pose overlay.
-+        previewView.scaleX = if (lens == Facing.FRONT) -1f else 1f
++        // Keep the camera preview in real-world horizontal orientation, matching the overlay.
++        previewView.scaleX = 1f
 diff --git a/android/src/main/java/com/posedetection/detector/PoseDetector.kt b/android/src/main/java/com/posedetection/detector/PoseDetector.kt
 --- a/android/src/main/java/com/posedetection/detector/PoseDetector.kt
 +++ b/android/src/main/java/com/posedetection/detector/PoseDetector.kt
