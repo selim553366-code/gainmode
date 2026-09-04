@@ -60,3 +60,26 @@ test('limits the number of actions in one assistant response', () => {
 
   assert.equal(actions.length, 6);
 });
+
+test('accepts safe profile, workout, and exercise-name updates', () => {
+  const actions = validateCoachActions([
+    { type: 'update_profile', patch: { activity: 'moderate', preferredDays: ['TUE', 'THU'], weight: 74 } },
+    { type: 'update_workout', workoutId: 'workout-1', day: 'WED', duration: 60 },
+    { type: 'update_exercise', workoutId: 'workout-1', exerciseId: 'exercise-1', name: 'Tempo push-up', reps: 10 },
+  ], workouts);
+
+  assert.deepEqual(actions, [
+    { type: 'update_profile', patch: { activity: 'moderate', preferredDays: ['TUE', 'THU'], weight: 74 } },
+    { type: 'update_workout', workoutId: 'workout-1', day: 'WED', duration: 60 },
+    { type: 'update_exercise', workoutId: 'workout-1', exerciseId: 'exercise-1', name: 'Tempo push-up', reps: 10 },
+  ]);
+});
+
+test('rejects profile updates outside safe bounds and occupied workout days', () => {
+  const actions = validateCoachActions([
+    { type: 'update_profile', patch: { weight: 2, preferredDays: ['MON', 'MON'] } },
+    { type: 'update_workout', workoutId: 'workout-1', day: 'INVALID' },
+  ], workouts);
+
+  assert.deepEqual(actions, []);
+});

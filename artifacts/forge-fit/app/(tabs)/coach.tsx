@@ -4,7 +4,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@/components/AppIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
@@ -41,13 +41,15 @@ function TypingIndicator({ label, colors, lightBackground = false }: { label: st
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, photoAnalysesUsed, coachMessagesUsed, incrementPhotoUsage, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateNutritionGoals } = useFit();
+  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, photoAnalysesUsed, coachMessagesUsed, incrementPhotoUsage, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateWorkout, updateProfile, updateNutritionGoals } = useFit();
+  const router = useRouter();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { weeklyAnalysis, analysisId } = useLocalSearchParams<{ weeklyAnalysis?: string; analysisId?: string }>();
   const [text, setText] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<SelectedPhoto | null>(null);
   const [messages, setMessages] = useState<Message[]>([{ id: 'welcome', text: t('coachWelcome'), from: 'coach' }]);
   const [loading, setLoading] = useState(false);
+  const [showRefresh, setShowRefresh] = useState(false);
   const [chatOriginY, setChatOriginY] = React.useState(0);
   const [coachMessageOffsetY, setCoachMessageOffsetY] = React.useState(12);
   const inputRef = useRef<TextInput>(null);
@@ -97,10 +99,7 @@ export default function CoachScreen() {
     }
     const weeklySummary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
     const isMuscleGoal = profile?.goal === 'muscle';
-    const profileContext = isMuscleGoal && profile
-      ? Object.fromEntries(Object.entries(profile).filter(([key]) => key !== 'weight' && key !== 'targetWeight'))
-      : profile;
-    const context = JSON.stringify({ username, profile: profileContext, equipmentDetails: profile?.equipmentDetails ?? '', weight: isMuscleGoal ? null : weight, calorieGoal, macroGoals: { protein: proteinGoal, carbs: carbsGoal, fat: fatGoal }, meals, workouts: workouts.map((item) => ({ id: item.id, day: item.day, name: item.name, completed: item.completed, duration: item.duration, exercises: item.exercises.map((exercise) => ({ id: exercise.id, name: translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name, sets: exercise.sets, reps: exercise.reps })) })), weeklySummary });
+    const context = JSON.stringify({ username, profile, weight, weightLogs, calorieGoal, macroGoals: { protein: proteinGoal, carbs: carbsGoal, fat: fatGoal }, meals, workouts: workouts.map((item) => ({ id: item.id, day: item.day, name: item.name, completed: item.completed, duration: item.duration, exercises: item.exercises.map((exercise) => ({ id: exercise.id, name: translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name, sets: exercise.sets, reps: exercise.reps, completed: exercise.completed })) })), weeklySummary });
     if (hasPhoto) {
       await runPhotoCoachRequest({
         photoAnalysesUsed,
@@ -200,7 +199,7 @@ export default function CoachScreen() {
       ].filter(Boolean).join(' · ');
       return `${t('coachChangeNutrition')}: ${details}`;
     }
-    const workout = workouts.find((item) => item.id === action.workoutId);
+    const workout = 'workoutId' in action ? workouts.find((item) => item.id === action.workoutId) : undefined;
     const workoutName = workout ? (translate(language, workout.name as Parameters<typeof translate>[1]) || workout.name) : '';
     if (action.type === 'add_exercise') return `${t('coachChangeAdd')}: ${action.name} · ${workoutName} · ${action.sets} ${t('coachChangeSets')}, ${action.reps} ${t('coachChangeReps')}`;
     if (action.type === 'remove_exercise') {
@@ -208,22 +207,30 @@ export default function CoachScreen() {
       const exerciseName = exercise ? (translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name) : action.exerciseId;
       return `${t('coachChangeRemove')}: ${exerciseName} · ${workoutName}`;
     }
-    if (action.type === 'update_exercise') {
+     if (action.type === 'update_exercise') {
       const exercise = workout?.exercises.find((item) => item.id === action.exerciseId);
       const exerciseName = exercise ? (translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name) : action.exerciseId;
-      const details = [action.sets !== undefined ? `${action.sets} ${t('coachChangeSets')}` : '', action.reps !== undefined ? `${action.reps} ${t('coachChangeReps')}` : ''].filter(Boolean).join(', ');
+       const details = [action.name ? action.name : '', action.sets !== undefined ? `${action.sets} ${t('coachChangeSets')}` : '', action.reps !== undefined ? `${action.reps} ${t('coachChangeReps')}` : ''].filter(Boolean).join(', ');
       return `${t('coachChangeUpdate')}: ${exerciseName} · ${details}`;
     }
+     if (action.type === 'update_workout') {
+       const dayKey = (({ MON: 'dayMon', TUE: 'dayTue', WED: 'dayWed', THU: 'dayThu', FRI: 'dayFri', SAT: 'daySat', SUN: 'daySun' } as const)[action.day ?? workout?.day ?? 'MON'] ?? 'dayMon');
+       return `${t('coachChangeWorkout')}: ${workoutName} · ${t(dayKey)} ${action.duration ? `· ${action.duration} ${t('minutesShort')}` : ''}`;
+     }
+     if (action.type === 'update_profile') return `${t('coachChangeProfile')}`;
     return '';
   };
   const applyActions = (messageId: string, actions: CoachAction[]) => {
     actions.forEach((action) => {
       if (action.type === 'add_exercise') addExercise(action.workoutId, action.name, action.sets, action.reps);
       if (action.type === 'remove_exercise') removeExercise(action.workoutId, action.exerciseId);
-      if (action.type === 'update_exercise') updateExercise(action.workoutId, action.exerciseId, { sets: action.sets, reps: action.reps });
+       if (action.type === 'update_exercise') updateExercise(action.workoutId, action.exerciseId, { name: action.name, sets: action.sets, reps: action.reps });
+       if (action.type === 'update_workout') updateWorkout(action.workoutId, { day: action.day, name: action.name, duration: action.duration });
+       if (action.type === 'update_profile') updateProfile(action.patch);
       if (action.type === 'update_nutrition') updateNutritionGoals({ calories: action.calories, protein: action.protein, carbs: action.carbs, fat: action.fat });
     });
     setMessages((current) => current.map((item) => item.id === messageId ? { ...item, actionStatus: 'applied' } : item));
+     setShowRefresh(true);
   };
   const rejectActions = (messageId: string) => {
     setMessages((current) => current.map((item) => item.id === messageId ? { ...item, actionStatus: 'rejected' } : item));
@@ -235,7 +242,7 @@ export default function CoachScreen() {
     const animation = Animated.timing(weeklyCardReveal, { toValue: 1, duration: 1050, easing: Easing.out(Easing.cubic), useNativeDriver: true });
     animation.start();
     const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
-    const weeklyPrompt = `Create a concise written weekly fitness analysis from the user's real data. Mention progress, training volume, calorie consistency, one clear next step, and end with warm motivation. Never invent missing data. This is a weekly review, not medical advice. If the user's goal is muscle building, focus on training volume, consistency, and strength progress; do not mention weight change or weight logs. Reply entirely in the user's selected language. Weekly summary: ${JSON.stringify(summary)}`;
+     const weeklyPrompt = `Create a concise written weekly fitness analysis from the user's real data. Do not merely repeat metric values: interpret what they mean, assess progress, identify one strength and one weakness or uncertainty, and give 1-2 actionable recommendations. If the data is insufficient or no change is needed, say that clearly and explain what to monitor next. Never invent missing data. This is a weekly review, not medical advice. If the user's goal is muscle building, focus on training volume, consistency, and strength progress; do not mention weight change or weight logs. Reply entirely in the user's selected language. Weekly summary: ${JSON.stringify(summary)}`;
     const timeout = setTimeout(() => {
       void requestCoach(weeklyPrompt, { id: `weekly-${analysisId}`, text: t('weeklyAnalysisCard'), from: 'user', variant: 'weeklyAnalysis' });
     }, 760);
@@ -268,7 +275,7 @@ export default function CoachScreen() {
         }]}
       />
     </View>
-    <View style={styles.suggestions}><Pill label={t('coachExample')} onPress={() => setText(t('coachExample'))} lightBackground /><Pill label={t('protein')} onPress={() => setText(t('protein'))} lightBackground /></View>
+     <View style={styles.suggestions}><Pill label={t('coachWeightIncrease')} onPress={() => setText(t('coachWeightIncrease'))} lightBackground /><Pill label={t('coachNutritionTiming')} onPress={() => setText(t('coachNutritionTiming'))} lightBackground /></View>
     <KeyboardAvoidingView onLayout={({ nativeEvent }) => setChatOriginY(nativeEvent.layout.y)} style={styles.chatWrap} behavior="padding" keyboardVerticalOffset={0}>
       <FlatList
         style={styles.messagesList}
@@ -292,7 +299,8 @@ export default function CoachScreen() {
         <View style={styles.photoPreviewCopy}><Text style={[styles.photoPreviewTitle, { color: colors.primaryForeground }]}>{t('photoReady')}</Text><Text style={[styles.photoPreviewHint, { color: `${colors.primaryForeground}A8` }]}>{t('photoCaptionPlaceholder')}</Text></View>
         <Pressable testID="remove-coach-photo" onPress={() => setSelectedPhoto(null)} accessibilityRole="button" accessibilityLabel={t('removePhoto')} hitSlop={8}><Ionicons name="close-circle" size={22} color={colors.primaryForeground} /></Pressable>
       </View> : null}
-      <View style={[styles.inputRow, { paddingBottom: insets.bottom + 8, backgroundColor: 'transparent' }]}>
+       {showRefresh ? <Pressable onPress={() => { setShowRefresh(false); router.replace('/(tabs)/coach'); }} style={[styles.refreshButton, { backgroundColor: colors.primary }]}><Ionicons name="flash-outline" size={16} color={colors.primaryForeground} /><Text style={[styles.refreshButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}
+       <View style={[styles.inputRow, { paddingBottom: insets.bottom + 8, backgroundColor: 'transparent' }]}>
         <Pressable testID="attach-coach-photo" onPress={() => void choosePhoto()} accessibilityRole="button" accessibilityLabel={t('attachPhoto')} style={({ pressed }) => [styles.attach, { backgroundColor: colors.primaryForeground, opacity: pressed || loading ? 0.68 : 1 }]}><Ionicons name="images-outline" size={19} color={colors.foreground} /></Pressable>
         <Animated.View style={[styles.auraInput, { borderColor: colors.primaryForeground, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]}><TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : selectedPhoto ? t('photoCaptionPlaceholder') : t('askCoach')} placeholderTextColor={`${colors.primaryForeground}8C`} style={[styles.input, { backgroundColor: `${colors.foreground}C7`, color: colors.primaryForeground, borderColor: `${colors.primaryForeground}20` }]} /></Animated.View>
          <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.primaryForeground, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.foreground} /></Pressable>
@@ -340,6 +348,8 @@ const styles = StyleSheet.create({
   actionButton: { minHeight: 34, borderRadius: 11, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   actionButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   actionStatus: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 7 },
+  refreshButton: { minHeight: 42, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 8, paddingHorizontal: 14 },
+  refreshButtonText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   messageImage: { width: 190, height: 145, borderRadius: 12, marginBottom: 7 },
   welcomeGifCard: { width: 250, borderWidth: 1, borderRadius: 18, borderBottomLeftRadius: 6, padding: 6, overflow: 'hidden' },
   welcomeGif: { width: 238, height: 178, borderRadius: 13 },

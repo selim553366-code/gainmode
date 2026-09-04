@@ -27,6 +27,12 @@ test('keeps every generated muscle group between two and three exercises', () =>
   }
 });
 
+test('assigns workouts only to preferred days so other days remain rest days', () => {
+  const workouts = buildWorkoutPlan(profile({ trainingDays: 2, preferredDays: ['TUE', 'THU'] }));
+
+  assert.deepEqual(workouts.map((workout) => workout.day), ['TUE', 'THU']);
+});
+
 test('bodyweight plans never use gym or weight-specific exercises', () => {
   const workouts = buildWorkoutPlan(profile({ trainingDays: 3 }));
   const gymOnly = new Set([

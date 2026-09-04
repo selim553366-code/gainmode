@@ -101,7 +101,9 @@ type FitContextValue = FitState & {
   toggleExercise: (workoutId: string, exerciseId: string) => void;
   addExercise: (workoutId: string, name: string, sets?: number, reps?: number) => void;
   removeExercise: (workoutId: string, exerciseId: string) => void;
-  updateExercise: (workoutId: string, exerciseId: string, patch: { sets?: number; reps?: number }) => void;
+  updateExercise: (workoutId: string, exerciseId: string, patch: { name?: string; sets?: number; reps?: number }) => void;
+  updateWorkout: (workoutId: string, patch: { day?: string; name?: string; duration?: number }) => void;
+  updateProfile: (patch: Partial<Profile>) => void;
   updateNutritionGoals: (patch: { calories?: number; protein?: number; carbs?: number; fat?: number }) => void;
   addFriend: (username: string) => void;
   addChallenge: (name: string, target: number) => void;
@@ -176,6 +178,30 @@ function estimateMaintenanceCalories(profile: Profile) {
   const bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + sexAdjustment;
   const activityMultiplier = { sedentary: 1.2, light: 1.35, moderate: 1.5, high: 1.7 }[profile.activity ?? 'light'];
   return Math.max(1200, bmr * activityMultiplier);
+}
+
+function calculateNutritionGoals(profile: Profile, workouts: Workout[]) {
+  const sexAdjustment = profile.sex === 'female' ? -161 : profile.sex === 'preferNot' ? -78 : 5;
+  const bmr = 10 * profile.weight + 6.25 * profile.height - 5 * profile.age + sexAdjustment;
+  const activityMultiplier = { sedentary: 1.2, light: 1.35, moderate: 1.5, high: 1.7 }[profile.activity ?? 'light'];
+  const rateAdjustment = { slow: 200, balanced: 350, fast: 500 }[profile.goalRate ?? 'balanced'];
+  const isGainGoal = profile.goal === 'muscle' || profile.goal === 'weightGain';
+  const isLossGoal = profile.goal === 'weightLoss' || profile.goal === 'fatLoss';
+  const targetWeight = roundKg(clamp(profile.targetWeight ?? recommendTargetWeight(profile), 35, 200));
+  const targetDelta = clamp(targetWeight - profile.weight, -25, 25);
+  const goalAdjustment = isGainGoal ? rateAdjustment : isLossGoal ? -rateAdjustment : 0;
+  const targetAdjustment = isGainGoal || isLossGoal ? Math.round(targetDelta * 18) : 0;
+  const trainingAdjustment = Math.round(((profile.trainingDays ?? 3) * (profile.sessionDuration ?? 45)) / 12);
+  const equipmentAdjustment = profile.equipment === 'gym' ? (profile.gymLevel === 'full' ? 70 : profile.gymLevel === 'intermediate' ? 45 : 25) : profile.equipment === 'home' ? 20 : 0;
+  const calories = Math.max(profile.age < 18 ? 1600 : 1200, Math.round(bmr * activityMultiplier + goalAdjustment + targetAdjustment + trainingAdjustment + equipmentAdjustment));
+  const preferenceProteinMultiplier = profile.proteinPreference === 'high' ? 2.2 : profile.proteinPreference === 'lower' ? 1.4 : isGainGoal ? 1.9 : 1.6;
+  const dietProteinMultiplier = profile.diet === 'vegan' ? 1.85 : profile.diet === 'vegetarian' ? 1.75 : profile.diet === 'halal' ? 1.68 : 1.6;
+  const activityProteinBonus = { sedentary: -0.1, light: 0, moderate: 0.1, high: 0.2 }[profile.activity ?? 'light'];
+  const experienceProteinBonus = { beginner: 0, intermediate: 0.05, advanced: 0.1 }[profile.experience ?? 'beginner'];
+  const proteinGoal = Math.round(profile.weight * clamp(Math.max(preferenceProteinMultiplier, dietProteinMultiplier) + activityProteinBonus + experienceProteinBonus + (isLossGoal ? 0.1 : isGainGoal ? 0.15 : 0), 1.4, 2.4));
+  const fatRatio = profile.diet === 'vegan' ? 0.3 : profile.diet === 'vegetarian' ? 0.28 : isLossGoal ? (profile.goalRate === 'fast' ? 0.23 : 0.25) : isGainGoal ? 0.28 : 0.27;
+  const fat = Math.round((calories * fatRatio) / 9);
+  return { calories, protein: proteinGoal, fat, carbs: Math.max(0, Math.round((calories - proteinGoal * 4 - fat * 9) / 4)), targetWeight, projection: createGoalProjection(profile, calories, workouts, targetWeight) };
 }
 
 export function createGoalProjection(profile: Profile, calorieGoal: number, workouts: Workout[], targetWeight = profile.targetWeight ?? recommendTargetWeight(profile)): GoalProjection {
@@ -402,6 +428,22 @@ export function FitProvider({ children }: { children: ReactNode }) {
             : exercise),
         }));
         return { ...current, workouts };
+      }),
+      updateWorkout: (workoutId, patch) => setState((current) => ({
+        ...current,
+        workouts: current.workouts.map((workout) => workout.id === workoutId ? { ...workout, ...patch } : workout),
+      })),
+      updateProfile: (patch) => setState((current) => {
+        if (!current.profile) return current;
+        const profile = { ...current.profile, ...patch };
+        const nextWorkouts = buildWorkoutPlan(profile).map((workout) => {
+          const previous = current.workouts.find((item) => item.id === workout.id);
+          return previous
+            ? { ...workout, exercises: workout.exercises.map((exercise) => ({ ...exercise, completed: previous.exercises.find((item) => item.id === exercise.id)?.completed ?? false })) }
+            : workout;
+        });
+        const goals = calculateNutritionGoals(profile, nextWorkouts);
+        return { ...current, profile, weight: profile.weight, calorieGoal: goals.calories, proteinGoal: goals.protein, carbsGoal: goals.carbs, fatGoal: goals.fat, goalWeight: goals.targetWeight, goalProjection: goals.projection, workouts: nextWorkouts };
       }),
      updateNutritionGoals: (patch) => setState((current) => {
        const nextGoals = {

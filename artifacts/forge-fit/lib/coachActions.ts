@@ -40,7 +40,7 @@ function validExercise(workout: Workout | undefined, id: unknown) {
 export function validateCoachActions(rawActions: unknown, workouts: Workout[]): CoachAction[] {
   if (!Array.isArray(rawActions)) return [];
   const valid: CoachAction[] = [];
-  for (const raw of rawActions.slice(0, 8)) {
+  for (const raw of rawActions.slice(0, 6)) {
     if (!isRecord(raw) || typeof raw.type !== 'string') continue;
     if (raw.type === 'add_exercise') {
       if (!validWorkout(workouts, raw.workoutId) || !isString(raw.name) || !isIntegerInRange(raw.sets, 1, 3) || !isIntegerInRange(raw.reps, 1, 100)) continue;

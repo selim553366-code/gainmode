@@ -83,6 +83,19 @@ function normalizeImageData(imageData: unknown) {
   return base64;
 }
 
+function parseCoachPayload(content: string) {
+  const normalized = content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  try {
+    const parsed = JSON.parse(normalized) as { content?: unknown; actions?: unknown };
+    if (typeof parsed.content === "string" && Array.isArray(parsed.actions)) {
+      return { content: parsed.content.trim(), actions: parsed.actions.slice(0, 8) };
+    }
+  } catch {
+    // Keep plain-text responses usable if the model misses the JSON contract.
+  }
+  return { content, actions: [] };
+}
+
 function openAiUrl() {
   const base = process.env["AI_INTEGRATIONS_OPENAI_BASE_URL"];
   if (!base) throw new Error("OpenAI integration is not configured.");
@@ -119,12 +132,14 @@ router.post("/ai/coach", async (req, res) => {
     const userContent = normalizedImageData
       ? [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${normalizedImageData}` } }]
       : prompt;
-    const content = await askOpenAi([
-      { role: "system", content: `You are Forge Coach, an encouraging fitness and nutrition coach. Use the user's app data below to personalize answers. Never invent logged data. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[selectedLanguage]}; do not switch languages. Keep the reply medium-length: 4-6 short sentences, approximately 80-120 words, and no more than 2 short paragraphs. Avoid long explanations and long bullet lists. Give one clear, practical next step. User app data: ${normalizedContext || "No profile data yet."}` },
+    const rawContent = await askOpenAi([
+      { role: "system", content: `You are Forge Coach, an encouraging fitness and nutrition coach. Read every field in the user's app data: profile, goals, meals, workouts, exercises, weight logs, and weekly summary. Never invent logged data. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[selectedLanguage]}; do not switch languages. Keep the reply medium-length: 4-6 short sentences, approximately 80-120 words, and no more than 2 short paragraphs. Avoid long explanations and long bullet lists. Give a specific interpretation, strengths or weaknesses, and one clear practical next step. If the user asks about progression, schedule, exercises, profile, or nutrition targets, you may propose changes for approval. Return ONLY valid JSON with this exact shape: {"content":"your localized reply","actions":[]}. Allowed actions are {"type":"add_exercise","workoutId":"existing id","name":"exercise name","sets":1-3,"reps":1-100}, {"type":"remove_exercise","workoutId":"existing id","exerciseId":"existing id"}, {"type":"update_exercise","workoutId":"existing id","exerciseId":"existing id","name":"optional new name","sets":1-3,"reps":1-100}, {"type":"update_workout","workoutId":"existing id","day":"MON|TUE|WED|THU|FRI|SAT|SUN","name":"optional name","duration":15-180}, {"type":"update_profile","patch":{"field":"new value"}}, and {"type":"update_nutrition","calories":1000-6000,"protein":30-400,"carbs":30-800,"fat":20-250}. Use exact IDs from the data, never invent IDs. Use actions=[] when no change is requested or justified. User app data: ${normalizedContext || "No profile data yet."}` },
       { role: "user", content: userContent },
     ], COACH_MAX_COMPLETION_TOKENS);
-    if (!content) return res.status(502).json({ error: "AI coach returned an empty response." });
-    return res.json({ content });
+    if (!rawContent) return res.status(502).json({ error: "AI coach returned an empty response." });
+    const result = parseCoachPayload(rawContent);
+    if (!result.content) return res.status(502).json({ error: "AI coach returned an empty response." });
+    return res.json(result);
   } catch (error) {
     req.log?.error?.({ error }, "Coach request failed");
     return res.status(502).json({ error: "AI coach unavailable." });
