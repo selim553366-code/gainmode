@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Image, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,6 +49,13 @@ function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmar
     </Svg>
   </View>;
 }
+
+function guideImageForKind(kind: ExerciseKind) {
+  if (kind === 'squat') return require('@/assets/images/live-guide-squat.png');
+  if (kind === 'lunge') return require('@/assets/images/live-guide-lunge.png');
+  return require('@/assets/images/live-guide-pushup.png');
+}
+
 function ActionButton({ label, icon, onPress, disabled = false }: { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void; disabled?: boolean }) {
   const colors = useColors();
   return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.primary, opacity: disabled ? 0.5 : pressed ? 0.75 : 1 }]}><Ionicons name={icon} size={18} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{label}</Text></Pressable>;
@@ -94,6 +101,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const [cameraError, setCameraError] = React.useState(false);
   const [showRepsPanel, setShowRepsPanel] = React.useState(true);
   const [skeletonOnly, setSkeletonOnly] = React.useState(false);
+  const [showFormGuide, setShowFormGuide] = React.useState(true);
   const [skeletonPose, setSkeletonPose] = React.useState<PoseLandmarks>({});
   const stateRef = React.useRef<RepState>(initialRepState);
   const repTone = useAudioPlayer(require('@/assets/sounds/rep-confirmation.wav'));
@@ -155,7 +163,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
        <Pressable testID="toggle-skeleton-mode" accessibilityRole="button" accessibilityLabel={skeletonOnly ? t('cameraMode') : t('skeletonOnlyMode')} onPress={() => setSkeletonOnly((value) => !value)} style={({ pressed }) => [styles.modeToggle, { backgroundColor: `${colors.background}D9`, borderColor: colors.border, opacity: pressed ? 0.72 : 1 }]}><Ionicons name={skeletonOnly ? 'camera-outline' : 'body-outline'} size={18} color={colors.primary} /></Pressable>
       <Pressable accessibilityLabel={t('stopLiveWorkout')} onPress={() => router.back()} style={[styles.closeButton, { backgroundColor: `${colors.background}D9`, borderColor: colors.border }]}><Ionicons name="close" size={20} color={colors.foreground} /></Pressable>
     </View>
-      {!skeletonOnly ? <View pointerEvents="none" style={[styles.directionHint, { top: insets.top + 62, backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}55` }]}>
+       {!skeletonOnly && !showFormGuide ? <View pointerEvents="none" style={[styles.directionHint, { top: insets.top + 62, backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}55` }]}>
        <Ionicons name="information-circle-outline" size={15} color={colors.primary} />
        <Text style={[styles.directionHintText, { color: colors.foreground }]}>{directionHint}</Text>
       </View> : null}
@@ -175,10 +183,38 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
         <View style={[styles.cameraPlacementHint, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}><Ionicons name="camera-outline" size={15} color={colors.primary} /><Text style={[styles.cameraPlacementText, { color: colors.mutedForeground }]}>{t('liveCameraPlacement')}</Text></View>
         <View style={[styles.feedback, { backgroundColor: analysis.warning === 'liveGoodForm' ? `${colors.success}18` : `${colors.orange}18`, borderColor: analysis.warning === 'liveGoodForm' ? `${colors.success}45` : `${colors.orange}45` }]}><Ionicons name={analysis.warning === 'liveGoodForm' ? 'checkmark-circle' : 'alert-circle'} size={19} color={analysis.warning === 'liveGoodForm' ? colors.success : colors.orange} /><Text style={[styles.feedbackText, { color: colors.foreground }]}>{t(analysis.warning)}</Text></View>
         <Text style={[styles.privacyText, { color: colors.mutedForeground }]}>{t('livePrivacyNote')}</Text>
-      </View> : <Pressable testID="show-live-reps-panel" accessibilityRole="button" accessibilityLabel={t('showRepsPanel')} onPress={() => setShowRepsPanel(true)} style={({ pressed }) => [styles.showRepsButton, { bottom: insets.bottom + 22, backgroundColor: `${colors.background}EC`, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
+       </View> : <Pressable testID="show-live-reps-panel" accessibilityRole="button" accessibilityLabel={t('showRepsPanel')} onPress={() => setShowRepsPanel(true)} style={({ pressed }) => [styles.showRepsButton, { bottom: insets.bottom + 22, backgroundColor: `${colors.background}EC`, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
         <Ionicons name="eye-outline" size={16} color={colors.primary} />
         <Text style={[styles.showRepsButtonText, { color: colors.foreground }]}>{t('showRepsPanel')}</Text>
       </Pressable>}
+       {showFormGuide ? <View style={styles.guideBackdrop}>
+         <View style={[styles.guideCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+           <View style={styles.guideHeader}>
+             <View style={styles.guideTitleRow}>
+               <View style={[styles.guideIcon, { backgroundColor: `${colors.primary}18` }]}>
+                 <Ionicons name="body-outline" size={18} color={colors.primary} />
+               </View>
+               <View style={styles.guideTitleWrap}>
+                 <Text style={[styles.guideEyebrow, { color: colors.primary }]}>{title}</Text>
+                 <Text style={[styles.guideTitle, { color: colors.foreground }]}>{t('liveFormGuideTitle')}</Text>
+               </View>
+             </View>
+             <Pressable testID="dismiss-live-form-guide" accessibilityRole="button" accessibilityLabel={t('liveFormGuideDismiss')} onPress={() => setShowFormGuide(false)} hitSlop={10} style={[styles.guideClose, { backgroundColor: colors.secondary }]}>
+               <Ionicons name="close" size={18} color={colors.foreground} />
+             </Pressable>
+           </View>
+           <Image source={guideImageForKind(kind)} resizeMode="cover" style={styles.guideImage} />
+           <Text style={[styles.guideBody, { color: colors.foreground }]}>{directionHint}</Text>
+           <View style={[styles.guideTip, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}>
+             <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
+             <Text style={[styles.guideTipText, { color: colors.mutedForeground }]}>{t('liveFormGuideTip')}</Text>
+           </View>
+           <Pressable testID="start-live-form-analysis" accessibilityRole="button" accessibilityLabel={t('liveFormGuideDismiss')} onPress={() => setShowFormGuide(false)} style={({ pressed }) => [styles.guideAction, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}>
+             <Text style={[styles.guideActionText, { color: colors.primaryForeground }]}>{t('liveFormGuideDismiss')}</Text>
+             <Ionicons name="arrow-forward" size={17} color={colors.primaryForeground} />
+           </Pressable>
+         </View>
+       </View> : null}
   </View>;
 }
 
@@ -223,6 +259,21 @@ const styles = StyleSheet.create({
   feedback: { minHeight: 40, borderRadius: 12, borderWidth: 1, marginTop: 7, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
   feedbackText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 15 },
   privacyText: { fontFamily: 'Inter_400Regular', fontSize: 9, lineHeight: 12, marginTop: 7 },
+  guideBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 20, backgroundColor: '#020B18B8', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
+  guideCard: { width: '100%', maxWidth: 420, borderRadius: 24, borderWidth: 1, padding: 12, shadowColor: '#000000', shadowOpacity: 0.28, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
+  guideHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  guideTitleRow: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 9 },
+  guideIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  guideTitleWrap: { flex: 1 },
+  guideEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1, textTransform: 'uppercase' },
+  guideTitle: { fontFamily: 'Inter_700Bold', fontSize: 20, lineHeight: 24, marginTop: 1 },
+  guideClose: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  guideImage: { width: '100%', height: 218, borderRadius: 16, backgroundColor: '#0B0D0C' },
+  guideBody: { fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18, marginTop: 11 },
+  guideTip: { minHeight: 42, borderRadius: 12, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 7, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  guideTipText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 14 },
+  guideAction: { minHeight: 44, borderRadius: 14, marginTop: 10, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  guideActionText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   fallback: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   fallbackIcon: { width: 78, height: 78, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
   fallbackTitle: { fontFamily: 'Inter_700Bold', fontSize: 26, lineHeight: 32, letterSpacing: -0.8, textAlign: 'center' },
