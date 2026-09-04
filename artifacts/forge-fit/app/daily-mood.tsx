@@ -61,11 +61,7 @@ export default function DailyMoodScreen() {
   React.useEffect(() => {
     if (alreadyCompletedToday && !completed) {
       router.back();
-      return undefined;
     }
-    if (!completed) return undefined;
-    const timeout = setTimeout(() => router.back(), 2300);
-    return () => clearTimeout(timeout);
   }, [alreadyCompletedToday, completed]);
 
   const choose = (questionId: MoodAnswerKey, choiceId: string) => {
@@ -80,7 +76,7 @@ export default function DailyMoodScreen() {
       : t('dailyMoodQuoteSteady');
 
   if (completed) {
-    return <Screen><View style={styles.completeState}><View style={[styles.completeIcon, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="checkmark" size={33} color={colors.primary} /></View><Text style={[styles.completeEyebrow, { color: colors.primary }]}>{t('dailyMoodCompleteEyebrow')}</Text><Text style={[styles.completeTitle, { color: colors.foreground }]}>{t('dailyMoodCompleteTitle')}</Text><Text style={[styles.quote, { color: colors.foreground }]}>&ldquo;{quote}&rdquo;</Text><Text style={[styles.completeHint, { color: colors.mutedForeground }]}>{t('dailyMoodClosing')}</Text></View></Screen>;
+    return <Screen><View style={styles.completeState}><View style={[styles.completeIcon, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="checkmark" size={33} color={colors.primary} /></View><Text style={[styles.completeEyebrow, { color: colors.primary }]}>{t('dailyMoodCompleteEyebrow')}</Text><Text style={[styles.completeTitle, { color: colors.foreground }]}>{t('dailyMoodCompleteTitle')}</Text><Text style={[styles.quote, { color: colors.foreground }]}>&ldquo;{quote}&rdquo;</Text><Text style={[styles.completeHint, { color: colors.mutedForeground }]}>{t('dailyMoodClosing')}</Text><Pressable accessibilityRole="button" onPress={() => { triggerHaptic(); router.back(); }} style={({ pressed }) => [styles.doneButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}><Text style={[styles.doneButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodDone')}</Text><Ionicons name="checkmark" size={18} color={colors.primaryForeground} /></Pressable></View></Screen>;
   }
 
   return (
@@ -123,4 +119,6 @@ const styles = StyleSheet.create({
   completeTitle: { fontFamily: 'Inter_700Bold', fontSize: 27, textAlign: 'center', marginTop: 10 },
   quote: { fontFamily: 'Inter_600SemiBold', fontSize: 18, lineHeight: 27, textAlign: 'center', marginTop: 22 },
   completeHint: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 22 },
+  doneButton: { minHeight: 54, borderRadius: 18, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginTop: 28, minWidth: 170 },
+  doneButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
 });

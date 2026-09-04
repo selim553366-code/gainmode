@@ -1432,7 +1432,8 @@ const dailyMoodTranslations = {
     dailyMoodQuoteGentle: 'Yavaşlamak da ilerlemenin bir parçası. Bugün kendine gösterdiğin anlayış, yarının gücünü hazırlar.',
     dailyMoodQuoteSteady: 'Her gün mükemmel olmak zorunda değil. Tutarlı küçük adımlar seni hedeflerine taşır.',
     dailyMoodQuoteStrong: 'Bugünkü enerjini kendine yatırım yapmak için kullan. Gücün, attığın her bilinçli adımla büyüyor.',
-    dailyMoodClosing: 'Bu pencere birazdan kapanacak.',
+     dailyMoodClosing: 'Devam etmek için aşağıdaki butona dokun.',
+     dailyMoodDone: 'Tamamdır',
   },
   en: {
     notificationDailyMoodTitle: 'Time for your daily mood check',
@@ -1467,7 +1468,8 @@ const dailyMoodTranslations = {
     dailyMoodQuoteGentle: 'Slowing down is part of progress. The kindness you show yourself today prepares tomorrow’s strength.',
     dailyMoodQuoteSteady: 'Every day does not have to be perfect. Consistent small steps carry you toward your goals.',
     dailyMoodQuoteStrong: 'Use today’s energy as an investment in yourself. Your strength grows with every intentional step.',
-    dailyMoodClosing: 'This screen will close in a moment.',
+     dailyMoodClosing: 'Tap the button below to continue.',
+     dailyMoodDone: 'Done',
   },
   de: {
     notificationDailyMoodTitle: 'Zeit für deinen täglichen Stimmungscheck',
@@ -1502,7 +1504,8 @@ const dailyMoodTranslations = {
     dailyMoodQuoteGentle: 'Langsamer zu werden gehört zum Fortschritt. Deine Freundlichkeit heute bereitet die Kraft von morgen vor.',
     dailyMoodQuoteSteady: 'Nicht jeder Tag muss perfekt sein. Kleine, konstante Schritte bringen dich deinen Zielen näher.',
     dailyMoodQuoteStrong: 'Nutze deine Energie heute als Investition in dich. Deine Kraft wächst mit jedem bewussten Schritt.',
-    dailyMoodClosing: 'Dieser Bildschirm schließt gleich.',
+     dailyMoodClosing: 'Tippe auf die Schaltfläche unten, um fortzufahren.',
+     dailyMoodDone: 'Fertig',
   },
   fr: {
     notificationDailyMoodTitle: 'C’est l’heure de ton bilan du jour',
@@ -1537,7 +1540,8 @@ const dailyMoodTranslations = {
     dailyMoodQuoteGentle: 'Ralentir fait partie du progrès. La bienveillance envers toi aujourd’hui prépare ta force de demain.',
     dailyMoodQuoteSteady: 'Chaque journée n’a pas besoin d’être parfaite. De petits pas réguliers te rapprochent de tes objectifs.',
     dailyMoodQuoteStrong: 'Utilise ton énergie pour investir en toi. Ta force grandit à chaque pas conscient.',
-    dailyMoodClosing: 'Cet écran va se fermer dans un instant.',
+     dailyMoodClosing: 'Appuie sur le bouton ci-dessous pour continuer.',
+     dailyMoodDone: 'C’est fait',
   },
   es: {
     notificationDailyMoodTitle: 'Es hora de revisar tu estado de ánimo',
@@ -1572,7 +1576,8 @@ const dailyMoodTranslations = {
     dailyMoodQuoteGentle: 'Bajar el ritmo también es avanzar. La amabilidad que te das hoy prepara la fuerza de mañana.',
     dailyMoodQuoteSteady: 'No todos los días tienen que ser perfectos. Los pequeños pasos constantes te acercan a tus objetivos.',
     dailyMoodQuoteStrong: 'Usa la energía de hoy para invertir en ti. Tu fuerza crece con cada paso consciente.',
-    dailyMoodClosing: 'Esta pantalla se cerrará en un momento.',
+     dailyMoodClosing: 'Toca el botón de abajo para continuar.',
+     dailyMoodDone: 'Listo',
   },
 } as const;
 
