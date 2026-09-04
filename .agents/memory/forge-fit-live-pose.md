@@ -15,11 +15,11 @@ The pose package’s published compatibility range is broader than its actual na
 
 **How to apply:** Preserve the workspace-level pnpm compatibility patch while Forge Fit remains on Expo 54. Convert buffers by duplicating and copying their remaining bytes (direct buffers cannot use `array()`), and remove the patch only after an Expo upgrade compiles the package unmodified.
 
-Android's front-camera PreviewView and native pose overlay must use the same selfie mirror; JS-rendered skeleton fallbacks must apply the matching horizontal transform.
+Forge Fit intentionally keeps the front-camera preview natural while mirroring only the pose rig; JS-rendered skeleton fallbacks must match the rig transform.
 
-**Why:** CameraX's PreviewView does not reliably mirror the front-camera preview by itself, so leaving only the landmark overlay mirrored makes a raised left hand appear on the opposite side.
+**Why:** The product experience needs an unmirrored camera view, but the anatomical rig must be flipped so the user's left/right movement is represented correctly in the overlay.
 
-**How to apply:** For the front camera, set the preview horizontal scale to `-1f`, mirror native overlay landmarks, and use `1 - normalizedX` for any JS-rendered skeleton fallback. Keep the back camera unmirrored.
+**How to apply:** Keep the front-camera preview scale at `1f`, mirror native overlay landmarks, and use `1 - normalizedX` for any JS-rendered skeleton fallback. Keep the back camera and its rig unmirrored.
 
 CameraX's `PreviewView` performance mode can composite its SurfaceView above a sibling pose overlay on some Android builds.
 

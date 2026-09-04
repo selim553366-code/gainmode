@@ -150,9 +150,9 @@ diff --git a/android/src/main/java/com/posedetection/camera/CameraSource.kt b/an
 @@ -201,2 +201,5 @@ internal class CameraSource(
          val lens = resolveAvailable(provider, target)
          val rotation = currentRotation()
-+        // The front camera is presented as a selfie preview. The native overlay
-+        // mirrors its landmarks below so both layers stay aligned.
-+        previewView.scaleX = if (lens == Facing.FRONT) -1f else 1f
++        // Keep the camera preview in its natural orientation. The rig overlay
++        // is mirrored independently below for left/right body alignment.
++        previewView.scaleX = 1f
 diff --git a/android/src/main/java/com/posedetection/detector/PoseDetector.kt b/android/src/main/java/com/posedetection/detector/PoseDetector.kt
 --- a/android/src/main/java/com/posedetection/detector/PoseDetector.kt
 +++ b/android/src/main/java/com/posedetection/detector/PoseDetector.kt
