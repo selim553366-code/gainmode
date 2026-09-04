@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { Language, translate } from '@/lib/i18n';
 import { Profile } from '@/context/FitContext';
+import { DAILY_MOOD_NOTIFICATION_HOUR, DAILY_MOOD_NOTIFICATION_MINUTE } from '@/lib/dailyMood';
 
 export type NotificationSettings = {
   workoutReminder: boolean;
@@ -65,11 +66,12 @@ export async function hasNotificationPermission() {
 }
 
 function content(language: Language, titleKey: Parameters<typeof translate>[1], bodyKey: Parameters<typeof translate>[1]) {
+  const isDailyMood = titleKey === 'notificationDailyMoodTitle';
   return {
     title: translate(language, titleKey),
     body: translate(language, bodyKey),
     sound: 'default' as const,
-    data: { source: 'forge-fit-reminder' },
+    data: { source: isDailyMood ? 'forge-fit-daily-mood' : 'forge-fit-reminder' },
   };
 }
 
@@ -100,7 +102,6 @@ async function syncFitnessNotificationsNow({
 }) {
   if (Platform.OS === 'web') return;
   await Notifications.cancelAllScheduledNotificationsAsync();
-  if (!Object.values(settings).some(Boolean)) return;
   if (!(await requestNotificationPermission())) return;
   if (!(await prepareNotifications())) return;
 
@@ -124,6 +125,7 @@ async function syncFitnessNotificationsNow({
   if (settings.coachCheckIn) {
     await scheduleDaily(language, 'notificationCoachTitle', 'notificationCoachBody', 20);
   }
+  await scheduleDaily(language, 'notificationDailyMoodTitle', 'notificationDailyMoodBody', DAILY_MOOD_NOTIFICATION_HOUR, DAILY_MOOD_NOTIFICATION_MINUTE);
   if (settings.weeklySummary) {
     await scheduleWeekly(language, 'notificationSummaryTitle', 'notificationSummaryBody', 1, 18);
   }

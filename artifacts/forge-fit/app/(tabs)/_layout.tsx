@@ -3,11 +3,13 @@ import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'reac
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
-import { Feather } from '@/components/AppIcon';
-import { Tabs } from 'expo-router';
+import { Feather, Ionicons } from '@/components/AppIcon';
+import { router, Tabs } from 'expo-router';
 import { PremiumLock } from '@/components/FitUI';
 import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { isDailyMoodDue } from '@/lib/dailyMood';
+import { localDateKey } from '@/lib/nutritionDates';
 
 const tabOrder = ['index', 'nutrition', 'coach', 'plan', 'progress'];
 
@@ -142,6 +144,33 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   );
 }
 
+function DailyMoodPrompt() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { language, onboardingComplete, dailyMoodCompletedDate } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const [dismissed, setDismissed] = React.useState(false);
+  const [due, setDue] = React.useState(isDailyMoodDue());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => setDue(isDailyMoodDue()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (!onboardingComplete || dismissed || !due || dailyMoodCompletedDate === localDateKey()) return null;
+
+  return (
+    <View pointerEvents="box-none" style={[styles.moodPromptOverlay, { top: insets.top + 10 }]}>
+      <View style={[styles.moodPrompt, { backgroundColor: colors.card, borderColor: `${colors.primary}70`, shadowColor: colors.background }]}>
+        <View style={[styles.moodPromptIcon, { backgroundColor: `${colors.primary}1F` }]}><Ionicons name="sparkles" size={19} color={colors.primary} /></View>
+        <View style={styles.moodPromptCopy}><Text style={[styles.moodPromptTitle, { color: colors.foreground }]}>{t('dailyMoodPromptTitle')}</Text><Text style={[styles.moodPromptBody, { color: colors.mutedForeground }]}>{t('dailyMoodPromptBody')}</Text></View>
+        <Pressable accessibilityRole="button" onPress={() => { setDismissed(true); router.push('/daily-mood'); }} style={({ pressed }) => [styles.moodPromptButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.moodPromptButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodOpen')}</Text></Pressable>
+        <Pressable accessibilityLabel={t('dailyMoodLater')} onPress={() => setDismissed(true)} hitSlop={8}><Ionicons name="close" size={18} color={colors.mutedForeground} /></Pressable>
+      </View>
+    </View>
+  );
+}
+
 export default function TabLayout() {
   const colors = useColors();
   const { isPremium } = useFit();
@@ -149,13 +178,16 @@ export default function TabLayout() {
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   if (!isPremium && SUBSCRIPTION_PURCHASE_ENABLED) return <PremiumLock />;
   return (
-    <Tabs tabBar={(props) => <FloatingTabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}>
-      <Tabs.Screen name="index" options={{ title: t('today') }} />
-      <Tabs.Screen name="nutrition" options={{ title: t('nutrition') }} />
-      <Tabs.Screen name="plan" options={{ title: t('plan') }} />
-      <Tabs.Screen name="coach" options={{ title: t('coachTitle') }} />
-       <Tabs.Screen name="progress" options={{ title: t('progress') }} />
-    </Tabs>
+    <View style={{ flex: 1 }}>
+      <Tabs tabBar={(props) => <FloatingTabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}>
+        <Tabs.Screen name="index" options={{ title: t('today') }} />
+        <Tabs.Screen name="nutrition" options={{ title: t('nutrition') }} />
+        <Tabs.Screen name="plan" options={{ title: t('plan') }} />
+        <Tabs.Screen name="coach" options={{ title: t('coachTitle') }} />
+         <Tabs.Screen name="progress" options={{ title: t('progress') }} />
+      </Tabs>
+      <DailyMoodPrompt />
+    </View>
   );
 }
 
@@ -172,4 +204,12 @@ const styles = StyleSheet.create({
   coachThinkingOverlay: { position: 'absolute', left: -6, top: -6 },
   coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 7, letterSpacing: 0.8 },
   coachTabDot: { width: 5, height: 5, borderRadius: 3, marginTop: 4 },
+  moodPromptOverlay: { position: 'absolute', left: 14, right: 14, zIndex: 20 },
+  moodPrompt: { borderRadius: 20, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9, shadowOpacity: 0.28, shadowRadius: 15, shadowOffset: { width: 0, height: 7 }, elevation: 10 },
+  moodPromptIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  moodPromptCopy: { flex: 1, minWidth: 0 },
+  moodPromptTitle: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  moodPromptBody: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 14, marginTop: 2 },
+  moodPromptButton: { borderRadius: 11, paddingHorizontal: 10, paddingVertical: 9 },
+  moodPromptButtonText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
 });

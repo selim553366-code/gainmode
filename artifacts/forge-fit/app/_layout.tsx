@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Image, Platform } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -13,6 +13,8 @@ import {
   useFonts,
 } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
+import { router } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { FitProvider } from '@/context/FitContext';
 import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
@@ -31,6 +33,20 @@ try {
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const handledDailyMoodResponse = useRef(false);
+  useEffect(() => {
+    if (Platform.OS === 'web') return undefined;
+    const openDailyMood = (response: Notifications.NotificationResponse | null) => {
+      if (response?.notification.request.content.data?.source !== 'forge-fit-daily-mood' || handledDailyMoodResponse.current) return;
+      handledDailyMoodResponse.current = true;
+      Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+      setTimeout(() => router.push('/daily-mood'), 0);
+    };
+    const subscription = Notifications.addNotificationResponseReceivedListener(openDailyMood);
+    Notifications.getLastNotificationResponseAsync().then(openDailyMood).catch(() => undefined);
+    return () => subscription.remove();
+  }, []);
+
   return (
     <Stack screenOptions={{ headerBackTitle: 'Back' }}>
       <Stack.Screen name="index" options={{ headerShown: false, contentStyle: { backgroundColor: '#07182A' } }} />
@@ -40,6 +56,7 @@ function RootLayoutNav() {
       <Stack.Screen name="update-preferences" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="streak" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="features" options={{ headerShown: false, presentation: 'card' }} />
+      <Stack.Screen name="daily-mood" options={{ headerShown: false, presentation: 'card' }} />
     </Stack>
   );
 }

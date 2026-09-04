@@ -81,6 +81,7 @@ type FitState = {
   weightLogs: { id: string; value: number; date: string }[];
   notificationSettings: NotificationSettings;
   profileEditUsedMonth: string | null;
+  dailyMoodCompletedDate: string | null;
 };
 
 type FitContextValue = FitState & {
@@ -109,6 +110,7 @@ type FitContextValue = FitState & {
   addChallenge: (name: string, target: number) => void;
   addWeight: (value: number) => void;
   setNotificationSetting: (key: NotificationSettingKey, enabled: boolean) => void;
+  completeDailyMood: () => void;
 };
 
 const initialState: FitState = {
@@ -144,6 +146,7 @@ const initialState: FitState = {
     weeklySummary: true,
   },
   profileEditUsedMonth: null,
+  dailyMoodCompletedDate: null,
 };
 
 const FitContext = createContext<FitContextValue | null>(null);
@@ -461,6 +464,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
     addChallenge: (name, target) => setState((current) => ({ ...current, challenges: [...current.challenges, { id: `${Date.now()}-${Math.random()}`, name, target, progress: 0 }] })),
      addWeight: (value) => setState((current) => recordStreakActivity({ ...current, weight: value, weightLogs: [...current.weightLogs, { id: `${Date.now()}-${Math.random()}`, value, date: new Date().toISOString() }] })),
     setNotificationSetting: (key, enabled) => setState((current) => ({ ...current, notificationSettings: { ...current.notificationSettings, [key]: enabled } })),
+    completeDailyMood: () => setState((current) => ({ ...current, dailyMoodCompletedDate: localDateKey() })),
   }), [state, coachThinking]);
 
   return <FitContext.Provider value={value}>{children}</FitContext.Provider>;
