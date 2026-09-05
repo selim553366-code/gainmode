@@ -21,7 +21,7 @@ export function getApiBaseUrl() {
 export function apiUrl(path: string) {
   const baseUrl = configuredBaseUrl();
   if (!baseUrl) {
-    throw new Error('Forge Fit API is not configured.');
+    throw new Error('GainMode API is not configured.');
   }
   return `${baseUrl}/${path.replace(/^\/+/, '')}`;
 }

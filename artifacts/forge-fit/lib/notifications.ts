@@ -41,7 +41,7 @@ async function prepareNotifications() {
   if (Platform.OS === 'web') return false;
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: 'Forge Fit reminders',
+      name: 'GainMode reminders',
       importance: Notifications.AndroidImportance.DEFAULT,
       sound: undefined,
     });

@@ -221,6 +221,9 @@ const pages = {
 
 function escapeHtml(value) {
   return String(value)
+    .replace(/Forge Fit/g, 'GainMode')
+    .replace(/FORGE FIT/g, 'GAINMODE')
+    .replace(/Forge-Fit/g, 'GainMode')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -259,8 +262,8 @@ function renderAccountDeletionPage(language = 'en', basePath = '/') {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="${escapeHtml(page.title)} — Forge Fit">
-    <title>${escapeHtml(page.title)} · Forge Fit</title>
+    <meta name="description" content="${escapeHtml(page.title)} — GainMode">
+    <title>${escapeHtml(page.title)} · GainMode</title>
     <style>
       :root {
         color-scheme: dark;
@@ -309,7 +312,7 @@ function renderAccountDeletionPage(language = 'en', basePath = '/') {
   <body>
     <main class="page">
       <nav>
-        <a class="brand" href="${prefix}/">FORGE FIT</a>
+        <a class="brand" href="${prefix}/">GAINMODE</a>
         <div class="language" aria-label="${escapeHtml(page.language)}">
           <span class="language-label">${escapeHtml(page.language)}:</span>
           ${languageLinks}

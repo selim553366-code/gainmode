@@ -1588,38 +1588,42 @@ const dailyMoodTranslations = {
 
 export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr;
 
+function applyCurrentBrand(value: string): string {
+  return value.replace(/Forge Fit/g, 'GainMode').replace(/FORGE FIT/g, 'GAINMODE').replace(/Forge-Fit/g, 'GainMode');
+}
+
 export function translate(language: Language, key: TranslationKey): string {
-  if (key === 'premiumPriceOptions') return getPremiumPreviewPriceOptions(language);
+  if (key === 'premiumPriceOptions') return applyCurrentBrand(getPremiumPreviewPriceOptions(language));
   if (key in featuresTranslations.tr) {
     const featureCopy = featuresTranslations[language] ?? featuresTranslations.en;
-    return featureCopy[key as keyof typeof featuresTranslations.tr] ?? featuresTranslations.en[key as keyof typeof featuresTranslations.tr] ?? key;
+    return applyCurrentBrand(featureCopy[key as keyof typeof featuresTranslations.tr] ?? featuresTranslations.en[key as keyof typeof featuresTranslations.tr] ?? key);
   }
   if (key in dailyMoodTranslations.tr) {
     const moodCopy = dailyMoodTranslations[language] ?? dailyMoodTranslations.en;
-    return moodCopy[key as keyof typeof dailyMoodTranslations.tr] ?? dailyMoodTranslations.en[key as keyof typeof dailyMoodTranslations.tr] ?? key;
+    return applyCurrentBrand(moodCopy[key as keyof typeof dailyMoodTranslations.tr] ?? dailyMoodTranslations.en[key as keyof typeof dailyMoodTranslations.tr] ?? key);
   }
-  if (key in premiumPlanTranslations.tr) return premiumPlanTranslations[language][key as keyof typeof premiumPlanTranslations.tr];
-  if (key in streakUiTranslations.tr) return streakUiTranslations[language][key as keyof typeof streakUiTranslations.tr];
-  if (key === 'premiumFeature1') return premiumFeatureOneCopy[language];
-  if (key === 'premiumFeature2') return premiumBenefitCopy[language].photo;
-  if (key === 'premiumFeature3') return premiumBenefitCopy[language].coach;
-  if (key === 'coachLimitReached') return usageLimitCopy[language].coach;
-  if (key === 'photoLimitReached') return usageLimitCopy[language].photo;
-  if (key === 'homeEquipmentDetailsHint') return homeEquipmentDetailsCopy[language].hint;
-  if (key === 'homeEquipmentDetailsPlaceholder') return homeEquipmentDetailsCopy[language].placeholder;
-  if (key === 'onboardingIntro2') return onboardingIntro2Translations[language];
-  if (key === 'onboardingTitle') return onboardingMotivationTranslations[language].title;
-  if (key === 'onboardingIntro') return onboardingMotivationTranslations[language].intro;
-  if (key === 'welcomeSubtitle') return onboardingMotivationTranslations[language].welcomeSubtitle;
+  if (key in premiumPlanTranslations.tr) return applyCurrentBrand(premiumPlanTranslations[language][key as keyof typeof premiumPlanTranslations.tr]);
+  if (key in streakUiTranslations.tr) return applyCurrentBrand(streakUiTranslations[language][key as keyof typeof streakUiTranslations.tr]);
+  if (key === 'premiumFeature1') return applyCurrentBrand(premiumFeatureOneCopy[language]);
+  if (key === 'premiumFeature2') return applyCurrentBrand(premiumBenefitCopy[language].photo);
+  if (key === 'premiumFeature3') return applyCurrentBrand(premiumBenefitCopy[language].coach);
+  if (key === 'coachLimitReached') return applyCurrentBrand(usageLimitCopy[language].coach);
+  if (key === 'photoLimitReached') return applyCurrentBrand(usageLimitCopy[language].photo);
+  if (key === 'homeEquipmentDetailsHint') return applyCurrentBrand(homeEquipmentDetailsCopy[language].hint);
+  if (key === 'homeEquipmentDetailsPlaceholder') return applyCurrentBrand(homeEquipmentDetailsCopy[language].placeholder);
+  if (key === 'onboardingIntro2') return applyCurrentBrand(onboardingIntro2Translations[language]);
+  if (key === 'onboardingTitle') return applyCurrentBrand(onboardingMotivationTranslations[language].title);
+  if (key === 'onboardingIntro') return applyCurrentBrand(onboardingMotivationTranslations[language].intro);
+  if (key === 'welcomeSubtitle') return applyCurrentBrand(onboardingMotivationTranslations[language].welcomeSubtitle);
   if (key in profileEditTranslations.tr) {
     const profileEdit = profileEditTranslations[language] as Record<string, string>;
     const fallbackProfileEdit = profileEditTranslations.en as Record<string, string>;
-    return profileEdit[key] ?? fallbackProfileEdit[key] ?? key;
+    return applyCurrentBrand(profileEdit[key] ?? fallbackProfileEdit[key] ?? key);
   }
   if (key in workoutPlanTranslations.tr) {
     const workoutPlan = workoutPlanTranslations[language] as Record<string, string>;
     const fallbackWorkoutPlan = workoutPlanTranslations.en as Record<string, string>;
-    return workoutPlan[key] ?? fallbackWorkoutPlan[key] ?? key;
+    return applyCurrentBrand(workoutPlan[key] ?? fallbackWorkoutPlan[key] ?? key);
   }
   const base = translations[language] as Record<string, string>;
   const fallbackBase = translations.en as Record<string, string>;
@@ -1629,5 +1633,5 @@ export function translate(language: Language, key: TranslationKey): string {
   const fallbackPremium = premiumTranslations.en as Record<string, string>;
   const settings = settingsTranslations[language] as Record<string, string>;
   const fallbackSettings = settingsTranslations.en as Record<string, string>;
-  return base[key] ?? extra[key] ?? premium[key] ?? settings[key] ?? fallbackBase[key] ?? fallbackExtra[key] ?? fallbackPremium[key] ?? fallbackSettings[key] ?? key;
+  return applyCurrentBrand(base[key] ?? extra[key] ?? premium[key] ?? settings[key] ?? fallbackBase[key] ?? fallbackExtra[key] ?? fallbackPremium[key] ?? fallbackSettings[key] ?? key);
 }

@@ -9,7 +9,7 @@
         "origin": "https://replit.com/"
       }
     },
-    "name": "Forge Fit",
+    "name": "GainMode",
     "slug": "forge-fit",
     "version": "1.0.2",
     "orientation": "portrait",
@@ -51,21 +51,21 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Forge Fit to use your camera for meal, barcode, and movement analysis.",
+          "cameraPermission": "Allow GainMode to use your camera for meal, barcode, and movement analysis.",
           "recordAudioAndroid": false
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Forge Fit to access a meal photo you choose for nutrition analysis."
+          "photosPermission": "Allow GainMode to access a meal photo you choose for nutrition analysis."
         }
       ],
       [
         "react-native-pose-detection",
         {
           "model": "full",
-          "cameraPermissionText": "Forge Fit uses the camera to analyze your movement."
+          "cameraPermissionText": "GainMode uses the camera to analyze your movement."
         }
       ],
       "expo-asset"

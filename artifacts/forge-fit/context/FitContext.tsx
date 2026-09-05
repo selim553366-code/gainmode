@@ -319,7 +319,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     syncFitnessNotifications({ settings: state.notificationSettings, profile: state.profile, language: state.language }).catch((error) => {
-      console.warn('Forge Fit notifications could not be synchronized.', error);
+      console.warn('GainMode notifications could not be synchronized.', error);
     });
   }, [hydrated, state.notificationSettings, state.profile, state.language]);
 

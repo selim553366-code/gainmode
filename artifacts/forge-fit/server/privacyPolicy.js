@@ -416,6 +416,9 @@ const policies = {
 
 function escapeHtml(value) {
   return String(value)
+    .replace(/Forge Fit/g, 'GainMode')
+    .replace(/FORGE FIT/g, 'GAINMODE')
+    .replace(/Forge-Fit/g, 'GainMode')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -454,8 +457,8 @@ function renderPrivacyPolicyPage(language = 'en', basePath = '/') {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="${escapeHtml(policy.title)} — Forge Fit">
-    <title>${escapeHtml(policy.title)} · Forge Fit</title>
+    <meta name="description" content="${escapeHtml(policy.title)} — GainMode">
+    <title>${escapeHtml(policy.title)} · GainMode</title>
     <style>
       :root {
         color-scheme: dark;
@@ -505,7 +508,7 @@ function renderPrivacyPolicyPage(language = 'en', basePath = '/') {
   <body>
     <main class="page">
       <nav>
-        <a class="brand" href="${prefix}/">FORGE FIT</a>
+        <a class="brand" href="${prefix}/">GAINMODE</a>
         <div class="language" aria-label="${escapeHtml(policy.language)}">
           <span class="language-label">${escapeHtml(policy.language)}:</span>
           ${languageLinks}
