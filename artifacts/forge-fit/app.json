@@ -23,6 +23,7 @@
       "backgroundColor": "#0B0D0C"
     },
     "ios": {
+      "bundleIdentifier": "com.forgefit2.app",
       "supportsTablet": false
     },
     "android": {
