@@ -164,3 +164,104 @@ diff --git a/android/src/main/java/com/posedetection/detector/PoseDetector.kt b/
 +                    .setRotationDegrees(quarter * DEGREES_PER_QUARTER)
                      .build()
              }
+diff --git a/ios/PoseDetectionModule.swift b/ios/PoseDetectionModule.swift
+--- a/ios/PoseDetectionModule.swift
++++ b/ios/PoseDetectionModule.swift
+@@ -27,7 +27,7 @@ public class PoseDetectionModule: Module {
+           angleJoints: angleJoints(from: options),
+           selection: selection(from: options)
+         )
+-        promise.resolve(NativeArrayBuffer.wrap(dataWithoutCopy: buffer))
++        promise.resolve(buffer)
+       } catch {
+         promise.reject("DETECTION_FAILED", error.localizedDescription)
+       }
+@@ -45,7 +45,7 @@ public class PoseDetectionModule: Module {
+             self?.sendEvent("onVideoProgress", ["taskId": taskId, "progress": progress])
+           }
+         )
+-        promise.resolve(NativeArrayBuffer.wrap(dataWithoutCopy: buffer))
++        promise.resolve(buffer)
+       } catch {
+         promise.reject("DETECTION_FAILED", error.localizedDescription)
+       }
+@@ -200,9 +200,9 @@ extension PoseDetectionModule {
+       // neither side is ours: annotating the closure `@MainActor` adds a second warning about
+       // losing that isolation on the way in rather than removing the first. Left as it is, and
+       // recorded here so the next person does not repeat the experiment. See docs/native-modules.md.
+-      AsyncFunction("drainFrames") { (view: PoseCameraView) -> NativeArrayBuffer in view.drainFrames() }
+-      AsyncFunction("snapshotFrame") { (view: PoseCameraView) -> NativeArrayBuffer in view.snapshotFrame() }
+-      AsyncFunction("takeTriggerSnapshot") { (view: PoseCameraView, snapshotId: Int) -> NativeArrayBuffer in
++      AsyncFunction("drainFrames") { (view: PoseCameraView) -> Data in view.drainFrames() }
++      AsyncFunction("snapshotFrame") { (view: PoseCameraView) -> Data in view.snapshotFrame() }
++      AsyncFunction("takeTriggerSnapshot") { (view: PoseCameraView, snapshotId: Int) -> Data in
+         view.takeTriggerSnapshot(snapshotId)
+       }
+     }
+diff --git a/ios/view/PoseCameraView+Ref.swift b/ios/view/PoseCameraView+Ref.swift
+--- a/ios/view/PoseCameraView+Ref.swift
++++ b/ios/view/PoseCameraView+Ref.swift
+@@ -99,17 +99,17 @@ extension PoseCameraView {
+     restartSessionIfGeometryChanged()
+   }
+ 
+-  func drainFrames() -> NativeArrayBuffer {
+-    return NativeArrayBuffer.wrap(dataWithoutCopy: frames.drain())
++  func drainFrames() -> Data {
++    return frames.drain()
+   }
+ 
+-  func snapshotFrame() -> NativeArrayBuffer {
+-    return NativeArrayBuffer.wrap(dataWithoutCopy: frames.snapshot())
++  func snapshotFrame() -> Data {
++    return frames.snapshot()
+   }
+ 
+   /// An unknown or spent ticket is an empty buffer, which is the documented contract.
+-  func takeTriggerSnapshot(_ snapshotId: Int) -> NativeArrayBuffer {
+-    return NativeArrayBuffer.wrap(dataWithoutCopy: frames.takeSnapshot(snapshotId))
++  func takeTriggerSnapshot(_ snapshotId: Int) -> Data {
++    return frames.takeSnapshot(snapshotId)
+   }
+ 
+   /// Zero once results stop: the last live value would read as a session that is still running.
+diff --git a/src/frames/decodeFrames.ts b/src/frames/decodeFrames.ts
+--- a/src/frames/decodeFrames.ts
++++ b/src/frames/decodeFrames.ts
+@@ -40,7 +40,17 @@ function isCount(value: number): boolean {
+  * A malformed buffer returns an `error` rather than throwing: this runs inside the tick handler,
+  * where a throw would stall the drain loop permanently.
+  */
+-export function decodeFrames(buffer: ArrayBuffer, options: DecodeOptions): DecodedBatch {
++export function decodeFrames(
++  input: ArrayBuffer | ArrayBufferView,
++  options: DecodeOptions,
++): DecodedBatch {
++  const buffer =
++    input instanceof ArrayBuffer
++      ? input
++      : input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
++  if (!(buffer instanceof ArrayBuffer)) {
++    return { frames: [], droppedCount: 0, error: 'frame buffer is not an ArrayBuffer' };
++  }
+   if (buffer.byteLength < HEADER_FLOAT64S * Float64Array.BYTES_PER_ELEMENT) {
+     // The empty drain is the common case, not an error: native returns a bare header when the
+     // ring buffer had nothing in it.
+diff --git a/build/frames/decodeFrames.js b/build/frames/decodeFrames.js
+--- a/build/frames/decodeFrames.js
++++ b/build/frames/decodeFrames.js
+@@ -15,7 +15,13 @@ function isCount(value) {
+  * A malformed buffer returns an `error` rather than throwing: this runs inside the tick handler,
+  * where a throw would stall the drain loop permanently.
+  */
+-function decodeFrames(buffer, options) {
++function decodeFrames(input, options) {
++    const buffer = input instanceof ArrayBuffer
++        ? input
++        : input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
++    if (!(buffer instanceof ArrayBuffer)) {
++        return { frames: [], droppedCount: 0, error: 'frame buffer is not an ArrayBuffer' };
++    }
+     if (buffer.byteLength < wire_1.HEADER_FLOAT64S * Float64Array.BYTES_PER_ELEMENT) {
+         // The empty drain is the common case, not an error: native returns a bare header when the
+         // ring buffer had nothing in it.
