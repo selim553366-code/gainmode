@@ -9,11 +9,11 @@ Forge Fit live workouts use a native MediaPipe pose component with its Expo conf
 
 **How to apply:** Keep rep/form logic in JavaScript over throttled native landmark frames, use the native skeleton overlay for rendering, gate barcode and motion effects by platform support, and verify camera behavior with an Android development build.
 
-The pose package’s published compatibility range is broader than its actual native source compatibility: its Android code can reference Expo Modules APIs introduced after Expo 54 even though Expo 51+ is declared.
+The pose package’s published compatibility range is broader than its actual native source compatibility: both Android and iOS can reference Expo Modules binary-buffer APIs introduced after Expo 54 even though Expo 51+ is declared.
 
-**Why:** A cloud release build failed in Kotlin compilation because the package expected a newer binary-buffer wrapper unavailable in Expo Modules Core 3.x. The pose engine returns direct byte buffers, while Expo 54’s typed-array bridge accepts byte arrays.
+**Why:** Cloud release builds failed because the package expected a newer native array-buffer wrapper unavailable in Expo Modules Core 3.x. Expo 54 bridges Android byte arrays and iOS `Data` as typed arrays.
 
-**How to apply:** Preserve the workspace-level pnpm compatibility patch while Forge Fit remains on Expo 54. Convert buffers by duplicating and copying their remaining bytes (direct buffers cannot use `array()`), and remove the patch only after an Expo upgrade compiles the package unmodified.
+**How to apply:** Preserve the workspace pnpm compatibility patch while Forge Fit remains on Expo 54. Copy Android direct buffers safely, return iOS `Data`, and let the JS decoder accept both `ArrayBuffer` and typed-array views. Remove the patch only after an Expo upgrade compiles and runs the package unmodified.
 
 Forge Fit intentionally keeps the front-camera preview natural while mirroring only the pose rig; JS-rendered skeleton fallbacks must match the rig transform.
 
