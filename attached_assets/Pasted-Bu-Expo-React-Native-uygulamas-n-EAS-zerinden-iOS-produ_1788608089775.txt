@@ -1,0 +1,314 @@
+Bu Expo/React Native uygulamasını EAS üzerinden iOS production build olarak oluşturup App Store Connect’e yükle ve TestFlight’ta kullanılabilir hale getir.
+Bu işi doğrudan ana çalışma alanında yap. Xcode Cloud kullanma. Expo/EAS production build ve EAS Submit kullan.
+ÖNEMLİ GÜVENLİK KURALLARI
+- Apple parolası, API anahtarı veya .p8 içeriğini sohbet içinde isteme veya gösterme.
+- Gerekli değerleri yalnızca Replit Secrets üzerinden iste.
+- Secret değerlerini shell çıktısına yazdırma.
+- .p8 özel anahtarını workspace içinde kalıcı bir dosyaya yazma veya git’e ekleme.
+- Gerekirse anahtarı yalnızca /tmp altında mode 600 ile geçici olarak oluştur ve işlem bitince sil.
+- eas.json içine Key ID veya Issuer ID’yi kalıcı olarak yazma. Submission sırasında geçici olarak ekle ve işlem bitince eas.json dosyasını geri yükle.
+- Önceden tamamlanmış bir IPA varsa submission problemi için yeniden build alma. Önce mevcut build’i gönder.
+- Agent task veya ayrı task agent kullanma; işlemleri kendin ana workspace’te tamamla.
+PROJE BİLGİLERİ
+- Mobil proje dizini: [örnek: artifacts/mobile]
+- Expo owner: [EXPO_OWNER]
+- Expo/EAS proje slug: [EXPO_PROJECT_SLUG]
+- EAS Project ID: [EAS_PROJECT_ID]
+- iOS Bundle ID: [örnek: com.example.application]
+- App Store Connect uygulama adı: [APP_NAME]
+- App Store Connect numeric App ID: [ASC_APP_ID]
+- Production API URL: [örnek: https://example.replit.app]
+- Apple Team ID: [APPLE_TEAM_ID]
+App Store Connect numeric App ID, Bundle ID değildir. Uygulamanın App Store Connect URL’sindeki sayısal değerdir:
+https://appstoreconnect.apple.com/apps/[ASC_APP_ID]
+GEREKLİ REPLIT SECRETS
+Önce aşağıdaki Secret’ların mevcut olup olmadığını güvenli şekilde kontrol et. Eksik olanları Replit Secrets formundan iste:
+1. EXPO_TOKEN
+   - EAS hesabına erişimi olan Expo access token.
+   - Expo dashboard üzerinden oluşturulur.
+2. EXPO_ASC_KEY_ID
+   - App Store Connect API Key’in Key ID değeri.
+3. EXPO_ASC_ISSUER_ID
+   - App Store Connect → Users and Access → Integrations → App Store Connect API altında bulunan Issuer ID.
+4. EXPO_ASC_API_KEY_P8
+   - İndirilen .p8 dosyasının tam içeriği.
+   - Şununla başlamalı:
+     -----BEGIN PRIVATE KEY-----
+   - Şununla bitmeli:
+     -----END PRIVATE KEY-----
+App Store Connect API Key mutlaka “App Manager” veya “Admin” rolüyle oluşturulmuş olmalı. “Developer” rolüyle oluşturulmuş anahtar kullanma. Apple hesabının Account Holder olması, Developer rolü verilmiş API key’i otomatik olarak App Manager yapmaz; hesap rolü ve API key rolü ayrıdır.
+Key ID ile .p8 aynı yeni anahtara ait olmalı. Yeni key oluşturulduysa eski Key ID ile yeni .p8 dosyasını karıştırma.
+AŞAMA 1 — PROJEYİ KONTROL ET
+Önce mevcut dosyaları incele:
+- app.json veya app.config.*
+- eas.json
+- package.json
+- pnpm-lock.yaml
+- .npmrc
+- mobil uygulamanın API URL çözümleme kodu
+Aşağıdakilerin doğru olduğunu doğrula:
+app.json içinde:
+- expo.owner = [EXPO_OWNER]
+- expo.extra.eas.projectId = [EAS_PROJECT_ID]
+- expo.ios.bundleIdentifier = [BUNDLE_ID]
+- expo.version geçerli bir sürüm
+- Gerekiyorsa:
+  expo.ios.infoPlist.ITSAppUsesNonExemptEncryption = false
+ITSAppUsesNonExemptEncryption değerini uygulamanın gerçek şifreleme kullanımına göre belirle. Sadece standart HTTPS gibi Apple’ın muaf tuttuğu şifreleme kullanılıyorsa false genellikle uygundur.
+EAS projesinin doğru Expo hesabına bağlı olduğunu doğrula. Yanlış owner veya projectId varsa build alma.
+AŞAMA 2 — PRODUCTION API BAĞLANTISINI BUILD’DEN ÖNCE DOĞRULA
+TestFlight build’i cihaz üzerinde Replit development URL’sini veya localhost’u kullanmamalı.
+Production URL’yi tahmin etme. Replit deployment bilgisinden gerçek ve aktif production URL’yi al. Deployment’ın:
+- yayınlanmış,
+- başarılı,
+- public,
+- iPhone’dan erişilebilir
+olduğunu doğrula.
+En azından şu endpoint’i dışarıdan kontrol et:
+[PRODUCTION_API_URL]/api/healthz
+Uygulamanın kullandığı önemli endpoint’lerden birkaçını da curl ile doğrula.
+Mobil kodda kullanılan bütün EXPO_PUBLIC API değişkenlerini ara. Örneğin:
+- EXPO_PUBLIC_API_URL
+- EXPO_PUBLIC_ENVIRONMENTAL_API_URL
+- EXPO_PUBLIC_ONEWORLD_API_URL
+- projeye özel diğer EXPO_PUBLIC_* API adresleri
+Production bundle’da bunların tanımlı olduğundan emin ol. Sadece APP_ENV=production yazmak yeterli değildir.
+eas.json production profili buna benzer olmalı:
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "APP_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "[PRODUCTION_API_URL]",
+        "EXPO_PUBLIC_ENVIRONMENTAL_API_URL": "[PRODUCTION_API_URL]",
+        "EXPO_PUBLIC_ONEWORLD_API_URL": "[PRODUCTION_API_URL]"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "[ASC_APP_ID]"
+      }
+    }
+  }
+}
+Projede bu değişkenlerin hepsi kullanılmıyorsa yalnızca gerçekten kullanılanları ekle. Ancak kodda doğrudan EXPO_PUBLIC_API_URL kullanan hook’lar varsa genel API URL’sini kesinlikle ekle.
+Production API çalışmıyorsa önce backend deployment’ını düzelt. API adresi olmadan TestFlight build alma; aksi halde uygulama açılır ancak veri widget’ları “Veri alınamadı” durumuna düşer.
+AŞAMA 3 — CLEAN EAS BUILD HAZIRLIĞI
+Paket yöneticisini ve lockfile’ı kontrol et.
+PNPM kullanılıyorsa root package.json içinde kullanılan pnpm sürümünü sabitle:
+"packageManager": "pnpm@[KULLANILAN_SÜRÜM]"
+EAS clean install sırasında gerekli paketlerin build script’lerinin engellenmediğini doğrula. Özellikle proje kullanıyorsa şunları kontrol et:
+- esbuild
+- @swc/core
+- msw
+- unrs-resolver
+Expo Metro build’inde aşağıdaki hata çıkarsa:
+Cannot find module 'babel-preset-expo'
+mobil pakete Expo SDK ile uyumlu babel-preset-expo sürümünü doğrudan ekle ve lockfile’ı güncelle.
+Projeyi körlemesine değiştirme. Önce kullanılan Expo SDK ve mevcut bağımlılıkları kontrol et.
+Build’den önce en azından:
+- mobil typecheck
+- mevcut hızlı testler
+- Expo config doğrulaması
+çalıştır.
+AŞAMA 4 — EAS PRODUCTION BUILD
+Mobil proje dizininde build başlat:
+cd [MOBILE_DIR]
+pnpm dlx eas-cli@latest build \
+  --platform ios \
+  --profile production \
+  --non-interactive
+EAS çıktısında production build profile env değişkenlerinin yüklendiğini doğrula. Özellikle production API değişkenlerinin listelendiğini kontrol et.
+Komut Replit shell timeout’una uğrarsa build’in başarısız olduğunu varsayma. EAS build uzak sunucuda devam ediyor olabilir. Çıktıdaki Build ID’yi al ve şununla takip et:
+pnpm dlx eas-cli@latest build:view [BUILD_ID] --json
+Status FINISHED olana kadar makul aralıklarla kontrol et.
+Build ERRORED olursa logları aç ve gerçek build hatasını düzelt. Başarılı build oluşmadan submission başlatma.
+AŞAMA 5 — .P8 ANAHTARINI GÜVENLİ BİÇİMDE NORMALIZE ET
+Replit Secret formu çok satırlı .p8 değerini bazen tek satıra çevirebilir. Bu durumda her iki PEM işareti mevcut olsa bile EAS anahtarı okuyamayabilir.
+EXPO_ASC_API_KEY_P8 değerini shell’e yazdırmadan kontrol et. Özel anahtarı yalnızca /tmp içinde standart PEM biçimine dönüştür.
+Aşağıdaki yaklaşımı kullan:
+- BEGIN ve END işaretleri arasındaki gövdeyi al.
+- Gövdedeki boşluk ve satır sonlarını kaldır.
+- Base64 gövdesini 64 karakterlik satırlara böl.
+- BEGIN ve END satırlarını yeniden ekle.
+- /tmp altında mode 600 dosyasına yaz.
+- openssl pkey -noout ile doğrula.
+- İşlem sonunda dosyayı sil.
+Örnek güvenli Node adımı:
+node - <<'NODE'
+const fs = require('fs');
+const raw = process.env.EXPO_ASC_API_KEY_P8;
+const begin = '-----BEGIN PRIVATE KEY-----';
+const end = '-----END PRIVATE KEY-----';
+if (!raw) {
+  throw new Error('EXPO_ASC_API_KEY_P8 is missing');
+}
+const start = raw.indexOf(begin);
+const finish = raw.indexOf(end);
+if (start < 0 || finish < 0 || finish <= start) {
+  throw new Error('Incomplete .p8 PEM markers');
+}
+const body = raw
+  .slice(start + begin.length, finish)
+  .replace(/\s/g, '');
+if (!body) {
+  throw new Error('Empty .p8 body');
+}
+const wrapped = body.match(/.{1,64}/g)?.join('\n') ?? '';
+fs.writeFileSync(
+  '/tmp/appstore-connect-key.p8',
+  `${begin}\n${wrapped}\n${end}\n`,
+  { mode: 0o600 },
+);
+NODE
+Sonra:
+openssl pkey \
+  -in /tmp/appstore-connect-key.p8 \
+  -noout
+Anahtar doğrulanmadan submit çalıştırma.
+AŞAMA 6 — EAS SUBMIT İÇİN CREDENTIAL ALANLARINI GEÇİCİ EKLE
+Önemli: Bazı EAS CLI submit sürümlerinde EXPO_ASC_* ortam değişkenlerinin bulunması tek başına yeterli değildir. Submit profile içinde üç alanı birlikte bekleyebilir:
+- ascApiKeyPath
+- ascApiKeyId
+- ascApiKeyIssuerId
+Bunları eas.json içine kalıcı olarak yazma. Submission komutu süresince geçici olarak ekle, ardından dosyayı geri yükle.
+Aşağıdaki güvenli akışı projeye uyarlayarak kullan:
+set -eu
+cd [MOBILE_DIR]
+KEY_FILE=/tmp/appstore-connect-key.p8
+BACKUP_FILE=$(mktemp /tmp/eas-json-backup.XXXXXX)
+cp eas.json "$BACKUP_FILE"
+cleanup() {
+  cp "$BACKUP_FILE" eas.json
+  rm -f "$BACKUP_FILE" "$KEY_FILE"
+}
+trap cleanup EXIT
+umask 077
+node - <<'NODE'
+const fs = require('fs');
+const raw = process.env.EXPO_ASC_API_KEY_P8;
+const begin = '-----BEGIN PRIVATE KEY-----';
+const end = '-----END PRIVATE KEY-----';
+const start = raw.indexOf(begin);
+const finish = raw.indexOf(end);
+if (start < 0 || finish < 0 || finish <= start) {
+  throw new Error('Incomplete .p8 PEM markers');
+}
+const body = raw
+  .slice(start + begin.length, finish)
+  .replace(/\s/g, '');
+const wrapped = body.match(/.{1,64}/g)?.join('\n') ?? '';
+fs.writeFileSync(
+  '/tmp/appstore-connect-key.p8',
+  `${begin}\n${wrapped}\n${end}\n`,
+  { mode: 0o600 },
+);
+const config = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
+config.submit ??= {};
+config.submit.production ??= {};
+config.submit.production.ios ??= {};
+config.submit.production.ios.ascAppId = '[ASC_APP_ID]';
+config.submit.production.ios.ascApiKeyPath =
+  '/tmp/appstore-connect-key.p8';
+config.submit.production.ios.ascApiKeyId =
+  process.env.EXPO_ASC_KEY_ID;
+config.submit.production.ios.ascApiKeyIssuerId =
+  process.env.EXPO_ASC_ISSUER_ID;
+if (
+  !config.submit.production.ios.ascApiKeyId ||
+  !config.submit.production.ios.ascApiKeyIssuerId
+) {
+  throw new Error('App Store Connect API key metadata is missing');
+}
+fs.writeFileSync(
+  'eas.json',
+  JSON.stringify(config, null, 2) + '\n',
+);
+NODE
+openssl pkey \
+  -in "$KEY_FILE" \
+  -noout
+pnpm dlx eas-cli@latest submit \
+  --platform ios \
+  --profile production \
+  --latest \
+  --non-interactive \
+  --wait
+Trap nedeniyle işlem başarılı veya başarısız olduğunda eas.json eski haline dönmeli ve geçici özel anahtar silinmeli.
+Submission başarılıysa şu ifadeyi görmelisin:
+Submitted your app to Apple App Store Connect!
+Your binary has been successfully uploaded to App Store Connect!
+AŞAMA 7 — SUBMISSION HATA AYRIMI
+Aşağıdaki hataları birbirinden ayır:
+1. “App Store Connect API Keys cannot be set up in --non-interactive mode”
+Neden:
+EAS submit profile, API key alanlarını görmüyor veya EAS credentials service üzerinde key bağlı değil.
+Çözüm:
+Yukarıdaki geçici eas.json yöntemiyle ascApiKeyPath, ascApiKeyId ve ascApiKeyIssuerId alanlarını birlikte sağla.
+2. “App Store Connect credentials are incomplete”
+Bu mesaj TestFlight group setup için bir uyarı olabilir. Submission özeti doğru Key ID ve “Key Source: local” gösteriyorsa gönderim devam edebilir. Asıl sonucu submission sonunda kontrol et.
+3. “Could not find [BUNDLE_ID] in App Store Connect”
+Kontrol et:
+- Bundle ID App Store Connect uygulamasıyla birebir aynı mı?
+- ascAppId doğru numeric App ID mi?
+- Key ID ile .p8 aynı key’e mi ait?
+- Issuer ID doğru mu?
+- API key App Manager/Admin rolünde mi?
+- API key uygulamanın bulunduğu aynı App Store Connect takımında mı?
+Developer rolündeki key yerine App Manager key oluştur.
+4. Shell komutu timeout oldu
+Build veya submission’ın başarısız olduğunu varsayma. EAS Build ID veya Submission ID ile durumu sorgula.
+5. Submission başarısız ama IPA hazır
+Tekrar build alma. Credential veya App Store Connect ayarını düzeltip aynı IPA/build için submit’i tekrar çalıştır.
+AŞAMA 8 — TESTFLIGHT
+Apple upload’dan sonra build genellikle birkaç dakika “Processing” durumunda kalır.
+App Store Connect’te:
+1. TestFlight bölümünü aç.
+2. Yeni build’in processing işleminin tamamlanmasını bekle.
+3. Internal Testing grubu oluştur:
+   - Örnek: “[APP_NAME] Internal”
+4. App Store Connect kullanıcısını internal tester olarak ekle.
+5. Yeni build’i internal gruba ata.
+6. TestFlight uygulamasında aynı Apple ID ile giriş yap.
+7. Daveti kabul et.
+8. Yeni build’i yükle.
+Yalnızca kendin test edeceksen “Individual Testers” üzerinden external tester akışına girme. Bu işlem build’i “Waiting for Review” durumuna sokabilir. Internal Testing grubu kullan; internal test için Beta App Review beklenmez.
+Yeni build otomatik olarak eski internal testing grubuna eklenmeyebilir. Her yeni build’den sonra:
+TestFlight → Internal Testing → Grup → Builds
+alanından yeni build’i ayrıca seç.
+AŞAMA 9 — GERÇEK CİHAZ DOĞRULAMASI
+TestFlight’tan doğru build numarasının kurulu olduğunu kontrol et.
+Uygulamayı gerçek iPhone’da aç ve şunları doğrula:
+- Uygulama açılıyor.
+- Production API’ye bağlanıyor.
+- Veri widget’ları “Veri alınamadı” durumuna düşmüyor.
+- Konum izni çalışıyor.
+- En az bir gerçek API widget’ı veri gösteriyor.
+- OneWorld veya projeye özel backend özellikleri doğru production sunucusuna bağlanıyor.
+- Uygulama development veya localhost URL’sine istek atmıyor.
+Build açılıyor fakat bütün widget’lar veri alamıyorsa önce EAS production profilindeki EXPO_PUBLIC API değişkenlerini kontrol et. Bu durumda sorun çoğunlukla Apple/TestFlight değil, production bundle’a API URL’sinin gömülmemesidir.
+TESLİM RAPORU
+İşlem sonunda kullanıcıya yalnızca şunları bildir:
+- Build’in başarılı olup olmadığı
+- App version
+- Build number
+- EAS Build ID
+- Submission’ın başarılı olup olmadığı
+- App Store Connect/TestFlight bağlantısı
+- Apple processing durumunun devam edip etmediği
+- Internal testing grubuna eklenmesi gereken build numarası
+- Production API bağlantısının build’e dahil edildiğinin doğrulanması
+Hiçbir Secret değerini veya .p8 içeriğini raporda gösterme.
+
+Bu prompttaki en kritik üç nokta:
+
+API key rolü Developer değil, App Manager olmalı.
+.p8 Replit Secret içinde tek satıra dönüşürse /tmp içinde yeniden PEM formatına getirilmeli.
+Production API URL’leri build alınmadan önce eas.json production profilinde bulunmalı. Aksi halde uygulama TestFlight’tan açılır ama veri alamaz.
