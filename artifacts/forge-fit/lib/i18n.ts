@@ -1586,7 +1586,15 @@ const dailyMoodTranslations = {
   },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr;
+const themeTranslations = {
+  tr: { appearance: 'Görünüm', appearanceDescription: 'GainMode görünümünü seç veya telefon ayarını otomatik kullan.', themeSystem: 'Sistem', themeLight: 'Açık', themeDark: 'Koyu' },
+  en: { appearance: 'Appearance', appearanceDescription: 'Choose GainMode’s appearance or automatically follow your phone.', themeSystem: 'System', themeLight: 'Light', themeDark: 'Dark' },
+  de: { appearance: 'Darstellung', appearanceDescription: 'Wähle das GainMode-Design oder folge automatisch deinem Smartphone.', themeSystem: 'System', themeLight: 'Hell', themeDark: 'Dunkel' },
+  fr: { appearance: 'Apparence', appearanceDescription: 'Choisis l’apparence de GainMode ou suis automatiquement ton téléphone.', themeSystem: 'Système', themeLight: 'Clair', themeDark: 'Sombre' },
+  es: { appearance: 'Apariencia', appearanceDescription: 'Elige la apariencia de GainMode o sigue automáticamente tu teléfono.', themeSystem: 'Sistema', themeLight: 'Claro', themeDark: 'Oscuro' },
+} as const;
+
+export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr;
 
 const workoutReminderDescriptions: Record<Language, string> = {
   tr: 'Antrenman günlerinde saat 09:00’da o günün antrenmanını ve süresini hatırlat.',
@@ -1613,6 +1621,7 @@ function applyCurrentBrand(value: string): string {
 }
 
 export function translate(language: Language, key: TranslationKey): string {
+  if (key in themeTranslations.tr) return themeTranslations[language][key as keyof typeof themeTranslations.tr];
   if (key === 'workoutReminderDescription') return workoutReminderDescriptions[language];
   if (key === 'premiumPriceOptions') return applyCurrentBrand(getPremiumPreviewPriceOptions(language));
   if (key in featuresTranslations.tr) {

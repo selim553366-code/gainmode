@@ -7,11 +7,13 @@ import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
 import { isProfileEditAvailable } from '@/lib/profileEdit';
+import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 
 type LegalSection = 'privacy' | 'terms' | null;
 
 export default function SettingsScreen() {
   const colors = useColors();
+  const { preference: themePreference, setPreference: setThemePreference } = useTheme();
   const {
     language,
     setLanguage,
@@ -58,6 +60,32 @@ export default function SettingsScreen() {
                 <Text style={[styles.languageName, { color: active ? colors.primaryForeground : colors.mutedForeground }]}>{languageLabels[item]}</Text>
               </Pressable>
             );
+          })}
+        </View>
+      </Card>
+
+      <SectionTitle title={t('appearance')} />
+      <Card>
+        <View style={styles.row}>
+          <View style={[styles.iconBox, { backgroundColor: `${colors.plum}20` }]}>
+            <Ionicons name="sunny-outline" size={21} color={colors.plum} />
+          </View>
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('appearance')}</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('appearanceDescription')}</Text>
+          </View>
+        </View>
+        <View style={styles.themeGrid}>
+          {([
+            { value: 'system', label: 'themeSystem', icon: 'phone-portrait-outline' },
+            { value: 'light', label: 'themeLight', icon: 'sunny-outline' },
+            { value: 'dark', label: 'themeDark', icon: 'moon-outline' },
+          ] as const).map((option) => {
+            const active = themePreference === option.value;
+            return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected: active }} onPress={() => setThemePreference(option.value as ThemePreference)} style={({ pressed }) => [styles.themeOption, { backgroundColor: active ? colors.primary : colors.secondary, borderColor: active ? colors.primary : colors.border, opacity: pressed ? 0.72 : 1 }]}>
+              <Ionicons name={option.icon} size={18} color={active ? colors.primaryForeground : colors.foreground} />
+              <Text style={[styles.themeLabel, { color: active ? colors.primaryForeground : colors.foreground }]}>{t(option.label)}</Text>
+            </Pressable>;
           })}
         </View>
       </Card>
@@ -184,6 +212,9 @@ const styles = StyleSheet.create({
   languageOption: { minWidth: '30%', flexGrow: 1, borderWidth: 1, borderRadius: 15, paddingVertical: 10, paddingHorizontal: 8, alignItems: 'center' },
   languageCode: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 0.6 },
   languageName: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 3 },
+  themeGrid: { flexDirection: 'row', gap: 8, marginTop: 18 },
+  themeOption: { flex: 1, minHeight: 48, borderWidth: 1, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 8 },
+  themeLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   legalCard: { padding: 15 },
   legalHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   legalDetails: { borderTopWidth: 1, marginTop: 15, paddingTop: 14, gap: 12 },

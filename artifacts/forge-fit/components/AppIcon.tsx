@@ -44,12 +44,15 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  Smartphone,
   Star,
+  Sun,
   Trash2,
   Ticket,
   TrendingDown,
   TrendingUp,
   Trophy,
+  Moon,
   UserPlus,
   Users,
   Utensils,
@@ -111,6 +114,9 @@ export type IconName =
   | 'share-outline'
   | 'settings'
   | 'settings-outline'
+  | 'phone-portrait-outline'
+  | 'sunny-outline'
+  | 'moon-outline'
   | 'sparkles'
   | 'sparkles-outline'
   | 'star'
@@ -183,6 +189,9 @@ const iconMap: Record<IconName, IconComponent> = {
   'share-outline': Share2,
   settings: Settings,
   'settings-outline': Settings,
+  'phone-portrait-outline': Smartphone,
+  'sunny-outline': Sun,
+  'moon-outline': Moon,
   sparkles: Sparkles,
   'sparkles-outline': Sparkles,
   star: Star,

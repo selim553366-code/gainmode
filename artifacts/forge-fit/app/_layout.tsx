@@ -16,10 +16,13 @@ import { Stack } from 'expo-router';
 import { router } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { FitProvider } from '@/context/FitContext';
 import { initializeRevenueCat, SubscriptionProvider } from '@/lib/revenuecat';
 import { getApiBaseUrl } from '@/lib/api';
 import { setBaseUrl } from '@workspace/api-client-react';
+import { ThemeProvider, useTheme } from '@/context/ThemeContext';
+import colors from '@/constants/colors';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -33,6 +36,7 @@ try {
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
+  const { resolvedTheme } = useTheme();
   const handledNotificationResponse = useRef<string | null>(null);
   useEffect(() => {
     if (Platform.OS === 'web') return undefined;
@@ -56,8 +60,10 @@ function RootLayoutNav() {
   }, []);
 
   return (
-    <Stack screenOptions={{ headerBackTitle: 'Back' }}>
-      <Stack.Screen name="index" options={{ headerShown: false, contentStyle: { backgroundColor: '#07182A' } }} />
+    <>
+    <StatusBar style={resolvedTheme === 'dark' ? 'light' : 'dark'} />
+    <Stack screenOptions={{ headerBackTitle: 'Back', contentStyle: { backgroundColor: colors[resolvedTheme].background } }}>
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="live-workout" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
@@ -66,6 +72,7 @@ function RootLayoutNav() {
       <Stack.Screen name="features" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="daily-mood" options={{ headerShown: false, presentation: 'card' }} />
     </Stack>
+    </>
   );
 }
 
@@ -108,8 +115,9 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError, startupFallbackReady]);
 
   return (
-    <SafeAreaProvider style={{ flex: 1 }}>
-      <ErrorBoundary>
+    <ThemeProvider>
+      <SafeAreaProvider style={{ flex: 1 }}>
+       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <SubscriptionProvider>
             <GestureHandlerRootView style={{ flex: 1 }}>
@@ -121,7 +129,8 @@ export default function RootLayout() {
             </GestureHandlerRootView>
           </SubscriptionProvider>
         </QueryClientProvider>
-      </ErrorBoundary>
-    </SafeAreaProvider>
+       </ErrorBoundary>
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }
