@@ -1588,11 +1588,32 @@ const dailyMoodTranslations = {
 
 export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr;
 
+const workoutReminderDescriptions: Record<Language, string> = {
+  tr: 'Antrenman günlerinde saat 09:00’da o günün antrenmanını ve süresini hatırlat.',
+  en: 'Remind me at 9:00 AM on training days with that day’s workout and duration.',
+  de: 'Erinnere mich an Trainingstagen um 09:00 Uhr mit dem Training und der Dauer des Tages.',
+  fr: 'Rappelle-moi à 9 h les jours d’entraînement avec la séance et sa durée.',
+  es: 'Recuérdame a las 9:00 los días de entrenamiento con la sesión y su duración.',
+};
+
+const workoutReminderTemplates: Record<Language, (workoutName: string, duration: number) => string> = {
+  tr: (workoutName, duration) => `Bugün ${workoutName} var. ${duration} dakikalık antrenmanın seni bekliyor.`,
+  en: (workoutName, duration) => `Today is ${workoutName}. Your ${duration}-minute workout is waiting.`,
+  de: (workoutName, duration) => `Heute steht ${workoutName} an. Dein ${duration}-minütiges Training wartet.`,
+  fr: (workoutName, duration) => `Aujourd’hui : ${workoutName}. Ta séance de ${duration} minutes t’attend.`,
+  es: (workoutName, duration) => `Hoy toca ${workoutName}. Te espera una sesión de ${duration} minutos.`,
+};
+
+export function formatWorkoutReminder(language: Language, workoutName: string, duration: number) {
+  return workoutReminderTemplates[language](workoutName, duration);
+}
+
 function applyCurrentBrand(value: string): string {
   return value.replace(/Forge Fit/g, 'GainMode').replace(/FORGE FIT/g, 'GAINMODE').replace(/Forge-Fit/g, 'GainMode');
 }
 
 export function translate(language: Language, key: TranslationKey): string {
+  if (key === 'workoutReminderDescription') return workoutReminderDescriptions[language];
   if (key === 'premiumPriceOptions') return applyCurrentBrand(getPremiumPreviewPriceOptions(language));
   if (key in featuresTranslations.tr) {
     const featureCopy = featuresTranslations[language] ?? featuresTranslations.en;

@@ -33,17 +33,25 @@ try {
 const queryClient = new QueryClient();
 
 function RootLayoutNav() {
-  const handledDailyMoodResponse = useRef(false);
+  const handledNotificationResponse = useRef<string | null>(null);
   useEffect(() => {
     if (Platform.OS === 'web') return undefined;
-    const openDailyMood = (response: Notifications.NotificationResponse | null) => {
-      if (response?.notification.request.content.data?.source !== 'forge-fit-daily-mood' || handledDailyMoodResponse.current) return;
-      handledDailyMoodResponse.current = true;
+    const openNotificationDestination = (response: Notifications.NotificationResponse | null) => {
+      if (!response || handledNotificationResponse.current === response.notification.request.identifier) return;
+      const data = response.notification.request.content.data;
+      if (data?.source !== 'forge-fit-daily-mood' && data?.source !== 'forge-fit-workout') return;
+      handledNotificationResponse.current = response.notification.request.identifier;
       Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
-      setTimeout(() => router.push('/daily-mood'), 0);
+      setTimeout(() => {
+        if (data.source === 'forge-fit-workout' && typeof data.workoutDay === 'string') {
+          router.push({ pathname: '/(tabs)/plan', params: { day: data.workoutDay } });
+          return;
+        }
+        router.push('/daily-mood');
+      }, 0);
     };
-    const subscription = Notifications.addNotificationResponseReceivedListener(openDailyMood);
-    Notifications.getLastNotificationResponseAsync().then(openDailyMood).catch(() => undefined);
+    const subscription = Notifications.addNotificationResponseReceivedListener(openNotificationDestination);
+    Notifications.getLastNotificationResponseAsync().then(openNotificationDestination).catch(() => undefined);
     return () => subscription.remove();
   }, []);
 

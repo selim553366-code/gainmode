@@ -9,6 +9,7 @@ import { useColors } from '@/hooks/useColors';
 import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { getCurrentStreak } from '@/lib/streak';
+import { getWorkoutForDate } from '@/lib/workoutPlan';
 import { AnimatedNumber, Card, ForgeFitMark, Header, Metric, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
@@ -32,6 +33,7 @@ export default function TodayScreen() {
   const todayMeals = getMealsForRange(meals, 'daily');
   const calories = todayMeals.reduce((sum, meal) => sum + meal.calories, 0);
   const streak = getCurrentStreak(streakDates);
+  const todayWorkout = getWorkoutForDate(workouts);
   const macros = todayMeals.reduce((totals, meal) => ({
     protein: totals.protein + meal.protein,
     carbs: totals.carbs + meal.carbs,
@@ -97,10 +99,10 @@ export default function TodayScreen() {
       </View>
 
       <SectionTitle title={t('todayWorkout')} action={t('viewAll')} onAction={() => router.push('/(tabs)/plan')} />
-      <Card style={styles.workoutCard}>
+      <Card onPress={() => todayWorkout ? router.push({ pathname: '/(tabs)/plan', params: { day: todayWorkout.day } }) : router.push('/(tabs)/plan')} style={styles.workoutCard}>
         <View style={[styles.workoutIcon, { backgroundColor: `${colors.orange}22` }]}><Ionicons name="barbell-outline" size={22} color={colors.orange} /></View>
-        <View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{workouts[0] ? (translate(language, workouts[0].name as Parameters<typeof translate>[1]) || workouts[0].name) : t('noWorkout')}</Text><Text style={[styles.cardCaption, { color: colors.mutedForeground }]}>{workouts[0] ? `${workouts[0].duration} min  •  ${workouts[0].exercises.length} ${t('exercises')}` : t('createPlan')}</Text></View>
-        <Pressable testID="create-workout-plan" onPress={() => router.push('/(tabs)/plan')} style={({ pressed }) => [styles.workoutButton, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
+        <View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{todayWorkout ? (translate(language, todayWorkout.name as Parameters<typeof translate>[1]) || todayWorkout.name) : t('restDayTitle')}</Text><Text style={[styles.cardCaption, { color: colors.mutedForeground }]}>{todayWorkout ? `${todayWorkout.duration} min  •  ${todayWorkout.exercises.length} ${t('exercises')}` : t('restDaySubtitle')}</Text></View>
+        <View testID="open-today-workout" style={[styles.workoutButton, { backgroundColor: colors.primary }]}><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></View>
       </Card>
 
       {SUBSCRIPTION_PURCHASE_ENABLED ? <Card onPress={() => setPremiumVisible(true)} style={[styles.premiumCard, { borderColor: colors.border, backgroundColor: colors.card }]}>

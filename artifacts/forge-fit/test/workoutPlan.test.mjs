@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { addExerciseToPlan, buildWorkoutPlan, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete } from '../lib/workoutPlan.ts';
+import { addExerciseToPlan, buildWorkoutPlan, getWorkoutForDate, getWeekdayKey, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete } from '../lib/workoutPlan.ts';
 
 const profile = (overrides = {}) => ({
   equipment: 'bodyweight',
@@ -31,6 +31,15 @@ test('assigns workouts only to preferred days so other days remain rest days', (
   const workouts = buildWorkoutPlan(profile({ trainingDays: 2, preferredDays: ['TUE', 'THU'] }));
 
   assert.deepEqual(workouts.map((workout) => workout.day), ['TUE', 'THU']);
+});
+
+test('selects the workout assigned to the local calendar day', () => {
+  const workouts = buildWorkoutPlan(profile({ trainingDays: 2, preferredDays: ['TUE', 'THU'] }));
+  const thursday = new Date(2026, 8, 3, 8, 30);
+
+  assert.equal(getWeekdayKey(thursday), 'THU');
+  assert.equal(getWorkoutForDate(workouts, thursday)?.day, 'THU');
+  assert.equal(getWorkoutForDate(workouts, new Date(2026, 8, 4, 8, 30)), undefined);
 });
 
 test('bodyweight plans never use gym or weight-specific exercises', () => {

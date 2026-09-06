@@ -1,10 +1,10 @@
 import React from 'react';
 import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
 import { useFit } from '@/context/FitContext';
 import { translate, TranslationKey } from '@/lib/i18n';
-import type { MuscleGroup } from '@/lib/workoutPlan';
+import { getWeekdayKey, type MuscleGroup } from '@/lib/workoutPlan';
 import { useColors } from '@/hooks/useColors';
 import { Card, CelebrationBurst, EmptyState, Header, Pill, ProgressBar, Screen, SectionTitle, triggerHaptic } from '@/components/FitUI';
 import { liveTranslate } from '@/lib/liveWorkoutCopy';
@@ -41,7 +41,9 @@ export default function PlanScreen() {
   const { language, workouts, toggleWorkout, toggleExercise, addExercise, removeExercise } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const liveT = (key: Parameters<typeof liveTranslate>[1]) => liveTranslate(language, key);
-  const [activeDay, setActiveDay] = React.useState<WeekDay>('MON');
+  const params = useLocalSearchParams<{ day?: string }>();
+  const requestedDay = typeof params.day === 'string' && weekDays.includes(params.day as WeekDay) ? params.day as WeekDay : null;
+  const [activeDay, setActiveDay] = React.useState<WeekDay>(requestedDay ?? getWeekdayKey());
   const [newExercise, setNewExercise] = React.useState('');
   const [celebrating, setCelebrating] = React.useState(false);
   const active = workouts.find((workout) => workout.day === activeDay);
@@ -57,6 +59,10 @@ export default function PlanScreen() {
     ? Array.from(new Set([...(active.focusAreas ?? []), ...Object.keys(groupedExercises) as MuscleGroup[]]))
     : [];
   const [celebrationType, setCelebrationType] = React.useState<'workout' | 'program'>('workout');
+
+  React.useEffect(() => {
+    if (requestedDay) setActiveDay(requestedDay);
+  }, [requestedDay]);
 
   if (workouts.length === 0) return <Screen><Header eyebrow={t('planEyebrow')} title={t('planTitle')} subtitle={t('planSubtitle')} /><EmptyState icon="barbell-outline" title={t('noWorkout')} text={t('createPlan')} /></Screen>;
   const addNewExercise = () => {

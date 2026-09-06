@@ -14,6 +14,17 @@ export type MuscleGroup =
   | 'calves'
   | 'other';
 
+const weekdayKeys = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const;
+
+export function getWeekdayKey(date = new Date()) {
+  return weekdayKeys[date.getDay()];
+}
+
+export function getWorkoutForDate(workouts: Workout[], date = new Date()) {
+  const day = getWeekdayKey(date);
+  return workouts.find((workout) => workout.day === day);
+}
+
 type ExerciseLibrary = Record<MuscleGroup, TranslationKey[]>;
 
 const bodyweightLibrary: ExerciseLibrary = {

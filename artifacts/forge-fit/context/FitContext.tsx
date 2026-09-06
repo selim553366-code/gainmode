@@ -318,10 +318,10 @@ export function FitProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    syncFitnessNotifications({ settings: state.notificationSettings, profile: state.profile, language: state.language }).catch((error) => {
+    syncFitnessNotifications({ settings: state.notificationSettings, profile: state.profile, workouts: state.workouts, language: state.language }).catch((error) => {
       console.warn('GainMode notifications could not be synchronized.', error);
     });
-  }, [hydrated, state.notificationSettings, state.profile, state.language]);
+  }, [hydrated, state.notificationSettings, state.profile, state.workouts, state.language]);
 
   const value = useMemo<FitContextValue>(() => ({
     ...state,

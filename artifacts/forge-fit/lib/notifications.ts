@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
-import { Language, translate } from '@/lib/i18n';
-import { Profile } from '@/context/FitContext';
+import { formatWorkoutReminder, Language, translate } from '@/lib/i18n';
+import type { Profile, Workout } from '@/context/FitContext';
 import { DAILY_MOOD_NOTIFICATION_HOUR, DAILY_MOOD_NOTIFICATION_MINUTE } from '@/lib/dailyMood';
 
 export type NotificationSettings = {
@@ -89,15 +89,30 @@ async function scheduleWeekly(language: Language, titleKey: Parameters<typeof tr
   });
 }
 
+async function scheduleWorkoutReminder(language: Language, workout: Workout, weekday: number) {
+  const workoutName = translate(language, workout.name as Parameters<typeof translate>[1]) || workout.name;
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: translate(language, 'notificationWorkoutTitle'),
+      body: formatWorkoutReminder(language, workoutName, workout.duration),
+      sound: 'default',
+      data: { source: 'forge-fit-workout', workoutDay: workout.day },
+    },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, channelId: CHANNEL_ID, weekday, hour: 9, minute: 0 },
+  });
+}
+
 let notificationSync = Promise.resolve();
 
 async function syncFitnessNotificationsNow({
   settings,
   profile,
+  workouts,
   language,
 }: {
   settings: NotificationSettings;
   profile: Profile | null;
+  workouts: Workout[];
   language: Language;
 }) {
   if (Platform.OS === 'web') return;
@@ -106,10 +121,9 @@ async function syncFitnessNotificationsNow({
   if (!(await prepareNotifications())) return;
 
   if (settings.workoutReminder && profile) {
-    const workoutDays = profile.preferredDays ?? [];
-    await Promise.all(workoutDays.map((day) => {
-      const weekday = dayToWeekday[day];
-      return weekday ? scheduleWeekly(language, 'notificationWorkoutTitle', 'notificationWorkoutBody', weekday, 18) : Promise.resolve();
+    await Promise.all(workouts.map((workout) => {
+      const weekday = dayToWeekday[workout.day];
+      return weekday ? scheduleWorkoutReminder(language, workout, weekday) : Promise.resolve();
     }));
   }
   if (settings.waterReminder) {
@@ -134,6 +148,7 @@ async function syncFitnessNotificationsNow({
 export function syncFitnessNotifications(args: {
   settings: NotificationSettings;
   profile: Profile | null;
+  workouts: Workout[];
   language: Language;
 }) {
   const nextSync = notificationSync.catch(() => undefined).then(() => syncFitnessNotificationsNow(args));
