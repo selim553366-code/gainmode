@@ -7,6 +7,7 @@ import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate, type TranslationKey } from '@/lib/i18n';
 import { localDateKey } from '@/lib/nutritionDates';
+import { getDailyMoodQuote } from '@/lib/dailyMood';
 
 type MoodAnswerKey = 'stress' | 'energy' | 'feeling' | 'day';
 type Choice = { id: string; label: TranslationKey; icon: React.ComponentProps<typeof Ionicons>['name'] };
@@ -16,8 +17,8 @@ const questions: Array<{ id: MoodAnswerKey; title: TranslationKey; choices: Choi
     id: 'stress',
     title: 'dailyMoodStressQuestion',
     choices: [
-      { id: 'calm', label: 'dailyMoodStressCalm', icon: 'sparkles' },
-      { id: 'medium', label: 'dailyMoodStressMedium', icon: 'remove' },
+      { id: 'calm', label: 'dailyMoodStressCalm', icon: 'shield-checkmark-outline' },
+      { id: 'medium', label: 'dailyMoodStressMedium', icon: 'activity' },
       { id: 'high', label: 'dailyMoodStressHigh', icon: 'alert-circle' },
     ],
   },
@@ -25,7 +26,7 @@ const questions: Array<{ id: MoodAnswerKey; title: TranslationKey; choices: Choi
     id: 'energy',
     title: 'dailyMoodEnergyQuestion',
     choices: [
-      { id: 'low', label: 'dailyMoodEnergyLow', icon: 'pause-outline' },
+      { id: 'low', label: 'dailyMoodEnergyLow', icon: 'trending-down' },
       { id: 'balanced', label: 'dailyMoodEnergyBalanced', icon: 'activity' },
       { id: 'high', label: 'dailyMoodEnergyHigh', icon: 'flash-outline' },
     ],
@@ -34,18 +35,18 @@ const questions: Array<{ id: MoodAnswerKey; title: TranslationKey; choices: Choi
     id: 'feeling',
     title: 'dailyMoodFeelingQuestion',
     choices: [
-      { id: 'low', label: 'dailyMoodFeelingLow', icon: 'close-outline' },
-      { id: 'neutral', label: 'dailyMoodFeelingNeutral', icon: 'options-outline' },
-      { id: 'good', label: 'dailyMoodFeelingGood', icon: 'sparkles' },
+      { id: 'low', label: 'dailyMoodFeelingLow', icon: 'trending-down' },
+      { id: 'neutral', label: 'dailyMoodFeelingNeutral', icon: 'remove' },
+      { id: 'good', label: 'dailyMoodFeelingGood', icon: 'trending-up-outline' },
     ],
   },
   {
     id: 'day',
     title: 'dailyMoodDayQuestion',
     choices: [
-      { id: 'hard', label: 'dailyMoodDayHard', icon: 'close-outline' },
-      { id: 'balanced', label: 'dailyMoodDayBalanced', icon: 'activity' },
-      { id: 'good', label: 'dailyMoodDayGood', icon: 'sparkles' },
+      { id: 'hard', label: 'dailyMoodDayHard', icon: 'flame-outline' },
+      { id: 'balanced', label: 'dailyMoodDayBalanced', icon: 'scale-outline' },
+      { id: 'good', label: 'dailyMoodDayGood', icon: 'trophy-outline' },
     ],
   },
 ];
@@ -69,11 +70,7 @@ export default function DailyMoodScreen() {
     setAnswers((current) => ({ ...current, [questionId]: choiceId }));
   };
   const allAnswered = questions.every((question) => answers[question.id]);
-  const quote = answers.stress === 'high' || answers.energy === 'low'
-    ? t('dailyMoodQuoteGentle')
-    : answers.feeling === 'good' || answers.energy === 'high'
-      ? t('dailyMoodQuoteStrong')
-      : t('dailyMoodQuoteSteady');
+  const quote = getDailyMoodQuote(language);
 
   if (completed) {
     return <Screen><View style={styles.completeState}><View style={[styles.completeIcon, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="checkmark" size={33} color={colors.primary} /></View><Text style={[styles.completeEyebrow, { color: colors.primary }]}>{t('dailyMoodCompleteEyebrow')}</Text><Text style={[styles.completeTitle, { color: colors.foreground }]}>{t('dailyMoodCompleteTitle')}</Text><Text style={[styles.quote, { color: colors.foreground }]}>&ldquo;{quote}&rdquo;</Text><Text style={[styles.completeHint, { color: colors.mutedForeground }]}>{t('dailyMoodClosing')}</Text><Pressable accessibilityRole="button" onPress={() => { triggerHaptic(); router.back(); }} style={({ pressed }) => [styles.doneButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}><Text style={[styles.doneButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodDone')}</Text><Ionicons name="checkmark" size={18} color={colors.primaryForeground} /></Pressable></View></Screen>;
