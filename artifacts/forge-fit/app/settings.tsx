@@ -71,7 +71,7 @@ export default function SettingsScreen() {
           style={({ pressed }) => [styles.restartRow, { opacity: !profileEditAvailable ? 0.5 : pressed ? 0.7 : 1 }]}
         >
           <View style={[styles.iconBox, { backgroundColor: `${colors.blue}20` }]}>
-            <Ionicons name="sparkles-outline" size={21} color={colors.blue} />
+            <Ionicons name="options-outline" size={21} color={colors.blue} />
           </View>
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('editPreferences')}</Text>
