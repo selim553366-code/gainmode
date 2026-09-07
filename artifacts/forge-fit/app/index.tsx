@@ -21,7 +21,7 @@ import {
 } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { ForgeFitMark, Screen, triggerHaptic } from '@/components/FitUI';
+import { ForgeFitMark, PremiumSuccessCelebration, Screen, triggerHaptic } from '@/components/FitUI';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
@@ -766,6 +766,7 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
   const [promoOpen, setPromoOpen] = React.useState(false);
   const [promoCode, setPromoCode] = React.useState('');
   const [promoError, setPromoError] = React.useState<string | null>(null);
+  const [purchaseCelebration, setPurchaseCelebration] = React.useState(false);
    const [explorePage, setExplorePage] = React.useState(0);
    const [showExplore, setShowExplore] = React.useState(false);
    const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
@@ -782,7 +783,7 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
     const handlePurchase = async () => {
      setActionError(null);
       if (isSubscribed) {
-        onUnlock();
+         onUnlock();
         return;
       }
        if (!isAvailable || !selectedPackage) {
@@ -795,7 +796,7 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
           setActionError(t('premiumPurchaseError'));
           return;
         }
-        onUnlock();
+       setPurchaseCelebration(true);
       } catch {
         setActionError(t('premiumPurchaseError'));
       }
@@ -812,7 +813,7 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
         setActionError(t('premiumRestoreNoPurchase'));
         return;
       }
-      onUnlock();
+     setPurchaseCelebration(true);
     } catch {
       setActionError(t('premiumRestoreError'));
     }
@@ -824,7 +825,7 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
     }
     setPromoError(null);
     enableTestPremium();
-    onUnlock();
+     onUnlock();
   };
    if (showExplore) {
      return <AccessExploreScreen
@@ -839,7 +840,8 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
        }}
      />;
    }
-  return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.offerGradient}>
+   return <>
+   <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.offerGradient}>
     <View style={[styles.offerHeader, { paddingTop: insets.top + 10 }]}>
       <ForgeFitMark size={38} />
       <View style={[styles.offerProPill, { backgroundColor: `${isSubscribed ? colors.success : colors.primary}18`, borderColor: `${isSubscribed ? colors.success : colors.primary}55` }]}>{isSubscribed ? <Ionicons name="checkmark-circle" size={12} color={colors.success} /> : <ForgeFitMark size={18} />}<Text style={[styles.offerProText, { color: isSubscribed ? colors.success : colors.primary }]}>{isSubscribed ? t('premiumOwned') : t('premiumShort')}</Text></View>
@@ -907,7 +909,9 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
      <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} disabled={isLoading || isPurchasing} onPress={() => { triggerHaptic(); void handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || isLoading || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isPurchasing ? t('premiumLoading') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
     </ScrollView>
-  </LinearGradient>;
+   </LinearGradient>
+   <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onUnlock(); }} />
+   </>;
 }
 
 function OfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () => void }) {

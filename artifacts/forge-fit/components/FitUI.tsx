@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate, type Language, type TranslationKey } from '@/lib/i18n';
@@ -157,6 +158,57 @@ export function CelebrationBurst({ visible, onDone, title, subtitle }: { visible
   </View>;
 }
 
+export function PremiumSuccessCelebration({ visible, onDone }: { visible: boolean; onDone: () => void }) {
+  const colors = useColors();
+  const { language } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const successTone = useAudioPlayer(require('@/assets/sounds/premium-success.wav'));
+  const cardProgress = React.useRef(new Animated.Value(0)).current;
+  const glowProgress = React.useRef(new Animated.Value(0)).current;
+  const doneRef = React.useRef(onDone);
+  doneRef.current = onDone;
+  const handleDone = React.useCallback(() => doneRef.current(), []);
+
+  React.useEffect(() => {
+    if (!visible) return undefined;
+    cardProgress.setValue(0);
+    glowProgress.setValue(0);
+    successTone.volume = 0.8;
+    void setAudioModeAsync({ playsInSilentMode: true }).catch(() => undefined);
+    void successTone.seekTo(0).then(() => successTone.play()).catch(() => successTone.play());
+    Animated.parallel([
+      Animated.spring(cardProgress, { toValue: 1, friction: 8, tension: 65, useNativeDriver: true }),
+      Animated.loop(Animated.sequence([
+        Animated.timing(glowProgress, { toValue: 1, duration: 650, useNativeDriver: true }),
+        Animated.timing(glowProgress, { toValue: 0, duration: 650, useNativeDriver: true }),
+      ]), { iterations: 2 }),
+    ]).start();
+    return () => {
+      successTone.pause();
+      cardProgress.stopAnimation();
+      glowProgress.stopAnimation();
+    };
+  }, [cardProgress, glowProgress, successTone, visible]);
+
+  return <Modal transparent visible={visible} animationType="fade" onRequestClose={handleDone}>
+    <View style={styles.premiumSuccessRoot}>
+      <LinearGradient colors={[`${colors.primary}D9`, `${colors.success}35`, colors.background]} style={styles.premiumSuccessGradient}>
+        <Animated.View style={[styles.premiumSuccessGlow, { backgroundColor: `${colors.success}55`, opacity: glowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.5] }), transform: [{ scale: glowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1.16] }) }] }]} />
+        <Animated.View style={[styles.premiumSuccessCard, { backgroundColor: colors.card, borderColor: `${colors.success}65`, opacity: cardProgress, transform: [{ translateY: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
+          <View style={[styles.premiumSuccessBadge, { backgroundColor: colors.success }]}>
+            <Ionicons name="checkmark" size={42} color={colors.primaryForeground} />
+          </View>
+          <Text style={[styles.premiumSuccessEyebrow, { color: colors.success }]}>{t('premiumPurchaseSuccessEyebrow')}</Text>
+          <Text style={[styles.premiumSuccessTitle, { color: colors.foreground }]}>{t('premiumPurchaseSuccessTitle')}</Text>
+          <Text style={[styles.premiumSuccessBody, { color: colors.mutedForeground }]}>{t('premiumPurchaseSuccessBody')}</Text>
+          <View style={[styles.premiumSuccessLine, { backgroundColor: `${colors.success}35` }]} />
+        </Animated.View>
+        <CelebrationBurst visible={visible} onDone={handleDone} />
+      </LinearGradient>
+    </View>
+  </Modal>;
+}
+
 export function EmptyState({ icon, title, text }: { icon: IconName; title: string; text: string }) {
   const colors = useColors();
   return <View style={styles.empty}><View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}><Ionicons name={icon} size={24} color={colors.primary} /></View><Text style={[styles.emptyTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{text}</Text></View>;
@@ -206,6 +258,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   const annualPrice = annualPackage?.product.priceString ?? '—';
   const appear = React.useRef(new Animated.Value(0)).current;
   const [actionError, setActionError] = React.useState<string | null>(null);
+  const [purchaseCelebration, setPurchaseCelebration] = React.useState(false);
 
   React.useEffect(() => {
     if (!visible) return undefined;
@@ -240,8 +293,8 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
         setActionError(t('premiumPurchaseError'));
         return;
       }
-      enablePremium();
-      onClose();
+       enablePremium();
+       setPurchaseCelebration(true);
     } catch {
       setActionError(t('premiumPurchaseError'));
     }
@@ -257,8 +310,8 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
     try {
       const customerInfo = await restore();
        if (hasActivePremiumEntitlement(customerInfo)) {
-        enablePremium();
-        onClose();
+         enablePremium();
+         setPurchaseCelebration(true);
         return;
       }
       setActionError(t('premiumRestoreNoPurchase'));
@@ -268,7 +321,8 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   };
 
   if (!visible || !SUBSCRIPTION_PURCHASE_ENABLED) return null;
-  return <Modal transparent visible animationType="none" onRequestClose={onClose}>
+  return <>
+   <Modal transparent visible animationType="none" onRequestClose={onClose}>
     <View style={styles.premiumModalRoot}>
       <Pressable onPress={onClose} style={StyleSheet.absoluteFill} />
       <Animated.View style={[styles.premiumSheet, { backgroundColor: colors.card, borderColor: colors.border, opacity: appear, transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }]}>
@@ -303,7 +357,9 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
         </LinearGradient>
       </Animated.View>
     </View>
-  </Modal>;
+   </Modal>
+   <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onClose(); }} />
+  </>;
 }
 
 export function PremiumAccessStatusModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -437,6 +493,15 @@ export const styles = StyleSheet.create({
   lockButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   previewLayer: { position: 'absolute', left: 22, right: 22, top: 80, gap: 12, opacity: 0.45 },
   previewCard: { height: 65, borderRadius: 19, borderWidth: 1, borderColor: '#1D3B5E' },
+  premiumSuccessRoot: { flex: 1, backgroundColor: '#020B18E8' },
+  premiumSuccessGradient: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  premiumSuccessGlow: { position: 'absolute', width: 260, height: 260, borderRadius: 130 },
+  premiumSuccessCard: { width: '84%', maxWidth: 360, alignItems: 'center', borderRadius: 30, borderWidth: 1, paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 15 },
+  premiumSuccessBadge: { width: 82, height: 82, borderRadius: 29, alignItems: 'center', justifyContent: 'center', marginBottom: 18, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, elevation: 7 },
+  premiumSuccessEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.8 },
+  premiumSuccessTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, lineHeight: 35, letterSpacing: -0.9, textAlign: 'center', marginTop: 9 },
+  premiumSuccessBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 10, maxWidth: 280 },
+  premiumSuccessLine: { width: 48, height: 4, borderRadius: 4, marginTop: 20 },
   premiumModalRoot: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: 14, paddingBottom: 18, backgroundColor: '#020B18B8' },
   premiumSheet: { overflow: 'hidden', borderRadius: 30, borderWidth: 1, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 14 },
   premiumGradient: { paddingHorizontal: 22, paddingTop: 20, paddingBottom: 18 },
