@@ -120,14 +120,14 @@ const muscleMasks: Record<BodySide, Partial<Record<MuscleGroup, number>>> = {
 };
 
 const workoutMaps: Record<WorkoutMapKey, number> = {
-  push: require('@/assets/images/workout-maps/push.png'),
-  pull: require('@/assets/images/workout-maps/pull.png'),
-  leg: require('@/assets/images/workout-maps/leg.png'),
-  upper: require('@/assets/images/workout-maps/upper.png'),
-  lower: require('@/assets/images/workout-maps/lower.png'),
-  'push-core': require('@/assets/images/workout-maps/push-core.png'),
-  'pull-triceps': require('@/assets/images/workout-maps/pull-triceps.png'),
-  full: require('@/assets/images/workout-maps/full.png'),
+  push: require('@/assets/images/workout-day-visuals/push.png'),
+  pull: require('@/assets/images/workout-day-visuals/pull.png'),
+  leg: require('@/assets/images/workout-day-visuals/leg.png'),
+  upper: require('@/assets/images/workout-day-visuals/upper.png'),
+  lower: require('@/assets/images/workout-day-visuals/lower.png'),
+  'push-core': require('@/assets/images/workout-day-visuals/push-core.png'),
+  'pull-triceps': require('@/assets/images/workout-day-visuals/pull-triceps.png'),
+  full: require('@/assets/images/workout-day-visuals/full.png'),
 };
 
 export function MuscleAnatomy({ side, activeMuscles, mapKey, selectedMuscle, onSelect }: MuscleAnatomyProps) {
