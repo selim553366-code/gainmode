@@ -1738,6 +1738,94 @@ const dailyMoodTranslations = {
   },
 } as const;
 
+const exerciseFormTranslations = {
+  tr: {
+    exerciseFormTitle: 'Doğru form',
+    exerciseFormShow: 'Formu göster',
+    exerciseFormClose: 'Kapat',
+    formTipPush: 'Eller omuz hizasında olsun. Gövdeni tek çizgi halinde koru ve hareketi kontrollü tamamla.',
+    formTipSquat: 'Ayaklar omuz genişliğinde, dizler ayak parmaklarıyla aynı yönde olsun. Belini nötr tutarak kalçanı geriye gönder.',
+    formTipLunge: 'Öne adım atan ayağın sağlam bassın. Ön diz ayak bileğini takip etsin, gövden dik kalsın.',
+    formTipHinge: 'Kalçanı geriye gönder, dizleri hafif kır ve sırtını düz tut. Hareket belden değil kalçadan gelsin.',
+    formTipPlank: 'Dirsek veya eller omuzların altında olsun. Kalça düşmeden ya da yükselmeden baştan topuklara düz bir çizgi oluştur.',
+    formTipRow: 'Sırtını düz ve boynunu nötr tut. Dirseklerini gövdene doğru çek, omuzlarını kulaklarından uzaklaştır.',
+    formTipPress: 'Karnını aktif tut ve omuzlarını kontrol et. Ağırlığı yukarı iterken belini aşırı çukurlaştırma.',
+    formTipCurl: 'Dirseklerini gövdene yakın sabit tut. Sallanmadan, ağırlığı kontrollü şekilde kaldır ve indir.',
+    formTipBridge: 'Ayaklarını yere sağlam bas. Kalçanı omuz-diz çizgisine kadar kaldır, belini aşırı çukurlaştırma.',
+    formTipCalf: 'Ağırlığı ayak parmak köklerine aktar. Topuklarını düz bir çizgide kaldır ve yavaşça indir.',
+    formTipPullup: 'Gövdeni sıkı tut ve omuzlarını kulaklarından uzaklaştır. Çekişi dirsekleri aşağıya sürerek başlat.',
+    formTipCore: 'Belini kontrollü şekilde zemine yaklaştır. Kolları ve bacakları yavaşça uzatırken kaburgalarını aşağıda tut.',
+  },
+  en: {
+    exerciseFormTitle: 'Correct form',
+    exerciseFormShow: 'Show form',
+    exerciseFormClose: 'Close',
+    formTipPush: 'Keep your hands under your shoulders. Hold one straight line from head to heels and move with control.',
+    formTipSquat: 'Stand with feet about shoulder-width apart. Track your knees over your toes and send your hips back with a neutral spine.',
+    formTipLunge: 'Plant the stepping foot firmly. Keep the front knee tracking over the ankle and your torso tall.',
+    formTipHinge: 'Send your hips back, soften your knees, and keep your back flat. The movement comes from the hips, not the lower back.',
+    formTipPlank: 'Place your elbows or hands under your shoulders. Keep a straight line from head to heels without dropping or lifting your hips.',
+    formTipRow: 'Keep your back flat and neck neutral. Pull your elbows toward your ribs with your shoulders away from your ears.',
+    formTipPress: 'Brace your core and control your shoulders. Press up without over-arching your lower back.',
+    formTipCurl: 'Keep your elbows close to your body. Lift and lower with control without swinging your torso.',
+    formTipBridge: 'Plant your feet firmly. Lift your hips into a shoulder-to-knee line without over-arching your back.',
+    formTipCalf: 'Shift your weight through the balls of your feet. Raise your heels straight up and lower slowly.',
+    formTipPullup: 'Brace your body and keep your shoulders away from your ears. Start the pull by driving your elbows down.',
+    formTipCore: 'Keep your lower back controlled toward the floor. Extend opposite limbs slowly while keeping your ribs down.',
+  },
+  de: {
+    exerciseFormTitle: 'Saubere Form',
+    exerciseFormShow: 'Form zeigen',
+    exerciseFormClose: 'Schließen',
+    formTipPush: 'Hände unter den Schultern platzieren. Kopf, Hüfte und Fersen in einer Linie halten und kontrolliert bewegen.',
+    formTipSquat: 'Füße etwa schulterbreit aufstellen. Knie in Richtung Zehen führen und die Hüfte bei neutralem Rücken nach hinten schieben.',
+    formTipLunge: 'Den auftretenden Fuß sicher aufsetzen. Das vordere Knie über dem Knöchel halten und den Oberkörper aufrecht lassen.',
+    formTipHinge: 'Hüfte nach hinten schieben, Knie leicht beugen und den Rücken gerade halten. Die Bewegung kommt aus der Hüfte.',
+    formTipPlank: 'Ellbogen oder Hände unter den Schultern platzieren. Eine gerade Linie vom Kopf bis zu den Fersen halten.',
+    formTipRow: 'Rücken gerade und Nacken neutral halten. Ellbogen zu den Rippen ziehen und Schultern von den Ohren fernhalten.',
+    formTipPress: 'Rumpf anspannen und Schultern kontrollieren. Nach oben drücken, ohne den unteren Rücken zu überstrecken.',
+    formTipCurl: 'Ellbogen nah am Körper halten. Ohne Schwung kontrolliert heben und senken.',
+    formTipBridge: 'Füße fest aufsetzen. Hüfte bis zur Linie von Schultern und Knien heben, ohne den Rücken zu überstrecken.',
+    formTipCalf: 'Gewicht auf den Fußballen verlagern. Fersen gerade anheben und langsam senken.',
+    formTipPullup: 'Körper anspannen und Schultern von den Ohren fernhalten. Den Zug mit den Ellbogen nach unten einleiten.',
+    formTipCore: 'Unterer Rücken kontrolliert am Boden halten. Gegenüberliegende Arme und Beine langsam strecken.',
+  },
+  fr: {
+    exerciseFormTitle: 'Bonne posture',
+    exerciseFormShow: 'Voir la posture',
+    exerciseFormClose: 'Fermer',
+    formTipPush: 'Place les mains sous les épaules. Garde le corps aligné de la tête aux talons et bouge avec contrôle.',
+    formTipSquat: 'Place les pieds à peu près à la largeur des épaules. Garde les genoux dans l’axe des orteils et recule les hanches.',
+    formTipLunge: 'Pose fermement le pied qui avance. Garde le genou au-dessus de la cheville et le buste droit.',
+    formTipHinge: 'Recule les hanches, fléchis légèrement les genoux et garde le dos plat. Le mouvement vient des hanches.',
+    formTipPlank: 'Place les coudes ou les mains sous les épaules. Garde une ligne droite de la tête aux talons.',
+    formTipRow: 'Garde le dos plat et la nuque neutre. Tire les coudes vers les côtes en éloignant les épaules des oreilles.',
+    formTipPress: 'Gaine le centre du corps et contrôle les épaules. Pousse vers le haut sans cambrer le bas du dos.',
+    formTipCurl: 'Garde les coudes près du corps. Monte et descends avec contrôle, sans balancer le buste.',
+    formTipBridge: 'Ancre bien les pieds. Soulève les hanches jusqu’à aligner épaules et genoux sans cambrer le dos.',
+    formTipCalf: 'Transfère le poids vers l’avant des pieds. Monte les talons droit puis redescends lentement.',
+    formTipPullup: 'Gaine le corps et éloigne les épaules des oreilles. Commence la traction en tirant les coudes vers le bas.',
+    formTipCore: 'Garde le bas du dos contrôlé vers le sol. Tends lentement le bras et la jambe opposés.',
+  },
+  es: {
+    exerciseFormTitle: 'Técnica correcta',
+    exerciseFormShow: 'Ver técnica',
+    exerciseFormClose: 'Cerrar',
+    formTipPush: 'Coloca las manos bajo los hombros. Mantén el cuerpo alineado de la cabeza a los talones y muévete con control.',
+    formTipSquat: 'Coloca los pies al ancho de los hombros. Lleva las rodillas hacia los dedos y las caderas atrás con la espalda neutra.',
+    formTipLunge: 'Apoya con firmeza el pie que avanza. Mantén la rodilla sobre el tobillo y el torso erguido.',
+    formTipHinge: 'Lleva las caderas atrás, flexiona un poco las rodillas y mantén la espalda plana. El movimiento nace en las caderas.',
+    formTipPlank: 'Coloca los codos o las manos bajo los hombros. Mantén una línea recta de la cabeza a los talones.',
+    formTipRow: 'Mantén la espalda plana y el cuello neutro. Lleva los codos hacia las costillas y aleja los hombros de las orejas.',
+    formTipPress: 'Activa el abdomen y controla los hombros. Empuja hacia arriba sin arquear demasiado la zona lumbar.',
+    formTipCurl: 'Mantén los codos cerca del cuerpo. Sube y baja con control sin balancear el torso.',
+    formTipBridge: 'Apoya bien los pies. Eleva las caderas hasta alinear hombros y rodillas sin arquear la espalda.',
+    formTipCalf: 'Lleva el peso hacia la parte delantera de los pies. Eleva los talones y baja lentamente.',
+    formTipPullup: 'Activa el cuerpo y aleja los hombros de las orejas. Inicia el tirón llevando los codos hacia abajo.',
+    formTipCore: 'Mantén la zona lumbar controlada hacia el suelo. Extiende lentamente el brazo y la pierna contrarios.',
+  },
+} as const;
+
 const themeTranslations = {
   tr: { appearance: 'Görünüm', appearanceDescription: 'GainMode görünümünü seç veya telefon ayarını otomatik kullan.', themeSystem: 'Sistem', themeLight: 'Açık', themeDark: 'Koyu' },
   en: { appearance: 'Appearance', appearanceDescription: 'Choose GainMode’s appearance or automatically follow your phone.', themeSystem: 'System', themeLight: 'Light', themeDark: 'Dark' },
@@ -1746,7 +1834,7 @@ const themeTranslations = {
   es: { appearance: 'Apariencia', appearanceDescription: 'Elige la apariencia de GainMode o sigue automáticamente tu teléfono.', themeSystem: 'Sistema', themeLight: 'Claro', themeDark: 'Oscuro' },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr;
+export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr;
 
 const workoutReminderDescriptions: Record<Language, string> = {
   tr: 'Antrenman günlerinde saat 09:00’da o günün antrenmanını ve süresini hatırlat.',
@@ -1787,6 +1875,7 @@ export function translate(language: Language, key: TranslationKey): string {
   }
   if (key in premiumPlanTranslations.tr) return applyCurrentBrand(premiumPlanTranslations[language][key as keyof typeof premiumPlanTranslations.tr]);
   if (key in streakUiTranslations.tr) return applyCurrentBrand(streakUiTranslations[language][key as keyof typeof streakUiTranslations.tr]);
+  if (key in exerciseFormTranslations.tr) return exerciseFormTranslations[language][key as keyof typeof exerciseFormTranslations.tr];
   if (key === 'premiumFeature1') return applyCurrentBrand(premiumFeatureOneCopy[language]);
   if (key === 'premiumFeature2') return applyCurrentBrand(premiumBenefitCopy[language].photo);
   if (key === 'premiumFeature3') return applyCurrentBrand(premiumBenefitCopy[language].coach);

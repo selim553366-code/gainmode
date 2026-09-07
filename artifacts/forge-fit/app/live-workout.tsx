@@ -51,9 +51,9 @@ function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmar
 }
 
 function guideImageForKind(kind: ExerciseKind) {
-  if (kind === 'squat') return require('@/assets/images/live-guide-squat.png');
-  if (kind === 'lunge') return require('@/assets/images/live-guide-lunge.png');
-  return require('@/assets/images/live-guide-pushup.png');
+  if (kind === 'squat') return require('@/assets/images/live-guide-coach-squat.png');
+  if (kind === 'lunge') return require('@/assets/images/live-guide-coach-lunge.png');
+  return require('@/assets/images/live-guide-coach-pushup.png');
 }
 
 function ActionButton({ label, icon, onPress, disabled = false }: { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void; disabled?: boolean }) {

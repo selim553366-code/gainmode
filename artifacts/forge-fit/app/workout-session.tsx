@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@/components/AppIcon';
 import { MuscleAnatomy, type WorkoutMapKey } from '@/components/MuscleAnatomy';
 import { Card, CelebrationBurst, ProgressBar, triggerHaptic } from '@/components/FitUI';
+import { ExerciseFormGuide } from '@/components/ExerciseFormGuide';
 import { useFit } from '@/context/FitContext';
 import { useColors } from '@/hooks/useColors';
 import { translate, type TranslationKey } from '@/lib/i18n';
@@ -69,6 +70,7 @@ export default function WorkoutSessionScreen() {
   const [selectedMuscle, setSelectedMuscle] = React.useState<MuscleGroup | null>(null);
   const [celebrating, setCelebrating] = React.useState(false);
   const [showTapHint, setShowTapHint] = React.useState(false);
+  const [guideExercise, setGuideExercise] = React.useState<string | null>(null);
   const listAnimation = React.useRef(new Animated.Value(0)).current;
   const tapHintAnimation = React.useRef(new Animated.Value(0)).current;
   const activeMuscles = React.useMemo(() => {
@@ -228,6 +230,10 @@ export default function WorkoutSessionScreen() {
                 <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}><Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.sets} {t('sets')}</Text></View>
                 <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}><Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.reps} {t('repetitions')}</Text></View>
               </View>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('exerciseFormShow')} onPress={() => setGuideExercise(exercise.name)} style={styles.formGuideButton}>
+                <Ionicons name="eye-outline" size={14} color={colors.primary} />
+                <Text style={[styles.formGuideButtonText, { color: colors.primary }]}>{t('exerciseFormShow')}</Text>
+              </Pressable>
             </View>
             <Pressable
               accessibilityRole="checkbox"
@@ -247,6 +253,7 @@ export default function WorkoutSessionScreen() {
         <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t('selectMuscleBody')}</Text>
       </View>}
     </ScrollView>
+    <ExerciseFormGuide visible={Boolean(guideExercise)} exerciseName={guideExercise ?? 'exercisePlank'} language={language} onClose={() => setGuideExercise(null)} />
     <CelebrationBurst visible={celebrating} title={t('workoutCompleteTitle')} subtitle={t('workoutCompleteSubtitle')} onDone={() => setCelebrating(false)} />
   </View>;
 }
@@ -291,6 +298,8 @@ const styles = StyleSheet.create({
   exerciseMeta: { flexDirection: 'row', gap: 6, marginTop: 8 },
   metaPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4 },
   metaText: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
+  formGuideButton: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, alignSelf: 'flex-start' },
+  formGuideButtonText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
   checkButton: { width: 39, height: 39, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   emptyPrompt: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 20, alignItems: 'center', padding: 24, marginBottom: 20 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, marginTop: 10 },

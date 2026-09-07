@@ -5,6 +5,7 @@
 - [Expo static build workflow](forge-fit-build-workflow.md) — managed preview ports can conflict with the static Expo helper’s fixed 8081 probe.
 - [Forge Fit live pose tracking](forge-fit-live-pose.md) — native MediaPipe camera flow needs a development build; previews should use an explicit fallback.
 - [Forge Fit responsive feature cards](forge-fit-responsive-cards.md) — recreate reference feature cards in code so they scale cleanly and keep real hit targets instead of shipping fixed screenshots.
+- [Forge Fit coach form guides](forge-fit-coach-form-guides.md) — use the blue coach character in consistent movement-stage visuals, with localized form tips below.
 - [Forge Fit Android release builds](forge-fit-android-build.md) — native checks work locally; Android cloud builds must resolve Expo config from the Forge Fit artifact, not the workspace root.
 - [OpenAPI and Zod codegen](openapi-zod-codegen.md) — this workspace’s Zod 3 generator mishandles OpenAPI integer response fields; verify generated schemas after API changes.
 - [Forge Fit local notifications](forge-fit-notifications.md) — reminder scheduling is native-device behavior; web previews only validate the settings UI.
