@@ -48,7 +48,7 @@ export default function TodayScreen() {
         centered
          action="settings-outline"
          onAction={() => router.push('/settings')}
-          premiumLabel={SUBSCRIPTION_PURCHASE_ENABLED ? t('premiumShort') : undefined}
+          premiumLabel={SUBSCRIPTION_PURCHASE_ENABLED ? (isPremium ? t('premiumOwned') : t('premiumShort')) : undefined}
           premiumIcon="trophy-outline"
          premiumOwned={isPremium}
          premiumAction={SUBSCRIPTION_PURCHASE_ENABLED ? () => { if (isPremium) setPremiumStatusVisible(true); else setPremiumVisible(true); } : undefined}
