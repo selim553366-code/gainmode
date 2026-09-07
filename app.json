@@ -7,6 +7,12 @@
     },
     "android": {
       "package": "com.forgefit2.app"
+    },
+    "ios": {
+      "bundleIdentifier": "com.forgefit2.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     }
   }
 }
