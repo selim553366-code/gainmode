@@ -34,7 +34,7 @@ test('assigns workouts only to preferred days so other days remain rest days', (
 });
 
 test('never assigns biceps to a generated push day', () => {
-  for (const trainingDays of [2, 3, 4, 5, 6]) {
+  for (const trainingDays of [3, 4, 5, 6]) {
     const pushDays = buildWorkoutPlan(profile({ trainingDays })).filter((workout) => workout.name === 'workoutPushDay');
     assert.ok(pushDays.length > 0);
     for (const workout of pushDays) {
@@ -42,6 +42,37 @@ test('never assigns biceps to a generated push day', () => {
       assert.ok(workout.exercises.every((exercise) => exercise.muscleGroup !== 'biceps'));
     }
   }
+});
+
+test('matches four-day workout names to their actual muscle splits', () => {
+  const workouts = buildWorkoutPlan(profile({ trainingDays: 4 }));
+
+  assert.deepEqual(workouts.map((workout) => workout.name), [
+    'workoutPushDay',
+    'workoutLegDay',
+    'workoutPullDay',
+    'workoutUpperDay',
+  ]);
+  const pullDay = workouts.find((workout) => workout.name === 'workoutPullDay');
+  const legDay = workouts.find((workout) => workout.name === 'workoutLegDay');
+  assert.ok(pullDay?.focusAreas?.includes('back'));
+  assert.ok(pullDay?.focusAreas?.includes('biceps'));
+  assert.ok(!pullDay?.focusAreas?.some((area) => ['quadriceps', 'hamstrings', 'glutes', 'calves'].includes(area)));
+  assert.ok(legDay?.focusAreas?.includes('quadriceps'));
+  assert.ok(!legDay?.focusAreas?.includes('core'));
+});
+
+test('repairs persisted pull and leg labels from their muscle content', () => {
+  const workouts = buildWorkoutPlan(profile({ trainingDays: 4 }));
+  const mislabeled = workouts.map((workout, index) => index === 1
+    ? { ...workout, name: 'workoutPullDay' }
+    : index === 2
+      ? { ...workout, name: 'workoutLegDay' }
+      : workout);
+  const repaired = sanitizeWorkoutSplits(mislabeled);
+
+  assert.equal(repaired[1].name, 'workoutLegDay');
+  assert.equal(repaired[2].name, 'workoutPullDay');
 });
 
 test('removes legacy biceps exercises from a persisted push day', () => {

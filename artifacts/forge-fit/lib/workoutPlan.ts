@@ -84,8 +84,8 @@ const gymLibrary: ExerciseLibrary = {
 
 const splitAreas: Record<number, MuscleGroup[][]> = {
   2: [
-    ['chest', 'shoulders', 'triceps', 'core'],
-    ['back', 'biceps', 'quadriceps', 'hamstrings', 'glutes', 'calves'],
+    ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'core'],
+    ['quadriceps', 'hamstrings', 'glutes', 'calves'],
   ],
   3: [
     ['chest', 'shoulders', 'triceps'],
@@ -115,14 +115,31 @@ const splitAreas: Record<number, MuscleGroup[][]> = {
   ],
 };
 
-const splitNames: TranslationKey[] = [
-  'workoutPushDay',
-  'workoutPullDay',
-  'workoutLegDay',
-  'workoutUpperDay',
-  'workoutLowerDay',
-  'workoutFullBody',
-];
+const splitNames: Record<number, TranslationKey[]> = {
+  2: ['workoutUpperDay', 'workoutLowerDay'],
+  3: ['workoutPushDay', 'workoutPullDay', 'workoutLegDay'],
+  4: ['workoutPushDay', 'workoutLegDay', 'workoutPullDay', 'workoutUpperDay'],
+  5: ['workoutPushDay', 'workoutPullDay', 'workoutLegDay', 'workoutUpperDay', 'workoutLowerDay'],
+  6: ['workoutPushDay', 'workoutPullDay', 'workoutLegDay', 'workoutPushDay', 'workoutPullDay', 'workoutLegDay'],
+};
+
+const lowerBodyGroups = new Set<MuscleGroup>(['quadriceps', 'hamstrings', 'glutes', 'calves']);
+
+function inferWorkoutName(areas: MuscleGroup[], fallback: Workout['name']): Workout['name'] {
+  const hasLowerBody = areas.some((area) => lowerBodyGroups.has(area));
+  const hasChest = areas.includes('chest');
+  const hasBack = areas.includes('back');
+  const hasBiceps = areas.includes('biceps');
+  const hasTriceps = areas.includes('triceps');
+  const hasUpperBody = hasChest || hasBack || hasBiceps || hasTriceps || areas.includes('shoulders');
+
+  if (hasLowerBody && hasUpperBody) return 'workoutFullBody';
+  if (hasLowerBody) return fallback === 'workoutLowerDay' ? 'workoutLowerDay' : 'workoutLegDay';
+  if (hasChest && hasBack) return 'workoutUpperDay';
+  if (hasChest && !hasBack && !hasBiceps) return 'workoutPushDay';
+  if (hasBack && !hasChest) return 'workoutPullDay';
+  return fallback;
+}
 
 function equipmentText(profile: Profile) {
   return (profile.equipmentDetails ?? '').toLocaleLowerCase();
@@ -166,14 +183,21 @@ export function normalizeWorkoutSets(workouts: Workout[], fallback = 2) {
 
 export function sanitizeWorkoutSplits(workouts: Workout[]) {
   return workouts.map((workout) => {
-    if (workout.name !== 'workoutPushDay') return workout;
-    const exercises = workout.exercises.filter((exercise) => exercise.muscleGroup !== 'biceps');
-    const focusAreas = workout.focusAreas?.filter((muscleGroup) => muscleGroup !== 'biceps');
+    const removeBiceps = workout.name === 'workoutPushDay';
+    const exercises = removeBiceps
+      ? workout.exercises.filter((exercise) => exercise.muscleGroup !== 'biceps')
+      : workout.exercises;
+    const focusAreas = (workout.focusAreas ?? Array.from(new Set(exercises
+      .map((exercise) => exercise.muscleGroup)
+      .filter((muscleGroup): muscleGroup is MuscleGroup => Boolean(muscleGroup)))))
+      .filter((muscleGroup) => !removeBiceps || muscleGroup !== 'biceps');
+    const name = inferWorkoutName(focusAreas, workout.name);
     return {
       ...workout,
+      name,
       focusAreas,
       exercises,
-      completed: workoutIsComplete({ ...workout, focusAreas, exercises }),
+      completed: workoutIsComplete({ ...workout, name, focusAreas, exercises }),
     };
   });
 }
@@ -230,7 +254,7 @@ export function buildWorkoutPlan(profile: Profile): Workout[] {
     return {
       id: `workout-${dayIndex}`,
       day: days[dayIndex],
-      name: splitNames[dayIndex] ?? 'workoutFullBody',
+      name: splitNames[count]?.[dayIndex] ?? 'workoutFullBody',
       duration: profile.sessionDuration ?? (isBuildGoal ? 50 : 40),
       focusAreas: areas,
       completed: false,

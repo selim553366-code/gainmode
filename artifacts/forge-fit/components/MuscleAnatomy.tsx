@@ -88,7 +88,7 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, a
           {
             left: imageLeft,
             tintColor: selectedMuscle === muscle ? selectedColor : activeColor,
-            opacity: selectedMuscle === muscle ? 0.98 : 0.88,
+            opacity: selectedMuscle === muscle ? 0.78 : 0.58,
           },
         ]}
       />;
