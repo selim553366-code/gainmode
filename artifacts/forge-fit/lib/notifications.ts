@@ -104,16 +104,35 @@ async function scheduleWorkoutReminder(language: Language, workout: Workout, wee
 
 let notificationSync = Promise.resolve();
 
+async function scheduleWeightReminder(language: Language) {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: translate(language, 'notificationWeightTitle'),
+      body: translate(language, 'notificationWeightBody'),
+      sound: 'default',
+      data: { source: 'forge-fit-weight' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 10 * 24 * 60 * 60,
+      repeats: true,
+      channelId: CHANNEL_ID,
+    },
+  });
+}
+
 async function syncFitnessNotificationsNow({
   settings,
   profile,
   workouts,
   language,
+  weightLogs,
 }: {
   settings: NotificationSettings;
   profile: Profile | null;
   workouts: Workout[];
   language: Language;
+  weightLogs: { date: string }[];
 }) {
   if (Platform.OS === 'web') return;
   await Notifications.cancelAllScheduledNotificationsAsync();
@@ -143,6 +162,9 @@ async function syncFitnessNotificationsNow({
   if (settings.weeklySummary) {
     await scheduleWeekly(language, 'notificationSummaryTitle', 'notificationSummaryBody', 1, 18);
   }
+  if (profile && weightLogs.length > 0) {
+    await scheduleWeightReminder(language);
+  }
 }
 
 export function syncFitnessNotifications(args: {
@@ -150,6 +172,7 @@ export function syncFitnessNotifications(args: {
   profile: Profile | null;
   workouts: Workout[];
   language: Language;
+  weightLogs: { date: string }[];
 }) {
   const nextSync = notificationSync.catch(() => undefined).then(() => syncFitnessNotificationsNow(args));
   notificationSync = nextSync.catch(() => undefined);

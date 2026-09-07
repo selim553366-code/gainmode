@@ -105,12 +105,16 @@ function RootLayoutNav() {
     const openNotificationDestination = (response: Notifications.NotificationResponse | null) => {
       if (!response || handledNotificationResponse.current === response.notification.request.identifier) return;
       const data = response.notification.request.content.data;
-      if (data?.source !== 'forge-fit-daily-mood' && data?.source !== 'forge-fit-workout') return;
+      if (data?.source !== 'forge-fit-daily-mood' && data?.source !== 'forge-fit-workout' && data?.source !== 'forge-fit-weight') return;
       handledNotificationResponse.current = response.notification.request.identifier;
       Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
       setTimeout(() => {
         if (data.source === 'forge-fit-workout' && typeof data.workoutDay === 'string') {
           router.push({ pathname: '/(tabs)/plan', params: { day: data.workoutDay } });
+          return;
+        }
+        if (data.source === 'forge-fit-weight') {
+          router.push('/(tabs)/progress');
           return;
         }
         router.push('/daily-mood');
