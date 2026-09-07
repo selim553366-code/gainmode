@@ -218,7 +218,6 @@ function EntryRecoveryScreen({ onRestart }: { onRestart: () => void }) {
           onPress={() => {
             triggerHaptic();
             onRestart();
-            router.replace('/');
           }}
           style={({ pressed }) => [styles.entryRecoveryButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}
         >
@@ -916,7 +915,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
      <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} disabled={isLoading || isPurchasing} onPress={() => { triggerHaptic(); void handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || isLoading || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isPurchasing ? t('premiumLoading') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeSkip')} onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('premiumWelcomeSkip')}</Text></Pressable>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('restartOnboarding')} onPress={() => { triggerHaptic(); onRestart(); router.replace('/'); }} style={({ pressed }) => [styles.restartOnboardingLink, { opacity: pressed ? 0.6 : 1 }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('restartOnboarding')} onPress={() => { triggerHaptic(); onRestart(); }} style={({ pressed }) => [styles.restartOnboardingLink, { opacity: pressed ? 0.6 : 1 }]}>
         <Ionicons name="flash-outline" size={15} color={colors.mutedForeground} />
         <Text style={[styles.restartOnboardingLinkText, { color: colors.mutedForeground }]}>{t('restartOnboarding')}</Text>
       </Pressable>
