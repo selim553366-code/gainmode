@@ -119,7 +119,7 @@ export function ExerciseFormGuide({ visible, exerciseName, language, onClose }: 
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#020B18B8', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
-  card: { width: '100%', maxWidth: 350, borderRadius: 22, borderWidth: 1, padding: 11, overflow: 'hidden' },
+  card: { width: '100%', maxWidth: 360, borderRadius: 22, borderWidth: 1, padding: 11, overflow: 'hidden' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   heading: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 9 },
   icon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1, textTransform: 'uppercase' },
   title: { fontFamily: 'Inter_700Bold', fontSize: 17, lineHeight: 21, marginTop: 1 },
   close: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  image: { width: '100%', height: 158, borderRadius: 14, backgroundColor: '#2461B4' },
+  image: { width: '100%', height: 176, borderRadius: 15, backgroundColor: '#2461B4' },
   tip: { minHeight: 54, borderRadius: 13, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 9, marginTop: 9, flexDirection: 'row', alignItems: 'center', gap: 8 },
   tipText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17 },
   action: { minHeight: 44, borderRadius: 14, marginTop: 10, alignItems: 'center', justifyContent: 'center' },
