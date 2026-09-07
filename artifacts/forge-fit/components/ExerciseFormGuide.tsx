@@ -21,12 +21,22 @@ const formImages: Record<FormKind, ImageSourcePropType> = {
   core: require('@/assets/images/form-coach-core.png'),
 };
 
-const guideByExercise: Record<string, { kind: FormKind; tip: TranslationKey }> = {
+const specialFormImages = {
+  pikePushup: require('@/assets/images/form-coach-pike-pushup.png'),
+  shoulderTap: require('@/assets/images/form-coach-shoulder-tap.png'),
+  diamondPushup: require('@/assets/images/form-coach-diamond-pushup.png'),
+  closeGripPushup: require('@/assets/images/form-coach-close-grip-pushup.png'),
+  sidePlank: require('@/assets/images/form-coach-side-plank.png'),
+  superman: require('@/assets/images/form-coach-superman.png'),
+  reverseSnowAngel: require('@/assets/images/form-coach-reverse-snow-angel.png'),
+} satisfies Record<string, ImageSourcePropType>;
+
+const guideByExercise: Record<string, { kind: FormKind; tip: TranslationKey; image?: ImageSourcePropType }> = {
   exercisePushup: { kind: 'push', tip: 'formTipPush' },
   exerciseWidePushup: { kind: 'push', tip: 'formTipPush' },
   exerciseInclinePushup: { kind: 'push', tip: 'formTipPush' },
-  exerciseDiamondPushup: { kind: 'push', tip: 'formTipPush' },
-  exerciseCloseGripPushup: { kind: 'push', tip: 'formTipPush' },
+  exerciseDiamondPushup: { kind: 'push', tip: 'formTipPush', image: specialFormImages.diamondPushup },
+  exerciseCloseGripPushup: { kind: 'push', tip: 'formTipPush', image: specialFormImages.closeGripPushup },
   exerciseBodyweightDip: { kind: 'push', tip: 'formTipPush' },
   exerciseTriceps: { kind: 'push', tip: 'formTipPush' },
   exerciseOverheadTriceps: { kind: 'press', tip: 'formTipPress' },
@@ -41,9 +51,9 @@ const guideByExercise: Record<string, { kind: FormKind; tip: TranslationKey }> =
   exerciseRdl: { kind: 'hinge', tip: 'formTipHinge' },
   exerciseKettlebellSwing: { kind: 'hinge', tip: 'formTipHinge' },
   exercisePlank: { kind: 'plank', tip: 'formTipPlank' },
-  exerciseSidePlank: { kind: 'plank', tip: 'formTipPlank' },
-  exerciseSuperman: { kind: 'core', tip: 'formTipCore' },
-  exerciseReverseSnowAngel: { kind: 'core', tip: 'formTipCore' },
+  exerciseSidePlank: { kind: 'plank', tip: 'formTipPlank', image: specialFormImages.sidePlank },
+  exerciseSuperman: { kind: 'core', tip: 'formTipCore', image: specialFormImages.superman },
+  exerciseReverseSnowAngel: { kind: 'core', tip: 'formTipCore', image: specialFormImages.reverseSnowAngel },
   exerciseBodyweightRow: { kind: 'row', tip: 'formTipRow' },
   exerciseInvertedRow: { kind: 'row', tip: 'formTipRow' },
   exerciseBandRow: { kind: 'row', tip: 'formTipRow' },
@@ -51,8 +61,8 @@ const guideByExercise: Record<string, { kind: FormKind; tip: TranslationKey }> =
   exerciseRow: { kind: 'row', tip: 'formTipRow' },
   exerciseLatPulldown: { kind: 'row', tip: 'formTipRow' },
   exercisePullup: { kind: 'pullup', tip: 'formTipPullup' },
-  exercisePikePushup: { kind: 'press', tip: 'formTipPress' },
-  exerciseShoulderTap: { kind: 'plank', tip: 'formTipPlank' },
+  exercisePikePushup: { kind: 'press', tip: 'formTipPress', image: specialFormImages.pikePushup },
+  exerciseShoulderTap: { kind: 'plank', tip: 'formTipPlank', image: specialFormImages.shoulderTap },
   exerciseProneYRaise: { kind: 'press', tip: 'formTipPress' },
   exerciseShoulderPress: { kind: 'press', tip: 'formTipPress' },
   exerciseBandShoulderPress: { kind: 'press', tip: 'formTipPress' },
@@ -104,7 +114,7 @@ export function ExerciseFormGuide({ visible, exerciseName, language, onClose }: 
             <Ionicons name="close" size={19} color={colors.foreground} />
           </Pressable>
         </View>
-        <Image source={formImages[guide.kind]} resizeMode="contain" style={styles.image} />
+        <Image source={guide.image ?? formImages[guide.kind]} resizeMode="contain" style={styles.image} />
         <View style={[styles.tip, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}>
           <Ionicons name="checkmark-circle-outline" size={18} color={colors.primary} />
           <Text style={[styles.tipText, { color: colors.foreground }]}>{translate(language, guide.tip)}</Text>
