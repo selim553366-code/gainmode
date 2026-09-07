@@ -20,16 +20,16 @@ export default function BadgesScreen() {
   };
   const earned = unlockedBadgeIds.length;
   const tabs: Array<{ id: BadgeCategory; icon: React.ComponentProps<typeof Ionicons>['name'] }> = [
-    { id: 'training', icon: 'barbell-outline' },
-    { id: 'consistency', icon: 'flame-outline' },
-    { id: 'nutrition', icon: 'nutrition-outline' },
-    { id: 'progress', icon: 'analytics-outline' },
+    { id: 'training', icon: 'badge-training' },
+    { id: 'consistency', icon: 'badge-consistency' },
+    { id: 'nutrition', icon: 'badge-nutrition' },
+    { id: 'progress', icon: 'badge-progress' },
   ];
 
   return <Screen bottomPadding={90}>
     <Header eyebrow={ui('eyebrow')} title={ui('title')} subtitle={ui('subtitle')} action="close-outline" onAction={() => router.back()} />
     <View style={[styles.summary, { backgroundColor: colors.primary }]}>
-      <View style={[styles.summaryIcon, { backgroundColor: `${colors.primaryForeground}20` }]}><Ionicons name="trophy-outline" size={27} color={colors.primaryForeground} /></View>
+      <View style={[styles.summaryIcon, { backgroundColor: `${colors.primaryForeground}20` }]}><Ionicons name="badge-collection" size={27} color={colors.primaryForeground} /></View>
       <View><Text style={[styles.summaryLabel, { color: `${colors.primaryForeground}B8` }]}>{ui('collection').toUpperCase()}</Text><Text style={[styles.summaryValue, { color: colors.primaryForeground }]}>{earned} / {badges.length}</Text></View>
     </View>
     <View style={styles.tabs}>
@@ -47,7 +47,7 @@ export default function BadgesScreen() {
       return <View key={badge.id} style={[styles.card, { backgroundColor: colors.card, borderColor: unlocked ? `${badge.color}70` : colors.border }]}>
         <View style={[styles.badgeIcon, { backgroundColor: unlocked ? `${badge.color}20` : colors.secondary, borderColor: unlocked ? `${badge.color}55` : colors.border }]}>
           <Ionicons name={badge.icon as React.ComponentProps<typeof Ionicons>['name']} size={25} color={unlocked ? badge.color : colors.mutedForeground} />
-          {!unlocked ? <View style={[styles.lock, { backgroundColor: colors.card }]}><Ionicons name="shield-checkmark-outline" size={10} color={colors.mutedForeground} /></View> : null}
+          {!unlocked ? <View style={[styles.lock, { backgroundColor: colors.card }]}><Ionicons name="badge-lock" size={10} color={colors.mutedForeground} /></View> : null}
         </View>
         <View style={styles.body}>
           <View style={styles.heading}><Text style={[styles.title, { color: colors.foreground }]}>{badgeText(badge.title, language)}</Text><Text style={[styles.state, { color: unlocked ? badge.color : colors.mutedForeground }]}>{unlocked ? ui('earned') : ui('locked')}</Text></View>

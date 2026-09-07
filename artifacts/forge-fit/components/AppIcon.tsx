@@ -3,12 +3,17 @@ import {
   Activity,
   Apple,
   AlertCircle,
+  Award,
+  Badge,
+  BadgeCheck,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
   Bell,
+  CalendarDays,
   Camera,
   Check,
+  CircleDot,
   ChevronDown,
   ChevronRight,
   ChevronUp,
@@ -17,26 +22,38 @@ import {
   CirclePlus,
   CircleX,
   ChartNoAxesCombined,
+  ChartNoAxesColumnIncreasing,
   Copy,
+  Crown,
   Dumbbell,
   Ellipsis,
   Eye,
   EyeOff,
   FileText,
   Flame,
+  Gem,
+  Gauge,
+  Goal,
   Gift,
   Hand,
   Home,
+  Hourglass,
   Image,
   Images,
   Info,
+  ListChecks,
+  LockKeyhole,
   Languages,
+  Medal,
   MessageCircle,
+  Mountain,
   Minus,
   Pause,
   PersonStanding,
   PieChart,
   Plus,
+  Rocket,
+  Salad,
   Scale,
   ScanLine,
   Search,
@@ -48,6 +65,8 @@ import {
   Smartphone,
   Star,
   Sun,
+  Target,
+  Timer,
   Trash2,
   Ticket,
   TrendingDown,
@@ -57,6 +76,8 @@ import {
   UserPlus,
   Users,
   Utensils,
+  Waypoints,
+  Wheat,
   Zap,
   X,
 } from 'lucide-react-native';
@@ -130,7 +151,28 @@ export type IconName =
   | 'trophy-outline'
   | 'users'
   | 'scale-outline'
-  | 'x';
+  | 'x'
+  | 'badge-collection'
+  | 'badge-training'
+  | 'badge-consistency'
+  | 'badge-nutrition'
+  | 'badge-progress'
+  | 'badge-spark'
+  | 'badge-iron'
+  | 'badge-power'
+  | 'badge-club'
+  | 'badge-hours'
+  | 'badge-fire'
+  | 'badge-week'
+  | 'badge-unstoppable'
+  | 'badge-calendar'
+  | 'badge-meal'
+  | 'badge-rhythm'
+  | 'badge-master'
+  | 'badge-checkin'
+  | 'badge-change'
+  | 'badge-sets'
+  | 'badge-lock';
 
 type IconComponent = React.ComponentType<{
   color?: string;
@@ -208,6 +250,27 @@ const iconMap: Record<IconName, IconComponent> = {
   'scale-outline': Scale,
   x: X,
   'analytics-outline': ChartNoAxesCombined,
+  'badge-collection': Medal,
+  'badge-training': CircleDot,
+  'badge-consistency': Gauge,
+  'badge-nutrition': ListChecks,
+  'badge-progress': ChartNoAxesColumnIncreasing,
+  'badge-spark': Rocket,
+  'badge-iron': Mountain,
+  'badge-power': Goal,
+  'badge-club': Crown,
+  'badge-hours': Hourglass,
+  'badge-fire': Award,
+  'badge-week': CalendarDays,
+  'badge-unstoppable': Gem,
+  'badge-calendar': Waypoints,
+  'badge-meal': Wheat,
+  'badge-rhythm': Salad,
+  'badge-master': Badge,
+  'badge-checkin': Target,
+  'badge-change': Timer,
+  'badge-sets': BadgeCheck,
+  'badge-lock': LockKeyhole,
 };
 
 export function AppIcon({ name, size = 24, color = '#FFFFFF' }: { name: IconName; size?: number; color?: string }) {
