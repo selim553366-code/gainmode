@@ -204,8 +204,6 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   const canOfferAnnual = Boolean(annualPackage);
   const monthlyPrice = monthlyPackage?.product.priceString ?? '—';
   const annualPrice = annualPackage?.product.priceString ?? '—';
-  const selectedPrice = selectedPlan === 'annual' ? annualPrice : monthlyPrice;
-  const selectedCurrency = (selectedPlan === 'annual' ? annualPackage : monthlyPackage)?.product.currencyCode;
   const appear = React.useRef(new Animated.Value(0)).current;
   const [actionError, setActionError] = React.useState<string | null>(null);
 
@@ -296,11 +294,6 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
                <Text style={[styles.premiumPlanPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : annualPrice}</Text>
                 <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
                </Pressable>
-           </View>
-           <Text style={[styles.premiumPlanBenefit, { color: selectedPlan === 'annual' ? colors.success : colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualBenefit') : t('premiumMonthlyBenefit')}</Text>
-           <View style={[styles.premiumPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
-                <View><Text style={[styles.premiumPriceLabel, { color: colors.mutedForeground }]}>{t('premiumSelectedPlan')}</Text><View style={styles.premiumPriceLine}><Text style={[styles.premiumPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : selectedPrice}</Text>{!isLoading ? <Text style={[styles.premiumPriceUnit, { color: colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumPerYear') : t('premiumPerMonth')}</Text> : null}</View></View>
-              <View style={styles.premiumPriceAside}>{selectedCurrency ? <Text style={[styles.premiumCurrencyCode, { color: colors.primary }]}>{selectedCurrency}</Text> : null}<Text style={[styles.premiumTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
            </View>
           <Text style={[styles.premiumTrialBody, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
            {actionError ? <Text style={[styles.premiumActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
@@ -453,8 +446,6 @@ export const styles = StyleSheet.create({
   premiumModalEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.7, marginBottom: 8 },
   premiumModalTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, letterSpacing: -1, lineHeight: 34 },
   premiumModalSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, marginTop: 9 },
-  premiumPriceAside: { alignItems: 'flex-end', gap: 6, maxWidth: 112 },
-  premiumTrialText: { fontFamily: 'Inter_700Bold', fontSize: 9, lineHeight: 12, textAlign: 'right' },
   premiumBenefits: { gap: 12, marginTop: 22, marginBottom: 20 },
   premiumBenefit: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   premiumBenefitIcon: { width: 25, height: 25, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
@@ -466,13 +457,6 @@ export const styles = StyleSheet.create({
   premiumPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 20, marginTop: 12 },
   premiumPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 3 },
   premiumSavingsBadge: { fontFamily: 'Inter_700Bold', fontSize: 8 },
-  premiumPlanBenefit: { fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 15, textAlign: 'center', marginBottom: 10 },
-  premiumPriceCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: 18, borderWidth: 1, padding: 14, marginBottom: 7 },
-  premiumPriceLabel: { fontFamily: 'Inter_500Medium', fontSize: 10, letterSpacing: 0.3 },
-  premiumPriceLine: { flexDirection: 'row', alignItems: 'baseline', gap: 5, marginTop: 3 },
-  premiumPrice: { fontFamily: 'Inter_700Bold', fontSize: 26, letterSpacing: -0.8 },
-  premiumPriceUnit: { fontFamily: 'Inter_500Medium', fontSize: 11 },
-  premiumCurrencyCode: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1 },
   premiumPriceOptions: { fontFamily: 'Inter_400Regular', fontSize: 10, textAlign: 'right', marginBottom: 16 },
   premiumTrialBody: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 15, textAlign: 'center', marginTop: -8, marginBottom: 14 },
   premiumCta: { height: 53, borderRadius: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },

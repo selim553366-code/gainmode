@@ -769,8 +769,6 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
    const [explorePage, setExplorePage] = React.useState(0);
    const [showExplore, setShowExplore] = React.useState(false);
    const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
-   const price = selectedPackage?.product.priceString;
-  const displayPrice = price ?? '—';
    const benefits: Array<{ icon?: React.ComponentProps<typeof Ionicons>['name']; logo?: boolean; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' | 'premiumFeature4' | 'premiumFeature5' }> = [
     { logo: true, key: 'premiumWelcomeBenefit1' },
     { icon: 'restaurant-outline', key: 'premiumWelcomeBenefit2' },
@@ -876,11 +874,6 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
           <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
         </Pressable>
       </View>
-      <View style={[styles.offerPriceCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
-       <Text style={[styles.offerPriceLabel, { color: colors.primary }]}>{t('premiumSelectedPlan')}</Text>
-       <Text style={[styles.offerPrice, { color: colors.foreground }]}>{displayPrice}{price ? ` ${selectedPlan === 'annual' ? t('premiumPerYear') : t('premiumPerMonth')}` : ''}</Text>
-       <Text style={[styles.offerPriceOptions, { color: colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualBenefit') : t('premiumMonthlyBenefit')}</Text>
-     </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
       <Pressable accessibilityRole="button" accessibilityLabel={t('premiumExploreCta')} onPress={() => { triggerHaptic(); setExplorePage(0); setShowExplore(true); }} style={({ pressed }) => [styles.exploreCta, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}48`, opacity: pressed ? 0.74 : 1 }]}>
         <View style={[styles.exploreCtaIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="sparkles-outline" size={17} color={colors.primary} /></View>
@@ -1089,10 +1082,6 @@ const styles = StyleSheet.create({
   featureText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 14 },
   offerTrial: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 14 },
   offerTrialText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
-  offerPriceCard: { alignSelf: 'center', alignItems: 'center', borderWidth: 1, borderRadius: 17, paddingHorizontal: 18, paddingVertical: 12, marginBottom: 10 },
-  offerPriceLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 3 },
-  offerPrice: { fontFamily: 'Inter_700Bold', fontSize: 15 },
-  offerPriceOptions: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 4 },
   offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
   offerPromoSection: { width: '100%', marginTop: 2, marginBottom: 8 },
   offerPromoToggle: { minHeight: 32, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 10 },
