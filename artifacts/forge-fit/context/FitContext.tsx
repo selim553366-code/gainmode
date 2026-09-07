@@ -6,7 +6,7 @@ import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications 
 import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey } from '@/lib/nutritionDates';
 import { addStreakActivity, normalizeStreakDates } from '@/lib/streak';
-import { addExerciseToPlan, buildWorkoutPlan, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
+import { addExerciseToPlan, buildWorkoutPlan, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
 import { TEST_PREMIUM_PROMO_STORAGE_KEY } from '@/lib/testPremiumPromo';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
@@ -268,7 +268,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
              streakDates: normalizeStreakDates(Array.isArray(parsed.streakDates) ? parsed.streakDates : []),
             version: initialState.version,
           };
-           const restoredWorkouts = normalizeWorkoutSets(restoreWorkoutProgress(merged.workouts));
+           const restoredWorkouts = sanitizeWorkoutSplits(normalizeWorkoutSets(restoreWorkoutProgress(merged.workouts)));
           const needsWorkoutUpgrade = merged.profile && merged.workouts.length > 0 && merged.workouts.some((workout) => (
             !workout.focusAreas?.length || workout.exercises.some((exercise) => !exercise.muscleGroup)
           ));

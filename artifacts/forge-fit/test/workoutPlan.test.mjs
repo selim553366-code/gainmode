@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { addExerciseToPlan, buildWorkoutPlan, getWorkoutForDate, getWeekdayKey, normalizeWorkoutSets, restoreWorkoutProgress, workoutIsComplete } from '../lib/workoutPlan.ts';
+import { addExerciseToPlan, buildWorkoutPlan, getWorkoutForDate, getWeekdayKey, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete } from '../lib/workoutPlan.ts';
 
 const profile = (overrides = {}) => ({
   equipment: 'bodyweight',
@@ -31,6 +31,33 @@ test('assigns workouts only to preferred days so other days remain rest days', (
   const workouts = buildWorkoutPlan(profile({ trainingDays: 2, preferredDays: ['TUE', 'THU'] }));
 
   assert.deepEqual(workouts.map((workout) => workout.day), ['TUE', 'THU']);
+});
+
+test('never assigns biceps to a generated push day', () => {
+  for (const trainingDays of [2, 3, 4, 5, 6]) {
+    const pushDays = buildWorkoutPlan(profile({ trainingDays })).filter((workout) => workout.name === 'workoutPushDay');
+    assert.ok(pushDays.length > 0);
+    for (const workout of pushDays) {
+      assert.ok(!workout.focusAreas?.includes('biceps'));
+      assert.ok(workout.exercises.every((exercise) => exercise.muscleGroup !== 'biceps'));
+    }
+  }
+});
+
+test('removes legacy biceps exercises from a persisted push day', () => {
+  const pushDay = buildWorkoutPlan(profile({ trainingDays: 3 }))[0];
+  const polluted = {
+    ...pushDay,
+    focusAreas: [...(pushDay.focusAreas ?? []), 'biceps'],
+    exercises: [
+      ...pushDay.exercises,
+      { id: 'legacy-curl', name: 'exerciseCurl', muscleGroup: 'biceps', sets: 3, reps: 10, completed: false },
+    ],
+  };
+  const repaired = sanitizeWorkoutSplits([polluted])[0];
+
+  assert.ok(!repaired.focusAreas?.includes('biceps'));
+  assert.ok(repaired.exercises.every((exercise) => exercise.muscleGroup !== 'biceps'));
 });
 
 test('selects the workout assigned to the local calendar day', () => {

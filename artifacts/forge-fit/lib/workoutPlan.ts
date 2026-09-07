@@ -164,6 +164,20 @@ export function normalizeWorkoutSets(workouts: Workout[], fallback = 2) {
   }));
 }
 
+export function sanitizeWorkoutSplits(workouts: Workout[]) {
+  return workouts.map((workout) => {
+    if (workout.name !== 'workoutPushDay') return workout;
+    const exercises = workout.exercises.filter((exercise) => exercise.muscleGroup !== 'biceps');
+    const focusAreas = workout.focusAreas?.filter((muscleGroup) => muscleGroup !== 'biceps');
+    return {
+      ...workout,
+      focusAreas,
+      exercises,
+      completed: workoutIsComplete({ ...workout, focusAreas, exercises }),
+    };
+  });
+}
+
 export function addExerciseToPlan(workouts: Workout[], workoutId: string, name: string, sets = 3, reps = 10) {
   const trimmedName = name.trim();
   if (!trimmedName) return workouts;
