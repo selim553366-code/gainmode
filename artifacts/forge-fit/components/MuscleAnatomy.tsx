@@ -4,10 +4,12 @@ import Svg, { G, Path } from 'react-native-svg';
 import type { MuscleGroup } from '@/lib/workoutPlan';
 
 type BodySide = 'front' | 'back';
+export type WorkoutMapKey = 'push' | 'pull' | 'leg' | 'upper' | 'lower' | 'push-core' | 'pull-triceps' | 'full';
 
 type MuscleAnatomyProps = {
   side: BodySide;
   activeMuscles: MuscleGroup[];
+  mapKey: WorkoutMapKey;
   selectedMuscle: MuscleGroup | null;
   onSelect: (muscle: MuscleGroup) => void;
   activeColor: string;
@@ -117,26 +119,27 @@ const muscleMasks: Record<BodySide, Partial<Record<MuscleGroup, number>>> = {
   },
 };
 
-export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, activeColor }: MuscleAnatomyProps) {
+const workoutMaps: Record<WorkoutMapKey, number> = {
+  push: require('@/assets/images/workout-maps/push.png'),
+  pull: require('@/assets/images/workout-maps/pull.png'),
+  leg: require('@/assets/images/workout-maps/leg.png'),
+  upper: require('@/assets/images/workout-maps/upper.png'),
+  lower: require('@/assets/images/workout-maps/lower.png'),
+  'push-core': require('@/assets/images/workout-maps/push-core.png'),
+  'pull-triceps': require('@/assets/images/workout-maps/pull-triceps.png'),
+  full: require('@/assets/images/workout-maps/full.png'),
+};
+
+export function MuscleAnatomy({ side, activeMuscles, mapKey, selectedMuscle, onSelect }: MuscleAnatomyProps) {
   const hotspots = side === 'front' ? frontHotspots : backHotspots;
   const imageLeft = side === 'front' ? 0 : '-100%';
   return <View style={styles.crop}>
     <Image
-      source={require('@/assets/images/muscle-anatomy-final.png')}
+      source={workoutMaps[mapKey]}
       resizeMode="stretch"
       style={[styles.referenceImage, { left: imageLeft }]}
       accessibilityLabel={side === 'front' ? 'Front muscle anatomy' : 'Back muscle anatomy'}
     />
-    {activeMuscles.map((muscle) => {
-      const mask = muscleMasks[side][muscle];
-      if (!mask) return null;
-      return <Image
-        key={`${side}-${muscle}-mask`}
-        source={mask}
-        resizeMode="stretch"
-        style={[styles.referenceImage, styles.maskImage, { left: imageLeft, opacity: selectedMuscle === muscle ? 1 : 0.9 }]}
-      />;
-    })}
     {hotspots.map((hotspot, index) => {
       const isActive = activeMuscles.includes(hotspot.muscle);
       const isSelected = selectedMuscle === hotspot.muscle;

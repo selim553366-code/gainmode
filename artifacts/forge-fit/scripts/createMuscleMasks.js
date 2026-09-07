@@ -65,4 +65,28 @@ for (const [name, paths] of Object.entries(masks)) {
   fs.unlinkSync(svgPath);
 }
 
-console.log(`Created ${Object.keys(masks).length} transparent muscle masks in ${outputDir}`);
+const baseImage = path.resolve(__dirname, '../assets/images/muscle-anatomy-final.png');
+const mapDir = path.resolve(__dirname, '../assets/images/workout-maps');
+fs.mkdirSync(mapDir, { recursive: true });
+
+const workoutMaps = {
+  push: ['front-shoulders', 'front-chest', 'back-shoulders', 'back-triceps'],
+  pull: ['front-biceps', 'front-core', 'back-back'],
+  leg: ['front-quadriceps', 'front-calves', 'back-glutes', 'back-hamstrings', 'back-calves'],
+  upper: ['front-shoulders', 'front-chest', 'front-core', 'back-shoulders', 'back-back'],
+  lower: ['front-quadriceps', 'front-calves', 'front-core', 'back-glutes', 'back-hamstrings', 'back-calves'],
+  'push-core': ['front-shoulders', 'front-chest', 'front-core', 'back-shoulders', 'back-triceps'],
+  'pull-triceps': ['front-biceps', 'back-back', 'back-triceps'],
+  full: Object.keys(masks),
+};
+
+for (const [name, overlays] of Object.entries(workoutMaps)) {
+  const args = [baseImage];
+  for (const overlay of overlays) {
+    args.push(path.join(outputDir, `${overlay}.png`), '-composite');
+  }
+  args.push(path.join(mapDir, `${name}.png`));
+  execFileSync('magick', args);
+}
+
+console.log(`Created ${Object.keys(masks).length} transparent muscle masks and ${Object.keys(workoutMaps).length} ready workout maps`);

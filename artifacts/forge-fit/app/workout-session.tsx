@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@/components/AppIcon';
-import { MuscleAnatomy } from '@/components/MuscleAnatomy';
+import { MuscleAnatomy, type WorkoutMapKey } from '@/components/MuscleAnatomy';
 import { Card, CelebrationBurst, ProgressBar, triggerHaptic } from '@/components/FitUI';
 import { useFit } from '@/context/FitContext';
 import { useColors } from '@/hooks/useColors';
@@ -13,6 +13,22 @@ import type { MuscleGroup } from '@/lib/workoutPlan';
 
 type BodySide = 'front' | 'back';
 const MUSCLE_TAP_HINT_SEEN_KEY = 'gainmode-muscle-tap-hint-seen';
+
+function getWorkoutMapKey(workoutName: string | undefined, muscles: MuscleGroup[]): WorkoutMapKey {
+  const groups = new Set(muscles);
+  if (workoutName === 'workoutFullBody') return 'full';
+  if (workoutName === 'workoutPushDay') return groups.has('core') ? 'push-core' : 'push';
+  if (workoutName === 'workoutPullDay') return groups.has('triceps') ? 'pull-triceps' : 'pull';
+  if (workoutName === 'workoutLegDay') return 'leg';
+  if (workoutName === 'workoutLowerDay') return 'lower';
+  if (workoutName === 'workoutUpperDay') return 'upper';
+  if (groups.has('quadriceps') || groups.has('hamstrings') || groups.has('glutes') || groups.has('calves')) {
+    return groups.has('chest') || groups.has('back') || groups.has('shoulders') ? 'full' : 'lower';
+  }
+  if (groups.has('chest')) return groups.has('core') ? 'push-core' : 'push';
+  if (groups.has('back')) return groups.has('triceps') ? 'pull-triceps' : 'pull';
+  return 'full';
+}
 
 const muscleLabels: Record<MuscleGroup, TranslationKey> = {
   chest: 'muscleChest',
@@ -64,6 +80,7 @@ export default function WorkoutSessionScreen() {
     return Array.from(new Set(workout.exercises.map((exercise) => exercise.muscleGroup ?? 'other')))
       .filter((muscle) => !(isPushWorkout && muscle === 'biceps'));
   }, [workout]);
+  const mapKey = React.useMemo(() => getWorkoutMapKey(workout?.name, activeMuscles), [workout?.name, activeMuscles]);
   const selectedExercises = selectedMuscle && workout
     ? workout.exercises.filter((exercise) => (exercise.muscleGroup ?? 'other') === selectedMuscle)
     : [];
@@ -156,6 +173,7 @@ export default function WorkoutSessionScreen() {
           <MuscleAnatomy
             side={side}
             activeMuscles={activeMuscles}
+            mapKey={mapKey}
             selectedMuscle={selectedMuscle}
             onSelect={selectMuscle}
             activeColor={colors.primary}
