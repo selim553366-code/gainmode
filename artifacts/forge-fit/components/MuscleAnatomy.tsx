@@ -47,21 +47,21 @@ const backHotspots: Hotspot[] = [
 ];
 
 const frontMasks: Partial<Record<MuscleGroup, number>> = {
-  shoulders: require('@/assets/images/muscle-masks/front-shoulders.png'),
-  chest: require('@/assets/images/muscle-masks/front-chest.png'),
-  biceps: require('@/assets/images/muscle-masks/front-biceps.png'),
-  core: require('@/assets/images/muscle-masks/front-core.png'),
-  quadriceps: require('@/assets/images/muscle-masks/front-quadriceps.png'),
-  calves: require('@/assets/images/muscle-masks/front-calves.png'),
+  shoulders: require('@/assets/images/muscle-masks/front-shoulders-textured.png'),
+  chest: require('@/assets/images/muscle-masks/front-chest-textured.png'),
+  biceps: require('@/assets/images/muscle-masks/front-biceps-textured.png'),
+  core: require('@/assets/images/muscle-masks/front-core-textured.png'),
+  quadriceps: require('@/assets/images/muscle-masks/front-quadriceps-textured.png'),
+  calves: require('@/assets/images/muscle-masks/front-calves-textured.png'),
 };
 
 const backMasks: Partial<Record<MuscleGroup, number>> = {
-  shoulders: require('@/assets/images/muscle-masks/back-shoulders.png'),
-  back: require('@/assets/images/muscle-masks/back-back.png'),
-  triceps: require('@/assets/images/muscle-masks/back-triceps.png'),
-  glutes: require('@/assets/images/muscle-masks/back-glutes.png'),
-  hamstrings: require('@/assets/images/muscle-masks/back-hamstrings.png'),
-  calves: require('@/assets/images/muscle-masks/back-calves.png'),
+  shoulders: require('@/assets/images/muscle-masks/back-shoulders-textured.png'),
+  back: require('@/assets/images/muscle-masks/back-back-textured.png'),
+  triceps: require('@/assets/images/muscle-masks/back-triceps-textured.png'),
+  glutes: require('@/assets/images/muscle-masks/back-glutes-textured.png'),
+  hamstrings: require('@/assets/images/muscle-masks/back-hamstrings-textured.png'),
+  calves: require('@/assets/images/muscle-masks/back-calves-textured.png'),
 };
 
 export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect }: MuscleAnatomyProps) {
