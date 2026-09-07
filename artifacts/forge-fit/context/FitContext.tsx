@@ -341,7 +341,11 @@ export function FitProvider({ children }: { children: ReactNode }) {
       setState((current) => current.isPremium ? current : { ...current, isPremium: true });
     },
     setLanguage: (language) => setState((current) => ({ ...current, language })),
-    restartOnboarding: () => setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false })),
+    restartOnboarding: () => {
+      setTestPromoUnlocked(false);
+      AsyncStorage.removeItem(TEST_PREMIUM_PROMO_STORAGE_KEY).catch(() => undefined);
+      setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false, isPremium: false }));
+    },
      addMeal: (meal) => setState((current) => recordStreakActivity({ ...current, meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }] })),
     removeMeal: (id) => setState((current) => {
       return { ...current, meals: current.meals.filter((item) => item.id !== id) };

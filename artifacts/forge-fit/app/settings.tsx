@@ -117,7 +117,7 @@ export default function SettingsScreen() {
           accessibilityRole="button"
           onPress={() => {
             restartOnboarding();
-            router.replace('/');
+            setTimeout(() => router.replace('/'), 0);
           }}
           style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
         >
