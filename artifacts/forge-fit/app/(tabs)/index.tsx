@@ -10,7 +10,7 @@ import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { getCurrentStreak } from '@/lib/streak';
 import { getWorkoutForDate } from '@/lib/workoutPlan';
-import { AnimatedNumber, Card, ForgeFitMark, Header, Metric, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
+import { AnimatedNumber, Card, ForgeFitMark, Header, Metric, PremiumAccessStatusModal, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
   const level = React.useRef(new Animated.Value(0)).current;
@@ -30,6 +30,7 @@ export default function TodayScreen() {
   const { language, meals, username, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, streakDates, isPremium } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [premiumVisible, setPremiumVisible] = React.useState(false);
+  const [premiumStatusVisible, setPremiumStatusVisible] = React.useState(false);
   const todayMeals = getMealsForRange(meals, 'daily');
   const calories = todayMeals.reduce((sum, meal) => sum + meal.calories, 0);
   const streak = getCurrentStreak(streakDates);
@@ -47,10 +48,10 @@ export default function TodayScreen() {
         centered
          action="settings-outline"
          onAction={() => router.push('/settings')}
-         premiumLabel={SUBSCRIPTION_PURCHASE_ENABLED ? (isPremium ? t('premiumOwned') : t('premiumShort')) : undefined}
+          premiumLabel={SUBSCRIPTION_PURCHASE_ENABLED ? t('premiumShort') : undefined}
           premiumIcon="trophy-outline"
          premiumOwned={isPremium}
-         premiumAction={SUBSCRIPTION_PURCHASE_ENABLED ? () => setPremiumVisible(true) : undefined}
+         premiumAction={SUBSCRIPTION_PURCHASE_ENABLED ? () => { if (isPremium) setPremiumStatusVisible(true); else setPremiumVisible(true); } : undefined}
          streak={streak}
          streakLabel={t('streak')}
           featureLabel={t('ourFeatures')}
@@ -105,14 +106,15 @@ export default function TodayScreen() {
         <View testID="open-today-workout" style={[styles.workoutButton, { backgroundColor: colors.primary }]}><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></View>
       </Card>
 
-      {SUBSCRIPTION_PURCHASE_ENABLED ? <Card onPress={() => setPremiumVisible(true)} style={[styles.premiumCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
+       {SUBSCRIPTION_PURCHASE_ENABLED ? <Card onPress={() => { if (isPremium) setPremiumStatusVisible(true); else setPremiumVisible(true); }} style={[styles.premiumCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
          <View style={[styles.premiumMark, { backgroundColor: colors.primary }]}><Ionicons name="trophy-outline" size={21} color={colors.primaryForeground} /></View>
         <View style={{ flex: 1 }}><Text style={[styles.premiumLabel, { color: colors.primary }]}>{t('premium')}</Text><Text style={[styles.premiumTitle, { color: colors.foreground }]}>{t('unlock')}</Text><Text style={[styles.premiumDesc, { color: colors.mutedForeground }]}>{t('premiumDesc')}</Text></View>
         <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
       </Card> : null}
 
        </View>
-       <PremiumOfferModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
+        <PremiumOfferModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
+        <PremiumAccessStatusModal visible={premiumStatusVisible} onClose={() => setPremiumStatusVisible(false)} />
     </Screen>
   );
 }

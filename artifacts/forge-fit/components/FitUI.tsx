@@ -313,6 +313,64 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   </Modal>;
 }
 
+export function PremiumAccessStatusModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { language, isPremium } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const pulse = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    if (!visible || !isPremium) return undefined;
+    pulse.setValue(0);
+    const animation = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 1700, useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0, duration: 1700, useNativeDriver: true }),
+    ]));
+    animation.start();
+    return () => animation.stop();
+  }, [isPremium, pulse, visible]);
+
+  if (!visible || !isPremium) return null;
+  const features: Array<{ icon: IconName; key: 'premiumAccessActiveFeature1' | 'premiumAccessActiveFeature2' | 'premiumAccessActiveFeature3' }> = [
+    { icon: 'sparkles-outline', key: 'premiumAccessActiveFeature1' },
+    { icon: 'nutrition-outline', key: 'premiumAccessActiveFeature2' },
+    { icon: 'barbell-outline', key: 'premiumAccessActiveFeature3' },
+  ];
+  return <Modal transparent visible animationType="fade" onRequestClose={onClose}>
+    <View style={[styles.accessStatusRoot, { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 18 }]}>
+      <Pressable onPress={onClose} style={StyleSheet.absoluteFill} />
+      <View style={[styles.accessStatusSheet, { backgroundColor: colors.card, borderColor: `${colors.success}66`, shadowColor: colors.success }]}>
+        <LinearGradient colors={[`${colors.success}30`, `${colors.primary}0D`, colors.card]} style={styles.accessStatusGradient}>
+          <Pressable accessibilityLabel={t('close')} onPress={onClose} style={[styles.accessStatusClose, { backgroundColor: `${colors.foreground}0D` }]}>
+            <Ionicons name="close" size={18} color={colors.foreground} />
+          </Pressable>
+          <View style={styles.accessStatusHero}>
+            <Animated.View style={[styles.accessStatusHalo, { borderColor: `${colors.success}45`, transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1.17] }) }], opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0.18] }) }]} />
+            <Animated.View style={[styles.accessStatusHaloInner, { borderColor: `${colors.success}65`, transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.08] }) }] }]} />
+            <View style={[styles.accessStatusBadge, { backgroundColor: colors.success }]}>
+              <Ionicons name="checkmark" size={38} color={colors.primaryForeground} />
+            </View>
+            <View style={[styles.accessStatusSpark, styles.accessStatusSparkOne, { backgroundColor: colors.primary }]} />
+            <View style={[styles.accessStatusSpark, styles.accessStatusSparkTwo, { backgroundColor: colors.orange }]} />
+            <View style={[styles.accessStatusSpark, styles.accessStatusSparkThree, { backgroundColor: colors.success }]} />
+          </View>
+          <Text style={[styles.accessStatusEyebrow, { color: colors.success }]}>{t('premiumAccessActiveEyebrow')}</Text>
+          <Text style={[styles.accessStatusTitle, { color: colors.foreground }]}>{t('premiumAccessActiveTitle')}</Text>
+          <Text style={[styles.accessStatusBody, { color: colors.mutedForeground }]}>{t('premiumAccessActiveBody')}</Text>
+          <View style={styles.accessStatusFeatures}>
+            {features.map((feature) => <View key={feature.key} style={[styles.accessStatusFeature, { backgroundColor: `${colors.foreground}08`, borderColor: colors.border }]}><View style={[styles.accessStatusFeatureIcon, { backgroundColor: `${colors.success}1F` }]}><Ionicons name={feature.icon} size={16} color={colors.success} /></View><Text style={[styles.accessStatusFeatureText, { color: colors.foreground }]}>{t(feature.key)}</Text><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View>)}
+          </View>
+          <Pressable accessibilityRole="button" onPress={onClose} style={({ pressed }) => [styles.accessStatusButton, { backgroundColor: colors.success, opacity: pressed ? 0.78 : 1 }]}>
+            <Text style={[styles.accessStatusButtonText, { color: colors.primaryForeground }]}>{t('premiumAccessActiveContinue')}</Text>
+            <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
+          </Pressable>
+        </LinearGradient>
+      </View>
+    </View>
+  </Modal>;
+}
+
 export const styles = StyleSheet.create({
   ambientBackdrop: { flex: 1, minHeight: '100%', overflow: 'hidden' },
   screen: { paddingHorizontal: 20, minHeight: '100%' },
@@ -423,4 +481,25 @@ export const styles = StyleSheet.create({
   premiumRestoreButton: { alignItems: 'center', justifyContent: 'center', minHeight: 36 },
   premiumRestoreText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   premiumTrust: { fontFamily: 'Inter_400Regular', fontSize: 10, textAlign: 'center', marginTop: 12 },
+  accessStatusRoot: { flex: 1, justifyContent: 'center', paddingHorizontal: 14, backgroundColor: '#020B18C7' },
+  accessStatusSheet: { overflow: 'hidden', borderRadius: 30, borderWidth: 1, shadowOpacity: 0.32, shadowRadius: 25, shadowOffset: { width: 0, height: 12 }, elevation: 15 },
+  accessStatusGradient: { alignItems: 'center', paddingHorizontal: 22, paddingTop: 22, paddingBottom: 20 },
+  accessStatusClose: { position: 'absolute', top: 16, right: 16, width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  accessStatusHero: { width: 150, height: 150, alignItems: 'center', justifyContent: 'center', marginTop: 4, marginBottom: 8 },
+  accessStatusHalo: { position: 'absolute', width: 142, height: 142, borderRadius: 71, borderWidth: 1 },
+  accessStatusHaloInner: { position: 'absolute', width: 108, height: 108, borderRadius: 54, borderWidth: 1 },
+  accessStatusBadge: { width: 78, height: 78, borderRadius: 28, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, elevation: 7 },
+  accessStatusSpark: { position: 'absolute', width: 8, height: 8, borderRadius: 3, transform: [{ rotate: '45deg' }] },
+  accessStatusSparkOne: { top: 21, right: 24 },
+  accessStatusSparkTwo: { left: 16, bottom: 34 },
+  accessStatusSparkThree: { right: 7, bottom: 45, width: 5, height: 5 },
+  accessStatusEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.8, marginTop: 3 },
+  accessStatusTitle: { fontFamily: 'Inter_700Bold', fontSize: 28, lineHeight: 34, letterSpacing: -0.8, textAlign: 'center', marginTop: 8 },
+  accessStatusBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 9, maxWidth: 310 },
+  accessStatusFeatures: { width: '100%', gap: 8, marginTop: 20, marginBottom: 18 },
+  accessStatusFeature: { minHeight: 48, borderRadius: 15, borderWidth: 1, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  accessStatusFeatureIcon: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  accessStatusFeatureText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  accessStatusButton: { width: '100%', height: 52, borderRadius: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },
+  accessStatusButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
 });
