@@ -10,6 +10,7 @@ import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { getCurrentStreak } from '@/lib/streak';
 import { getWorkoutForDate } from '@/lib/workoutPlan';
+import { badgeText, badgeUi } from '@/lib/badges';
 import { AnimatedNumber, Card, ForgeFitMark, Header, Metric, PremiumAccessStatusModal, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
@@ -54,8 +55,8 @@ export default function TodayScreen() {
          premiumAction={SUBSCRIPTION_PURCHASE_ENABLED ? () => { if (isPremium) setPremiumStatusVisible(true); else setPremiumVisible(true); } : undefined}
          streak={streak}
          streakLabel={t('streak')}
-          featureLabel={t('ourFeatures')}
-          featureAction={() => router.push('/features')}
+          featureLabel={badgeText(badgeUi.title, language)}
+          featureAction={() => router.push('/badges')}
          showText={false}
       />
 

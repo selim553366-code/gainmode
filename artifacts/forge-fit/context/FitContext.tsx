@@ -6,7 +6,8 @@ import { useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
 import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey } from '@/lib/nutritionDates';
-import { addStreakActivity, normalizeStreakDates } from '@/lib/streak';
+import { addStreakActivity, getCurrentStreak, normalizeStreakDates } from '@/lib/streak';
+import { badges, type BadgeMetric } from '@/lib/badges';
 import { addExerciseToPlan, buildWorkoutPlan, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
 import { TEST_PREMIUM_PROMO_STORAGE_KEY } from '@/lib/testPremiumPromo';
 
@@ -83,6 +84,14 @@ type FitState = {
   notificationSettings: NotificationSettings;
   profileEditUsedMonth: string | null;
   dailyMoodCompletedDate: string | null;
+  achievementStats: {
+    workouts: number;
+    minutes: number;
+    exercises: number;
+    meals: number;
+    weightLogs: number;
+  };
+  unlockedBadgeIds: string[];
 };
 
 type FitContextValue = FitState & {
@@ -148,6 +157,8 @@ const initialState: FitState = {
   },
   profileEditUsedMonth: null,
   dailyMoodCompletedDate: null,
+  achievementStats: { workouts: 0, minutes: 0, exercises: 0, meals: 0, weightLogs: 0 },
+  unlockedBadgeIds: [],
 };
 
 const FitContext = createContext<FitContextValue | null>(null);
@@ -267,6 +278,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
              isPremium: false,
             notificationSettings: initialState.notificationSettings,
              streakDates: normalizeStreakDates(Array.isArray(parsed.streakDates) ? parsed.streakDates : []),
+             unlockedBadgeIds: Array.isArray(parsed.unlockedBadgeIds) ? parsed.unlockedBadgeIds : [],
             version: initialState.version,
           };
            const restoredWorkouts = sanitizeWorkoutSplits(normalizeWorkoutSets(restoreWorkoutProgress(merged.workouts)));
@@ -284,6 +296,15 @@ export function FitProvider({ children }: { children: ReactNode }) {
           } else {
             merged.workouts = restoredWorkouts;
           }
+           const completedWorkouts = merged.workouts.filter((workout) => workout.completed);
+           const storedStats = parsed.achievementStats ?? initialState.achievementStats;
+           merged.achievementStats = {
+             workouts: Math.max(storedStats.workouts ?? 0, completedWorkouts.length),
+             minutes: Math.max(storedStats.minutes ?? 0, completedWorkouts.reduce((sum, workout) => sum + workout.duration, 0)),
+             exercises: Math.max(storedStats.exercises ?? 0, merged.workouts.reduce((sum, workout) => sum + workout.exercises.filter((exercise) => exercise.completed).length, 0)),
+             meals: Math.max(storedStats.meals ?? 0, merged.meals.length),
+             weightLogs: Math.max(storedStats.weightLogs ?? 0, merged.weightLogs.length),
+           };
           if (!merged.goalProjection && merged.profile && merged.calorieGoal) {
             merged.goalProjection = createGoalProjection(merged.profile, merged.calorieGoal, merged.workouts, merged.goalWeight ?? undefined);
           }
@@ -332,6 +353,23 @@ export function FitProvider({ children }: { children: ReactNode }) {
   }, [hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    setState((current) => {
+      const metrics: Record<BadgeMetric, number> = {
+        ...current.achievementStats,
+        streak: getCurrentStreak(current.streakDates),
+        activeDays: current.streakDates.length,
+      };
+      const unlocked = new Set(current.unlockedBadgeIds);
+      badges.forEach((badge) => {
+        if (metrics[badge.metric] >= badge.target) unlocked.add(badge.id);
+      });
+      const next = [...unlocked];
+      return next.length === current.unlockedBadgeIds.length ? current : { ...current, unlockedBadgeIds: next };
+    });
+  }, [hydrated, state.achievementStats, state.streakDates, state.unlockedBadgeIds]);
+
+  useEffect(() => {
     if (isSubscribed === undefined && !testPromoUnlocked) return;
     setState((current) => {
       const nextPremium = Boolean(isSubscribed) || testPromoUnlocked;
@@ -362,7 +400,11 @@ export function FitProvider({ children }: { children: ReactNode }) {
       AsyncStorage.removeItem(TEST_PREMIUM_PROMO_STORAGE_KEY).catch(() => undefined);
       setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false, isPremium: false }));
     },
-     addMeal: (meal) => setState((current) => recordStreakActivity({ ...current, meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }] })),
+     addMeal: (meal) => setState((current) => recordStreakActivity({
+       ...current,
+       meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }],
+       achievementStats: { ...current.achievementStats, meals: current.achievementStats.meals + 1 },
+     })),
     removeMeal: (id) => setState((current) => {
       return { ...current, meals: current.meals.filter((item) => item.id !== id) };
     }),
@@ -422,23 +464,47 @@ export function FitProvider({ children }: { children: ReactNode }) {
       return current.usageDate === today ? { ...current, photoAnalysesUsed: current.photoAnalysesUsed + 1 } : { ...current, usageDate: today, coachMessagesUsed: 0, photoAnalysesUsed: 1 };
     }),
      toggleWorkout: (id) => setState((current) => {
+        const previousWorkout = current.workouts.find((workout) => workout.id === id);
        const workouts = current.workouts.map((workout) => {
          if (workout.id !== id) return workout;
          const completed = !workout.completed;
          return { ...workout, completed, exercises: workout.exercises.map((exercise) => ({ ...exercise, completed })) };
        });
        const changedWorkout = workouts.find((workout) => workout.id === id);
-       const nextState = { ...current, workouts };
+       const newlyCompleted = !previousWorkout?.completed && Boolean(changedWorkout?.completed);
+       const nextState = {
+         ...current,
+         workouts,
+         achievementStats: newlyCompleted && changedWorkout ? {
+           ...current.achievementStats,
+           workouts: current.achievementStats.workouts + 1,
+           minutes: current.achievementStats.minutes + changedWorkout.duration,
+           exercises: current.achievementStats.exercises + previousWorkout!.exercises.filter((exercise) => !exercise.completed).length,
+         } : current.achievementStats,
+       };
        return changedWorkout?.completed ? recordStreakActivity(nextState) : nextState;
      }),
      toggleExercise: (workoutId, exerciseId) => setState((current) => {
+        const previousWorkout = current.workouts.find((workout) => workout.id === workoutId);
+        const previousExercise = previousWorkout?.exercises.find((exercise) => exercise.id === exerciseId);
        const workouts = current.workouts.map((workout) => {
          if (workout.id !== workoutId) return workout;
          const exercises = workout.exercises.map((exercise) => exercise.id === exerciseId ? { ...exercise, completed: !exercise.completed } : exercise);
          return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
        });
        const changedWorkout = workouts.find((workout) => workout.id === workoutId);
-       const nextState = { ...current, workouts };
+       const newlyCompletedWorkout = !previousWorkout?.completed && Boolean(changedWorkout?.completed);
+       const newlyCompletedExercise = !previousExercise?.completed && Boolean(changedWorkout?.exercises.find((exercise) => exercise.id === exerciseId)?.completed);
+       const nextState = {
+         ...current,
+         workouts,
+         achievementStats: {
+           ...current.achievementStats,
+           workouts: current.achievementStats.workouts + (newlyCompletedWorkout ? 1 : 0),
+           minutes: current.achievementStats.minutes + (newlyCompletedWorkout && changedWorkout ? changedWorkout.duration : 0),
+           exercises: current.achievementStats.exercises + (newlyCompletedExercise ? 1 : 0),
+         },
+       };
        return changedWorkout?.completed ? recordStreakActivity(nextState) : nextState;
      }),
      addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => ({
@@ -490,7 +556,12 @@ export function FitProvider({ children }: { children: ReactNode }) {
      }),
     addFriend: (username) => setState((current) => current.friends.some((friend) => friend.username.toLowerCase() === username.toLowerCase()) ? current : { ...current, friends: [...current.friends, { id: `${Date.now()}-${Math.random()}`, username }] }),
     addChallenge: (name, target) => setState((current) => ({ ...current, challenges: [...current.challenges, { id: `${Date.now()}-${Math.random()}`, name, target, progress: 0 }] })),
-     addWeight: (value) => setState((current) => recordStreakActivity({ ...current, weight: value, weightLogs: [...current.weightLogs, { id: `${Date.now()}-${Math.random()}`, value, date: new Date().toISOString() }] })),
+      addWeight: (value) => setState((current) => recordStreakActivity({
+        ...current,
+        weight: value,
+        weightLogs: [...current.weightLogs, { id: `${Date.now()}-${Math.random()}`, value, date: new Date().toISOString() }],
+        achievementStats: { ...current.achievementStats, weightLogs: current.achievementStats.weightLogs + 1 },
+      })),
     setNotificationSetting: (key, enabled) => setState((current) => ({ ...current, notificationSettings: { ...current.notificationSettings, [key]: enabled } })),
     completeDailyMood: () => setState((current) => ({ ...current, dailyMoodCompletedDate: localDateKey() })),
   }), [state, sanitizedWorkouts, coachThinking]);
