@@ -10,5 +10,6 @@
 - [Forge Fit premium celebration routing](forge-fit-premium-celebration.md) — onboarding success UI must live above entry routing because premium state changes can unmount the offer immediately.
 - [Forge Fit mobile API endpoint](forge-fit-mobile-api.md) — standalone Android builds need an explicit published API base URL instead of relying on the dev domain.
 - [Forge Fit workout planning](forge-fit-workout-plan.md) — group every workout by muscle area, filter movements by equipment, and derive completion from exercises.
+- [Forge Fit muscle map masks](forge-fit-muscle-maps.md) — anatomy highlights must use full-canvas masks aligned to the source image, not approximate UI shapes.
 - [Video artifact metadata](video-artifact-metadata.md) — preserve immutable artifact metadata and repair missing services through verified TOML replacement.
 - [PNPM patched dependencies](pnpm-patched-dependencies.md) — patched dependency edits require a valid unified diff and a regenerated lockfile hash.

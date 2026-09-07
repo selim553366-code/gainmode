@@ -98,6 +98,25 @@ function MuscleHighlight({ muscle, side, color, selected }: { muscle: MuscleGrou
   return null;
 }
 
+const muscleMasks: Record<BodySide, Partial<Record<MuscleGroup, number>>> = {
+  front: {
+    shoulders: require('@/assets/images/muscle-masks/front-shoulders.png'),
+    chest: require('@/assets/images/muscle-masks/front-chest.png'),
+    biceps: require('@/assets/images/muscle-masks/front-biceps.png'),
+    core: require('@/assets/images/muscle-masks/front-core.png'),
+    quadriceps: require('@/assets/images/muscle-masks/front-quadriceps.png'),
+    calves: require('@/assets/images/muscle-masks/front-calves.png'),
+  },
+  back: {
+    shoulders: require('@/assets/images/muscle-masks/back-shoulders.png'),
+    back: require('@/assets/images/muscle-masks/back-back.png'),
+    triceps: require('@/assets/images/muscle-masks/back-triceps.png'),
+    glutes: require('@/assets/images/muscle-masks/back-glutes.png'),
+    hamstrings: require('@/assets/images/muscle-masks/back-hamstrings.png'),
+    calves: require('@/assets/images/muscle-masks/back-calves.png'),
+  },
+};
+
 export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, activeColor }: MuscleAnatomyProps) {
   const hotspots = side === 'front' ? frontHotspots : backHotspots;
   const imageLeft = side === 'front' ? 0 : '-100%';
@@ -108,9 +127,16 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, a
       style={[styles.referenceImage, { left: imageLeft }]}
       accessibilityLabel={side === 'front' ? 'Front muscle anatomy' : 'Back muscle anatomy'}
     />
-    <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 100" style={styles.highlightLayer}>
-      {activeMuscles.map((muscle) => <MuscleHighlight key={`${side}-${muscle}-highlight`} muscle={muscle} side={side} color={activeColor} selected={selectedMuscle === muscle} />)}
-    </Svg>
+    {activeMuscles.map((muscle) => {
+      const mask = muscleMasks[side][muscle];
+      if (!mask) return null;
+      return <Image
+        key={`${side}-${muscle}-mask`}
+        source={mask}
+        resizeMode="stretch"
+        style={[styles.referenceImage, styles.maskImage, { left: imageLeft, opacity: selectedMuscle === muscle ? 1 : 0.9 }]}
+      />;
+    })}
     {hotspots.map((hotspot, index) => {
       const isActive = activeMuscles.includes(hotspot.muscle);
       const isSelected = selectedMuscle === hotspot.muscle;
@@ -140,6 +166,7 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, a
 const styles = StyleSheet.create({
   crop: { width: '100%', height: '100%', position: 'relative', overflow: 'hidden' },
   referenceImage: { position: 'absolute', top: 0, width: '200%', height: '100%' },
+  maskImage: { zIndex: 1 },
   highlightLayer: { position: 'absolute', top: 0, left: 0, zIndex: 1 },
   hotspot: { position: 'absolute', zIndex: 2 },
 });
