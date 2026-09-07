@@ -66,12 +66,22 @@ export async function hasNotificationPermission() {
 }
 
 function content(language: Language, titleKey: Parameters<typeof translate>[1], bodyKey: Parameters<typeof translate>[1]) {
-  const isDailyMood = titleKey === 'notificationDailyMoodTitle';
+  const source = titleKey === 'notificationDailyMoodTitle'
+    ? 'forge-fit-daily-mood'
+    : titleKey === 'notificationWorkoutTitle'
+      ? 'forge-fit-workout'
+      : titleKey === 'notificationCoachTitle'
+        ? 'forge-fit-coach'
+        : titleKey === 'notificationSummaryTitle' || titleKey === 'notificationWeightTitle'
+          ? 'forge-fit-progress'
+          : titleKey === 'notificationWaterTitle' || titleKey === 'notificationBreakfastTitle' || titleKey === 'notificationLunchTitle' || titleKey === 'notificationDinnerTitle'
+            ? 'forge-fit-nutrition'
+            : 'forge-fit-home';
   return {
     title: translate(language, titleKey),
     body: translate(language, bodyKey),
     sound: 'default' as const,
-    data: { source: isDailyMood ? 'forge-fit-daily-mood' : 'forge-fit-reminder' },
+    data: { source },
   };
 }
 
@@ -110,7 +120,7 @@ async function scheduleWeightReminder(language: Language) {
       title: translate(language, 'notificationWeightTitle'),
       body: translate(language, 'notificationWeightBody'),
       sound: 'default',
-      data: { source: 'forge-fit-weight' },
+      data: { source: 'forge-fit-progress' },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,

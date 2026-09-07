@@ -105,7 +105,15 @@ function RootLayoutNav() {
     const openNotificationDestination = (response: Notifications.NotificationResponse | null) => {
       if (!response || handledNotificationResponse.current === response.notification.request.identifier) return;
       const data = response.notification.request.content.data;
-      if (data?.source !== 'forge-fit-daily-mood' && data?.source !== 'forge-fit-workout' && data?.source !== 'forge-fit-weight') return;
+      const supportedSources = [
+        'forge-fit-daily-mood',
+        'forge-fit-workout',
+        'forge-fit-progress',
+        'forge-fit-nutrition',
+        'forge-fit-coach',
+        'forge-fit-home',
+      ];
+      if (!supportedSources.includes(String(data?.source))) return;
       handledNotificationResponse.current = response.notification.request.identifier;
       Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
       setTimeout(() => {
@@ -113,8 +121,20 @@ function RootLayoutNav() {
           router.push({ pathname: '/(tabs)/plan', params: { day: data.workoutDay } });
           return;
         }
-        if (data.source === 'forge-fit-weight') {
+        if (data.source === 'forge-fit-progress') {
           router.push('/(tabs)/progress');
+          return;
+        }
+        if (data.source === 'forge-fit-nutrition') {
+          router.push('/(tabs)/nutrition');
+          return;
+        }
+        if (data.source === 'forge-fit-coach') {
+          router.push('/(tabs)/coach');
+          return;
+        }
+        if (data.source === 'forge-fit-home') {
+          router.push('/(tabs)');
           return;
         }
         router.push('/daily-mood');
