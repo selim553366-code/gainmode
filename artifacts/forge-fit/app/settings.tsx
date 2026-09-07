@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
+import { Card, Header, PremiumSuccessCelebration, Screen, SectionTitle } from '@/components/FitUI';
 import { isProfileEditAvailable } from '@/lib/profileEdit';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 
@@ -23,6 +23,7 @@ export default function SettingsScreen() {
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const profileEditAvailable = isProfileEditAvailable(profileEditUsedMonth);
   const [expanded, setExpanded] = useState<LegalSection>(null);
+  const [testSuccessVisible, setTestSuccessVisible] = useState(false);
   const languages = Object.keys(languageLabels) as Language[];
 
   return (
@@ -132,6 +133,25 @@ export default function SettingsScreen() {
         </Pressable>
       </Card>
 
+      <SectionTitle title={t('premiumAnimationTestSection')} />
+      <Card>
+        <Pressable
+          testID="test-premium-success-animation"
+          accessibilityRole="button"
+          onPress={() => setTestSuccessVisible(true)}
+          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
+        >
+          <View style={[styles.iconBox, { backgroundColor: `${colors.success}20` }]}>
+            <Ionicons name="sparkles-outline" size={21} color={colors.success} />
+          </View>
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('premiumAnimationTest')}</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('premiumAnimationTestDescription')}</Text>
+          </View>
+          <Ionicons name="play-circle-outline" size={21} color={colors.success} />
+        </Pressable>
+      </Card>
+
       <SectionTitle title={t('legal')} />
       <LegalCard
         icon="shield-checkmark-outline"
@@ -151,7 +171,9 @@ export default function SettingsScreen() {
         body={t('termsBody')}
         points={[t('termsPoint1'), t('termsPoint2'), t('termsPoint3')]}
       />
-    </Screen>
+      </Screen>
+      <PremiumSuccessCelebration visible={testSuccessVisible} onDone={() => setTestSuccessVisible(false)} />
+    </>
   );
 }
 

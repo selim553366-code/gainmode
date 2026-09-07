@@ -1253,7 +1253,7 @@ const onboardingMotivationTranslations: Record<Language, { title: string; intro:
 const settingsTranslations = {
   tr: {
     settingsTitle: 'Ayarlar', settingsEyebrow: 'Tercihler', settingsSubtitle: 'Forge Fit deneyimini kendine göre düzenle.',
-    onboarding: 'Onboarding', restartOnboarding: 'Onboarding’i yeniden başlat', restartOnboardingDescription: 'Mevcut verilerini koruyarak profil sorularını tekrar aç.',
+    onboarding: 'Onboarding', restartOnboarding: 'Onboarding’i yeniden başlat', restartOnboardingDescription: 'Mevcut verilerini koruyarak profil sorularını tekrar aç.', premiumAnimationTestSection: 'Test araçları', premiumAnimationTest: 'Başarı animasyonunu test et', premiumAnimationTestDescription: 'Satın alma akışını beklemeden kutlama ekranını ve sesini aç.',
     preferences: 'Tercihler', appLanguage: 'Uygulama dili', languageDescription: 'Forge Fit’in tüm metinlerini tercih ettiğin dilde kullan.', currentLanguage: 'Seçili dil',
     notificationSettingsTitle: 'Hatırlatıcılar', notificationSettingsDescription: 'Antrenman, su, öğün ve gelişim ritmini kaçırma.',
     workoutReminder: 'Antrenman hatırlatması', workoutReminderDescription: 'Seçtiğin antrenman günlerinde saat 18:00’de hatırlat.',
@@ -1279,7 +1279,7 @@ const settingsTranslations = {
   },
   en: {
     settingsTitle: 'Settings', settingsEyebrow: 'Preferences', settingsSubtitle: 'Shape your Forge Fit experience.',
-    onboarding: 'Onboarding', restartOnboarding: 'Restart onboarding', restartOnboardingDescription: 'Reopen your profile questions while keeping your existing data.',
+    onboarding: 'Onboarding', restartOnboarding: 'Restart onboarding', restartOnboardingDescription: 'Reopen your profile questions while keeping your existing data.', premiumAnimationTestSection: 'Test tools', premiumAnimationTest: 'Test the success animation', premiumAnimationTestDescription: 'Open the celebration screen and sound without completing a purchase.',
     preferences: 'Preferences', appLanguage: 'App language', languageDescription: 'Use every Forge Fit message in your preferred language.', currentLanguage: 'Selected language',
     notificationSettingsTitle: 'Reminders', notificationSettingsDescription: 'Keep your training, hydration, meals, and progress on track.',
     workoutReminder: 'Workout reminder', workoutReminderDescription: 'Remind me at 6:00 PM on selected training days.',
@@ -1305,7 +1305,7 @@ const settingsTranslations = {
   },
   de: {
     settingsTitle: 'Einstellungen', settingsEyebrow: 'Präferenzen', settingsSubtitle: 'Passe dein Forge Fit-Erlebnis an.',
-    onboarding: 'Onboarding', restartOnboarding: 'Onboarding neu starten', restartOnboardingDescription: 'Öffne deine Profilfragen erneut, ohne deine vorhandenen Daten zu löschen.',
+    onboarding: 'Onboarding', restartOnboarding: 'Onboarding neu starten', restartOnboardingDescription: 'Öffne deine Profilfragen erneut, ohne deine vorhandenen Daten zu löschen.', premiumAnimationTestSection: 'Testwerkzeuge', premiumAnimationTest: 'Erfolgsanimation testen', premiumAnimationTestDescription: 'Öffne den Erfolgsbildschirm und Ton ohne einen Kauf abzuschließen.',
     preferences: 'Präferenzen', appLanguage: 'App-Sprache', languageDescription: 'Nutze alle Forge Fit-Texte in deiner bevorzugten Sprache.', currentLanguage: 'Ausgewählte Sprache',
     notificationSettingsTitle: 'Erinnerungen', notificationSettingsDescription: 'Behalte Training, Flüssigkeit, Mahlzeiten und Fortschritt im Blick.',
     workoutReminder: 'Trainingserinnerung', workoutReminderDescription: 'Erinnere mich an ausgewählten Trainingstagen um 18:00 Uhr.',
@@ -1331,7 +1331,7 @@ const settingsTranslations = {
   },
   fr: {
     settingsTitle: 'Réglages', settingsEyebrow: 'Préférences', settingsSubtitle: 'Personnalise ton expérience Forge Fit.',
-    onboarding: 'Onboarding', restartOnboarding: 'Recommencer l’onboarding', restartOnboardingDescription: 'Rouvre tes questions de profil sans supprimer tes données existantes.',
+    onboarding: 'Onboarding', restartOnboarding: 'Recommencer l’onboarding', restartOnboardingDescription: 'Rouvre tes questions de profil sans supprimer tes données existantes.', premiumAnimationTestSection: 'Outils de test', premiumAnimationTest: 'Tester l’animation de réussite', premiumAnimationTestDescription: 'Ouvre l’écran de célébration et son sans effectuer d’achat.',
     preferences: 'Préférences', appLanguage: 'Langue de l’app', languageDescription: 'Utilise tous les textes Forge Fit dans ta langue préférée.', currentLanguage: 'Langue sélectionnée',
     notificationSettingsTitle: 'Rappels', notificationSettingsDescription: 'Garde le rythme de tes entraînements, repas, hydratation et progrès.',
     workoutReminder: 'Rappel d’entraînement', workoutReminderDescription: 'Rappelle-moi à 18 h les jours d’entraînement choisis.',
@@ -1357,7 +1357,7 @@ const settingsTranslations = {
   },
   es: {
     settingsTitle: 'Ajustes', settingsEyebrow: 'Preferencias', settingsSubtitle: 'Personaliza tu experiencia en Forge Fit.',
-    onboarding: 'Onboarding', restartOnboarding: 'Reiniciar onboarding', restartOnboardingDescription: 'Vuelve a abrir las preguntas de perfil sin borrar tus datos actuales.',
+    onboarding: 'Onboarding', restartOnboarding: 'Reiniciar onboarding', restartOnboardingDescription: 'Vuelve a abrir las preguntas de perfil sin borrar tus datos actuales.', premiumAnimationTestSection: 'Herramientas de prueba', premiumAnimationTest: 'Probar la animación de éxito', premiumAnimationTestDescription: 'Abre la pantalla de celebración y el sonido sin completar una compra.',
     preferences: 'Preferencias', appLanguage: 'Idioma de la app', languageDescription: 'Usa todos los textos de Forge Fit en tu idioma preferido.', currentLanguage: 'Idioma seleccionado',
     notificationSettingsTitle: 'Recordatorios', notificationSettingsDescription: 'Mantén tu ritmo de entrenamientos, hidratación, comidas y progreso.',
     workoutReminder: 'Recordatorio de entrenamiento', workoutReminderDescription: 'Recuérdame a las 18:00 los días de entrenamiento elegidos.',
