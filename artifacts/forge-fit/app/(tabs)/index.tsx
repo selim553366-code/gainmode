@@ -107,12 +107,6 @@ export default function TodayScreen() {
         <View testID="open-today-workout" style={[styles.workoutButton, { backgroundColor: colors.primary }]}><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></View>
       </Card>
 
-       {SUBSCRIPTION_PURCHASE_ENABLED ? <Card onPress={() => { if (isPremium) setPremiumStatusVisible(true); else setPremiumVisible(true); }} style={[styles.premiumCard, { borderColor: colors.border, backgroundColor: colors.card }]}>
-         <View style={[styles.premiumMark, { backgroundColor: colors.primary }]}><Ionicons name="trophy-outline" size={21} color={colors.primaryForeground} /></View>
-        <View style={{ flex: 1 }}><Text style={[styles.premiumLabel, { color: colors.primary }]}>{t('premium')}</Text><Text style={[styles.premiumTitle, { color: colors.foreground }]}>{t('unlock')}</Text><Text style={[styles.premiumDesc, { color: colors.mutedForeground }]}>{t('premiumDesc')}</Text></View>
-        <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
-      </Card> : null}
-
        </View>
         <PremiumOfferModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
         <PremiumAccessStatusModal visible={premiumStatusVisible} onClose={() => setPremiumStatusVisible(false)} />

@@ -5,7 +5,6 @@ import { Ionicons } from '@/components/AppIcon';
 import { useFit } from '@/context/FitContext';
 import { translate, TranslationKey } from '@/lib/i18n';
 import { getWeekdayKey, type MuscleGroup } from '@/lib/workoutPlan';
-import { exerciseKindFromName } from '@/lib/liveWorkout';
 import { liveTranslate, type LiveWorkoutCopyKey } from '@/lib/liveWorkoutCopy';
 import { useColors } from '@/hooks/useColors';
 import { Card, EmptyState, Header, ProgressBar, Screen, triggerHaptic } from '@/components/FitUI';
@@ -47,7 +46,11 @@ export default function PlanScreen() {
   const active = workouts.find((workout) => workout.day === activeDay);
   const label = (value: string) => translate(language, value as Parameters<typeof translate>[1]) || value;
   const completedCount = active?.exercises.filter((exercise) => Boolean(exercise.completed)).length ?? 0;
-  const liveExercise = active?.exercises.find((exercise) => exerciseKindFromName(exercise.name));
+  const liveChoices = [
+    { kind: 'squat', label: liveT('liveSquat'), icon: 'barbell-outline' as const },
+    { kind: 'pushup', label: liveT('livePushup'), icon: 'body-outline' as const },
+    { kind: 'lunge', label: liveT('liveLunge'), icon: 'activity' as const },
+  ] as const;
 
   React.useEffect(() => {
     if (requestedDay) setActiveDay(requestedDay);
@@ -82,21 +85,7 @@ export default function PlanScreen() {
             <Text style={[styles.startButtonText, { color: colors.primaryForeground }]}>{t('startWorkout')}</Text>
             <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
           </Pressable>
-          <Pressable
-            testID="start-live-form-analysis"
-            accessibilityRole="button"
-            accessibilityLabel={liveT('startLiveWorkout')}
-            disabled={!liveExercise}
-            onPress={() => {
-              if (!liveExercise) return;
-              triggerHaptic();
-              router.push({ pathname: '/live-workout', params: { exercise: liveExercise.name } });
-            }}
-            style={({ pressed }) => [
-              styles.liveAnalysisBar,
-              { backgroundColor: colors.card, borderColor: colors.border, opacity: !liveExercise ? 0.5 : pressed ? 0.78 : 1 },
-            ]}
-          >
+          <View testID="live-form-analysis-bar" style={[styles.liveAnalysisBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={[styles.liveAnalysisIcon, { backgroundColor: `${colors.primary}18` }]}>
               <Ionicons name="body-outline" size={21} color={colors.primary} />
             </View>
@@ -104,8 +93,26 @@ export default function PlanScreen() {
               <Text style={[styles.liveAnalysisTitle, { color: colors.foreground }]}>{liveT('liveWorkoutTitle')}</Text>
               <Text numberOfLines={2} style={[styles.liveAnalysisBody, { color: colors.mutedForeground }]}>{liveT('liveWorkoutBody')}</Text>
             </View>
-            <Ionicons name="arrow-forward" size={21} color={colors.primary} />
-          </Pressable>
+          </View>
+          <View style={styles.liveChoiceRow}>
+            {liveChoices.map((choice) => <Pressable
+              key={choice.kind}
+              testID={`start-live-${choice.kind}`}
+              accessibilityRole="button"
+              accessibilityLabel={choice.label}
+              onPress={() => {
+                triggerHaptic();
+                router.push({ pathname: '/live-workout', params: { exercise: choice.kind } });
+              }}
+              style={({ pressed }) => [
+                styles.liveChoice,
+                { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.76 : 1 },
+              ]}
+            >
+              <Ionicons name={choice.icon} size={16} color={colors.primary} />
+              <Text style={[styles.liveChoiceText, { color: colors.foreground }]}>{choice.label}</Text>
+            </Pressable>)}
+          </View>
         </Card>
       </> : <Card style={[styles.restCard, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
         <View style={[styles.restIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="sparkles-outline" size={24} color={colors.primary} /></View>
@@ -139,6 +146,9 @@ const styles = StyleSheet.create({
   liveAnalysisCopy: { flex: 1 },
   liveAnalysisTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, lineHeight: 16 },
   liveAnalysisBody: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 14, marginTop: 2 },
+  liveChoiceRow: { flexDirection: 'row', gap: 7, marginTop: 8 },
+  liveChoice: { flex: 1, minHeight: 42, borderRadius: 13, borderWidth: 1, paddingHorizontal: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  liveChoiceText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
   focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 18 },
   focusChip: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5 },
   focusChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
