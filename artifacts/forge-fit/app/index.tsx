@@ -202,6 +202,7 @@ export default function EntryScreen() {
   if (premiumCelebrationVisible) {
     return <PremiumSuccessCelebration
       visible
+      modal={false}
       onDone={() => {
         setPremiumCelebrationVisible(false);
         router.replace('/(tabs)/coach');
@@ -838,8 +839,8 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
       return;
     }
     setPromoError(null);
-    enableTestPremium();
     onPurchaseSuccess();
+    enableTestPremium();
   };
    if (showExplore) {
      return <AccessExploreScreen

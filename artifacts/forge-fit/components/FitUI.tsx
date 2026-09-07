@@ -158,7 +158,7 @@ export function CelebrationBurst({ visible, onDone, title, subtitle }: { visible
   </View>;
 }
 
-export function PremiumSuccessCelebration({ visible, onDone }: { visible: boolean; onDone: () => void }) {
+export function PremiumSuccessCelebration({ visible, onDone, modal = true }: { visible: boolean; onDone: () => void; modal?: boolean }) {
   const colors = useColors();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
@@ -190,23 +190,25 @@ export function PremiumSuccessCelebration({ visible, onDone }: { visible: boolea
     };
   }, [cardProgress, glowProgress, successTone, visible]);
 
-  return <Modal transparent visible={visible} animationType="fade" onRequestClose={handleDone}>
-    <View style={styles.premiumSuccessRoot}>
-      <LinearGradient colors={[`${colors.primary}D9`, `${colors.success}35`, colors.background]} style={styles.premiumSuccessGradient}>
-        <Animated.View style={[styles.premiumSuccessGlow, { backgroundColor: `${colors.success}55`, opacity: glowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.5] }), transform: [{ scale: glowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1.16] }) }] }]} />
-        <Animated.View style={[styles.premiumSuccessCard, { backgroundColor: colors.card, borderColor: `${colors.success}65`, opacity: cardProgress, transform: [{ translateY: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
-          <View style={[styles.premiumSuccessBadge, { backgroundColor: colors.success }]}>
-            <Ionicons name="checkmark" size={42} color={colors.primaryForeground} />
-          </View>
-          <Text style={[styles.premiumSuccessEyebrow, { color: colors.success }]}>{t('premiumPurchaseSuccessEyebrow')}</Text>
-          <Text style={[styles.premiumSuccessTitle, { color: colors.foreground }]}>{t('premiumPurchaseSuccessTitle')}</Text>
-          <Text style={[styles.premiumSuccessBody, { color: colors.mutedForeground }]}>{t('premiumPurchaseSuccessBody')}</Text>
-          <View style={[styles.premiumSuccessLine, { backgroundColor: `${colors.success}35` }]} />
-        </Animated.View>
-        <CelebrationBurst visible={visible} onDone={handleDone} />
-      </LinearGradient>
-    </View>
-  </Modal>;
+  const content = <View style={styles.premiumSuccessRoot}>
+    <LinearGradient colors={[`${colors.primary}D9`, `${colors.success}35`, colors.background]} style={styles.premiumSuccessGradient}>
+      <Animated.View style={[styles.premiumSuccessGlow, { backgroundColor: `${colors.success}55`, opacity: glowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.5] }), transform: [{ scale: glowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1.16] }) }] }]} />
+      <Animated.View style={[styles.premiumSuccessCard, { backgroundColor: colors.card, borderColor: `${colors.success}65`, opacity: cardProgress, transform: [{ translateY: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
+        <View style={[styles.premiumSuccessBadge, { backgroundColor: colors.success }]}>
+          <Ionicons name="checkmark" size={42} color={colors.primaryForeground} />
+        </View>
+        <Text style={[styles.premiumSuccessEyebrow, { color: colors.success }]}>{t('premiumPurchaseSuccessEyebrow')}</Text>
+        <Text style={[styles.premiumSuccessTitle, { color: colors.foreground }]}>{t('premiumPurchaseSuccessTitle')}</Text>
+        <Text style={[styles.premiumSuccessBody, { color: colors.mutedForeground }]}>{t('premiumPurchaseSuccessBody')}</Text>
+        <View style={[styles.premiumSuccessLine, { backgroundColor: `${colors.success}35` }]} />
+      </Animated.View>
+      <CelebrationBurst visible={visible} onDone={handleDone} />
+    </LinearGradient>
+  </View>;
+
+  return modal ? <Modal transparent visible={visible} animationType="fade" onRequestClose={handleDone}>
+    {content}
+  </Modal> : content;
 }
 
 export function EmptyState({ icon, title, text }: { icon: IconName; title: string; text: string }) {
