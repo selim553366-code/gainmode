@@ -42,13 +42,20 @@ const bodyweightLibrary: ExerciseLibrary = {
 };
 
 const dumbbellLibrary: ExerciseLibrary = {
-  ...bodyweightLibrary,
-  shoulders: ['exerciseShoulderPress', 'exerciseLateralRaise', 'exerciseProneYRaise'],
-  biceps: ['exerciseCurl', 'exerciseHammerCurl', 'exerciseSelfResistedCurl'],
-  triceps: ['exerciseTriceps', 'exerciseOverheadTriceps', 'exerciseCloseGripPushup'],
-  hamstrings: ['exerciseRdl', 'exerciseGoodMorning', 'exerciseSingleLegRdl'],
-  glutes: ['exerciseRdl', 'exerciseGluteBridge', 'exerciseReverseLunge'],
+  chest: ['exerciseDumbbellBenchPress', 'exerciseInclineDumbbellPress', 'exerciseDumbbellFloorPress', 'exerciseDumbbellFly'],
+  back: ['exerciseOneArmDumbbellRow', 'exerciseBentOverDumbbellRow', 'exerciseRenegadeRow', 'exerciseDumbbellReverseFly'],
+  shoulders: ['exerciseDumbbellShoulderPress', 'exerciseArnoldPress', 'exerciseDumbbellLateralRaise', 'exerciseDumbbellFrontRaise'],
+  biceps: ['exerciseDumbbellCurl', 'exerciseDumbbellHammerCurl', 'exerciseConcentrationCurl', 'exerciseInclineDumbbellCurl'],
+  triceps: ['exerciseDumbbellOverheadTriceps', 'exerciseDumbbellKickback', 'exerciseDumbbellSkullCrusher', 'exerciseCloseGripDumbbellPress'],
+  core: ['exerciseDumbbellRussianTwist', 'exerciseWeightedDeadBug', 'exerciseDumbbellSideBend'],
+  quadriceps: ['exerciseGobletSquat', 'exerciseDumbbellBulgarianSplitSquat', 'exerciseDumbbellStepUp'],
+  hamstrings: ['exerciseDumbbellRdl', 'exerciseSingleLegDumbbellRdl', 'exerciseDumbbellGoodMorning'],
+  glutes: ['exerciseDumbbellHipThrust', 'exerciseDumbbellSumoSquat'],
+  calves: ['exerciseStandingDumbbellCalfRaise', 'exerciseSeatedDumbbellCalfRaise'],
+  other: ['exerciseDumbbellFarmerCarry', 'exerciseDumbbellThruster'],
 };
+
+export const dumbbellExerciseKeys = Array.from(new Set(Object.values(dumbbellLibrary).flat()));
 
 const bandLibrary: ExerciseLibrary = {
   ...bodyweightLibrary,
@@ -145,11 +152,39 @@ function equipmentText(profile: Profile) {
   return (profile.equipmentDetails ?? '').toLocaleLowerCase();
 }
 
+function prioritizeDumbbellLibrary(preferred: TranslationKey[]): ExerciseLibrary {
+  const preferredSet = new Set(preferred);
+  return Object.fromEntries(Object.entries(dumbbellLibrary).map(([group, exercises]) => [
+    group,
+    [...exercises.filter((exercise) => preferredSet.has(exercise)), ...exercises.filter((exercise) => !preferredSet.has(exercise))],
+  ])) as ExerciseLibrary;
+}
+
+function chooseDumbbellLibrary(profile: Profile) {
+  const details = equipmentText(profile);
+  const preferred: TranslationKey[] = [];
+
+  if (/bench|bank|sehpa|banc|banco/.test(details)) {
+    preferred.push('exerciseDumbbellBenchPress', 'exerciseInclineDumbbellPress', 'exerciseDumbbellFly', 'exerciseInclineDumbbellCurl', 'exerciseDumbbellSkullCrusher');
+  }
+  if (/single|one dumbbell|tek damb|tek dumb|einzel|seul|una mancuerna/.test(details)) {
+    preferred.push('exerciseOneArmDumbbellRow', 'exerciseGobletSquat', 'exerciseConcentrationCurl', 'exerciseDumbbellOverheadTriceps', 'exerciseDumbbellSideBend');
+  }
+  if (/light|hafif|leicht|léger|liger/.test(details)) {
+    preferred.push('exerciseDumbbellLateralRaise', 'exerciseDumbbellFrontRaise', 'exerciseDumbbellReverseFly', 'exerciseDumbbellKickback', 'exerciseDumbbellCurl');
+  }
+  if (/adjustable|heavy|ayarlanabilir|ağır|schwer|verstellbar|lourd|réglable|pesad|ajustable/.test(details)) {
+    preferred.push('exerciseDumbbellBenchPress', 'exerciseBentOverDumbbellRow', 'exerciseDumbbellRdl', 'exerciseDumbbellHipThrust', 'exerciseGobletSquat');
+  }
+
+  return prioritizeDumbbellLibrary(preferred);
+}
+
 function chooseLibrary(profile: Profile): ExerciseLibrary {
   if (profile.equipment === 'bodyweight') return bodyweightLibrary;
-  if (profile.equipment === 'gym' && profile.gymLevel !== 'basic') return gymLibrary;
   const details = equipmentText(profile);
-  if (/dumbbell|dumbell|dambıl|dambil|halter|mancuerna|hantel|haltère/.test(details)) return dumbbellLibrary;
+  if (/dumbbell|dumbell|dambıl|dambil|halter|mancuerna|hantel|haltère/.test(details)) return chooseDumbbellLibrary(profile);
+  if (profile.equipment === 'gym' && profile.gymLevel !== 'basic') return gymLibrary;
   if (/band|bant|direnç|resistance|elastique|gummiband|banda/.test(details)) return bandLibrary;
   if (/kettlebell|girya/.test(details)) return kettlebellLibrary;
   return bodyweightLibrary;

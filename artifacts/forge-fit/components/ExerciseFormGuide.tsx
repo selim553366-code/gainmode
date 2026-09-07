@@ -95,6 +95,10 @@ export function exerciseFormGuideFor(name: string) {
   return guideByExercise[name] ?? { kind: 'core' as FormKind, tip: 'formTipCore' as TranslationKey };
 }
 
+export function hasExerciseFormGuide(name: string) {
+  return name in guideByExercise;
+}
+
 export function ExerciseFormGuide({ visible, exerciseName, language, onClose }: { visible: boolean; exerciseName: string; language: Language; onClose: () => void }) {
   const colors = useColors();
   const guide = exerciseFormGuideFor(exerciseName);

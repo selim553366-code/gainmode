@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@/components/AppIcon';
 import { MuscleAnatomy, type WorkoutMapKey } from '@/components/MuscleAnatomy';
 import { Card, CelebrationBurst, ProgressBar, triggerHaptic } from '@/components/FitUI';
-import { ExerciseFormGuide } from '@/components/ExerciseFormGuide';
+import { ExerciseFormGuide, hasExerciseFormGuide } from '@/components/ExerciseFormGuide';
 import { useFit } from '@/context/FitContext';
 import { useColors } from '@/hooks/useColors';
 import { translate, type TranslationKey } from '@/lib/i18n';
@@ -230,10 +230,10 @@ export default function WorkoutSessionScreen() {
                 <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}><Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.sets} {t('sets')}</Text></View>
                 <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}><Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.reps} {t('repetitions')}</Text></View>
               </View>
-              <Pressable accessibilityRole="button" accessibilityLabel={t('exerciseFormShow')} onPress={() => setGuideExercise(exercise.name)} style={styles.formGuideButton}>
+              {hasExerciseFormGuide(exercise.name) ? <Pressable accessibilityRole="button" accessibilityLabel={t('exerciseFormShow')} onPress={() => setGuideExercise(exercise.name)} style={styles.formGuideButton}>
                 <Ionicons name="eye-outline" size={14} color={colors.primary} />
                 <Text style={[styles.formGuideButtonText, { color: colors.primary }]}>{t('exerciseFormShow')}</Text>
-              </Pressable>
+              </Pressable> : null}
             </View>
             <Pressable
               accessibilityRole="checkbox"

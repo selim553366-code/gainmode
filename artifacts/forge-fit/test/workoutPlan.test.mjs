@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { addExerciseToPlan, buildWorkoutPlan, getWorkoutForDate, getWeekdayKey, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete } from '../lib/workoutPlan.ts';
+import { addExerciseToPlan, buildWorkoutPlan, dumbbellExerciseKeys, getWorkoutForDate, getWeekdayKey, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete } from '../lib/workoutPlan.ts';
 
 const profile = (overrides = {}) => ({
   equipment: 'bodyweight',
@@ -203,8 +203,28 @@ test('equipment details choose matching home movement variations', () => {
 
   const dumbbellPlan = buildWorkoutPlan(profile({ equipment: 'home', equipmentDetails: 'two dumbbells', trainingDays: 3 }));
   const dumbbellNames = dumbbellPlan.flatMap((workout) => workout.exercises).map((exercise) => exercise.name);
-  assert.ok(dumbbellNames.includes('exerciseCurl'));
+  assert.ok(dumbbellNames.includes('exerciseDumbbellCurl'));
   assert.ok(!dumbbellNames.includes('exerciseBandRow'));
+});
+
+test('dumbbell library offers a broad equipment-specific movement pool', () => {
+  assert.equal(dumbbellExerciseKeys.length, 35);
+  assert.ok(dumbbellExerciseKeys.includes('exerciseDumbbellBenchPress'));
+  assert.ok(dumbbellExerciseKeys.includes('exerciseGobletSquat'));
+  assert.ok(dumbbellExerciseKeys.includes('exerciseDumbbellFarmerCarry'));
+});
+
+test('onboarding equipment details prioritize compatible dumbbell movements', () => {
+  const benchPlan = buildWorkoutPlan(profile({ equipment: 'gym', gymLevel: 'advanced', equipmentDetails: 'adjustable dumbbells and incline bench', trainingDays: 4, sessionDuration: 60 }));
+  const benchNames = benchPlan.flatMap((workout) => workout.exercises).map((exercise) => exercise.name);
+  assert.ok(benchNames.includes('exerciseDumbbellBenchPress'));
+  assert.ok(benchNames.includes('exerciseInclineDumbbellPress'));
+  assert.ok(!benchNames.includes('exerciseCableFly'));
+
+  const lightPlan = buildWorkoutPlan(profile({ equipment: 'home', equipmentDetails: 'light dumbbells', trainingDays: 4, sessionDuration: 60 }));
+  const lightNames = lightPlan.flatMap((workout) => workout.exercises).map((exercise) => exercise.name);
+  assert.ok(lightNames.includes('exerciseDumbbellLateralRaise'));
+  assert.ok(lightNames.includes('exerciseDumbbellReverseFly'));
 });
 
 test('a workout is complete only when every exercise is complete', () => {
