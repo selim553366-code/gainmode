@@ -304,6 +304,13 @@ export function FitProvider({ children }: { children: ReactNode }) {
     if (testPromoUnlocked) AsyncStorage.setItem(TEST_PREMIUM_PROMO_STORAGE_KEY, 'true').catch(() => undefined);
   }, [testPromoUnlocked]);
 
+  const sanitizedWorkouts = useMemo(() => sanitizeWorkoutSplits(state.workouts), [state.workouts]);
+
+  useEffect(() => {
+    if (!hydrated || JSON.stringify(sanitizedWorkouts) === JSON.stringify(state.workouts)) return;
+    setState((current) => ({ ...current, workouts: sanitizeWorkoutSplits(current.workouts) }));
+  }, [hydrated, sanitizedWorkouts, state.workouts]);
+
   useEffect(() => {
     if (hydrated) AsyncStorage.setItem('forge-fit-state', JSON.stringify(state)).catch(() => undefined);
   }, [state, hydrated]);
@@ -325,6 +332,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<FitContextValue>(() => ({
     ...state,
+    workouts: sanitizedWorkouts,
     coachThinking,
     setCoachThinking,
      enablePremium: () => setState((current) => current.isPremium ? current : { ...current, isPremium: true }),
@@ -465,7 +473,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
      addWeight: (value) => setState((current) => recordStreakActivity({ ...current, weight: value, weightLogs: [...current.weightLogs, { id: `${Date.now()}-${Math.random()}`, value, date: new Date().toISOString() }] })),
     setNotificationSetting: (key, enabled) => setState((current) => ({ ...current, notificationSettings: { ...current.notificationSettings, [key]: enabled } })),
     completeDailyMood: () => setState((current) => ({ ...current, dailyMoodCompletedDate: localDateKey() })),
-  }), [state, coachThinking]);
+  }), [state, sanitizedWorkouts, coachThinking]);
 
   return <FitContext.Provider value={value}>{children}</FitContext.Provider>;
 }

@@ -183,13 +183,19 @@ export function normalizeWorkoutSets(workouts: Workout[], fallback = 2) {
 
 export function sanitizeWorkoutSplits(workouts: Workout[]) {
   return workouts.map((workout) => {
-    const removeBiceps = workout.name === 'workoutPushDay';
+    const originalFocusAreas = workout.focusAreas ?? Array.from(new Set(workout.exercises
+      .map((exercise) => exercise.muscleGroup)
+      .filter((muscleGroup): muscleGroup is MuscleGroup => Boolean(muscleGroup))));
+    const isPushByContent = originalFocusAreas.includes('chest')
+      && originalFocusAreas.includes('shoulders')
+      && originalFocusAreas.includes('triceps')
+      && !originalFocusAreas.includes('back')
+      && !originalFocusAreas.some((muscleGroup) => lowerBodyGroups.has(muscleGroup));
+    const removeBiceps = workout.name === 'workoutPushDay' || isPushByContent;
     const exercises = removeBiceps
       ? workout.exercises.filter((exercise) => exercise.muscleGroup !== 'biceps')
       : workout.exercises;
-    const focusAreas = (workout.focusAreas ?? Array.from(new Set(exercises
-      .map((exercise) => exercise.muscleGroup)
-      .filter((muscleGroup): muscleGroup is MuscleGroup => Boolean(muscleGroup)))))
+    const focusAreas = originalFocusAreas
       .filter((muscleGroup) => !removeBiceps || muscleGroup !== 'biceps');
     const name = inferWorkoutName(focusAreas, workout.name);
     return {

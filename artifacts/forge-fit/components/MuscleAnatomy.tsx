@@ -47,21 +47,21 @@ const backHotspots: Hotspot[] = [
 ];
 
 const frontMasks: Partial<Record<MuscleGroup, number>> = {
-  shoulders: require('@/assets/images/muscle-masks/front-shoulders-textured.png'),
-  chest: require('@/assets/images/muscle-masks/front-chest-textured.png'),
-  biceps: require('@/assets/images/muscle-masks/front-biceps-textured.png'),
-  core: require('@/assets/images/muscle-masks/front-core-textured.png'),
-  quadriceps: require('@/assets/images/muscle-masks/front-quadriceps-textured.png'),
-  calves: require('@/assets/images/muscle-masks/front-calves-textured.png'),
+  shoulders: require('@/assets/images/muscle-masks/front-shoulders-natural.png'),
+  chest: require('@/assets/images/muscle-masks/front-chest-natural.png'),
+  biceps: require('@/assets/images/muscle-masks/front-biceps-natural.png'),
+  core: require('@/assets/images/muscle-masks/front-core-natural.png'),
+  quadriceps: require('@/assets/images/muscle-masks/front-quadriceps-natural.png'),
+  calves: require('@/assets/images/muscle-masks/front-calves-natural.png'),
 };
 
 const backMasks: Partial<Record<MuscleGroup, number>> = {
-  shoulders: require('@/assets/images/muscle-masks/back-shoulders-textured.png'),
-  back: require('@/assets/images/muscle-masks/back-back-textured.png'),
-  triceps: require('@/assets/images/muscle-masks/back-triceps-textured.png'),
-  glutes: require('@/assets/images/muscle-masks/back-glutes-textured.png'),
-  hamstrings: require('@/assets/images/muscle-masks/back-hamstrings-textured.png'),
-  calves: require('@/assets/images/muscle-masks/back-calves-textured.png'),
+  shoulders: require('@/assets/images/muscle-masks/back-shoulders-natural.png'),
+  back: require('@/assets/images/muscle-masks/back-back-natural.png'),
+  triceps: require('@/assets/images/muscle-masks/back-triceps-natural.png'),
+  glutes: require('@/assets/images/muscle-masks/back-glutes-natural.png'),
+  hamstrings: require('@/assets/images/muscle-masks/back-hamstrings-natural.png'),
+  calves: require('@/assets/images/muscle-masks/back-calves-natural.png'),
 };
 
 export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect }: MuscleAnatomyProps) {
@@ -87,7 +87,7 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect }:
           styles.maskImage,
           {
             left: imageLeft,
-            opacity: selectedMuscle === muscle ? 0.92 : 0.74,
+            opacity: selectedMuscle === muscle ? 0.98 : 0.88,
           },
         ]}
       />;
@@ -109,6 +109,7 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect }:
             borderRadius: hotspot.radius,
             backgroundColor: 'transparent',
             borderWidth: 0,
+            zIndex: 2,
           },
         ]}
       />;
@@ -120,5 +121,5 @@ const styles = StyleSheet.create({
   crop: { width: '100%', height: '100%', position: 'relative', overflow: 'hidden' },
   referenceImage: { position: 'absolute', top: 0, width: '200%', height: '100%' },
   maskImage: { zIndex: 1 },
-  hotspot: { position: 'absolute' },
+  hotspot: { position: 'absolute', zIndex: 2 },
 });
