@@ -23,7 +23,8 @@ type Hotspot = {
 };
 
 const frontHotspots: Hotspot[] = [
-  { muscle: 'shoulders', left: '26%', top: '13%', width: '48%', height: '16%', radius: 24 },
+  { muscle: 'shoulders', left: '25%', top: '14%', width: '18%', height: '11%', radius: 18 },
+  { muscle: 'shoulders', left: '57%', top: '14%', width: '18%', height: '11%', radius: 18 },
   { muscle: 'chest', left: '37%', top: '22%', width: '27%', height: '13%', radius: 22 },
   { muscle: 'biceps', left: '15%', top: '25%', width: '20%', height: '22%', radius: 20 },
   { muscle: 'biceps', left: '65%', top: '25%', width: '20%', height: '22%', radius: 20 },
