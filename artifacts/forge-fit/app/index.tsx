@@ -232,7 +232,7 @@ function EntryRecoveryScreen({ onRestart }: { onRestart: () => void }) {
 
 function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMode?: boolean; selectedFields?: ProfileEditField[] }) {
   const colors = useColors();
-  const { language, setLanguage, completeOnboarding, profile: savedProfile, username: savedUsername } = useFit();
+  const { language, setLanguage, completeOnboarding, setIntroSeen, profile: savedProfile, username: savedUsername } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [started, setStarted] = React.useState(editMode);
   const [step, setStep] = React.useState(0);
@@ -415,7 +415,11 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const previousUsername = savedUsername?.trim().replace(/\s+/g, '').toLowerCase();
     const nextTaken = Array.from(new Set([...taken.filter((item) => item !== previousUsername), cleanUsername]));
     AsyncStorage.setItem('forge-fit-usernames', JSON.stringify(nextTaken)).catch(() => undefined);
-    if (editMode) router.replace('/(tabs)');
+    if (editMode) {
+      router.replace('/(tabs)');
+      return;
+    }
+    setIntroSeen();
   };
   const next = () => {
     setError('');
@@ -698,6 +702,58 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
    return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}><View style={styles.introVisual}><View style={[styles.auraLarge, { backgroundColor: `${colors.primary}18` }]} /><Image source={require('@/assets/images/icon.png')} style={styles.introIcon} /></View><Animated.View style={{ opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }}><Text style={[styles.eyebrow, { color: colors.primary }]}>1 / 1</Text><Text style={[styles.introTitle, { color: colors.foreground }]}>{t('onboardingTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('onboardingIntro')}</Text></Animated.View><View style={styles.introBottom}><Pressable onPress={() => { triggerHaptic(); onDone(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View></LinearGradient>;
 }
 
+const accessExploreSlides = [
+  { image: require('@/assets/images/forge-fit-feature-aiCoach.jpg'), icon: 'chatbubble-ellipses-outline' as const, title: 'featuresAiCoachTitle' as const, summary: 'featuresAiCoachSummary' as const, detail: 'featuresAiCoachDetail' as const },
+  { image: require('@/assets/images/forge-fit-feature-foodPhoto.jpg'), icon: 'restaurant-outline' as const, title: 'featuresFoodPhotoTitle' as const, summary: 'featuresFoodPhotoSummary' as const, detail: 'featuresFoodPhotoDetail' as const },
+  { image: require('@/assets/images/forge-fit-feature-workoutPlan.jpg'), icon: 'barbell-outline' as const, title: 'featuresWorkoutTitle' as const, summary: 'featuresWorkoutSummary' as const, detail: 'featuresWorkoutDetail' as const },
+  { image: require('@/assets/images/forge-fit-feature-liveForm.jpg'), icon: 'body-outline' as const, title: 'featuresLiveFormTitle' as const, summary: 'featuresLiveFormSummary' as const, detail: 'featuresLiveFormDetail' as const },
+  { image: require('@/assets/images/forge-fit-feature-weeklyAi.jpg'), icon: 'analytics-outline' as const, title: 'featuresWeeklyTitle' as const, summary: 'featuresWeeklySummary' as const, detail: 'featuresWeeklyDetail' as const },
+] as const;
+
+function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: () => void; onBack: () => void }) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { language } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const slide = accessExploreSlides[page];
+  const isLast = page === accessExploreSlides.length - 1;
+
+  return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.offerGradient}>
+    <View style={[styles.exploreHeader, { paddingTop: insets.top + 10 }]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('close')} onPress={onBack} style={({ pressed }) => [styles.exploreBackButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}>
+        <Ionicons name="arrow-back" size={19} color={colors.foreground} />
+      </Pressable>
+      <View style={styles.exploreHeaderTitle}>
+        <Text style={[styles.exploreEyebrow, { color: colors.primary }]}>{t('premiumShort')}</Text>
+        <Text style={[styles.exploreCounter, { color: colors.mutedForeground }]}>{page + 1} / {accessExploreSlides.length}</Text>
+      </View>
+      <ForgeFitMark size={34} />
+    </View>
+    <ScrollView contentContainerStyle={[styles.exploreScrollContent, { paddingBottom: insets.bottom + 18 }]} showsVerticalScrollIndicator={false} bounces={false}>
+      <View style={[styles.exploreImageFrame, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Image source={slide.image} resizeMode="cover" style={styles.exploreImage} />
+        <View style={[styles.exploreImageBadge, { backgroundColor: colors.primary }]}><Ionicons name={slide.icon} size={17} color={colors.primaryForeground} /></View>
+      </View>
+      <Text style={[styles.exploreTitle, { color: colors.foreground }]}>{t(slide.title)}</Text>
+      <Text style={[styles.exploreSummary, { color: colors.mutedForeground }]}>{t(slide.summary)}</Text>
+      <View style={[styles.exploreValueCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}42` }]}>
+        <View style={[styles.exploreValueIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="sparkles-outline" size={18} color={colors.primary} /></View>
+        <View style={styles.exploreValueCopy}>
+          <Text style={[styles.exploreValueLabel, { color: colors.primary }]}>{t('premiumExploreIncluded')}</Text>
+          <Text style={[styles.exploreDetail, { color: colors.foreground }]}>{t(slide.detail)}</Text>
+        </View>
+      </View>
+    </ScrollView>
+    <View style={[styles.exploreFooter, { paddingBottom: insets.bottom + 12 }]}>
+      <View style={styles.exploreDots}>{accessExploreSlides.map((item, index) => <View key={item.title} style={[styles.exploreDot, { backgroundColor: index === page ? colors.primary : colors.border }]} />)}</View>
+      <Pressable accessibilityRole="button" accessibilityLabel={t(isLast ? 'premiumExploreFinish' : 'premiumExploreNext')} onPress={onNext} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}>
+        <Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t(isLast ? 'premiumExploreFinish' : 'premiumExploreNext')}</Text>
+        <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
+      </Pressable>
+    </View>
+  </LinearGradient>;
+}
+
 function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: () => void; onSkip: () => void; onRestart: () => void }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -712,6 +768,8 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
   const [promoOpen, setPromoOpen] = React.useState(false);
   const [promoCode, setPromoCode] = React.useState('');
   const [promoError, setPromoError] = React.useState<string | null>(null);
+   const [explorePage, setExplorePage] = React.useState(0);
+   const [showExplore, setShowExplore] = React.useState(false);
    const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
    const price = selectedPackage?.product.priceString;
   const displayPrice = price ?? '—';
@@ -772,6 +830,19 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
     enableTestPremium();
     onUnlock();
   };
+   if (showExplore) {
+     return <AccessExploreScreen
+       page={explorePage}
+       onBack={() => setShowExplore(false)}
+       onNext={() => {
+         if (explorePage === accessExploreSlides.length - 1) {
+           setShowExplore(false);
+           return;
+         }
+         setExplorePage((current) => current + 1);
+       }}
+     />;
+   }
   return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.offerGradient}>
     <View style={[styles.offerHeader, { paddingTop: insets.top + 10 }]}>
       <ForgeFitMark size={38} />
@@ -813,6 +884,11 @@ function PremiumWelcomeOfferScreen({ onUnlock, onSkip, onRestart }: { onUnlock: 
        <Text style={[styles.offerPriceOptions, { color: colors.mutedForeground }]}>{selectedPlan === 'annual' ? t('premiumAnnualBenefit') : t('premiumMonthlyBenefit')}</Text>
      </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel={t('premiumExploreCta')} onPress={() => { triggerHaptic(); setExplorePage(0); setShowExplore(true); }} style={({ pressed }) => [styles.exploreCta, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}48`, opacity: pressed ? 0.74 : 1 }]}>
+        <View style={[styles.exploreCtaIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="sparkles-outline" size={17} color={colors.primary} /></View>
+        <View style={styles.exploreCtaCopy}><Text style={[styles.exploreCtaTitle, { color: colors.foreground }]}>{t('premiumExploreCta')}</Text><Text style={[styles.exploreCtaSubtitle, { color: colors.mutedForeground }]}>{t('premiumWelcomeReason')}</Text></View>
+        <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+      </Pressable>
       <View style={styles.offerPromoSection}>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: promoOpen }} onPress={() => { setPromoOpen((open) => !open); setPromoError(null); }} style={styles.offerPromoToggle}>
           <Ionicons name="ticket-outline" size={14} color={colors.mutedForeground} />
@@ -1032,4 +1108,28 @@ const styles = StyleSheet.create({
   offerPromoError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 14, marginTop: 6 },
   premiumRestoreButton: { alignItems: 'center', justifyContent: 'center', minHeight: 36 },
   premiumRestoreText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  exploreHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 10 },
+  exploreBackButton: { width: 38, height: 38, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  exploreHeaderTitle: { alignItems: 'center', gap: 2 },
+  exploreEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.4 },
+  exploreCounter: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  exploreScrollContent: { paddingHorizontal: 20, paddingTop: 5 },
+  exploreImageFrame: { width: '100%', aspectRatio: 1.72, borderRadius: 24, borderWidth: 1, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
+  exploreImage: { width: '100%', height: '100%' },
+  exploreImageBadge: { position: 'absolute', left: 14, bottom: 14, width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  exploreTitle: { fontFamily: 'Inter_700Bold', fontSize: 28, lineHeight: 34, letterSpacing: -0.8, marginTop: 22 },
+  exploreSummary: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, marginTop: 8 },
+  exploreValueCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderWidth: 1, borderRadius: 18, padding: 13, marginTop: 18 },
+  exploreValueIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  exploreValueCopy: { flex: 1, gap: 5 },
+  exploreValueLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, lineHeight: 16 },
+  exploreDetail: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
+  exploreFooter: { paddingHorizontal: 20, gap: 12 },
+  exploreDots: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  exploreDot: { width: 22, height: 4, borderRadius: 4 },
+  exploreCta: { width: '100%', minHeight: 62, borderWidth: 1, borderRadius: 18, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  exploreCtaIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  exploreCtaCopy: { flex: 1, gap: 3 },
+  exploreCtaTitle: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  exploreCtaSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 14 },
 });
