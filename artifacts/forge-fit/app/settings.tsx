@@ -27,6 +27,7 @@ export default function SettingsScreen() {
   const languages = Object.keys(languageLabels) as Language[];
 
   return (
+    <>
     <Screen>
       <Header eyebrow={t('settingsEyebrow')} title={t('settingsTitle')} subtitle={t('settingsSubtitle')} action="close-outline" onAction={() => router.back()} />
 
@@ -148,7 +149,7 @@ export default function SettingsScreen() {
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('premiumAnimationTest')}</Text>
             <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('premiumAnimationTestDescription')}</Text>
           </View>
-          <Ionicons name="play-circle-outline" size={21} color={colors.success} />
+          <Ionicons name="arrow-forward" size={21} color={colors.success} />
         </Pressable>
       </Card>
 
