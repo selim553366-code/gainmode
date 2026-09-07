@@ -153,8 +153,6 @@ export default function WorkoutSessionScreen() {
             activeMuscles={activeMuscles}
             selectedMuscle={selectedMuscle}
             onSelect={selectMuscle}
-            baseColor={colors.mutedForeground}
-            lineColor={colors.border}
             activeColor={colors.primary}
             selectedColor={colors.blue}
           />
