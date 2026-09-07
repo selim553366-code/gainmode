@@ -8,6 +8,14 @@ export const languageLabels: Record<Language, string> = {
   es: 'Español',
 };
 
+const subscriptionAccessLabel: Record<Language, string> = {
+  tr: 'GainMode Access',
+  en: 'GainMode Access',
+  de: 'GainMode Access',
+  fr: 'GainMode Access',
+  es: 'GainMode Access',
+};
+
 type PremiumCurrency = 'USD' | 'EUR' | 'GBP';
 
 const premiumPreviewPriceByLanguage: Record<Language, { locale: string; currency: PremiumCurrency }> = {
@@ -1681,6 +1689,7 @@ function applyCurrentBrand(value: string): string {
 }
 
 export function translate(language: Language, key: TranslationKey): string {
+  if (key === 'premiumShort' || key === 'premiumModalEyebrow') return subscriptionAccessLabel[language];
   if (key in themeTranslations.tr) return themeTranslations[language][key as keyof typeof themeTranslations.tr];
   if (key === 'workoutReminderDescription') return workoutReminderDescriptions[language];
   if (key === 'premiumPriceOptions') return applyCurrentBrand(getPremiumPreviewPriceOptions(language));
