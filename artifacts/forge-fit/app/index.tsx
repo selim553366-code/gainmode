@@ -33,6 +33,7 @@ type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
 type TargetWeightUnit = 'kg' | 'lb';
 type OnboardingMode = 'quick' | 'detailed';
+type OnboardingStepId = number | 'mode';
 
 const QUICK_ONBOARDING_STEP_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 14] as const;
 
@@ -283,16 +284,16 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const [buildingPlan, setBuildingPlan] = React.useState(false);
   const [overloadSeen, setOverloadSeen] = React.useState(false);
   const [onboardingMode, setOnboardingMode] = React.useState<OnboardingMode | null>(editMode ? 'detailed' : null);
-  const [modeChoiceVisible, setModeChoiceVisible] = React.useState(false);
   const [taken, setTaken] = React.useState<string[]>([]);
   const [error, setError] = React.useState('');
   const slide = React.useRef(new Animated.Value(1)).current;
   const targetStep = 15;
   const hasTargetWeightStep = goal === 'weightGain' || goal === 'weightLoss';
-   const selectedStepIds = React.useMemo(() => {
+   const selectedStepIds = React.useMemo<OnboardingStepId[]>(() => {
      if (editMode) return getProfileEditStepIds(selectedFields, hasTargetWeightStep);
      if (onboardingMode === 'quick') return [...QUICK_ONBOARDING_STEP_IDS];
-     return Array.from({ length: hasTargetWeightStep ? 16 : 15 }, (_, index) => index);
+     const detailedSteps = Array.from({ length: hasTargetWeightStep ? 16 : 15 }, (_, index) => index);
+     return onboardingMode === null ? [detailedSteps[0], 'mode', ...detailedSteps.slice(1)] : detailedSteps;
    }, [editMode, onboardingMode, selectedFields, hasTargetWeightStep]);
   const total = selectedStepIds.length;
   const activeStep = selectedStepIds[step] ?? step;
@@ -451,11 +452,10 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       const previousUsername = savedUsername?.trim().replace(/\s+/g, '').toLowerCase();
       if (taken.includes(clean) && clean !== previousUsername) return setError(t('usernameTaken'));
       if (!editMode && !onboardingMode) {
-        setModeChoiceVisible(true);
-        setStep(1);
-        return;
+        return advance();
       }
     }
+    if (activeStep === 'mode') return;
     if (activeStep === 1 && equipment === 'gym' && !gymLevel) return setError(t('gymLevelQuestion'));
     if (activeStep === 2) {
       if (measurementUnit === 'metric') {
@@ -494,8 +494,12 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     advance();
   };
   const goBack = () => {
+    if (activeStep === 'mode') {
+      setOnboardingMode(null);
+      setStep(0);
+      return;
+    }
     if (step === 0) {
-      if (!editMode && onboardingMode === 'quick') setModeChoiceVisible(true);
       return;
     }
     Animated.sequence([Animated.timing(slide, { toValue: 0, duration: 120, useNativeDriver: true }), Animated.timing(slide, { toValue: 1, duration: 220, useNativeDriver: true })]).start();
@@ -509,7 +513,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const swipeResponder = React.useMemo(() => PanResponder.create({
     onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 18 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
     onPanResponderRelease: (_, gesture) => {
-      if (activeStep >= 2 && activeStep <= 4 || activeStep === targetStep) return;
+      if (typeof activeStep !== 'number' || (activeStep >= 2 && activeStep <= 4) || activeStep === targetStep) return;
       if (gesture.dx < -55) next();
       if (gesture.dx > 55) goBack();
     },
@@ -547,21 +551,19 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const chooseMode = (mode: OnboardingMode) => {
     triggerHaptic();
     setOnboardingMode(mode);
-    setModeChoiceVisible(false);
     setStep(mode === 'quick' ? 0 : 1);
     slide.setValue(1);
   };
 
      if (!started) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} /></View>;
-    if (modeChoiceVisible || (!editMode && !onboardingMode && step === 1)) {
-      return <OnboardingModeChoice onSelect={chooseMode} onBack={() => { setModeChoiceVisible(false); setOnboardingMode(null); setStep(0); }} />;
-    }
+    if (!editMode && activeStep === 'mode') return <OnboardingModeChoice onSelect={chooseMode} onBack={() => { setOnboardingMode(null); setStep(0); }} />;
     if (buildingPlan) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><PlanBuildingScreen onComplete={finish} /></View>;
     if (step === total && equipment === 'gym' && !overloadSeen) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><ProgressiveOverloadScreen onContinue={() => setOverloadSeen(true)} /></View>;
    if (step === total) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><CompletionScreen onContinue={() => setBuildingPlan(true)} /></View>;
-    const optional = onboardingMode !== 'quick' && activeStep >= 6 && !hasTargetWeightStep;
-    const isTargetStep = activeStep === targetStep && hasTargetWeightStep;
-    const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[activeStep] ?? 'preferredDaysQuestion';
+    const numericStep = typeof activeStep === 'number' ? activeStep : 0;
+    const optional = onboardingMode !== 'quick' && numericStep >= 6 && !hasTargetWeightStep;
+    const isTargetStep = numericStep === targetStep && hasTargetWeightStep;
+    const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[numericStep] ?? 'preferredDaysQuestion';
    return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
      <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
