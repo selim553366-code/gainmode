@@ -94,17 +94,17 @@ export function ExerciseFormGuide({ visible, exerciseName, language, onClose }: 
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.header}>
           <View style={styles.heading}>
-            <View style={[styles.icon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="body-outline" size={20} color={colors.primary} /></View>
+            <View style={[styles.icon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="body-outline" size={18} color={colors.primary} /></View>
             <View style={styles.headingCopy}>
               <Text style={[styles.eyebrow, { color: colors.primary }]}>{translate(language, 'exerciseFormTitle')}</Text>
               <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
             </View>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={translate(language, 'exerciseFormClose')} onPress={onClose} style={[styles.close, { backgroundColor: colors.secondary }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={translate(language, 'exerciseFormClose')} onPress={onClose} hitSlop={8} style={[styles.close, { backgroundColor: colors.secondary }]}>
             <Ionicons name="close" size={19} color={colors.foreground} />
           </Pressable>
         </View>
-        <Image source={formImages[guide.kind]} resizeMode="cover" style={styles.image} />
+        <Image source={formImages[guide.kind]} resizeMode="contain" style={styles.image} />
         <View style={[styles.tip, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}>
           <Ionicons name="checkmark-circle-outline" size={18} color={colors.primary} />
           <Text style={[styles.tipText, { color: colors.foreground }]}>{translate(language, guide.tip)}</Text>
@@ -119,16 +119,16 @@ export function ExerciseFormGuide({ visible, exerciseName, language, onClose }: 
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#020B18B8', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
-  card: { width: '100%', maxWidth: 420, borderRadius: 24, borderWidth: 1, padding: 12, overflow: 'hidden' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  card: { width: '100%', maxWidth: 350, borderRadius: 22, borderWidth: 1, padding: 11, overflow: 'hidden' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   heading: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 9 },
-  icon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  icon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   headingCopy: { flex: 1 },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1, textTransform: 'uppercase' },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 19, lineHeight: 23, marginTop: 1 },
-  close: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  image: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: '#2461B4' },
-  tip: { minHeight: 54, borderRadius: 13, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 9, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title: { fontFamily: 'Inter_700Bold', fontSize: 17, lineHeight: 21, marginTop: 1 },
+  close: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  image: { width: '100%', height: 158, borderRadius: 14, backgroundColor: '#2461B4' },
+  tip: { minHeight: 54, borderRadius: 13, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 9, marginTop: 9, flexDirection: 'row', alignItems: 'center', gap: 8 },
   tipText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17 },
   action: { minHeight: 44, borderRadius: 14, marginTop: 10, alignItems: 'center', justifyContent: 'center' },
   actionText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
