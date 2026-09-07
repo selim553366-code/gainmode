@@ -49,8 +49,8 @@ const backHotspots: Hotspot[] = [
 ];
 
 function MuscleHighlight({ muscle, side, color, selected }: { muscle: MuscleGroup; side: BodySide; color: string; selected: boolean }) {
-  const opacity = selected ? 0.82 : 0.52;
-  const strokeWidth = selected ? 0.7 : 0.45;
+  const opacity = selected ? 0.42 : 0.24;
+  const strokeWidth = selected ? 0.8 : 0.5;
   if (side === 'front') {
     if (muscle === 'shoulders') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
       <Path d="M25 17C27 13 34 12 40 15C43 17 43 22 40 25C36 27 29 25 26 22C25 20 24 18 25 17Z" />

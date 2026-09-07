@@ -57,7 +57,12 @@ export default function WorkoutSessionScreen() {
   const tapHintAnimation = React.useRef(new Animated.Value(0)).current;
   const activeMuscles = React.useMemo(() => {
     if (!workout) return [];
-    return Array.from(new Set(workout.exercises.map((exercise) => exercise.muscleGroup ?? 'other')));
+    const lowerBodyGroups = new Set(['quadriceps', 'hamstrings', 'glutes', 'calves']);
+    const focusAreas = workout.focusAreas ?? workout.exercises.map((exercise) => exercise.muscleGroup).filter(Boolean);
+    const isPushWorkout = workout.name === 'workoutPushDay'
+      || (focusAreas.includes('chest') && focusAreas.includes('shoulders') && !focusAreas.includes('back') && !focusAreas.some((group) => lowerBodyGroups.has(group as string)));
+    return Array.from(new Set(workout.exercises.map((exercise) => exercise.muscleGroup ?? 'other')))
+      .filter((muscle) => !(isPushWorkout && muscle === 'biceps'));
   }, [workout]);
   const selectedExercises = selectedMuscle && workout
     ? workout.exercises.filter((exercise) => (exercise.muscleGroup ?? 'other') === selectedMuscle)
