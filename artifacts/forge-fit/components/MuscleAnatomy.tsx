@@ -49,49 +49,49 @@ const backHotspots: Hotspot[] = [
 
 const frontShapes: Partial<Record<MuscleGroup, string[]>> = {
   shoulders: [
-    'M27 17 C31 13 38 13 43 18 L41 27 C36 29 30 27 26 23 Z',
-    'M73 17 C69 13 62 13 57 18 L59 27 C64 29 70 27 74 23 Z',
+    'M28 20 C31 15 38 14 43 19 L41 27 C36 29 31 27 28 24 Z',
+    'M72 20 C69 15 62 14 57 19 L59 27 C64 29 69 27 72 24 Z',
   ],
   chest: [
-    'M39 22 C44 20 49 22 50 26 L49 36 C44 38 40 35 38 31 Z',
-    'M61 22 C56 20 51 22 50 26 L51 36 C56 38 60 35 62 31 Z',
+    'M35 21 C40 18 48 19 49 23 L49 31 C44 34 37 32 34 28 Z',
+    'M65 21 C60 18 52 19 51 23 L51 31 C56 34 63 32 66 28 Z',
   ],
   biceps: [
-    'M25 24 C20 27 20 37 23 45 L30 43 L34 27 Z',
-    'M75 24 C80 27 80 37 77 45 L70 43 L66 27 Z',
+    'M28 25 C23 27 22 35 25 40 L31 39 L34 27 Z',
+    'M72 25 C77 27 78 35 75 40 L69 39 L66 27 Z',
   ],
-  core: ['M41 35 L49 34 L49 53 L41 50 Z', 'M59 35 L51 34 L51 53 L59 50 Z'],
+  core: ['M40 29 L49 28 L49 45 L40 43 Z', 'M60 29 L51 28 L51 45 L60 43 Z'],
   quadriceps: [
-    'M36 51 C33 59 35 70 36 76 L48 76 L49 52 Z',
-    'M64 51 C67 59 65 70 64 76 L52 76 L51 52 Z',
+    'M36 46 C33 52 35 61 37 66 L48 65 L49 47 Z',
+    'M64 46 C67 52 65 61 63 66 L52 65 L51 47 Z',
   ],
   calves: [
-    'M37 77 C34 83 36 91 37 94 L47 93 L49 77 Z',
-    'M63 77 C66 83 64 91 63 94 L53 93 L51 77 Z',
+    'M38 67 C35 72 36 81 39 86 L47 84 L48 68 Z',
+    'M62 67 C65 72 64 81 61 86 L53 84 L52 68 Z',
   ],
 };
 
 const backShapes: Partial<Record<MuscleGroup, string[]>> = {
   shoulders: [
-    'M27 17 C31 13 38 13 43 18 L41 27 C36 29 30 27 26 23 Z',
-    'M73 17 C69 13 62 13 57 18 L59 27 C64 29 70 27 74 23 Z',
+    'M28 20 C31 15 38 14 43 19 L41 27 C36 29 31 27 28 24 Z',
+    'M72 20 C69 15 62 14 57 19 L59 27 C64 29 69 27 72 24 Z',
   ],
   back: [
-    'M39 21 C44 24 48 24 50 21 L49 47 C44 44 40 39 38 30 Z',
-    'M61 21 C56 24 52 24 50 21 L51 47 C56 44 60 39 62 30 Z',
+    'M35 20 C41 19 46 22 49 20 L49 43 C44 40 38 35 35 27 Z',
+    'M65 20 C59 19 54 22 51 20 L51 43 C56 40 62 35 65 27 Z',
   ],
   triceps: [
-    'M25 24 C20 27 20 37 23 45 L30 43 L34 27 Z',
-    'M75 24 C80 27 80 37 77 45 L70 43 L66 27 Z',
+    'M28 25 C23 27 22 35 25 40 L31 39 L34 27 Z',
+    'M72 25 C77 27 78 35 75 40 L69 39 L66 27 Z',
   ],
-  glutes: ['M36 46 C39 42 47 43 50 48 L49 61 C44 64 38 60 36 55 Z', 'M64 46 C61 42 53 43 50 48 L51 61 C56 64 62 60 64 55 Z'],
+  glutes: ['M35 42 C39 39 47 40 50 44 L49 54 C44 56 38 53 35 49 Z', 'M65 42 C61 39 53 40 50 44 L51 54 C56 56 62 53 65 49 Z'],
   hamstrings: [
-    'M36 58 C33 65 35 72 36 78 L48 77 L49 59 Z',
-    'M64 58 C67 65 65 72 64 78 L52 77 L51 59 Z',
+    'M36 52 C34 57 35 63 37 67 L48 66 L49 53 Z',
+    'M64 52 C66 57 65 63 63 67 L52 66 L51 53 Z',
   ],
   calves: [
-    'M37 79 C34 84 36 91 37 94 L47 93 L49 79 Z',
-    'M63 79 C66 84 64 91 63 94 L53 93 L51 79 Z',
+    'M38 68 C35 73 36 81 39 86 L47 84 L48 69 Z',
+    'M62 68 C65 73 64 81 61 86 L53 84 L52 69 Z',
   ],
 };
 
@@ -100,7 +100,7 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, a
   const shapes = side === 'front' ? frontShapes : backShapes;
   return <View style={styles.crop}>
     <Image
-      source={require('@/assets/images/muscle-anatomy-redrawn-clean.png')}
+      source={require('@/assets/images/muscle-anatomy-final.png')}
       resizeMode="stretch"
       style={[styles.referenceImage, { left: side === 'front' ? 0 : '-100%' }]}
       accessibilityLabel={side === 'front' ? 'Front muscle anatomy' : 'Back muscle anatomy'}
@@ -130,9 +130,8 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, a
             width: hotspot.width,
             height: hotspot.height,
             borderRadius: hotspot.radius,
-            backgroundColor: isActive ? `${isSelected ? selectedColor : activeColor}42` : 'transparent',
-            borderColor: isSelected ? selectedColor : activeColor,
-            borderWidth: isActive ? (isSelected ? 2 : 1) : 0,
+            backgroundColor: 'transparent',
+            borderWidth: 0,
           },
         ]}
       />;
