@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
 import { useFit } from '@/context/FitContext';
@@ -8,6 +8,8 @@ import { getWeekdayKey, type MuscleGroup } from '@/lib/workoutPlan';
 import { liveTranslate, type LiveWorkoutCopyKey } from '@/lib/liveWorkoutCopy';
 import { useColors } from '@/hooks/useColors';
 import { Card, EmptyState, Header, ProgressBar, Screen, triggerHaptic } from '@/components/FitUI';
+
+const liveFormAnalysisImage = require('../../assets/images/live-form-analysis-card.jpeg');
 
 const muscleGroupLabels: Record<MuscleGroup, TranslationKey> = {
   chest: 'muscleChest',
@@ -85,16 +87,9 @@ export default function PlanScreen() {
             <Text style={[styles.startButtonText, { color: colors.primaryForeground }]}>{t('startWorkout')}</Text>
             <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
           </Pressable>
-          <View testID="live-form-analysis-bar" style={[styles.liveAnalysisBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={[styles.liveAnalysisIcon, { backgroundColor: `${colors.primary}18` }]}>
-              <Ionicons name="body-outline" size={21} color={colors.primary} />
-            </View>
-            <View style={styles.liveAnalysisCopy}>
-              <Text style={[styles.liveAnalysisTitle, { color: colors.foreground }]}>{liveT('liveWorkoutTitle')}</Text>
-              <Text numberOfLines={2} style={[styles.liveAnalysisBody, { color: colors.mutedForeground }]}>{liveT('liveWorkoutBody')}</Text>
-            </View>
-          </View>
-          <View style={styles.liveChoiceRow}>
+          <View testID="live-form-analysis-bar" style={[styles.liveAnalysisCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Image source={liveFormAnalysisImage} resizeMode="cover" style={styles.liveAnalysisImage} />
+            <View style={styles.liveChoiceOverlay}>
             {liveChoices.map((choice) => <Pressable
               key={choice.kind}
               testID={`start-live-${choice.kind}`}
@@ -106,12 +101,11 @@ export default function PlanScreen() {
               }}
               style={({ pressed }) => [
                 styles.liveChoice,
-                { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.76 : 1 },
+                { opacity: pressed ? 0.76 : 1 },
               ]}
-            >
-              <Ionicons name={choice.icon} size={16} color={colors.primary} />
-              <Text style={[styles.liveChoiceText, { color: colors.foreground }]}>{choice.label}</Text>
-            </Pressable>)}
+            />
+            )}
+            </View>
           </View>
         </Card>
       </> : <Card style={[styles.restCard, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
@@ -141,14 +135,10 @@ const styles = StyleSheet.create({
   progressCaption: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 10 },
   startButton: { height: 54, borderRadius: 17, marginTop: 18, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   startButtonText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 15, textAlign: 'center' },
-  liveAnalysisBar: { minHeight: 72, borderRadius: 17, borderWidth: 1, marginTop: 10, paddingHorizontal: 11, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  liveAnalysisIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  liveAnalysisCopy: { flex: 1 },
-  liveAnalysisTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, lineHeight: 16 },
-  liveAnalysisBody: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 14, marginTop: 2 },
-  liveChoiceRow: { flexDirection: 'row', gap: 7, marginTop: 8 },
-  liveChoice: { flex: 1, minHeight: 42, borderRadius: 13, borderWidth: 1, paddingHorizontal: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  liveChoiceText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
+  liveAnalysisCard: { width: '100%', aspectRatio: 1080 / 444, borderRadius: 17, borderWidth: 1, marginTop: 10, overflow: 'hidden', position: 'relative' },
+  liveAnalysisImage: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined },
+  liveChoiceOverlay: { position: 'absolute', left: '5%', right: '5%', bottom: '10%', height: '28%', flexDirection: 'row', gap: '2%' },
+  liveChoice: { flex: 1, borderRadius: 15, backgroundColor: 'transparent' },
   focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 18 },
   focusChip: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5 },
   focusChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },

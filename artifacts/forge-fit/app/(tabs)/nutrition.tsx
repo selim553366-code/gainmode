@@ -5,7 +5,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
-import { searchFood, useSearchFood, type FoodSearchItem } from '@workspace/api-client-react';
+import { searchFood, type FoodSearchItem } from '@workspace/api-client-react';
 import { useFit, Meal } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { apiUrl } from '@/lib/api';
@@ -162,14 +162,14 @@ export default function NutritionScreen() {
   const [barcodeResult, setBarcodeResult] = React.useState<FoodSearchItem | null>(null);
   const [barcodeLoading, setBarcodeLoading] = React.useState(false);
   const [barcodeError, setBarcodeError] = React.useState<string | null>(null);
+  const [foodSearchItems, setFoodSearchItems] = React.useState<FoodSearchItem[]>([]);
+  const [foodSearchLoading, setFoodSearchLoading] = React.useState(false);
+  const [foodSearchError, setFoodSearchError] = React.useState(false);
   const barcodeRequestId = React.useRef(0);
+  const foodSearchRequestId = React.useRef(0);
   const autoOpenedCamera = React.useRef(false);
   const normalizedSearch = search.trim();
   const searchEnabled = debouncedSearch.length >= 2;
-  const foodSearch = useSearchFood(
-    { q: searchEnabled ? debouncedSearch : '  ', language, limit: 12 },
-    { query: { enabled: searchEnabled, staleTime: 5 * 60 * 1000, queryKey: ['food-search', debouncedSearch, language] } },
-  );
   const visibleMeals = getMealsForRange(meals, 'daily');
   const calories = visibleMeals.reduce((sum, meal) => sum + meal.calories, 0);
   const macros = visibleMeals.reduce((totals, meal) => ({
@@ -182,6 +182,31 @@ export default function NutritionScreen() {
     const timeout = setTimeout(() => setDebouncedSearch(normalizedSearch), 350);
     return () => clearTimeout(timeout);
   }, [normalizedSearch]);
+
+  React.useEffect(() => {
+    const requestId = ++foodSearchRequestId.current;
+    if (!searchEnabled) {
+      setFoodSearchItems([]);
+      setFoodSearchLoading(false);
+      setFoodSearchError(false);
+      return;
+    }
+    setFoodSearchLoading(true);
+    setFoodSearchError(false);
+    void searchFood({ q: debouncedSearch, language, limit: 12 })
+      .then((result) => {
+        if (requestId === foodSearchRequestId.current) setFoodSearchItems(result.items);
+      })
+      .catch(() => {
+        if (requestId === foodSearchRequestId.current) {
+          setFoodSearchItems([]);
+          setFoodSearchError(true);
+        }
+      })
+      .finally(() => {
+        if (requestId === foodSearchRequestId.current) setFoodSearchLoading(false);
+      });
+  }, [debouncedSearch, language, searchEnabled]);
 
   const analyzeFoodPhoto = async (uri: string, base64?: string) => {
     setPhotoUri(uri);
@@ -340,10 +365,10 @@ export default function NutritionScreen() {
       <View style={styles.searchRow}><Ionicons name="search-outline" size={18} color={colors.mutedForeground} /><TextInput testID="food-search" value={search} onChangeText={setSearch} placeholder={t('searchPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.searchInput, { color: colors.foreground }]} autoCapitalize="none" returnKeyType="search" />{normalizedSearch ? <Pressable testID="clear-food-search" onPress={() => { setSearch(''); setDebouncedSearch(''); }} hitSlop={8}><Ionicons name="close-circle" size={18} color={colors.mutedForeground} /></Pressable> : null}</View>
       {!normalizedSearch ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('searchFoodHint')}</Text> : null}
       {normalizedSearch.length === 1 ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('searchTooShort')}</Text> : null}
-      {searchEnabled && foodSearch.isLoading ? <View style={styles.stateRow}><ActivityIndicator size="small" color={colors.primary} /><Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('searchingFood')}</Text></View> : null}
-      {searchEnabled && foodSearch.isError ? <Text style={[styles.searchHint, { color: colors.destructive }]}>{t('foodSearchError')}</Text> : null}
-      {searchEnabled && !foodSearch.isLoading && !foodSearch.isError && foodSearch.data?.items.length === 0 ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('noFoodResults')}</Text> : null}
-      {searchEnabled && !foodSearch.isLoading && !foodSearch.isError ? foodSearch.data?.items.map((food) => <Pressable key={`${food.id}-${food.name}`} onPress={() => addFood(food)} style={({ pressed }) => [styles.resultRow, { borderTopColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><View style={styles.resultContent}><Text style={[styles.mealName, { color: colors.foreground }]}>{food.name}</Text><Text style={[styles.resultServing, { color: colors.mutedForeground }]}>{food.serving}</Text><View style={styles.nutritionLine}><Text style={[styles.nutritionValue, { color: colors.foreground }]}>{food.calories} {t('caloriesShort')}</Text><Text style={[styles.nutritionValue, { color: colors.blue }]}>{formatNutrition(food.protein)}g {t('protein')}</Text><Text style={[styles.nutritionValue, { color: colors.orange }]}>{formatNutrition(food.carbs)}g {t('carbs')}</Text><Text style={[styles.nutritionValue, { color: colors.plum }]}>{formatNutrition(food.fat)}g {t('fat')}</Text></View></View><Ionicons name="add-circle-outline" size={22} color={colors.primary} /></Pressable>) : null}
+      {searchEnabled && foodSearchLoading ? <View style={styles.stateRow}><ActivityIndicator size="small" color={colors.primary} /><Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('searchingFood')}</Text></View> : null}
+      {searchEnabled && foodSearchError ? <Text style={[styles.searchHint, { color: colors.destructive }]}>{t('foodSearchError')}</Text> : null}
+      {searchEnabled && !foodSearchLoading && !foodSearchError && foodSearchItems.length === 0 ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('noFoodResults')}</Text> : null}
+      {searchEnabled && !foodSearchLoading && !foodSearchError ? foodSearchItems.map((food) => <Pressable key={`${food.id}-${food.name}`} onPress={() => addFood(food)} style={({ pressed }) => [styles.resultRow, { borderTopColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><View style={styles.resultContent}><Text style={[styles.mealName, { color: colors.foreground }]}>{food.name}</Text><Text style={[styles.resultServing, { color: colors.mutedForeground }]}>{food.serving}</Text><View style={styles.nutritionLine}><Text style={[styles.nutritionValue, { color: colors.foreground }]}>{food.calories} {t('caloriesShort')}</Text><Text style={[styles.nutritionValue, { color: colors.blue }]}>{formatNutrition(food.protein)}g {t('protein')}</Text><Text style={[styles.nutritionValue, { color: colors.orange }]}>{formatNutrition(food.carbs)}g {t('carbs')}</Text><Text style={[styles.nutritionValue, { color: colors.plum }]}>{formatNutrition(food.fat)}g {t('fat')}</Text></View></View><Ionicons name="add-circle-outline" size={22} color={colors.primary} /></Pressable>) : null}
     </Card>
     <SectionTitle title={t('loggedFoods')} />
     <Card style={styles.mealCard}>
