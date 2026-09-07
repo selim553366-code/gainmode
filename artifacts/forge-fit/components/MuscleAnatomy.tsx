@@ -100,7 +100,7 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, a
   const shapes = side === 'front' ? frontShapes : backShapes;
   return <View style={styles.crop}>
     <Image
-      source={require('@/assets/images/muscle-anatomy-clean.png')}
+      source={require('@/assets/images/muscle-anatomy-redrawn-clean.png')}
       resizeMode="stretch"
       style={[styles.referenceImage, { left: side === 'front' ? 0 : '-100%' }]}
       accessibilityLabel={side === 'front' ? 'Front muscle anatomy' : 'Back muscle anatomy'}
