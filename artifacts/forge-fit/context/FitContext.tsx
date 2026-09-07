@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import { Language, TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
@@ -316,6 +317,21 @@ export function FitProvider({ children }: { children: ReactNode }) {
   }, [state, hydrated]);
 
   useEffect(() => {
+    if (!hydrated) return undefined;
+
+    const recordDailyUse = () => {
+      setState((current) => current.onboardingComplete ? recordStreakActivity(current) : current);
+    };
+
+    recordDailyUse();
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') recordDailyUse();
+    });
+
+    return () => subscription.remove();
+  }, [hydrated]);
+
+  useEffect(() => {
     if (isSubscribed === undefined && !testPromoUnlocked) return;
     setState((current) => {
       const nextPremium = Boolean(isSubscribed) || testPromoUnlocked;
@@ -378,7 +394,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
       const carbsGoal = Math.max(0, Math.round((calorieGoal - proteinGoal * 4 - fatGoal * 9) / 4));
       const workouts = buildWorkoutPlan(profile);
       const projection = createGoalProjection(profile, calorieGoal, workouts, targetWeight);
-      return {
+       return recordStreakActivity({
         ...current,
         profile,
         username,
@@ -393,7 +409,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
         onboardingComplete: true,
         coachIntroPending: options?.profileEdit ? current.coachIntroPending : true,
         profileEditUsedMonth: options?.profileEdit ? currentMonth : current.profileEditUsedMonth,
-      };
+       });
     }),
     markCoachIntroSeen: () => setState((current) => current.coachIntroPending ? { ...current, coachIntroPending: false } : current),
     setIntroSeen: () => setState((current) => ({ ...current, introSeen: true })),
