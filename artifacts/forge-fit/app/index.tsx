@@ -802,13 +802,90 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
    return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}><View style={styles.introVisual}><View style={[styles.auraLarge, { backgroundColor: `${colors.primary}18` }]} /><Image source={require('@/assets/images/icon.png')} style={styles.introIcon} /></View><Animated.View style={{ opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }}><Text style={[styles.eyebrow, { color: colors.primary }]}>1 / 1</Text><Text style={[styles.introTitle, { color: colors.foreground }]}>{t('onboardingTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('onboardingIntro')}</Text></Animated.View><View style={styles.introBottom}><Pressable onPress={() => { triggerHaptic(); onDone(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View></LinearGradient>;
 }
 
+type ExploreDemoKind = 'home' | 'coach' | 'nutrition' | 'workout' | 'form' | 'weekly';
+
 const accessExploreSlides = [
-  { image: require('@/assets/images/forge-fit-feature-aiCoach.jpg'), icon: 'chatbubble-ellipses-outline' as const, title: 'featuresAiCoachTitle' as const, summary: 'featuresAiCoachSummary' as const, detail: 'featuresAiCoachDetail' as const },
-  { image: require('@/assets/images/forge-fit-feature-foodPhoto.jpg'), icon: 'restaurant-outline' as const, title: 'featuresFoodPhotoTitle' as const, summary: 'featuresFoodPhotoSummary' as const, detail: 'featuresFoodPhotoDetail' as const },
-  { image: require('@/assets/images/forge-fit-feature-workoutPlan.jpg'), icon: 'barbell-outline' as const, title: 'featuresWorkoutTitle' as const, summary: 'featuresWorkoutSummary' as const, detail: 'featuresWorkoutDetail' as const },
-  { image: require('@/assets/images/forge-fit-feature-liveForm.jpg'), icon: 'body-outline' as const, title: 'featuresLiveFormTitle' as const, summary: 'featuresLiveFormSummary' as const, detail: 'featuresLiveFormDetail' as const },
-  { image: require('@/assets/images/forge-fit-feature-weeklyAi.jpg'), icon: 'analytics-outline' as const, title: 'featuresWeeklyTitle' as const, summary: 'featuresWeeklySummary' as const, detail: 'featuresWeeklyDetail' as const },
+  { kind: 'home' as const, icon: 'home-outline' as const, title: 'featuresHomeTitle' as const, summary: 'featuresHomeSummary' as const, detail: 'featuresHomeDetail' as const },
+  { kind: 'coach' as const, icon: 'chatbubble-ellipses-outline' as const, title: 'featuresAiCoachTitle' as const, summary: 'featuresAiCoachSummary' as const, detail: 'featuresAiCoachDetail' as const },
+  { kind: 'nutrition' as const, icon: 'restaurant-outline' as const, title: 'featuresFoodPhotoTitle' as const, summary: 'featuresFoodPhotoSummary' as const, detail: 'featuresFoodPhotoDetail' as const },
+  { kind: 'workout' as const, icon: 'barbell-outline' as const, title: 'featuresWorkoutTitle' as const, summary: 'featuresWorkoutSummary' as const, detail: 'featuresWorkoutDetail' as const },
+  { kind: 'form' as const, icon: 'body-outline' as const, title: 'featuresLiveFormTitle' as const, summary: 'featuresLiveFormSummary' as const, detail: 'featuresLiveFormDetail' as const },
+  { kind: 'weekly' as const, icon: 'analytics-outline' as const, title: 'featuresWeeklyTitle' as const, summary: 'featuresWeeklySummary' as const, detail: 'featuresWeeklyDetail' as const },
 ] as const;
+
+function DemoPreviewFrame({ kind, lockedLabel, t }: { kind: ExploreDemoKind; lockedLabel: string; t: (key: Parameters<typeof translate>[1]) => string }) {
+  const colors = useColors();
+  const miniIcon = (name: React.ComponentProps<typeof Ionicons>['name'], active = false) => <Ionicons name={name} size={14} color={active ? colors.primary : colors.mutedForeground} />;
+  const lockedChip = <View style={[styles.demoLockedChip, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}42` }]}><Ionicons name="badge-lock" size={11} color={colors.primary} /><Text style={[styles.demoLockedText, { color: colors.primary }]}>{lockedLabel}</Text></View>;
+  const miniHeader = (title: string, icon: React.ComponentProps<typeof Ionicons>['name'] = 'sparkles-outline') => (
+    <View style={styles.demoMiniHeader}>
+      <View style={[styles.demoMiniBrand, { backgroundColor: colors.primary }]}><ForgeFitMark size={17} /></View>
+      <Text numberOfLines={1} style={[styles.demoMiniHeaderTitle, { color: colors.foreground }]}>{title}</Text>
+      <Ionicons name={icon} size={15} color={colors.mutedForeground} />
+    </View>
+  );
+
+  if (kind === 'home') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
+    {miniHeader(t('today'), 'notifications-outline')}
+    <Text style={[styles.demoGreeting, { color: colors.foreground }]}>{t('goodMorning')}</Text>
+    <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('ready')}</Text>
+    <View style={[styles.demoMetricCard, { backgroundColor: `${colors.primary}16`, borderColor: `${colors.primary}42` }]}>
+      <View><Text style={[styles.demoMetricLabel, { color: colors.mutedForeground }]}>{t('calories')}</Text><Text style={[styles.demoMetricValue, { color: colors.foreground }]}>1,840</Text></View>
+      <View style={styles.demoRing}><Text style={[styles.demoRingValue, { color: colors.primary }]}>72%</Text></View>
+    </View>
+    <View style={[styles.demoWorkoutCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.demoWorkoutCopy}><Text style={[styles.demoMetricLabel, { color: colors.primary }]}>{t('todayWorkout')}</Text><Text style={[styles.demoWorkoutTitle, { color: colors.foreground }]}>{t('planTitle')}</Text></View>
+      <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+    </View>
+    <View style={[styles.demoBottomNav, { borderTopColor: colors.border }]}>{[miniIcon('home', true), miniIcon('barbell-outline'), miniIcon('restaurant-outline'), miniIcon('settings-outline')].map((item, index) => <View key={index} style={styles.demoNavItem}>{item}</View>)}</View>
+  </View>;
+
+  if (kind === 'coach') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
+    {miniHeader(t('coachTitle'), 'sparkles-outline')}
+    <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('coachSubtitle')}</Text>
+    <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="sparkles" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachWelcome')}</Text></View>
+    <View style={[styles.demoUserBubble, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachExample')}</Text></View>
+    {lockedChip}
+    <View style={[styles.demoDisabledComposer, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.demoComposerText, { color: colors.mutedForeground }]}>{t('askCoach')}</Text><Ionicons name="badge-lock" size={15} color={colors.mutedForeground} /></View>
+  </View>;
+
+  if (kind === 'nutrition') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
+    {miniHeader(t('nutrition'), 'restaurant-outline')}
+    <View style={[styles.demoPhotoPlaceholder, { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}55` }]}>
+      <Ionicons name="restaurant-outline" size={29} color={colors.primary} />
+      <Text style={[styles.demoPlaceholderTitle, { color: colors.foreground }]}>{t('analyzeMealPhoto')}</Text>
+      <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('mealCaptureHint')}</Text>
+    </View>
+    {lockedChip}
+    <View style={[styles.demoNutritionRow, { backgroundColor: colors.card, borderColor: colors.border }]}>{[['flame-outline', t('calories')], ['fitness-outline', t('protein')], ['analytics-outline', t('carbs')]].map(([icon, label]) => <View key={label} style={styles.demoNutritionMetric}><Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={14} color={colors.primary} /><Text style={[styles.demoMetricLabel, { color: colors.mutedForeground }]}>{label}</Text><Text style={[styles.demoMiniValue, { color: colors.foreground }]}>—</Text></View>)}</View>
+  </View>;
+
+  if (kind === 'workout') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
+    {miniHeader(t('planTitle'), 'barbell-outline')}
+    <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('thisWeek')}</Text>
+    <View style={styles.demoDayRow}>{['MON', 'WED', 'FRI'].map((day, index) => <View key={day} style={[styles.demoDayPill, { backgroundColor: index === 1 ? `${colors.primary}20` : colors.card, borderColor: index === 1 ? colors.primary : colors.border }]}><Text style={[styles.demoDayText, { color: index === 1 ? colors.primary : colors.mutedForeground }]}>{day}</Text></View>)}</View>
+    {[t('exerciseSquat'), t('exercisePushup'), t('exerciseLunge')].map((exercise, index) => <View key={exercise} style={[styles.demoExerciseRow, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.demoExerciseIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name={index === 0 ? 'barbell-outline' : 'body-outline'} size={15} color={colors.primary} /></View><Text style={[styles.demoExerciseText, { color: colors.foreground }]}>{exercise}</Text><Text style={[styles.demoSets, { color: colors.mutedForeground }]}>{index + 2} {t('sets')}</Text></View>)}
+    {lockedChip}
+  </View>;
+
+  if (kind === 'form') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
+    {miniHeader(t('featuresLiveFormTitle'), 'body-outline')}
+    <View style={[styles.demoFormStage, { backgroundColor: `${colors.blue}14`, borderColor: `${colors.blue}42` }]}>
+      <View style={[styles.demoBodyFigure, { borderColor: colors.blue }]}><View style={[styles.demoHead, { backgroundColor: colors.blue }]} /><View style={[styles.demoBodyLine, { backgroundColor: colors.blue }]} /><View style={[styles.demoArmLine, { backgroundColor: colors.blue, transform: [{ rotate: '-35deg' }] }]} /><View style={[styles.demoArmLine, { backgroundColor: colors.blue, transform: [{ rotate: '35deg' }] }]} /><View style={[styles.demoLegLine, { backgroundColor: colors.blue, transform: [{ rotate: '-25deg' }] }]} /><View style={[styles.demoLegLine, { backgroundColor: colors.blue, transform: [{ rotate: '25deg' }] }]} /></View>
+      <Text style={[styles.demoPlaceholderTitle, { color: colors.foreground }]}>{t('exerciseSquat')}</Text>
+    </View>
+    {lockedChip}
+    <View style={[styles.demoFormStats, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.demoMetricLabel, { color: colors.mutedForeground }]}>{t('completed')}</Text><Text style={[styles.demoMetricValue, { color: colors.foreground }]}>—</Text><Text style={[styles.demoMetricLabel, { color: colors.mutedForeground }]}>{t('premiumLocked')}</Text></View>
+  </View>;
+
+  return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
+    {miniHeader(t('weeklyAiTitle'), 'analytics-outline')}
+    <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('weeklyAiSubtitle')}</Text>
+    <View style={[styles.demoChartCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.demoMetricLabel, { color: colors.primary }]}>{t('weeklyAiLastSeven')}</Text><View style={styles.demoBars}>{[38, 62, 48, 78, 54, 88, 70].map((height, index) => <View key={index} style={[styles.demoBar, { height, backgroundColor: index === 6 ? colors.primary : `${colors.primary}45` }]} />)}</View></View>
+    <View style={[styles.demoInsightCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}38` }]}><Ionicons name="sparkles-outline" size={17} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('weeklyAiCardSubtitle')}</Text></View>
+    {lockedChip}
+  </View>;
+}
 
 function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: () => void; onBack: () => void }) {
   const colors = useColors();
@@ -830,10 +907,8 @@ function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: (
       <ForgeFitMark size={34} />
     </View>
     <ScrollView contentContainerStyle={[styles.exploreScrollContent, { paddingBottom: insets.bottom + 18 }]} showsVerticalScrollIndicator={false} bounces={false}>
-      <View style={[styles.exploreImageFrame, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Image source={slide.image} resizeMode="cover" style={styles.exploreImage} />
-        <View style={[styles.exploreImageBadge, { backgroundColor: colors.primary }]}><Ionicons name={slide.icon} size={17} color={colors.primaryForeground} /></View>
-      </View>
+       <View style={styles.exploreFrameLabel}><Ionicons name="badge-lock" size={12} color={colors.primary} /><Text style={[styles.exploreFrameLabelText, { color: colors.primary }]}>{t('premiumExploreDemoLabel')}</Text></View>
+       <DemoPreviewFrame kind={slide.kind} lockedLabel={t('premiumExploreLocked')} t={t} />
       <Text style={[styles.exploreTitle, { color: colors.foreground }]}>{t(slide.title)}</Text>
       <Text style={[styles.exploreSummary, { color: colors.mutedForeground }]}>{t(slide.summary)}</Text>
       <View style={[styles.exploreValueCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}42` }]}>
@@ -847,7 +922,7 @@ function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: (
     <View style={[styles.exploreFooter, { paddingBottom: insets.bottom + 12 }]}>
       <View style={styles.exploreDots}>{accessExploreSlides.map((item, index) => <View key={item.title} style={[styles.exploreDot, { backgroundColor: index === page ? colors.primary : colors.border }]} />)}</View>
       <Pressable accessibilityRole="button" accessibilityLabel={t(isLast ? 'premiumExploreFinish' : 'premiumExploreNext')} onPress={onNext} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}>
-        <Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t(isLast ? 'premiumExploreFinish' : 'premiumExploreNext')}</Text>
+         <Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t(isLast ? 'premiumExploreFinish' : 'premiumExploreSkip')}</Text>
         <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
       </Pressable>
     </View>
@@ -1218,6 +1293,54 @@ const styles = StyleSheet.create({
   exploreImageFrame: { width: '100%', aspectRatio: 1.72, borderRadius: 24, borderWidth: 1, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.16, shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
   exploreImage: { width: '100%', height: '100%' },
   exploreImageBadge: { position: 'absolute', left: 14, bottom: 14, width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  exploreFrameLabel: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 7, paddingHorizontal: 3 },
+  exploreFrameLabelText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.2 },
+  demoFrame: { width: '100%', minHeight: 318, borderRadius: 24, borderWidth: 1, padding: 14, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.13, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 3 },
+  demoMiniHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 11, borderBottomWidth: 1, borderBottomColor: 'rgba(128, 150, 180, 0.16)' },
+  demoMiniBrand: { width: 25, height: 25, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  demoMiniHeaderTitle: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 12 },
+  demoGreeting: { fontFamily: 'Inter_700Bold', fontSize: 20, marginTop: 16 },
+  demoMuted: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 15, marginTop: 4 },
+  demoMetricCard: { minHeight: 72, borderRadius: 16, borderWidth: 1, padding: 11, marginTop: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  demoMetricLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
+  demoMetricValue: { fontFamily: 'Inter_700Bold', fontSize: 21, marginTop: 3 },
+  demoRing: { width: 46, height: 46, borderRadius: 23, borderWidth: 5, borderColor: '#2C9FEA', alignItems: 'center', justifyContent: 'center' },
+  demoRingValue: { fontFamily: 'Inter_700Bold', fontSize: 9 },
+  demoWorkoutCard: { minHeight: 52, borderWidth: 1, borderRadius: 15, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 9 },
+  demoWorkoutCopy: { gap: 3 },
+  demoWorkoutTitle: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  demoBottomNav: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', borderTopWidth: 1, marginTop: 'auto', paddingTop: 11 },
+  demoNavItem: { width: 28, alignItems: 'center' },
+  demoCoachBubble: { borderWidth: 1, borderRadius: 15, padding: 10, marginTop: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 7 },
+  demoUserBubble: { alignSelf: 'flex-end', maxWidth: '82%', borderWidth: 1, borderRadius: 15, padding: 10, marginTop: 9 },
+  demoBubbleText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 15 },
+  demoLockedChip: { alignSelf: 'flex-start', minHeight: 25, borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 11 },
+  demoLockedText: { fontFamily: 'Inter_700Bold', fontSize: 9 },
+  demoDisabledComposer: { minHeight: 40, borderWidth: 1, borderRadius: 13, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 9, opacity: 0.7 },
+  demoComposerText: { fontFamily: 'Inter_500Medium', fontSize: 10 },
+  demoPhotoPlaceholder: { minHeight: 150, borderWidth: 1, borderStyle: 'dashed', borderRadius: 17, alignItems: 'center', justifyContent: 'center', padding: 16, marginTop: 15 },
+  demoPlaceholderTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, textAlign: 'center', marginTop: 8 },
+  demoNutritionRow: { minHeight: 64, borderWidth: 1, borderRadius: 15, padding: 9, flexDirection: 'row', justifyContent: 'space-around', marginTop: 10 },
+  demoNutritionMetric: { flex: 1, alignItems: 'center', gap: 3 },
+  demoMiniValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  demoDayRow: { flexDirection: 'row', gap: 7, marginTop: 12, marginBottom: 9 },
+  demoDayPill: { minWidth: 53, minHeight: 28, borderWidth: 1, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  demoDayText: { fontFamily: 'Inter_700Bold', fontSize: 9 },
+  demoExerciseRow: { minHeight: 39, borderWidth: 1, borderRadius: 12, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 6 },
+  demoExerciseIcon: { width: 25, height: 25, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  demoExerciseText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 10 },
+  demoSets: { fontFamily: 'Inter_500Medium', fontSize: 9 },
+  demoFormStage: { minHeight: 176, borderWidth: 1, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginTop: 15 },
+  demoBodyFigure: { width: 76, height: 105, position: 'relative', alignItems: 'center', justifyContent: 'center' },
+  demoHead: { width: 22, height: 22, borderRadius: 11, position: 'absolute', top: 0 },
+  demoBodyLine: { width: 7, height: 49, borderRadius: 5, position: 'absolute', top: 24 },
+  demoArmLine: { width: 7, height: 42, borderRadius: 5, position: 'absolute', top: 28 },
+  demoLegLine: { width: 7, height: 45, borderRadius: 5, position: 'absolute', top: 65 },
+  demoFormStats: { minHeight: 45, borderWidth: 1, borderRadius: 13, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 9 },
+  demoChartCard: { minHeight: 130, borderWidth: 1, borderRadius: 16, padding: 11, marginTop: 14 },
+  demoBars: { height: 91, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', gap: 7, paddingTop: 13 },
+  demoBar: { width: 16, borderRadius: 6 },
+  demoInsightCard: { minHeight: 46, borderWidth: 1, borderRadius: 14, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
   exploreTitle: { fontFamily: 'Inter_700Bold', fontSize: 28, lineHeight: 34, letterSpacing: -0.8, marginTop: 22 },
   exploreSummary: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, marginTop: 8 },
   exploreValueCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderWidth: 1, borderRadius: 18, padding: 13, marginTop: 18 },
