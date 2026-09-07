@@ -845,8 +845,7 @@ function DemoPreviewFrame({ kind, lockedLabel, t }: { kind: ExploreDemoKind; loc
     <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('coachSubtitle')}</Text>
     <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="sparkles" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachWelcome')}</Text></View>
     <View style={[styles.demoUserBubble, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachExample')}</Text></View>
-    {lockedChip}
-    <View style={[styles.demoDisabledComposer, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.demoComposerText, { color: colors.mutedForeground }]}>{t('askCoach')}</Text><Ionicons name="badge-lock" size={15} color={colors.mutedForeground} /></View>
+    <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="sparkles" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachAiCapabilities')}</Text></View>
   </View>;
 
   if (kind === 'nutrition') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
@@ -857,7 +856,7 @@ function DemoPreviewFrame({ kind, lockedLabel, t }: { kind: ExploreDemoKind; loc
       <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('mealCaptureHint')}</Text>
     </View>
     {lockedChip}
-    <View style={[styles.demoNutritionRow, { backgroundColor: colors.card, borderColor: colors.border }]}>{[['flame-outline', t('calories')], ['fitness-outline', t('protein')], ['analytics-outline', t('carbs')]].map(([icon, label]) => <View key={label} style={styles.demoNutritionMetric}><Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={14} color={colors.primary} /><Text style={[styles.demoMetricLabel, { color: colors.mutedForeground }]}>{label}</Text><Text style={[styles.demoMiniValue, { color: colors.foreground }]}>—</Text></View>)}</View>
+    <View style={[styles.demoNutritionRow, { backgroundColor: colors.card, borderColor: colors.border }]}>{[['flame-outline', t('calories')], ['barbell-outline', t('protein')], ['analytics-outline', t('carbs')]].map(([icon, label]) => <View key={label} style={styles.demoNutritionMetric}><Ionicons name={icon as React.ComponentProps<typeof Ionicons>['name']} size={14} color={colors.primary} /><Text style={[styles.demoMetricLabel, { color: colors.mutedForeground }]}>{label}</Text><Text style={[styles.demoMiniValue, { color: colors.foreground }]}>—</Text></View>)}</View>
   </View>;
 
   if (kind === 'workout') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
