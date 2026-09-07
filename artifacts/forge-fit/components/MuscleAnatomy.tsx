@@ -64,7 +64,7 @@ const backMasks: Partial<Record<MuscleGroup, number>> = {
   calves: require('@/assets/images/muscle-masks/back-calves.png'),
 };
 
-export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, activeColor, selectedColor }: MuscleAnatomyProps) {
+export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect }: MuscleAnatomyProps) {
   const hotspots = side === 'front' ? frontHotspots : backHotspots;
   const masks = side === 'front' ? frontMasks : backMasks;
   const imageLeft = side === 'front' ? 0 : '-100%';
@@ -87,8 +87,7 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, a
           styles.maskImage,
           {
             left: imageLeft,
-            tintColor: selectedMuscle === muscle ? selectedColor : activeColor,
-            opacity: selectedMuscle === muscle ? 0.78 : 0.58,
+            opacity: selectedMuscle === muscle ? 0.92 : 0.74,
           },
         ]}
       />;
