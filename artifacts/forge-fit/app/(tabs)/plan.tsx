@@ -5,6 +5,8 @@ import { Ionicons } from '@/components/AppIcon';
 import { useFit } from '@/context/FitContext';
 import { translate, TranslationKey } from '@/lib/i18n';
 import { getWeekdayKey, type MuscleGroup } from '@/lib/workoutPlan';
+import { exerciseKindFromName } from '@/lib/liveWorkout';
+import { liveTranslate, type LiveWorkoutCopyKey } from '@/lib/liveWorkoutCopy';
 import { useColors } from '@/hooks/useColors';
 import { Card, EmptyState, Header, ProgressBar, Screen, triggerHaptic } from '@/components/FitUI';
 
@@ -38,12 +40,14 @@ export default function PlanScreen() {
   const colors = useColors();
   const { language, workouts } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const liveT = (key: LiveWorkoutCopyKey) => liveTranslate(language, key);
   const params = useLocalSearchParams<{ day?: string }>();
   const requestedDay = typeof params.day === 'string' && weekDays.includes(params.day as WeekDay) ? params.day as WeekDay : null;
   const [activeDay, setActiveDay] = React.useState<WeekDay>(requestedDay ?? getWeekdayKey());
   const active = workouts.find((workout) => workout.day === activeDay);
   const label = (value: string) => translate(language, value as Parameters<typeof translate>[1]) || value;
   const completedCount = active?.exercises.filter((exercise) => Boolean(exercise.completed)).length ?? 0;
+  const liveExercise = active?.exercises.find((exercise) => exerciseKindFromName(exercise.name));
 
   React.useEffect(() => {
     if (requestedDay) setActiveDay(requestedDay);
@@ -78,6 +82,30 @@ export default function PlanScreen() {
             <Text style={[styles.startButtonText, { color: colors.primaryForeground }]}>{t('startWorkout')}</Text>
             <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
           </Pressable>
+          <Pressable
+            testID="start-live-form-analysis"
+            accessibilityRole="button"
+            accessibilityLabel={liveT('startLiveWorkout')}
+            disabled={!liveExercise}
+            onPress={() => {
+              if (!liveExercise) return;
+              triggerHaptic();
+              router.push({ pathname: '/live-workout', params: { exercise: liveExercise.name } });
+            }}
+            style={({ pressed }) => [
+              styles.liveAnalysisBar,
+              { backgroundColor: colors.card, borderColor: colors.border, opacity: !liveExercise ? 0.5 : pressed ? 0.78 : 1 },
+            ]}
+          >
+            <View style={[styles.liveAnalysisIcon, { backgroundColor: `${colors.primary}18` }]}>
+              <Ionicons name="body-outline" size={21} color={colors.primary} />
+            </View>
+            <View style={styles.liveAnalysisCopy}>
+              <Text style={[styles.liveAnalysisTitle, { color: colors.foreground }]}>{liveT('liveWorkoutTitle')}</Text>
+              <Text numberOfLines={2} style={[styles.liveAnalysisBody, { color: colors.mutedForeground }]}>{liveT('liveWorkoutBody')}</Text>
+            </View>
+            <Ionicons name="arrow-forward" size={21} color={colors.primary} />
+          </Pressable>
         </Card>
       </> : <Card style={[styles.restCard, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
         <View style={[styles.restIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="sparkles-outline" size={24} color={colors.primary} /></View>
@@ -106,6 +134,11 @@ const styles = StyleSheet.create({
   progressCaption: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 10 },
   startButton: { height: 54, borderRadius: 17, marginTop: 18, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   startButtonText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 15, textAlign: 'center' },
+  liveAnalysisBar: { minHeight: 72, borderRadius: 17, borderWidth: 1, marginTop: 10, paddingHorizontal: 11, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  liveAnalysisIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  liveAnalysisCopy: { flex: 1 },
+  liveAnalysisTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, lineHeight: 16 },
+  liveAnalysisBody: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 14, marginTop: 2 },
   focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 18 },
   focusChip: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5 },
   focusChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
