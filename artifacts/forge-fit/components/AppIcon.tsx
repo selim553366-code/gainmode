@@ -25,6 +25,7 @@ import {
   FileText,
   Flame,
   Gift,
+  Hand,
   Home,
   Image,
   Images,
@@ -89,6 +90,7 @@ export type IconName =
   | 'flame-outline'
   | 'flash-outline'
   | 'gift-outline'
+  | 'hand-pointer'
   | 'home'
   | 'home-outline'
   | 'images-outline'
@@ -164,6 +166,7 @@ const iconMap: Record<IconName, IconComponent> = {
   'flame-outline': Flame,
   'flash-outline': Zap,
   'gift-outline': Gift,
+  'hand-pointer': Hand,
   home: Home,
   'home-outline': Home,
   'images-outline': Images,

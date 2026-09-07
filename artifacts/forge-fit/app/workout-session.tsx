@@ -1,5 +1,6 @@
 import React from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@/components/AppIcon';
@@ -11,6 +12,7 @@ import { translate, type TranslationKey } from '@/lib/i18n';
 import type { MuscleGroup } from '@/lib/workoutPlan';
 
 type BodySide = 'front' | 'back';
+const MUSCLE_TAP_HINT_SEEN_KEY = 'gainmode-muscle-tap-hint-seen';
 
 const muscleLabels: Record<MuscleGroup, TranslationKey> = {
   chest: 'muscleChest',
@@ -50,7 +52,9 @@ export default function WorkoutSessionScreen() {
   const [side, setSide] = React.useState<BodySide>('front');
   const [selectedMuscle, setSelectedMuscle] = React.useState<MuscleGroup | null>(null);
   const [celebrating, setCelebrating] = React.useState(false);
+  const [showTapHint, setShowTapHint] = React.useState(false);
   const listAnimation = React.useRef(new Animated.Value(0)).current;
+  const tapHintAnimation = React.useRef(new Animated.Value(0)).current;
   const activeMuscles = React.useMemo(() => {
     if (!workout) return [];
     return Array.from(new Set(workout.exercises.map((exercise) => exercise.muscleGroup ?? 'other')));
@@ -65,6 +69,27 @@ export default function WorkoutSessionScreen() {
     if (selectedMuscle) Animated.spring(listAnimation, { toValue: 1, friction: 8, tension: 70, useNativeDriver: true }).start();
   }, [listAnimation, selectedMuscle]);
 
+  React.useEffect(() => {
+    AsyncStorage.getItem(MUSCLE_TAP_HINT_SEEN_KEY)
+      .then((value) => setShowTapHint(value !== 'true'))
+      .catch(() => setShowTapHint(true));
+  }, []);
+
+  React.useEffect(() => {
+    if (!showTapHint) {
+      tapHintAnimation.stopAnimation();
+      tapHintAnimation.setValue(0);
+      return undefined;
+    }
+    const animation = Animated.loop(Animated.sequence([
+      Animated.timing(tapHintAnimation, { toValue: 1, duration: 650, useNativeDriver: true }),
+      Animated.timing(tapHintAnimation, { toValue: 0, duration: 650, useNativeDriver: true }),
+      Animated.delay(250),
+    ]));
+    animation.start();
+    return () => animation.stop();
+  }, [showTapHint, tapHintAnimation]);
+
   if (!workout) {
     return <View style={[styles.missingPage, { backgroundColor: colors.background, paddingTop: insets.top + 20 }]}>
       <Text style={[styles.missingTitle, { color: colors.foreground }]}>{t('workoutNotFound')}</Text>
@@ -75,6 +100,10 @@ export default function WorkoutSessionScreen() {
   const selectMuscle = (muscle: MuscleGroup) => {
     triggerHaptic();
     setSelectedMuscle(muscle);
+    if (showTapHint) {
+      setShowTapHint(false);
+      AsyncStorage.setItem(MUSCLE_TAP_HINT_SEEN_KEY, 'true').catch(() => undefined);
+    }
   };
 
   const completeExercise = (exerciseId: string) => {
@@ -129,6 +158,20 @@ export default function WorkoutSessionScreen() {
             activeColor={colors.primary}
             selectedColor={colors.blue}
           />
+          {showTapHint ? <Animated.View pointerEvents="none" style={[styles.tapHint, {
+            backgroundColor: colors.card,
+            borderColor: colors.primary,
+            opacity: tapHintAnimation.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1] }),
+            transform: [
+              { translateY: tapHintAnimation.interpolate({ inputRange: [0, 1], outputRange: [-8, 8] }) },
+              { scale: tapHintAnimation.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.06] }) },
+            ],
+          }]}>
+            <View style={[styles.tapHintIcon, { backgroundColor: colors.primary }]}>
+              <Ionicons name="hand-pointer" size={23} color={colors.primaryForeground} />
+            </View>
+            <Text style={[styles.tapHintText, { color: colors.foreground }]}>{t('tapMuscleHint')}</Text>
+          </Animated.View> : null}
         </View>
         <View style={styles.legend}>
           <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
@@ -205,6 +248,9 @@ const styles = StyleSheet.create({
   sideButton: { minWidth: 48, height: 31, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   sideText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
   anatomyStage: { height: 440, borderRadius: 22, paddingHorizontal: 28, paddingVertical: 8, overflow: 'hidden' },
+  tapHint: { position: 'absolute', right: 10, top: 118, maxWidth: 126, borderRadius: 16, borderWidth: 1, padding: 8, alignItems: 'center', shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
+  tapHintIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  tapHintText: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 14, textAlign: 'center', marginTop: 6 },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 7, marginVertical: 12 },
   legendDot: { width: 9, height: 9, borderRadius: 5 },
   legendText: { fontFamily: 'Inter_500Medium', fontSize: 11 },
