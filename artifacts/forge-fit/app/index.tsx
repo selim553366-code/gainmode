@@ -452,6 +452,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       if (taken.includes(clean) && clean !== previousUsername) return setError(t('usernameTaken'));
       if (!editMode && !onboardingMode) {
         setModeChoiceVisible(true);
+        setStep(1);
         return;
       }
     }
@@ -552,7 +553,9 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   };
 
      if (!started) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} /></View>;
-    if (modeChoiceVisible) return <OnboardingModeChoice onSelect={chooseMode} onBack={() => { setModeChoiceVisible(false); setOnboardingMode(null); setStep(0); }} />;
+    if (modeChoiceVisible || (!editMode && !onboardingMode && step === 1)) {
+      return <OnboardingModeChoice onSelect={chooseMode} onBack={() => { setModeChoiceVisible(false); setOnboardingMode(null); setStep(0); }} />;
+    }
     if (buildingPlan) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><PlanBuildingScreen onComplete={finish} /></View>;
     if (step === total && equipment === 'gym' && !overloadSeen) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><ProgressiveOverloadScreen onContinue={() => setOverloadSeen(true)} /></View>;
    if (step === total) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><CompletionScreen onContinue={() => setBuildingPlan(true)} /></View>;
