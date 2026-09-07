@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Alert, Animated, Dimensions, Easing, FlatList, Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Dimensions, Easing, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@/components/AppIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -9,16 +8,13 @@ import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { Card, Header, Pill } from '@/components/FitUI';
-import { DAILY_COACH_MESSAGE_LIMIT, DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
+import { DAILY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
-import { runPhotoCoachRequest } from '@/lib/photoCoach';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 import { apiUrl } from '@/lib/api';
 
-type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; imageUri?: string; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
+type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
 type CoachApiResponse = { content?: string; actions?: unknown[] };
-
-type SelectedPhoto = { uri: string; base64: string };
 
 function TypingIndicator({ label, colors, lightBackground = false }: { label: string; colors: ReturnType<typeof useColors>; lightBackground?: boolean }) {
   const dots = React.useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
@@ -41,11 +37,10 @@ function TypingIndicator({ label, colors, lightBackground = false }: { label: st
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, photoAnalysesUsed, coachMessagesUsed, incrementPhotoUsage, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateWorkout, updateProfile, updateNutritionGoals } = useFit();
+  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, coachMessagesUsed, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateWorkout, updateProfile, updateNutritionGoals } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { weeklyAnalysis, analysisId } = useLocalSearchParams<{ weeklyAnalysis?: string; analysisId?: string }>();
   const [text, setText] = useState('');
-  const [selectedPhoto, setSelectedPhoto] = useState<SelectedPhoto | null>(null);
   const [messages, setMessages] = useState<Message[]>([{ id: 'welcome', text: t('coachWelcome'), from: 'coach' }]);
   const [loading, setLoading] = useState(false);
   const [chatOriginY, setChatOriginY] = React.useState(0);
@@ -87,52 +82,21 @@ export default function CoachScreen() {
     animation.start();
     return () => animation.stop();
   }, [coachIntroPending, coachReveal, markCoachIntroSeen]));
-  const requestCoach = async (message: string, displayMessage: Message, photo?: SelectedPhoto) => {
-    const hasPhoto = Boolean(photo);
-    const prompt = message.trim() || t('photoCoachPrompt');
-    if ((!message.trim() && !photo) || loading) return;
-    if (!hasPhoto && coachMessagesUsed >= DAILY_COACH_MESSAGE_LIMIT) {
+  const requestCoach = async (message: string, displayMessage: Message) => {
+    const prompt = message.trim();
+    if (!prompt || loading) return;
+    if (coachMessagesUsed >= DAILY_COACH_MESSAGE_LIMIT) {
       setMessages((current) => [...current, { id: `${Date.now()}-limit`, text: t('coachLimitReached'), from: 'coach' }]);
       return;
     }
     const weeklySummary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
     const isMuscleGoal = profile?.goal === 'muscle';
     const context = JSON.stringify({ username, profile, weight, weightLogs, calorieGoal, macroGoals: { protein: proteinGoal, carbs: carbsGoal, fat: fatGoal }, meals, workouts: workouts.map((item) => ({ id: item.id, day: item.day, name: item.name, completed: item.completed, duration: item.duration, exercises: item.exercises.map((exercise) => ({ id: exercise.id, name: translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name, sets: exercise.sets, reps: exercise.reps, completed: exercise.completed })) })), weeklySummary });
-    if (hasPhoto) {
-      await runPhotoCoachRequest({
-        photoAnalysesUsed,
-        limit: DAILY_PHOTO_ANALYSIS_LIMIT,
-        onStart: () => {
-          setMessages((current) => [...current, displayMessage]);
-          setLoading(true);
-          setCoachThinking(true);
-        },
-        request: async () => {
-          const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, imageData: photo?.base64 }) });
-          if (!response.ok) throw new Error('coach unavailable');
-           return await response.json() as CoachApiResponse;
-        },
-        onSuccess: (result) => {
-          incrementPhotoUsage();
-           const actions = validateCoachActions(result.actions, workouts);
-           setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach', ...(actions.length > 0 ? { actions, actionStatus: 'pending' as const } : {}) }]);
-        },
-        onError: () => {
-          setMessages((current) => [...current, { id: `${Date.now()}-error`, text: t('photoCoachError'), from: 'coach' }]);
-        },
-        onLimit: () => {
-          setMessages((current) => [...current, { id: `${Date.now()}-photo-limit`, text: t('photoLimitReached'), from: 'coach' }]);
-        },
-      });
-      setLoading(false);
-      setCoachThinking(false);
-      return;
-    }
     setMessages((current) => [...current, displayMessage]);
     setLoading(true);
     setCoachThinking(true);
     try {
-      const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, imageData: photo?.base64 }) });
+      const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context }) });
       if (!response.ok) throw new Error('coach unavailable');
        const result = await response.json() as CoachApiResponse;
       incrementCoachUsage();
@@ -145,47 +109,15 @@ export default function CoachScreen() {
       setCoachThinking(false);
     }
   };
-  const choosePhoto = async () => {
-    if (loading) return;
-    if (photoAnalysesUsed >= DAILY_PHOTO_ANALYSIS_LIMIT) {
-      setMessages((current) => [...current, { id: `${Date.now()}-photo-limit`, text: t('photoLimitReached'), from: 'coach' }]);
-      return;
-    }
-    if (Platform.OS !== 'web') {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert(t('attachPhoto'), t('photoPermission'));
-        return;
-      }
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      quality: 0.7,
-      base64: true,
-      allowsEditing: false,
-    });
-    if (result.canceled) return;
-    const asset = result.assets[0];
-    if (!asset?.base64) {
-      Alert.alert(t('attachPhoto'), t('photoUnavailable'));
-      return;
-    }
-    setSelectedPhoto({ uri: asset.uri, base64: asset.base64 });
-  };
   const send = () => {
     const trimmed = text.trim();
-    const photo = selectedPhoto;
-    if ((!trimmed && !photo) || loading) return;
-    if (photo && photoAnalysesUsed >= DAILY_PHOTO_ANALYSIS_LIMIT) {
-      setMessages((current) => [...current, { id: `${Date.now()}-photo-limit`, text: t('photoLimitReached'), from: 'coach' }]);
-      return;
-    }
-    if (!photo && coachMessagesUsed >= DAILY_COACH_MESSAGE_LIMIT) {
+    if (!trimmed || loading) return;
+    if (coachMessagesUsed >= DAILY_COACH_MESSAGE_LIMIT) {
       setMessages((current) => [...current, { id: `${Date.now()}-limit`, text: t('coachLimitReached'), from: 'coach' }]);
       return;
     }
     setText('');
-    setSelectedPhoto(null);
-    void requestCoach(trimmed, { id: `${Date.now()}`, text: trimmed, from: 'user', imageUri: photo?.uri }, photo ?? undefined);
+    void requestCoach(trimmed, { id: `${Date.now()}`, text: trimmed, from: 'user' });
   };
   const actionLabel = (action: CoachAction) => {
     if (action.type === 'add_exercise') return `${t('coachChangeAdd')}: ${action.name}`;
@@ -218,7 +150,7 @@ export default function CoachScreen() {
     const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
      const weeklyPrompt = `Create a concise written weekly fitness analysis from the user's real data. Do not merely repeat metric values: interpret what they mean, assess progress, identify one strength and one weakness or uncertainty, and give 1-2 actionable recommendations. If the data is insufficient or no change is needed, say that clearly and explain what to monitor next. Never invent missing data. This is a weekly review, not medical advice. If the user's goal is muscle building, focus on training volume, consistency, and strength progress; do not mention weight change or weight logs. Reply entirely in the user's selected language. Weekly summary: ${JSON.stringify(summary)}`;
     const timeout = setTimeout(() => {
-      void requestCoach(weeklyPrompt, { id: `weekly-${analysisId}`, text: t('weeklyAnalysisCard'), from: 'user', variant: 'weeklyAnalysis' });
+     void requestCoach(weeklyPrompt, { id: `weekly-${analysisId}`, text: t('weeklyAnalysisCard'), from: 'user', variant: 'weeklyAnalysis' });
     }, 760);
     return () => {
       clearTimeout(timeout);
@@ -259,9 +191,9 @@ export default function CoachScreen() {
           onLayout={item.from === 'coach' && item.id === 'welcome' ? ({ nativeEvent }) => setCoachMessageOffsetY(nativeEvent.layout.y) : undefined}
           style={[styles.messageRow, item.from === 'user' ? styles.userMessageRow : styles.coachMessageRow]}
          >
-          {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.84, 0.96, 1], outputRange: [0, 0, 0.42, 1] }) : 1 }]} /> : null}
+           {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.84, 0.96, 1], outputRange: [0, 0, 0.42, 1] }) : 1 }]} /> : null}
            <View style={styles.messageContent}>
-             {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: `${colors.primaryForeground}F2`, borderColor: `${colors.primaryForeground}45` }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: `${colors.foreground}8C` }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primaryForeground }] : [styles.coachBubble, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]]}>{item.imageUri ? <Image source={{ uri: item.imageUri }} style={styles.messageImage} /> : null}{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.foreground : colors.primaryForeground }]}>{item.text}</Text> : null}</View>}
+              {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: `${colors.primaryForeground}F2`, borderColor: `${colors.primaryForeground}45` }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: `${colors.foreground}8C` }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primaryForeground }] : [styles.coachBubble, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.foreground : colors.primaryForeground }]}>{item.text}</Text> : null}</View>}
               {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: `${colors.foreground}D9`, borderColor: `${colors.primaryForeground}25` }]}><Text style={[styles.actionTitle, { color: colors.primaryForeground }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: `${colors.primaryForeground}D9` }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: `${colors.primaryForeground}45`, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
            </View>
         </View>}
@@ -270,14 +202,9 @@ export default function CoachScreen() {
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
       />
-      {selectedPhoto ? <View style={[styles.photoPreview, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}30` }]}>
-        <Image source={{ uri: selectedPhoto.uri }} style={styles.photoPreviewImage} />
-        <View style={styles.photoPreviewCopy}><Text style={[styles.photoPreviewTitle, { color: colors.primaryForeground }]}>{t('photoReady')}</Text><Text style={[styles.photoPreviewHint, { color: `${colors.primaryForeground}A8` }]}>{t('photoCaptionPlaceholder')}</Text></View>
-        <Pressable testID="remove-coach-photo" onPress={() => setSelectedPhoto(null)} accessibilityRole="button" accessibilityLabel={t('removePhoto')} hitSlop={8}><Ionicons name="close-circle" size={22} color={colors.primaryForeground} /></Pressable>
-      </View> : null}
        <View style={[styles.inputRow, { paddingBottom: insets.bottom + 8, backgroundColor: 'transparent' }]}>
-        <Pressable testID="attach-coach-photo" onPress={() => void choosePhoto()} accessibilityRole="button" accessibilityLabel={t('attachPhoto')} style={({ pressed }) => [styles.attach, { backgroundColor: colors.primaryForeground, opacity: pressed || loading ? 0.68 : 1 }]}><Ionicons name="images-outline" size={19} color={colors.foreground} /></Pressable>
-        <Animated.View style={[styles.auraInput, { borderColor: colors.primaryForeground, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]}><TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : selectedPhoto ? t('photoCaptionPlaceholder') : t('askCoach')} placeholderTextColor={`${colors.primaryForeground}8C`} style={[styles.input, { backgroundColor: `${colors.foreground}C7`, color: colors.primaryForeground, borderColor: `${colors.primaryForeground}20` }]} /></Animated.View>
+         <Animated.View style={[styles.auraInput, { borderColor: colors.primaryForeground, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]}><TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={`${colors.primaryForeground}8C`} style={[styles.input, { backgroundColor: `${colors.foreground}C7`, color: colors.primaryForeground, borderColor: `${colors.primaryForeground}20` }]} /></Animated.View>
+         <Animated.View style={[styles.auraInput, { borderColor: colors.primaryForeground, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]}><TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={`${colors.primaryForeground}8C`} style={[styles.input, { backgroundColor: `${colors.foreground}C7`, color: colors.primaryForeground, borderColor: `${colors.primaryForeground}20` }]} /></Animated.View>
          <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.primaryForeground, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.foreground} /></Pressable>
       </View>
     </KeyboardAvoidingView>

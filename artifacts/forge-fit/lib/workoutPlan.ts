@@ -188,7 +188,6 @@ export function sanitizeWorkoutSplits(workouts: Workout[]) {
       .filter((muscleGroup): muscleGroup is MuscleGroup => Boolean(muscleGroup))));
     const isPushByContent = originalFocusAreas.includes('chest')
       && originalFocusAreas.includes('shoulders')
-      && originalFocusAreas.includes('triceps')
       && !originalFocusAreas.includes('back')
       && !originalFocusAreas.some((muscleGroup) => lowerBodyGroups.has(muscleGroup));
     const removeBiceps = workout.name === 'workoutPushDay' || isPushByContent;

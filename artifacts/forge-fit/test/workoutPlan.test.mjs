@@ -109,6 +109,24 @@ test('removes biceps from a push split even when its saved name is stale', () =>
   assert.ok(repaired.exercises.every((exercise) => exercise.muscleGroup !== 'biceps'));
 });
 
+test('removes biceps from a legacy push split without triceps metadata', () => {
+  const pushDay = buildWorkoutPlan(profile({ trainingDays: 3 }))[0];
+  const polluted = {
+    ...pushDay,
+    name: 'workoutUpperDay',
+    focusAreas: ['chest', 'shoulders', 'biceps'],
+    exercises: [
+      ...pushDay.exercises.filter((exercise) => exercise.muscleGroup !== 'triceps'),
+      { id: 'legacy-curl-without-triceps', name: 'exerciseCurl', muscleGroup: 'biceps', sets: 3, reps: 10, completed: false },
+    ],
+  };
+  const repaired = sanitizeWorkoutSplits([polluted])[0];
+
+  assert.equal(repaired.name, 'workoutPushDay');
+  assert.ok(!repaired.focusAreas?.includes('biceps'));
+  assert.ok(repaired.exercises.every((exercise) => exercise.muscleGroup !== 'biceps'));
+});
+
 test('selects the workout assigned to the local calendar day', () => {
   const workouts = buildWorkoutPlan(profile({ trainingDays: 2, preferredDays: ['TUE', 'THU'] }));
   const thursday = new Date(2026, 8, 3, 8, 30);
