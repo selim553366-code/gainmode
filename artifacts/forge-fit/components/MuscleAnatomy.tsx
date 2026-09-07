@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, Pressable, StyleSheet, View } from 'react-native';
+import Svg, { G, Path } from 'react-native-svg';
 import type { MuscleGroup } from '@/lib/workoutPlan';
 
 type BodySide = 'front' | 'back';
@@ -47,6 +48,56 @@ const backHotspots: Hotspot[] = [
   { muscle: 'calves', left: '50%', top: '76%', width: '14%', height: '18%', radius: 16 },
 ];
 
+function MuscleHighlight({ muscle, side, color, selected }: { muscle: MuscleGroup; side: BodySide; color: string; selected: boolean }) {
+  const opacity = selected ? 0.82 : 0.52;
+  const strokeWidth = selected ? 0.7 : 0.45;
+  if (side === 'front') {
+    if (muscle === 'shoulders') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
+      <Path d="M25 17C27 13 34 12 40 15C43 17 43 22 40 25C36 27 29 25 26 22C25 20 24 18 25 17Z" />
+      <Path d="M75 17C73 13 66 12 60 15C57 17 57 22 60 25C64 27 71 25 74 22C75 20 76 18 75 17Z" />
+    </G>;
+    if (muscle === 'chest') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
+      <Path d="M38 23C41 20 46 20 50 23V32C46 34 41 33 38 30C37 28 37 25 38 23Z" />
+      <Path d="M62 23C59 20 54 20 50 23V32C54 34 59 33 62 30C63 28 63 25 62 23Z" />
+    </G>;
+    if (muscle === 'biceps') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
+      <Path d="M20 26C23 24 27 26 28 30L26 39C24 43 20 42 18 38L18 31C18 29 19 27 20 26Z" />
+      <Path d="M80 26C77 24 73 26 72 30L74 39C76 43 80 42 82 38L82 31C82 29 81 27 80 26Z" />
+    </G>;
+    if (muscle === 'core') return <Path d="M42 35C46 33 54 33 58 35L57 51C53 54 47 54 43 51Z" fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth} />;
+    if (muscle === 'quadriceps') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
+      <Path d="M35 52C38 50 43 51 46 54L44 73C42 78 37 78 35 73Z" />
+      <Path d="M65 52C62 50 57 51 54 54L56 73C58 78 63 78 65 73Z" />
+    </G>;
+    if (muscle === 'calves') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
+      <Path d="M37 76C40 74 43 76 44 80L43 92C41 96 37 95 36 91Z" />
+      <Path d="M63 76C60 74 57 76 56 80L57 92C59 96 63 95 64 91Z" />
+    </G>;
+  }
+  if (muscle === 'shoulders') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
+    <Path d="M25 17C29 13 37 14 41 18C42 22 39 26 35 27C30 25 27 22 25 17Z" />
+    <Path d="M75 17C71 13 63 14 59 18C58 22 61 26 65 27C70 25 73 22 75 17Z" />
+  </G>;
+  if (muscle === 'back') return <Path d="M39 22C44 19 56 19 61 22L65 39C60 46 54 48 50 47C46 48 40 46 35 39Z" fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth} />;
+  if (muscle === 'triceps') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
+    <Path d="M19 26C22 24 27 27 28 31L26 40C23 43 20 41 18 37L18 31C18 29 18 27 19 26Z" />
+    <Path d="M81 26C78 24 73 27 72 31L74 40C77 43 80 41 82 37L82 31C82 29 82 27 81 26Z" />
+  </G>;
+  if (muscle === 'glutes') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
+    <Path d="M35 45C40 43 47 46 50 50C48 57 41 60 35 56Z" />
+    <Path d="M65 45C60 43 53 46 50 50C52 57 59 60 65 56Z" />
+  </G>;
+  if (muscle === 'hamstrings') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
+    <Path d="M35 58C39 56 44 58 46 61L44 76C41 80 37 78 35 74Z" />
+    <Path d="M65 58C61 56 56 58 54 61L56 76C59 80 63 78 65 74Z" />
+  </G>;
+  if (muscle === 'calves') return <G fill={color} opacity={opacity} stroke={color} strokeWidth={strokeWidth}>
+    <Path d="M37 76C40 74 43 76 44 80L43 92C41 96 37 95 36 91Z" />
+    <Path d="M63 76C60 74 57 76 56 80L57 92C59 96 63 95 64 91Z" />
+  </G>;
+  return null;
+}
+
 export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, activeColor }: MuscleAnatomyProps) {
   const hotspots = side === 'front' ? frontHotspots : backHotspots;
   const imageLeft = side === 'front' ? 0 : '-100%';
@@ -57,6 +108,9 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, a
       style={[styles.referenceImage, { left: imageLeft }]}
       accessibilityLabel={side === 'front' ? 'Front muscle anatomy' : 'Back muscle anatomy'}
     />
+    <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 100 100" style={styles.highlightLayer}>
+      {activeMuscles.map((muscle) => <MuscleHighlight key={`${side}-${muscle}-highlight`} muscle={muscle} side={side} color={activeColor} selected={selectedMuscle === muscle} />)}
+    </Svg>
     {hotspots.map((hotspot, index) => {
       const isActive = activeMuscles.includes(hotspot.muscle);
       const isSelected = selectedMuscle === hotspot.muscle;
@@ -73,9 +127,8 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, a
             width: hotspot.width,
             height: hotspot.height,
             borderRadius: hotspot.radius,
-            backgroundColor: isActive ? `${activeColor}${isSelected ? 'B8' : '72'}` : 'transparent',
-            borderColor: activeColor,
-            borderWidth: isActive ? 1 : 0,
+            backgroundColor: 'transparent',
+            borderWidth: 0,
             zIndex: 2,
           },
         ]}
@@ -87,5 +140,6 @@ export function MuscleAnatomy({ side, activeMuscles, selectedMuscle, onSelect, a
 const styles = StyleSheet.create({
   crop: { width: '100%', height: '100%', position: 'relative', overflow: 'hidden' },
   referenceImage: { position: 'absolute', top: 0, width: '200%', height: '100%' },
+  highlightLayer: { position: 'absolute', top: 0, left: 0, zIndex: 1 },
   hotspot: { position: 'absolute', zIndex: 2 },
 });
