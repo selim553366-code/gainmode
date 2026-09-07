@@ -188,14 +188,14 @@ export default function EntryScreen() {
   const [redirectFailed, setRedirectFailed] = React.useState(false);
   const [premiumCelebrationVisible, setPremiumCelebrationVisible] = React.useState(false);
   React.useEffect(() => {
-      if (!editMode && (entryRoute === 'tabs' || entryRoute === 'coach')) {
+      if (!editMode && !premiumCelebrationVisible && (entryRoute === 'tabs' || entryRoute === 'coach')) {
        setRedirectFailed(false);
        const timeout = setTimeout(() => setRedirectFailed(true), 900);
         router.replace(entryRoute === 'coach' ? '/(tabs)/coach' : '/(tabs)');
        return () => clearTimeout(timeout);
      }
      setRedirectFailed(false);
-   }, [editMode, entryRoute]);
+    }, [editMode, entryRoute, premiumCelebrationVisible]);
   if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
   if (entryRoute === 'onboarding') return <OnboardingQuestions />;
   if (entryRoute === 'intro') return <IntroScreen onDone={setIntroSeen} />;
@@ -839,7 +839,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
     }
     setPromoError(null);
     enableTestPremium();
-     onUnlock();
+    onPurchaseSuccess();
   };
    if (showExplore) {
      return <AccessExploreScreen
