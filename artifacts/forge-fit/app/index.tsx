@@ -782,6 +782,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
   const [promoOpen, setPromoOpen] = React.useState(false);
   const [promoCode, setPromoCode] = React.useState('');
   const [promoError, setPromoError] = React.useState<string | null>(null);
+  const [promoCelebrationVisible, setPromoCelebrationVisible] = React.useState(false);
    const [explorePage, setExplorePage] = React.useState(0);
    const [showExplore, setShowExplore] = React.useState(false);
    const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
@@ -839,8 +840,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
       return;
     }
     setPromoError(null);
-    onPurchaseSuccess();
-    enableTestPremium();
+    setPromoCelebrationVisible(true);
   };
    if (showExplore) {
      return <AccessExploreScreen
@@ -925,6 +925,14 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
     </ScrollView>
    </LinearGradient>
+   <PremiumSuccessCelebration
+     visible={promoCelebrationVisible}
+     onDone={() => {
+       setPromoCelebrationVisible(false);
+       enableTestPremium();
+       onUnlock();
+     }}
+   />
    </>;
 }
 
