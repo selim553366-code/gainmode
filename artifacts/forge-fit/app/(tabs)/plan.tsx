@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
 import { useFit } from '@/context/FitContext';
@@ -8,8 +8,6 @@ import { getWeekdayKey, type MuscleGroup } from '@/lib/workoutPlan';
 import { liveTranslate, type LiveWorkoutCopyKey } from '@/lib/liveWorkoutCopy';
 import { useColors } from '@/hooks/useColors';
 import { Card, EmptyState, Header, ProgressBar, Screen, triggerHaptic } from '@/components/FitUI';
-
-const liveFormAnalysisImage = require('../../assets/images/live-form-analysis-card.jpeg');
 
 const muscleGroupLabels: Record<MuscleGroup, TranslationKey> = {
   chest: 'muscleChest',
@@ -36,6 +34,38 @@ const dayLabels: Record<WeekDay, TranslationKey> = {
   SAT: 'daySat',
   SUN: 'daySun',
 };
+
+function LiveFormAnalysisCard({ title, body, choices, onSelect }: {
+  title: string;
+  body: string;
+  choices: ReadonlyArray<{ kind: string; label: string }>;
+  onSelect: (kind: string) => void;
+}) {
+  return <View testID="live-form-analysis-bar" style={styles.liveAnalysisCard}>
+    <View style={styles.liveAnalysisHeader}>
+      <View style={styles.liveAnalysisIcon}>
+        <Ionicons name="scan-outline" size={28} color="#071C34" />
+      </View>
+      <View style={styles.liveAnalysisCopy}>
+        <Text style={styles.liveAnalysisTitle}>{title}</Text>
+        <Text style={styles.liveAnalysisBody}>{body}</Text>
+      </View>
+    </View>
+    <View style={styles.liveChoiceRow}>
+      {choices.map((choice) => <Pressable
+        key={choice.kind}
+        testID={`start-live-${choice.kind}`}
+        accessibilityRole="button"
+        accessibilityLabel={choice.label}
+        onPress={() => onSelect(choice.kind)}
+        style={({ pressed }) => [styles.liveChoice, { opacity: pressed ? 0.72 : 1 }]}
+      >
+        <Ionicons name="arrow-forward" size={22} color="#62C8FF" />
+        <Text style={styles.liveChoiceText}>{choice.label}</Text>
+      </Pressable>)}
+    </View>
+  </View>;
+}
 
 export default function PlanScreen() {
   const colors = useColors();
@@ -87,26 +117,15 @@ export default function PlanScreen() {
             <Text style={[styles.startButtonText, { color: colors.primaryForeground }]}>{t('startWorkout')}</Text>
             <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
           </Pressable>
-          <View testID="live-form-analysis-bar" style={[styles.liveAnalysisCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Image source={liveFormAnalysisImage} resizeMode="cover" style={styles.liveAnalysisImage} />
-            <View style={styles.liveChoiceOverlay}>
-            {liveChoices.map((choice) => <Pressable
-              key={choice.kind}
-              testID={`start-live-${choice.kind}`}
-              accessibilityRole="button"
-              accessibilityLabel={choice.label}
-              onPress={() => {
-                triggerHaptic();
-                router.push({ pathname: '/live-workout', params: { exercise: choice.kind } });
-              }}
-              style={({ pressed }) => [
-                styles.liveChoice,
-                { opacity: pressed ? 0.76 : 1 },
-              ]}
-            />
-            )}
-            </View>
-          </View>
+          <LiveFormAnalysisCard
+            title={liveT('liveWorkoutTitle')}
+            body={liveT('liveWorkoutBody')}
+            choices={liveChoices}
+            onSelect={(kind) => {
+              triggerHaptic();
+              router.push({ pathname: '/live-workout', params: { exercise: kind } });
+            }}
+          />
         </Card>
       </> : <Card style={[styles.restCard, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
         <View style={[styles.restIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="sparkles-outline" size={24} color={colors.primary} /></View>
@@ -135,10 +154,15 @@ const styles = StyleSheet.create({
   progressCaption: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 10 },
   startButton: { height: 54, borderRadius: 17, marginTop: 18, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   startButtonText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 15, textAlign: 'center' },
-  liveAnalysisCard: { width: '100%', aspectRatio: 1080 / 444, borderRadius: 17, borderWidth: 1, marginTop: 10, overflow: 'hidden', position: 'relative' },
-  liveAnalysisImage: { ...StyleSheet.absoluteFillObject, width: undefined, height: undefined },
-  liveChoiceOverlay: { position: 'absolute', left: '5%', right: '5%', bottom: '10%', height: '28%', flexDirection: 'row', gap: '2%' },
-  liveChoice: { flex: 1, borderRadius: 15, backgroundColor: 'transparent' },
+  liveAnalysisCard: { width: '100%', borderRadius: 22, borderWidth: 1, marginTop: 10, padding: 17, overflow: 'hidden', backgroundColor: '#173650', borderColor: '#3D7594' },
+  liveAnalysisHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 15 },
+  liveAnalysisIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: '#61C8FF', alignItems: 'center', justifyContent: 'center' },
+  liveAnalysisCopy: { flex: 1, paddingTop: 1 },
+  liveAnalysisTitle: { color: '#FFFFFF', fontFamily: 'Inter_700Bold', fontSize: 20, lineHeight: 25 },
+  liveAnalysisBody: { color: '#A7C5DC', fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 18, marginTop: 5 },
+  liveChoiceRow: { flexDirection: 'row', gap: 9, marginTop: 18 },
+  liveChoice: { flex: 1, minHeight: 54, borderRadius: 17, backgroundColor: '#091C34', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 5 },
+  liveChoiceText: { color: '#F8FBFF', fontFamily: 'Inter_700Bold', fontSize: 13 },
   focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 18 },
   focusChip: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5 },
   focusChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
