@@ -129,7 +129,7 @@ export function Pill({ label, active, onPress, lightBackground = false }: { labe
   return <Pressable onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.pill, { backgroundColor: lightBackground ? (active ? `${colors.primary}D9` : `${colors.foreground}B8`) : (active ? colors.primary : colors.secondary), borderWidth: lightBackground ? 1 : 0, borderColor: lightBackground ? `${colors.primaryForeground}20` : 'transparent', opacity: pressed ? 0.72 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}><Text style={[styles.pillText, { color: lightBackground || active ? colors.primaryForeground : colors.mutedForeground }]}>{label}</Text></Pressable>;
 }
 
-export function CelebrationBurst({ visible, onDone, title, subtitle }: { visible: boolean; onDone?: () => void; title?: string; subtitle?: string }) {
+export function CelebrationBurst({ visible, onDone, title, subtitle, duration = 1650 }: { visible: boolean; onDone?: () => void; title?: string; subtitle?: string; duration?: number }) {
   const colors = useColors();
   const progress = React.useRef(new Animated.Value(0)).current;
   const pieces = React.useMemo(() => Array.from({ length: 28 }, (_, index) => ({
@@ -143,10 +143,10 @@ export function CelebrationBurst({ visible, onDone, title, subtitle }: { visible
   React.useEffect(() => {
     if (!visible) return undefined;
     progress.setValue(0);
-    const animation = Animated.timing(progress, { toValue: 1, duration: 1650, useNativeDriver: true });
+    const animation = Animated.timing(progress, { toValue: 1, duration, useNativeDriver: true });
     animation.start(({ finished }) => { if (finished) onDone?.(); });
     return () => animation.stop();
-  }, [onDone, progress, visible]);
+  }, [duration, onDone, progress, visible]);
   if (!visible) return null;
   return <View pointerEvents="none" style={styles.celebrationLayer}>
     {pieces.map((piece, index) => <Animated.View key={index} style={[styles.confettiPiece, { backgroundColor: piece.color, transform: [{ translateX: progress.interpolate({ inputRange: [0, 0.45, 1], outputRange: [piece.side * (185 + (index % 3) * 24), piece.side * 12, piece.side * piece.endX] }) }, { translateY: progress.interpolate({ inputRange: [0, 0.45, 1], outputRange: [piece.startY, piece.startY * 0.18, piece.startY + piece.drift] }) }, { rotate: piece.rotate }, { scale: progress.interpolate({ inputRange: [0, 0.18, 0.7, 1], outputRange: [0.15, 1.15, 0.9, 0.55] }) }], opacity: progress.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 1, 0] }) }]} />)}
@@ -193,7 +193,7 @@ export function PremiumSuccessCelebration({ visible, onDone, modal = true }: { v
   const content = <View style={styles.premiumSuccessRoot}>
     <LinearGradient colors={[`${colors.primary}D9`, `${colors.success}35`, colors.background]} style={styles.premiumSuccessGradient}>
       <Animated.View style={[styles.premiumSuccessGlow, { backgroundColor: `${colors.success}55`, opacity: glowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.5] }), transform: [{ scale: glowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1.16] }) }] }]} />
-      <Animated.View style={[styles.premiumSuccessCard, { backgroundColor: colors.card, borderColor: `${colors.success}65`, opacity: cardProgress, transform: [{ translateY: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
+      <Animated.View style={[styles.premiumSuccessCard, { backgroundColor: colors.card, borderColor: `${colors.success}65`, opacity: 1, transform: [{ translateY: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
         <View style={[styles.premiumSuccessBadge, { backgroundColor: colors.success }]}>
           <Ionicons name="checkmark" size={42} color={colors.primaryForeground} />
         </View>
@@ -202,7 +202,7 @@ export function PremiumSuccessCelebration({ visible, onDone, modal = true }: { v
         <Text style={[styles.premiumSuccessBody, { color: colors.mutedForeground }]}>{t('premiumPurchaseSuccessBody')}</Text>
         <View style={[styles.premiumSuccessLine, { backgroundColor: `${colors.success}35` }]} />
       </Animated.View>
-      <CelebrationBurst visible={visible} onDone={handleDone} />
+      <CelebrationBurst visible={visible} duration={2800} onDone={handleDone} />
     </LinearGradient>
   </View>;
 
