@@ -23,6 +23,7 @@ export const badgeUi = {
   eyebrow: text('KAZANIM KOLEKSİYONU', 'ACHIEVEMENT COLLECTION', 'ERFOLGSSAMMLUNG', 'COLLECTION DE SUCCÈS', 'COLECCIÓN DE LOGROS'),
   subtitle: text('İlerle, rozetleri aç ve koleksiyonunu büyüt.', 'Make progress, unlock badges, and grow your collection.', 'Mach Fortschritte, schalte Abzeichen frei und erweitere deine Sammlung.', 'Progresse, débloque des badges et agrandis ta collection.', 'Progresa, desbloquea insignias y amplía tu colección.'),
   earned: text('Kazanıldı', 'Earned', 'Verdient', 'Obtenu', 'Conseguida'),
+  unlocked: text('Yeni rozet kazandın!', 'You unlocked a new badge!', 'Du hast ein neues Abzeichen!', 'Tu as débloqué un nouveau badge !', '¡Has desbloqueado una nueva insignia!'),
   locked: text('Kilitli', 'Locked', 'Gesperrt', 'Verrouillé', 'Bloqueada'),
   collection: text('Koleksiyon', 'Collection', 'Sammlung', 'Collection', 'Colección'),
   training: text('Antrenman', 'Training', 'Training', 'Entraînement', 'Entrenamiento'),

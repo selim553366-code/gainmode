@@ -95,6 +95,7 @@ type FitState = {
 };
 
 type FitContextValue = FitState & {
+  hydrated: boolean;
   coachThinking: boolean;
   setCoachThinking: (value: boolean) => void;
   enablePremium: () => void;
@@ -386,6 +387,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<FitContextValue>(() => ({
     ...state,
+    hydrated,
     workouts: sanitizedWorkouts,
     coachThinking,
     setCoachThinking,
@@ -564,7 +566,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
       })),
     setNotificationSetting: (key, enabled) => setState((current) => ({ ...current, notificationSettings: { ...current.notificationSettings, [key]: enabled } })),
     completeDailyMood: () => setState((current) => ({ ...current, dailyMoodCompletedDate: localDateKey() })),
-  }), [state, sanitizedWorkouts, coachThinking]);
+  }), [state, sanitizedWorkouts, coachThinking, hydrated]);
 
   return <FitContext.Provider value={value}>{children}</FitContext.Provider>;
 }
