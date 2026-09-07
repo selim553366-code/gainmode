@@ -186,6 +186,7 @@ export default function EntryScreen() {
   const selectedFields = React.useMemo(() => parseProfileEditFields(params.fields), [params.fields]);
   const entryRoute = getEntryRoute({ onboardingComplete, introSeen, isPremium, subscriptionPurchaseEnabled: SUBSCRIPTION_PURCHASE_ENABLED, coachIntroPending });
   const [redirectFailed, setRedirectFailed] = React.useState(false);
+  const [premiumCelebrationVisible, setPremiumCelebrationVisible] = React.useState(false);
   React.useEffect(() => {
       if (!editMode && (entryRoute === 'tabs' || entryRoute === 'coach')) {
        setRedirectFailed(false);
@@ -198,7 +199,21 @@ export default function EntryScreen() {
   if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
   if (entryRoute === 'onboarding') return <OnboardingQuestions />;
   if (entryRoute === 'intro') return <IntroScreen onDone={setIntroSeen} />;
-   if (entryRoute === 'premium') return <PremiumWelcomeOfferScreen onUnlock={() => router.replace('/(tabs)/coach')} />;
+  if (premiumCelebrationVisible) {
+    return <PremiumSuccessCelebration
+      visible
+      onDone={() => {
+        setPremiumCelebrationVisible(false);
+        router.replace('/(tabs)/coach');
+      }}
+    />;
+  }
+  if (entryRoute === 'premium') {
+    return <PremiumWelcomeOfferScreen
+      onUnlock={() => router.replace('/(tabs)/coach')}
+      onPurchaseSuccess={() => setPremiumCelebrationVisible(true)}
+    />;
+  }
   return redirectFailed ? <EntryRecoveryScreen onRestart={restartOnboarding} /> : <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
 }
 
@@ -753,7 +768,7 @@ function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: (
   </LinearGradient>;
 }
 
-function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
+function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: () => void; onPurchaseSuccess: () => void }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -766,7 +781,6 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
   const [promoOpen, setPromoOpen] = React.useState(false);
   const [promoCode, setPromoCode] = React.useState('');
   const [promoError, setPromoError] = React.useState<string | null>(null);
-  const [purchaseCelebration, setPurchaseCelebration] = React.useState(false);
    const [explorePage, setExplorePage] = React.useState(0);
    const [showExplore, setShowExplore] = React.useState(false);
    const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
@@ -796,7 +810,7 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
           setActionError(t('premiumPurchaseError'));
           return;
         }
-       setPurchaseCelebration(true);
+        onPurchaseSuccess();
       } catch {
         setActionError(t('premiumPurchaseError'));
       }
@@ -813,7 +827,7 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
         setActionError(t('premiumRestoreNoPurchase'));
         return;
       }
-     setPurchaseCelebration(true);
+      onPurchaseSuccess();
     } catch {
       setActionError(t('premiumRestoreError'));
     }
@@ -910,7 +924,6 @@ function PremiumWelcomeOfferScreen({ onUnlock }: { onUnlock: () => void }) {
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
     </ScrollView>
    </LinearGradient>
-   <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onUnlock(); }} />
    </>;
 }
 
