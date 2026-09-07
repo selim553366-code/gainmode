@@ -32,6 +32,9 @@ import { isValidTestPremiumPromoCode } from '@/lib/testPremiumPromo';
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
 type TargetWeightUnit = 'kg' | 'lb';
+type OnboardingMode = 'quick' | 'detailed';
+
+const QUICK_ONBOARDING_STEP_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 14] as const;
 
 const KG_PER_POUND = 1 / 2.20462;
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
@@ -279,16 +282,20 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const [targetWeightText, setTargetWeightText] = React.useState('');
   const [buildingPlan, setBuildingPlan] = React.useState(false);
   const [overloadSeen, setOverloadSeen] = React.useState(false);
+  const [onboardingMode, setOnboardingMode] = React.useState<OnboardingMode | null>(editMode ? 'detailed' : null);
+  const [modeChoiceVisible, setModeChoiceVisible] = React.useState(false);
   const [taken, setTaken] = React.useState<string[]>([]);
   const [error, setError] = React.useState('');
   const slide = React.useRef(new Animated.Value(1)).current;
   const targetStep = 15;
   const hasTargetWeightStep = goal === 'weightGain' || goal === 'weightLoss';
-   const selectedStepIds = React.useMemo(() => editMode
-     ? getProfileEditStepIds(selectedFields, hasTargetWeightStep)
-     : Array.from({ length: hasTargetWeightStep ? 16 : 15 }, (_, index) => index), [editMode, selectedFields, hasTargetWeightStep]);
+   const selectedStepIds = React.useMemo(() => {
+     if (editMode) return getProfileEditStepIds(selectedFields, hasTargetWeightStep);
+     if (onboardingMode === 'quick') return [...QUICK_ONBOARDING_STEP_IDS];
+     return Array.from({ length: hasTargetWeightStep ? 16 : 15 }, (_, index) => index);
+   }, [editMode, onboardingMode, selectedFields, hasTargetWeightStep]);
   const total = selectedStepIds.length;
-  const activeStep = editMode ? selectedStepIds[step] : step;
+  const activeStep = selectedStepIds[step] ?? step;
   const recommendedTargetWeight = React.useMemo(() => recommendTargetWeight({ height, weight, age, goal, sex, activity, goalRate }), [height, weight, age, goal, sex, activity, goalRate]);
 
   React.useEffect(() => {
@@ -443,6 +450,10 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       if (!clean) return setError(t('usernameRequired'));
       const previousUsername = savedUsername?.trim().replace(/\s+/g, '').toLowerCase();
       if (taken.includes(clean) && clean !== previousUsername) return setError(t('usernameTaken'));
+      if (!editMode && !onboardingMode) {
+        setModeChoiceVisible(true);
+        return;
+      }
     }
     if (activeStep === 1 && equipment === 'gym' && !gymLevel) return setError(t('gymLevelQuestion'));
     if (activeStep === 2) {
@@ -482,7 +493,10 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     advance();
   };
   const goBack = () => {
-    if (step === 0) return;
+    if (step === 0) {
+      if (!editMode && onboardingMode === 'quick') setModeChoiceVisible(true);
+      return;
+    }
     Animated.sequence([Animated.timing(slide, { toValue: 0, duration: 120, useNativeDriver: true }), Animated.timing(slide, { toValue: 1, duration: 220, useNativeDriver: true })]).start();
     setStep((current) => Math.max(0, current - 1));
   };
@@ -529,11 +543,20 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     return <><View style={styles.dayGrid}>{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => <Pressable key={day} onPress={() => selectedDays(day)} style={[styles.dayButton, { backgroundColor: preferredDays.includes(day) ? colors.primary : colors.card, borderColor: preferredDays.includes(day) ? colors.primary : colors.border, opacity: !preferredDays.includes(day) && preferredDays.length >= trainingDays ? 0.45 : 1 }]}><Text style={[styles.dayText, { color: preferredDays.includes(day) ? colors.primaryForeground : colors.foreground }]}>{day}</Text></Pressable>)}</View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{preferredDays.length}/{trainingDays} · {t('preferredDaysQuestion')}</Text></>;
   };
 
+  const chooseMode = (mode: OnboardingMode) => {
+    triggerHaptic();
+    setOnboardingMode(mode);
+    setModeChoiceVisible(false);
+    setStep(mode === 'quick' ? 0 : 1);
+    slide.setValue(1);
+  };
+
      if (!started) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} /></View>;
+    if (modeChoiceVisible) return <OnboardingModeChoice onSelect={chooseMode} onBack={() => { setModeChoiceVisible(false); setOnboardingMode(null); setStep(0); }} />;
     if (buildingPlan) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><PlanBuildingScreen onComplete={finish} /></View>;
     if (step === total && equipment === 'gym' && !overloadSeen) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><ProgressiveOverloadScreen onContinue={() => setOverloadSeen(true)} /></View>;
    if (step === total) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><CompletionScreen onContinue={() => setBuildingPlan(true)} /></View>;
-    const optional = activeStep >= 6 && !hasTargetWeightStep;
+    const optional = onboardingMode !== 'quick' && activeStep >= 6 && !hasTargetWeightStep;
     const isTargetStep = activeStep === targetStep && hasTargetWeightStep;
     const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[activeStep] ?? 'preferredDaysQuestion';
    return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
@@ -551,6 +574,68 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     </Animated.View>
        <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>{optional ? <Pressable onPress={() => { triggerHaptic(); skip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('skipQuestion')}</Text></Pressable> : null}</View>
   </LinearGradient>;
+}
+
+function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: OnboardingMode) => void; onBack: () => void }) {
+  const colors = useColors();
+  const { language, setLanguage } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+
+  return (
+    <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
+      <View style={styles.questionTop}>
+        <ForgeFitMark size={38} />
+        <View style={styles.languageRow}>
+          {(Object.keys(languageLabels) as Language[]).map((item) => (
+            <Pressable key={item} onPress={() => setLanguage(item)}>
+              <Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+      <View style={styles.modeChoiceContent}>
+        <Text style={[styles.eyebrow, { color: colors.primary }]}>{t('onboardingModeEyebrow')}</Text>
+        <Text style={[styles.modeChoiceTitle, { color: colors.foreground }]}>{t('onboardingModeTitle')}</Text>
+        <Text style={[styles.modeChoiceSubtitle, { color: colors.mutedForeground }]}>{t('onboardingModeSubtitle')}</Text>
+        <View style={styles.modeChoiceList}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onSelect('quick')}
+            style={({ pressed }) => [styles.modeChoiceCard, { backgroundColor: colors.card, borderColor: `${colors.primary}65`, opacity: pressed ? 0.76 : 1 }]}
+          >
+            <View style={[styles.modeChoiceIcon, { backgroundColor: `${colors.primary}20` }]}>
+              <Ionicons name="flash-outline" size={22} color={colors.primary} />
+            </View>
+            <View style={styles.modeChoiceCopy}>
+              <Text style={[styles.modeChoiceCardTitle, { color: colors.foreground }]}>{t('onboardingQuickTitle')}</Text>
+              <Text style={[styles.modeChoiceCardDescription, { color: colors.mutedForeground }]}>{t('onboardingQuickDescription')}</Text>
+              <Text style={[styles.modeChoiceCount, { color: colors.primary }]}>{t('onboardingQuickCount')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={19} color={colors.primary} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onSelect('detailed')}
+            style={({ pressed }) => [styles.modeChoiceCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.76 : 1 }]}
+          >
+            <View style={[styles.modeChoiceIcon, { backgroundColor: `${colors.blue}20` }]}>
+              <Ionicons name="analytics-outline" size={22} color={colors.blue} />
+            </View>
+            <View style={styles.modeChoiceCopy}>
+              <Text style={[styles.modeChoiceCardTitle, { color: colors.foreground }]}>{t('onboardingDetailedTitle')}</Text>
+              <Text style={[styles.modeChoiceCardDescription, { color: colors.mutedForeground }]}>{t('onboardingDetailedDescription')}</Text>
+              <Text style={[styles.modeChoiceCount, { color: colors.blue }]}>{t('onboardingDetailedCount')}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={19} color={colors.blue} />
+          </Pressable>
+        </View>
+      </View>
+      <Pressable accessibilityRole="button" onPress={onBack} style={({ pressed }) => [styles.modeChoiceBack, { opacity: pressed ? 0.65 : 1 }]}>
+        <Ionicons name="arrow-back" size={16} color={colors.mutedForeground} />
+        <Text style={[styles.modeChoiceBackText, { color: colors.mutedForeground }]}>{t('onboardingModeBack')}</Text>
+      </Pressable>
+    </LinearGradient>
+  );
 }
 
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
@@ -978,6 +1063,18 @@ const styles = StyleSheet.create({
   optionalLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
   questionTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, lineHeight: 35, letterSpacing: -1, marginBottom: 20 },
   questionHint: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, marginBottom: 16, maxWidth: 300 },
+  modeChoiceContent: { flex: 1, justifyContent: 'center', paddingVertical: 24 },
+  modeChoiceTitle: { fontFamily: 'Inter_700Bold', fontSize: 30, lineHeight: 36, letterSpacing: -1, marginBottom: 10 },
+  modeChoiceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, marginBottom: 24 },
+  modeChoiceList: { gap: 12 },
+  modeChoiceCard: { minHeight: 112, borderWidth: 1, borderRadius: 21, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  modeChoiceIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  modeChoiceCopy: { flex: 1, minWidth: 0, gap: 3 },
+  modeChoiceCardTitle: { fontFamily: 'Inter_700Bold', fontSize: 14 },
+  modeChoiceCardDescription: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16 },
+  modeChoiceCount: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 3 },
+  modeChoiceBack: { minHeight: 38, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
+  modeChoiceBackText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   choiceList: { gap: 10 },
   choice: { minHeight: 59, padding: 10, borderWidth: 1, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 11 },
   choiceIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },

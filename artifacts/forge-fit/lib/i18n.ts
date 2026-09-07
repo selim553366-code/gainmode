@@ -42,6 +42,80 @@ const homeEquipmentDetailsCopy: Record<Language, { hint: string; placeholder: st
   es: { hint: 'Indica con el mayor detalle posible qué equipo tienes en casa.', placeholder: 'Ej. dos mancuernas de 10 kg, bandas de resistencia, esterilla de yoga...' },
 };
 
+const onboardingModeTranslations: Record<Language, {
+  onboardingModeEyebrow: string;
+  onboardingModeTitle: string;
+  onboardingModeSubtitle: string;
+  onboardingQuickTitle: string;
+  onboardingQuickDescription: string;
+  onboardingQuickCount: string;
+  onboardingDetailedTitle: string;
+  onboardingDetailedDescription: string;
+  onboardingDetailedCount: string;
+  onboardingModeBack: string;
+}> = {
+  tr: {
+    onboardingModeEyebrow: 'KİŞİSELLEŞTİRME SEVİYESİ',
+    onboardingModeTitle: 'Planını nasıl oluşturalım?',
+    onboardingModeSubtitle: 'İsmini aldık. Şimdi hızlıca başlayabilir veya daha tutarlı bir analiz için birkaç ayrıntı daha paylaşabilirsin.',
+    onboardingQuickTitle: 'Hızlı sorular',
+    onboardingQuickDescription: 'Temel hedeflerini hızlıca hesaplayalım. İleri tercihler dengeli varsayılanlarla başlar.',
+    onboardingQuickCount: 'Toplam 11 soru',
+    onboardingDetailedTitle: 'Daha tutarlı analiz',
+    onboardingDetailedDescription: 'Kalori, makro ve antrenman planını daha kişisel hazırlamak için mevcut uzun akış.',
+    onboardingDetailedCount: 'Toplam 15–16 soru',
+    onboardingModeBack: 'İsme dön',
+  },
+  en: {
+    onboardingModeEyebrow: 'PERSONALIZATION LEVEL',
+    onboardingModeTitle: 'How should we build your plan?',
+    onboardingModeSubtitle: 'We have your name. Start quickly, or share a few more details for a more consistent analysis.',
+    onboardingQuickTitle: 'Quick questions',
+    onboardingQuickDescription: 'Calculate your core goals quickly. Advanced preferences start with balanced defaults.',
+    onboardingQuickCount: '11 questions total',
+    onboardingDetailedTitle: 'More consistent analysis',
+    onboardingDetailedDescription: 'The existing longer flow for a more personal calorie, macro, and workout plan.',
+    onboardingDetailedCount: '15–16 questions total',
+    onboardingModeBack: 'Back to name',
+  },
+  de: {
+    onboardingModeEyebrow: 'PERSONALISIERUNG',
+    onboardingModeTitle: 'Wie sollen wir deinen Plan erstellen?',
+    onboardingModeSubtitle: 'Dein Name ist gespeichert. Starte schnell oder teile mehr Details für eine konsistentere Analyse.',
+    onboardingQuickTitle: 'Schnelle Fragen',
+    onboardingQuickDescription: 'Berechne deine wichtigsten Ziele schnell. Erweiterte Präferenzen starten mit ausgewogenen Standardwerten.',
+    onboardingQuickCount: 'Insgesamt 11 Fragen',
+    onboardingDetailedTitle: 'Konsistentere Analyse',
+    onboardingDetailedDescription: 'Der bestehende längere Ablauf für einen persönlicheren Kalorien-, Makro- und Trainingsplan.',
+    onboardingDetailedCount: 'Insgesamt 15–16 Fragen',
+    onboardingModeBack: 'Zurück zum Namen',
+  },
+  fr: {
+    onboardingModeEyebrow: 'NIVEAU DE PERSONNALISATION',
+    onboardingModeTitle: 'Comment créer ton plan ?',
+    onboardingModeSubtitle: 'Ton prénom est enregistré. Commence rapidement ou partage plus de détails pour une analyse plus cohérente.',
+    onboardingQuickTitle: 'Questions rapides',
+    onboardingQuickDescription: 'Calcule rapidement tes objectifs essentiels. Les préférences avancées utilisent des valeurs équilibrées par défaut.',
+    onboardingQuickCount: '11 questions au total',
+    onboardingDetailedTitle: 'Analyse plus cohérente',
+    onboardingDetailedDescription: 'Le parcours long actuel pour un plan de calories, de macros et d’entraînement plus personnel.',
+    onboardingDetailedCount: '15–16 questions au total',
+    onboardingModeBack: 'Retour au prénom',
+  },
+  es: {
+    onboardingModeEyebrow: 'NIVEL DE PERSONALIZACIÓN',
+    onboardingModeTitle: '¿Cómo creamos tu plan?',
+    onboardingModeSubtitle: 'Ya tenemos tu nombre. Empieza rápido o comparte más detalles para un análisis más coherente.',
+    onboardingQuickTitle: 'Preguntas rápidas',
+    onboardingQuickDescription: 'Calcula tus objetivos principales rápidamente. Las preferencias avanzadas empiezan con valores equilibrados.',
+    onboardingQuickCount: '11 preguntas en total',
+    onboardingDetailedTitle: 'Análisis más coherente',
+    onboardingDetailedDescription: 'El flujo largo actual para crear un plan más personal de calorías, macros y entrenamiento.',
+    onboardingDetailedCount: '15–16 preguntas en total',
+    onboardingModeBack: 'Volver al nombre',
+  },
+};
+
 const premiumBenefitCopy: Record<Language, { photo: string; coach: string }> = {
   tr: { photo: 'Gelişmiş yemek fotoğrafı analizi', coach: 'FitBud ile kişisel koçluk' },
   en: { photo: 'Advanced food photo analysis', coach: 'Personal coaching with FitBud' },
@@ -1667,7 +1741,7 @@ const themeTranslations = {
   es: { appearance: 'Apariencia', appearanceDescription: 'Elige la apariencia de GainMode o sigue automáticamente tu teléfono.', themeSystem: 'Sistema', themeLight: 'Claro', themeDark: 'Oscuro' },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr;
+export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr;
 
 const workoutReminderDescriptions: Record<Language, string> = {
   tr: 'Antrenman günlerinde saat 09:00’da o günün antrenmanını ve süresini hatırlat.',
@@ -1715,6 +1789,7 @@ export function translate(language: Language, key: TranslationKey): string {
   if (key === 'photoLimitReached') return applyCurrentBrand(usageLimitCopy[language].photo);
   if (key === 'homeEquipmentDetailsHint') return applyCurrentBrand(homeEquipmentDetailsCopy[language].hint);
   if (key === 'homeEquipmentDetailsPlaceholder') return applyCurrentBrand(homeEquipmentDetailsCopy[language].placeholder);
+  if (key in onboardingModeTranslations.tr) return applyCurrentBrand(onboardingModeTranslations[language][key as keyof typeof onboardingModeTranslations.tr]);
   if (key === 'onboardingIntro2') return applyCurrentBrand(onboardingIntro2Translations[language]);
   if (key === 'onboardingTitle') return applyCurrentBrand(onboardingMotivationTranslations[language].title);
   if (key === 'onboardingIntro') return applyCurrentBrand(onboardingMotivationTranslations[language].intro);
