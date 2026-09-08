@@ -214,7 +214,7 @@ export default function CoachScreen() {
       />
        <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
           <Animated.View style={[styles.auraInput, { backgroundColor: `${colors.white}4D`, borderColor: colors.black, shadowColor: colors.black, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }]}>
-             <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground }]} />
+             <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={`${colors.black}80`} style={[styles.input, { color: colors.black }]} />
             <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.black, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.white} /></Pressable>
          </Animated.View>
       </View>
