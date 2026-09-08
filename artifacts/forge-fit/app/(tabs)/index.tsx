@@ -101,8 +101,8 @@ export default function TodayScreen() {
       </View>
 
       <SectionTitle title={t('todayWorkout')} action={t('viewAll')} onAction={() => router.push('/(tabs)/plan')} />
-      <Card onPress={() => todayWorkout ? router.push({ pathname: '/(tabs)/plan', params: { day: todayWorkout.day } }) : router.push('/(tabs)/plan')} style={styles.workoutCard}>
-        <View style={[styles.workoutIcon, { backgroundColor: `${colors.orange}22` }]}><Ionicons name="barbell-outline" size={22} color={colors.orange} /></View>
+       <Card onPress={() => todayWorkout ? router.push({ pathname: '/(tabs)/plan', params: { day: todayWorkout.day } }) : router.push('/(tabs)/plan')} style={styles.workoutCard}>
+         <View style={[styles.workoutIcon, { backgroundColor: `${todayWorkout ? colors.orange : colors.primary}22` }]}><Ionicons name={todayWorkout ? 'barbell-outline' : 'moon-outline'} size={22} color={todayWorkout ? colors.orange : colors.primary} /></View>
         <View style={{ flex: 1 }}><Text style={[styles.cardTitle, { color: colors.foreground }]}>{todayWorkout ? (translate(language, todayWorkout.name as Parameters<typeof translate>[1]) || todayWorkout.name) : t('restDayTitle')}</Text><Text style={[styles.cardCaption, { color: colors.mutedForeground }]}>{todayWorkout ? `${todayWorkout.duration} min  •  ${todayWorkout.exercises.length} ${t('exercises')}` : t('restDaySubtitle')}</Text></View>
         <View testID="open-today-workout" style={[styles.workoutButton, { backgroundColor: colors.primary }]}><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></View>
       </Card>
