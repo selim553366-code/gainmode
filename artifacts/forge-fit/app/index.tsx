@@ -1196,6 +1196,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
           <View style={styles.offerPlanHeader}>
             <Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumMonthlyPlan')}</Text>
             <View style={[styles.offerTrialBadge, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}>
+              <Ionicons name="sparkles-outline" size={10} color={colors.success} />
               <Text style={[styles.offerTrialBadgeText, { color: colors.success }]}>{t('premiumTrialShort')}</Text>
             </View>
           </View>
@@ -1453,8 +1454,8 @@ const styles = StyleSheet.create({
   offerPlanLabel: { flex: 1, minWidth: 0, flexShrink: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
   offerPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 19, marginTop: 13 },
   offerPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 3 },
-  offerTrialBadge: { flexShrink: 0, borderWidth: 1, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 3, maxWidth: 82 },
-  offerTrialBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 10, textAlign: 'center' },
+  offerTrialBadge: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 4, maxWidth: 88 },
+  offerTrialBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 10, letterSpacing: 0.45, textAlign: 'center', textTransform: 'uppercase' },
   offerSavingsBadge: { flexShrink: 0, alignItems: 'flex-end', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 3 },
   offerSavingsValue: { fontFamily: 'Inter_700Bold', fontSize: 14, lineHeight: 16, letterSpacing: -0.2 },
   offerSavingsLabel: { fontFamily: 'Inter_700Bold', fontSize: 7, lineHeight: 9, letterSpacing: 0.3, textTransform: 'uppercase' },
