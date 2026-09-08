@@ -248,7 +248,7 @@ export default function NutritionScreen() {
     Alert.alert(t('addFood'), t('foodAdded'));
   };
   const handleBarcode = (data: string) => {
-    const code = data.trim().replace(/[\s-]/g, '');
+    const code = data.trim().replace(/^\](?:C1|E0|d2|Q3)/i, '').replace(/[\s-]/g, '');
     setBarcodeScannerVisible(false);
     setBarcodeResult(null);
     setBarcodeError(null);

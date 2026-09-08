@@ -93,6 +93,10 @@ function barcodeCandidates(code: string) {
   return [...candidates];
 }
 
+function normalizeBarcode(code: string) {
+  return code.trim().replace(/^\](?:C1|E0|d2|Q3)/i, "").replace(/[\s-]/g, "");
+}
+
 function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value !== "string") return null;
@@ -284,7 +288,10 @@ async function searchUsda(query: string, limit: number): Promise<NormalizedFood[
 }
 
 router.get("/food/search", async (req, res) => {
-  const query = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const rawQuery = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const query = /^\]?(?:C1|E0|d2|Q3)/i.test(rawQuery) || /^\d{8,14}$/.test(rawQuery)
+    ? normalizeBarcode(rawQuery)
+    : rawQuery;
   const language = typeof req.query.language === "string" && supportedLanguages.has(req.query.language)
     ? req.query.language
     : "en";
