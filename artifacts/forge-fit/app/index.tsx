@@ -1180,7 +1180,7 @@ const styles = StyleSheet.create({
   questionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brandMark: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   brandWordmark: { flex: 1, textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 2.5, marginHorizontal: 14 },
-  trademark: { fontFamily: 'Inter_700Bold', fontSize: 6, lineHeight: 9, position: 'relative', top: -5 },
+  trademark: { fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 10, position: 'relative', top: -3 },
   languageRow: { flexDirection: 'row', gap: 8 },
   languageOption: { width: 20, alignItems: 'center', gap: 2 },
   language: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 12 },
