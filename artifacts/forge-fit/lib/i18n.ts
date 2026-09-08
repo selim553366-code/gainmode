@@ -1476,6 +1476,7 @@ const onboardingMotivationTranslations: Record<Language, { title: string; intro:
 const settingsTranslations = {
   tr: {
     settingsTitle: 'Ayarlar', settingsEyebrow: 'Tercihler', settingsSubtitle: 'Forge Fit deneyimini kendine göre düzenle.',
+    feedbackTitle: 'Geri bildirim gönder', feedbackDescription: 'Forge Fit’i geliştirmemize yardımcı ol. Mesajın doğrudan ekibimize iletilir.', feedbackPlaceholder: 'Ne hakkında geri bildirim vermek istersin?', feedbackType: 'Tür', feedbackBug: 'Hata', feedbackSuggestion: 'Öneri', feedbackOther: 'Diğer', feedbackSend: 'Geri bildirimi gönder', feedbackSending: 'Gönderiliyor...', feedbackSentTitle: 'Geri bildirimin alındı', feedbackSentBody: 'Teşekkürler. Mesajın ekibimize e-posta ile iletildi.', feedbackErrorTitle: 'Gönderilemedi', feedbackErrorBody: 'Geri bildirim şu anda gönderilemedi. Lütfen tekrar dene.',
     onboarding: 'Onboarding', restartOnboarding: 'Onboarding’i yeniden başlat', restartOnboardingDescription: 'Mevcut verilerini koruyarak profil sorularını tekrar aç.', premiumAnimationTestSection: 'Test araçları', premiumAnimationTest: 'Başarı animasyonunu test et', premiumAnimationTestDescription: 'Satın alma akışını beklemeden kutlama ekranını ve sesini aç.',
     preferences: 'Tercihler', appLanguage: 'Uygulama dili', languageDescription: 'Forge Fit’in tüm metinlerini tercih ettiğin dilde kullan.', currentLanguage: 'Seçili dil',
     notificationSettingsTitle: 'Hatırlatıcılar', notificationSettingsDescription: 'Antrenman, su, öğün ve gelişim ritmini kaçırma.',
@@ -1503,6 +1504,7 @@ const settingsTranslations = {
   },
   en: {
     settingsTitle: 'Settings', settingsEyebrow: 'Preferences', settingsSubtitle: 'Shape your Forge Fit experience.',
+    feedbackTitle: 'Send feedback', feedbackDescription: 'Help us improve Forge Fit. Your message goes directly to our team.', feedbackPlaceholder: 'What would you like to tell us?', feedbackType: 'Type', feedbackBug: 'Bug', feedbackSuggestion: 'Suggestion', feedbackOther: 'Other', feedbackSend: 'Send feedback', feedbackSending: 'Sending...', feedbackSentTitle: 'Feedback received', feedbackSentBody: 'Thank you. Your message was sent to our team by email.', feedbackErrorTitle: 'Could not send', feedbackErrorBody: 'Your feedback could not be sent right now. Please try again.',
     onboarding: 'Onboarding', restartOnboarding: 'Restart onboarding', restartOnboardingDescription: 'Reopen your profile questions while keeping your existing data.', premiumAnimationTestSection: 'Test tools', premiumAnimationTest: 'Test the success animation', premiumAnimationTestDescription: 'Open the celebration screen and sound without completing a purchase.',
     preferences: 'Preferences', appLanguage: 'App language', languageDescription: 'Use every Forge Fit message in your preferred language.', currentLanguage: 'Selected language',
     notificationSettingsTitle: 'Reminders', notificationSettingsDescription: 'Keep your training, hydration, meals, and progress on track.',
@@ -1530,6 +1532,7 @@ const settingsTranslations = {
   },
   de: {
     settingsTitle: 'Einstellungen', settingsEyebrow: 'Präferenzen', settingsSubtitle: 'Passe dein Forge Fit-Erlebnis an.',
+    feedbackTitle: 'Feedback senden', feedbackDescription: 'Hilf uns, Forge Fit zu verbessern. Deine Nachricht geht direkt an unser Team.', feedbackPlaceholder: 'Was möchtest du uns mitteilen?', feedbackType: 'Art', feedbackBug: 'Fehler', feedbackSuggestion: 'Vorschlag', feedbackOther: 'Sonstiges', feedbackSend: 'Feedback senden', feedbackSending: 'Wird gesendet...', feedbackSentTitle: 'Feedback erhalten', feedbackSentBody: 'Danke. Deine Nachricht wurde per E-Mail an unser Team gesendet.', feedbackErrorTitle: 'Senden nicht möglich', feedbackErrorBody: 'Dein Feedback konnte gerade nicht gesendet werden. Bitte versuche es erneut.',
     onboarding: 'Onboarding', restartOnboarding: 'Onboarding neu starten', restartOnboardingDescription: 'Öffne deine Profilfragen erneut, ohne deine vorhandenen Daten zu löschen.', premiumAnimationTestSection: 'Testwerkzeuge', premiumAnimationTest: 'Erfolgsanimation testen', premiumAnimationTestDescription: 'Öffne den Erfolgsbildschirm und Ton ohne einen Kauf abzuschließen.',
     preferences: 'Präferenzen', appLanguage: 'App-Sprache', languageDescription: 'Nutze alle Forge Fit-Texte in deiner bevorzugten Sprache.', currentLanguage: 'Ausgewählte Sprache',
     notificationSettingsTitle: 'Erinnerungen', notificationSettingsDescription: 'Behalte Training, Flüssigkeit, Mahlzeiten und Fortschritt im Blick.',
@@ -1557,6 +1560,7 @@ const settingsTranslations = {
   },
   fr: {
     settingsTitle: 'Réglages', settingsEyebrow: 'Préférences', settingsSubtitle: 'Personnalise ton expérience Forge Fit.',
+    feedbackTitle: 'Envoyer un retour', feedbackDescription: 'Aide-nous à améliorer Forge Fit. Ton message est envoyé directement à notre équipe.', feedbackPlaceholder: 'Que veux-tu nous dire ?', feedbackType: 'Type', feedbackBug: 'Bug', feedbackSuggestion: 'Suggestion', feedbackOther: 'Autre', feedbackSend: 'Envoyer le retour', feedbackSending: 'Envoi...', feedbackSentTitle: 'Retour reçu', feedbackSentBody: 'Merci. Ton message a été envoyé par e-mail à notre équipe.', feedbackErrorTitle: 'Envoi impossible', feedbackErrorBody: 'Ton retour n’a pas pu être envoyé. Réessaie dans un instant.',
     onboarding: 'Onboarding', restartOnboarding: 'Recommencer l’onboarding', restartOnboardingDescription: 'Rouvre tes questions de profil sans supprimer tes données existantes.', premiumAnimationTestSection: 'Outils de test', premiumAnimationTest: 'Tester l’animation de réussite', premiumAnimationTestDescription: 'Ouvre l’écran de célébration et son sans effectuer d’achat.',
     preferences: 'Préférences', appLanguage: 'Langue de l’app', languageDescription: 'Utilise tous les textes Forge Fit dans ta langue préférée.', currentLanguage: 'Langue sélectionnée',
     notificationSettingsTitle: 'Rappels', notificationSettingsDescription: 'Garde le rythme de tes entraînements, repas, hydratation et progrès.',
@@ -1584,6 +1588,7 @@ const settingsTranslations = {
   },
   es: {
     settingsTitle: 'Ajustes', settingsEyebrow: 'Preferencias', settingsSubtitle: 'Personaliza tu experiencia en Forge Fit.',
+    feedbackTitle: 'Enviar comentarios', feedbackDescription: 'Ayúdanos a mejorar Forge Fit. Tu mensaje llegará directamente a nuestro equipo.', feedbackPlaceholder: '¿Qué te gustaría contarnos?', feedbackType: 'Tipo', feedbackBug: 'Error', feedbackSuggestion: 'Sugerencia', feedbackOther: 'Otro', feedbackSend: 'Enviar comentarios', feedbackSending: 'Enviando...', feedbackSentTitle: 'Comentarios recibidos', feedbackSentBody: 'Gracias. Tu mensaje se envió por correo electrónico a nuestro equipo.', feedbackErrorTitle: 'No se pudo enviar', feedbackErrorBody: 'No se pudieron enviar tus comentarios. Inténtalo de nuevo.',
     onboarding: 'Onboarding', restartOnboarding: 'Reiniciar onboarding', restartOnboardingDescription: 'Vuelve a abrir las preguntas de perfil sin borrar tus datos actuales.', premiumAnimationTestSection: 'Herramientas de prueba', premiumAnimationTest: 'Probar la animación de éxito', premiumAnimationTestDescription: 'Abre la pantalla de celebración y el sonido sin completar una compra.',
     preferences: 'Preferencias', appLanguage: 'Idioma de la app', languageDescription: 'Usa todos los textos de Forge Fit en tu idioma preferido.', currentLanguage: 'Idioma seleccionado',
     notificationSettingsTitle: 'Recordatorios', notificationSettingsDescription: 'Mantén tu ritmo de entrenamientos, hidratación, comidas y progreso.',

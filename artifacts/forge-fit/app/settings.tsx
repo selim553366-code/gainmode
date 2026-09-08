@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
@@ -8,8 +8,16 @@ import { useColors } from '@/hooks/useColors';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
 import { isProfileEditAvailable } from '@/lib/profileEdit';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
+import { apiUrl } from '@/lib/api';
 
 type LegalSection = 'privacy' | 'terms' | null;
+type FeedbackCategory = 'bug' | 'suggestion' | 'other';
+
+const feedbackCategories = [
+  { value: 'bug', label: 'feedbackBug' },
+  { value: 'suggestion', label: 'feedbackSuggestion' },
+  { value: 'other', label: 'feedbackOther' },
+] as const;
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -23,7 +31,32 @@ export default function SettingsScreen() {
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const profileEditAvailable = isProfileEditAvailable(profileEditUsedMonth);
   const [expanded, setExpanded] = useState<LegalSection>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('suggestion');
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackSending, setFeedbackSending] = useState(false);
   const languages = Object.keys(languageLabels) as Language[];
+
+  const submitFeedback = async () => {
+    const message = feedbackText.trim();
+    if (!message || feedbackSending) return;
+    setFeedbackSending(true);
+    try {
+      const response = await fetch(apiUrl('/api/feedback'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, category: feedbackCategory, language, screen: 'settings' }),
+      });
+      if (!response.ok) throw new Error('feedback request failed');
+      setFeedbackText('');
+      setFeedbackOpen(false);
+      Alert.alert(t('feedbackSentTitle'), t('feedbackSentBody'));
+    } catch {
+      Alert.alert(t('feedbackErrorTitle'), t('feedbackErrorBody'));
+    } finally {
+      setFeedbackSending(false);
+    }
+  };
 
   return (
     <>
@@ -133,6 +166,64 @@ export default function SettingsScreen() {
         </Pressable>
       </Card>
 
+      <SectionTitle title={t('feedbackTitle')} />
+      <Card>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: feedbackOpen }}
+          onPress={() => setFeedbackOpen((current) => !current)}
+          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
+        >
+          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.primary} />
+          </View>
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('feedbackTitle')}</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('feedbackDescription')}</Text>
+          </View>
+          <Ionicons name={feedbackOpen ? 'chevron-up' : 'chevron-forward'} size={19} color={colors.mutedForeground} />
+        </Pressable>
+        {feedbackOpen ? (
+          <View style={[styles.feedbackDetails, { borderTopColor: colors.border }]}>
+            <Text style={[styles.feedbackLabel, { color: colors.foreground }]}>{t('feedbackType')}</Text>
+            <View style={styles.feedbackTypeRow}>
+              {feedbackCategories.map((item) => {
+                const selected = feedbackCategory === item.value;
+                return (
+                  <Pressable
+                    key={item.value}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    onPress={() => setFeedbackCategory(item.value)}
+                    style={({ pressed }) => [styles.feedbackType, { backgroundColor: selected ? colors.primary : colors.secondary, borderColor: selected ? colors.primary : colors.border, opacity: pressed ? 0.72 : 1 }]}
+                  >
+                    <Text style={[styles.feedbackTypeText, { color: selected ? colors.primaryForeground : colors.foreground }]}>{t(item.label)}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <TextInput
+              multiline
+              numberOfLines={5}
+              value={feedbackText}
+              onChangeText={setFeedbackText}
+              placeholder={t('feedbackPlaceholder')}
+              placeholderTextColor={colors.mutedForeground}
+              textAlignVertical="top"
+              style={[styles.feedbackInput, { color: colors.foreground, backgroundColor: colors.secondary, borderColor: colors.border }]}
+            />
+            <Pressable
+              accessibilityRole="button"
+              disabled={!feedbackText.trim() || feedbackSending}
+              onPress={submitFeedback}
+              style={({ pressed }) => [styles.feedbackButton, { backgroundColor: colors.primary, opacity: !feedbackText.trim() || feedbackSending ? 0.45 : pressed ? 0.75 : 1 }]}
+            >
+              <Text style={[styles.feedbackButtonText, { color: colors.primaryForeground }]}>{feedbackSending ? t('feedbackSending') : t('feedbackSend')}</Text>
+            </Pressable>
+          </View>
+        ) : null}
+      </Card>
+
       <SectionTitle title={t('legal')} />
       <LegalCard
         icon="shield-checkmark-outline"
@@ -223,4 +314,12 @@ const styles = StyleSheet.create({
   body: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20 },
   point: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   pointText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
+  feedbackDetails: { borderTopWidth: 1, marginTop: 15, paddingTop: 14, gap: 12 },
+  feedbackLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  feedbackTypeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  feedbackType: { borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 9 },
+  feedbackTypeText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  feedbackInput: { minHeight: 112, borderWidth: 1, borderRadius: 16, paddingHorizontal: 13, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19 },
+  feedbackButton: { minHeight: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  feedbackButtonText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
 });
