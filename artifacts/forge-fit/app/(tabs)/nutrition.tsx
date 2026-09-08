@@ -133,7 +133,7 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
          ref={cameraRef}
          style={styles.camera}
          facing={facing}
-         barcodeScannerSettings={mode === 'barcode' ? { barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39', 'code93', 'itf14', 'codabar', 'qr'] } : undefined}
+          barcodeScannerSettings={mode === 'barcode' ? { barcodeTypes: ['aztec', 'codabar', 'code128', 'code39', 'code93', 'datamatrix', 'ean13', 'ean8', 'itf14', 'pdf417', 'qr', 'upc_a', 'upc_e'] } : undefined}
          onBarcodeScanned={mode === 'barcode' ? ({ data }) => {
            if (scanLocked.current || !data) return;
            scanLocked.current = true;

@@ -63,6 +63,36 @@ type NormalizedFood = {
   fat: number;
 };
 
+function expandUpcE(code: string) {
+  if (!/^\d{8}$/.test(code)) return null;
+  const numberSystem = code[0];
+  const payload = code.slice(1, 7);
+  const lastDigit = payload[5];
+  let upcA: string;
+  if (lastDigit <= "2") {
+    upcA = `${numberSystem}${payload.slice(0, 2)}${lastDigit}0000${payload.slice(2, 5)}`;
+  } else if (lastDigit === "3") {
+    upcA = `${numberSystem}${payload.slice(0, 3)}00000${payload.slice(3, 5)}`;
+  } else if (lastDigit === "4") {
+    upcA = `${numberSystem}${payload.slice(0, 4)}00000${payload[4]}`;
+  } else {
+    upcA = `${numberSystem}${payload.slice(0, 5)}0000${lastDigit}`;
+  }
+  return `${upcA}${code[7]}`;
+}
+
+function barcodeCandidates(code: string) {
+  const candidates = new Set<string>([code]);
+  if (code.length === 8) {
+    const expanded = expandUpcE(code);
+    if (expanded) candidates.add(expanded);
+  }
+  if (code.length === 12) candidates.add(`0${code}`);
+  if (code.length === 13 && code.startsWith("0")) candidates.add(code.slice(1));
+  if (code.length === 14 && code.startsWith("0")) candidates.add(code.slice(1));
+  return [...candidates];
+}
+
 function toNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value !== "string") return null;
@@ -209,18 +239,27 @@ async function searchOpenFoodFactsBarcode(code: string, language: string): Promi
     "nutriments",
   ].join(",");
   const providerStatuses: number[] = [];
-  for (const providerUrl of OPEN_FOOD_FACTS_PRODUCT_URLS) {
-    const response = await fetch(`${providerUrl}/${encodeURIComponent(code)}.json?fields=${fields}`, {
-      headers: { Accept: "application/json", "User-Agent": "ForgeFit/1.0 (barcode lookup)" },
-      signal: AbortSignal.timeout(10000),
-    });
-    providerStatuses.push(response.status);
-    if (!response.ok) continue;
-    const payload = await response.json() as ProviderProductResponse;
-    if (!payload.product) continue;
-    const normalized = normalizeProduct(payload.product, language, 0);
-    if (normalized) return [normalized];
-  }
+  const lookupResults = await Promise.allSettled(barcodeCandidates(code).map(async (candidate) => {
+    for (const providerUrl of OPEN_FOOD_FACTS_PRODUCT_URLS) {
+      try {
+        const response = await fetch(`${providerUrl}/${encodeURIComponent(candidate)}.json?fields=${fields}`, {
+          headers: { Accept: "application/json", "User-Agent": "ForgeFit/1.0 (barcode lookup)" },
+          signal: AbortSignal.timeout(10000),
+        });
+        providerStatuses.push(response.status);
+        if (!response.ok) continue;
+        const payload = await response.json() as ProviderProductResponse;
+        if (!payload.product) continue;
+        const normalized = normalizeProduct(payload.product, language, 0);
+        if (normalized) return normalized;
+      } catch {
+        // Try the alternate Open Food Facts host and the next barcode representation.
+      }
+    }
+    return null;
+  }));
+  const match = lookupResults.find((result): result is PromiseFulfilledResult<NormalizedFood> => result.status === "fulfilled" && result.value !== null);
+  if (match?.value) return [match.value];
   if (providerStatuses.some((status) => status === 200 || status === 404)) return [];
   throw new Error(`Open Food Facts barcode lookup returned ${providerStatuses.join(", ")}.`);
 }
