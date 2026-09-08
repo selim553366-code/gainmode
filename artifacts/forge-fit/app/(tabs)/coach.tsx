@@ -75,7 +75,7 @@ function TwinklingStar({ star, color }: { star: (typeof COACH_STARS)[number]; co
   }]} />;
 }
 
-function CoachAtmosphereBackground({ colors, reveal }: { colors: ReturnType<typeof useColors>; reveal: Animated.Value }) {
+function CoachAtmosphereBackground({ colors, reveal, overrideAtmosphere }: { colors: ReturnType<typeof useColors>; reveal: Animated.Value; overrideAtmosphere: CoachAtmosphere | null }) {
   const initialAtmosphere = React.useMemo(() => getCoachAtmosphere(), []);
   const [atmosphere, setAtmosphere] = React.useState<CoachAtmosphere>(initialAtmosphere);
   const [previousAtmosphere, setPreviousAtmosphere] = React.useState<CoachAtmosphere>(initialAtmosphere);
@@ -92,8 +92,7 @@ function CoachAtmosphereBackground({ colors, reveal }: { colors: ReturnType<type
   }, [ambientMotion]);
 
   React.useEffect(() => {
-    const checkAtmosphere = () => {
-      const nextAtmosphere = getCoachAtmosphere();
+    const transitionTo = (nextAtmosphere: CoachAtmosphere) => {
       if (nextAtmosphere === atmosphere) return;
       setPreviousAtmosphere(atmosphere);
       setAtmosphere(nextAtmosphere);
@@ -107,9 +106,12 @@ function CoachAtmosphereBackground({ colors, reveal }: { colors: ReturnType<type
         if (finished) setPreviousAtmosphere(nextAtmosphere);
       });
     };
+    transitionTo(overrideAtmosphere ?? getCoachAtmosphere());
+    if (overrideAtmosphere !== null) return undefined;
+    const checkAtmosphere = () => transitionTo(getCoachAtmosphere());
     const interval = setInterval(checkAtmosphere, 60000);
     return () => clearInterval(interval);
-  }, [atmosphere, transition]);
+  }, [atmosphere, overrideAtmosphere, transition]);
 
   const renderAtmosphere = (phase: CoachAtmosphere) => {
     if (phase === 'morning') {
@@ -192,6 +194,7 @@ export default function CoachScreen() {
   const [ratingLoaded, setRatingLoaded] = useState(false);
   const [ratingSending, setRatingSending] = useState<number | null>(null);
   const [ratedMessageId, setRatedMessageId] = useState<string | null>(null);
+  const [previewAtmosphere, setPreviewAtmosphere] = useState<CoachAtmosphere | null>(null);
   const [chatOriginY, setChatOriginY] = React.useState(0);
   const [coachMessageOffsetY, setCoachMessageOffsetY] = React.useState(12);
   const inputRef = useRef<TextInput>(null);
@@ -369,13 +372,41 @@ export default function CoachScreen() {
     };
   }, [analysisId, weeklyAnalysis]);
   return <View style={[styles.root, { backgroundColor: colors.white, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
-     <CoachAtmosphereBackground colors={colors} reveal={coachReveal} />
+     <CoachAtmosphereBackground colors={colors} reveal={coachReveal} overrideAtmosphere={previewAtmosphere} />
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.secondary, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
     <View style={styles.referenceHeader}>
       <View style={styles.referenceHeaderText}>
         <Text style={[styles.referenceEyebrow, { color: colors.black }]}>{t('coachEyebrow').toUpperCase()}</Text>
         <Text style={[styles.referenceTitle, { color: colors.black }]}>{t('coachTitle')}</Text>
         <Text style={[styles.referenceSubtitle, { color: colors.black }]}>{t('coachSubtitle')}</Text>
+        <View style={styles.atmospherePreview}>
+          <Text style={[styles.atmospherePreviewLabel, { color: colors.mutedForeground }]}>{t('coachAtmospherePreview')}</Text>
+          <View style={styles.atmospherePreviewButtons}>
+            {([
+              ['morning', 'coachAtmosphereMorning'],
+              ['afternoon', 'coachAtmosphereAfternoon'],
+              ['night', 'coachAtmosphereNight'],
+            ] as const).map(([value, labelKey]) => (
+              <Pressable
+                key={value}
+                testID={`coach-atmosphere-${value}`}
+                accessibilityRole="button"
+                accessibilityLabel={t(labelKey)}
+                onPress={() => setPreviewAtmosphere(value)}
+                style={({ pressed }) => [
+                  styles.atmospherePreviewButton,
+                  {
+                    backgroundColor: previewAtmosphere === value ? colors.black : `${colors.white}B8`,
+                    borderColor: previewAtmosphere === value ? colors.black : `${colors.black}20`,
+                    opacity: pressed ? 0.68 : 1,
+                  },
+                ]}
+              >
+                <Text style={[styles.atmospherePreviewButtonText, { color: previewAtmosphere === value ? colors.white : colors.black }]}>{t(labelKey)}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
       </View>
       <Pressable testID="header-action" accessibilityRole="button" accessibilityLabel={t('coachTitle')} onPress={() => undefined} style={({ pressed }) => [styles.referenceHeaderAction, { backgroundColor: colors.black, opacity: pressed ? 0.72 : 1 }]}>
         <Ionicons name="chatbubble-ellipses-outline" size={25} color={colors.white} />
@@ -452,6 +483,11 @@ const styles = StyleSheet.create({
   referenceEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 2.4, lineHeight: 16 },
   referenceTitle: { fontFamily: 'Inter_700Bold', fontSize: 34, lineHeight: 40, marginTop: 8, letterSpacing: -1 },
   referenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 17, lineHeight: 23, marginTop: 2, maxWidth: 310 },
+  atmospherePreview: { marginTop: 12, gap: 6 },
+  atmospherePreviewLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 0.3 },
+  atmospherePreviewButtons: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  atmospherePreviewButton: { minHeight: 28, borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
+  atmospherePreviewButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   referenceHeaderAction: { width: 52, height: 52, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
   caption: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
   limit: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
