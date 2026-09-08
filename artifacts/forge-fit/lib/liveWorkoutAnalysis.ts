@@ -44,6 +44,7 @@ export type AnalysisResult = {
   state: RepState;
   warning: LiveWarningKey;
   metric: number | null;
+  depthPercent: number;
   confidence: number;
 };
 
@@ -220,11 +221,25 @@ function lungeMetric(pose: PoseLandmarks, side: 'left' | 'right') {
   return kneeMetric(pose, side) ?? kneeMetric(pose, side === 'left' ? 'right' : 'left');
 }
 
+const depthThresholds: Record<ExerciseKind, { standing: number; fullDepth: number }> = {
+  squat: { standing: 165, fullDepth: 115 },
+  pushup: { standing: 160, fullDepth: 105 },
+  lunge: { standing: 160, fullDepth: 112 },
+};
+
+export function depthPercentForMetric(kind: ExerciseKind, metric: number | null) {
+  if (metric === null) return 0;
+  const { standing, fullDepth } = depthThresholds[kind];
+  const percent = ((standing - metric) / (standing - fullDepth)) * 100;
+  return Math.max(0, Math.min(100, Math.round(percent)));
+}
+
 export function analyzePose(kind: ExerciseKind, pose: PoseLandmarks, previous: RepState, timestamp: number): AnalysisResult {
   const side = selectSide(pose, previous.activeSide);
   const confidence = kind === 'pushup' ? pushupConfidence(pose) : kind === 'squat' ? squatConfidence(pose) : sideConfidence(pose, side);
   let warning = baseWarning(kind, pose, confidence, side);
   const metric = kind === 'squat' ? squatMetric(pose, side) : kind === 'pushup' ? pushupMetric(pose) : lungeMetric(pose, side);
+  const depthPercent = depthPercentForMetric(kind, metric);
   const next: RepState = {
     ...previous,
     activeSide: kind === 'pushup' ? undefined : side,
@@ -233,19 +248,19 @@ export function analyzePose(kind: ExerciseKind, pose: PoseLandmarks, previous: R
   };
 
   if (metric === null || confidence < 0.42) {
-    return { state: next, warning, metric, confidence };
+    return { state: next, warning, metric, depthPercent, confidence };
   }
 
-  const downThreshold = kind === 'pushup' ? 105 : kind === 'lunge' ? 112 : 115;
-  const startThreshold = kind === 'squat' ? 165 : 160;
+  const { fullDepth: downThreshold, standing: startThreshold } = depthThresholds[kind];
   const upThreshold = kind === 'pushup' ? 155 : 160;
   const ascentThreshold = downThreshold + (kind === 'squat' ? 12 : 18);
   const pushupDepthReady = kind !== 'pushup' || (pushupHeadDrop(pose) ?? 0) >= -0.06;
+  const fullDepthReached = depthPercent >= 100;
 
   const previousPhase = next.phase;
-  if (next.phase === 'ready' && metric <= downThreshold && pushupDepthReady) next.phase = 'bottom';
+  if (next.phase === 'ready' && fullDepthReached && pushupDepthReady) next.phase = 'bottom';
   else if (next.phase === 'ready' && metric < startThreshold) next.phase = 'descending';
-  else if (next.phase === 'descending' && metric <= downThreshold && pushupDepthReady) next.phase = 'bottom';
+  else if (next.phase === 'descending' && fullDepthReached && pushupDepthReady) next.phase = 'bottom';
   else if (next.phase === 'bottom' && metric >= ascentThreshold) next.phase = 'ascending';
   else if (next.phase === 'ascending' && metric > upThreshold) {
     if (timestamp - next.lastRepAt > 450) {
@@ -261,5 +276,5 @@ export function analyzePose(kind: ExerciseKind, pose: PoseLandmarks, previous: R
   }
   next.lastWarning = warning;
 
-  return { state: next, warning, metric, confidence };
+  return { state: next, warning, metric, depthPercent, confidence };
 }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzePose, cameraDisplayX, initialRepState } from '../lib/liveWorkoutAnalysis.ts';
+import { analyzePose, cameraDisplayX, depthPercentForMetric, initialRepState } from '../lib/liveWorkoutAnalysis.ts';
 
 const point = (x, y, visibility = 0.95) => ({ x, y, visibility });
 
@@ -8,6 +8,14 @@ test('mirrors front-camera skeleton movement for selfie alignment', () => {
   assert.equal(cameraDisplayX(0.2), 0.8);
   assert.ok(Math.abs(cameraDisplayX(0.8) - 0.2) < 1e-9);
   assert.equal(cameraDisplayX(0.5), 0.5);
+});
+
+test('maps movement depth to a capped 0-to-100 progress scale', () => {
+  assert.equal(depthPercentForMetric('squat', 165), 0);
+  assert.equal(depthPercentForMetric('squat', 140), 50);
+  assert.equal(depthPercentForMetric('squat', 120), 90);
+  assert.equal(depthPercentForMetric('squat', 115), 100);
+  assert.equal(depthPercentForMetric('squat', 95), 100);
 });
 
 function sidePose(kneeAngle, side = 'left') {
