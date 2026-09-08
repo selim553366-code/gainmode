@@ -35,6 +35,26 @@ type TargetWeightUnit = 'kg' | 'lb';
 type OnboardingMode = 'quick' | 'detailed';
 type OnboardingStepId = number | 'mode';
 
+const languageFlags: Record<Language, string> = {
+  tr: '🇹🇷',
+  en: '🇬🇧',
+  de: '🇩🇪',
+  fr: '🇫🇷',
+  es: '🇪🇸',
+};
+
+function LanguageSelector({ language, onSelect }: { language: Language; onSelect: (language: Language) => void }) {
+  const colors = useColors();
+  return <View style={styles.languageRow}>
+    {(Object.keys(languageLabels) as Language[]).map((item) => (
+      <Pressable key={item} onPress={() => onSelect(item)} style={styles.languageOption}>
+        <Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text>
+        <Text style={styles.languageFlag}>{languageFlags[item]}</Text>
+      </Pressable>
+    ))}
+  </View>;
+}
+
 const QUICK_ONBOARDING_STEP_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 10, 14] as const;
 
 const KG_PER_POUND = 1 / 2.20462;
@@ -689,7 +709,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
 
    const orbRotateValue = orbRotation.interpolate({ inputRange: [0, 1], outputRange: ['-5deg', '0deg'] });
    return <AnimatedLinearGradient colors={[colors.background, colors.secondary, colors.background]} style={[styles.full, { opacity: pageOpacity, transform: [{ translateX: pageTranslateX }] }]}>
-      <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
+      <View style={styles.questionTop}><ForgeFitMark size={38} /><LanguageSelector language={language} onSelect={setLanguage} /></View>
      <View style={styles.welcomeContent}><Animated.View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18`, transform: [{ scale: orbScale }, { rotate: orbRotateValue }] }]}><Image source={require('@/assets/images/coach-welcome.png')} resizeMode="cover" style={styles.welcomeCoachImage} /></Animated.View><Animated.View style={{ opacity: copyOpacity, transform: [{ translateY: copyTranslateY }] }}><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text></Animated.View></View>
       <Animated.View style={{ opacity: buttonOpacity, transform: [{ translateY: buttonTranslateY }] }}><Pressable onPress={startAdventure} disabled={leaving} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></Animated.View>
    </AnimatedLinearGradient>;
