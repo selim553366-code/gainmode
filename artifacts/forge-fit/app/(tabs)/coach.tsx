@@ -205,7 +205,7 @@ export default function CoachScreen() {
         keyboardShouldPersistTaps="handled"
       />
        <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
-         <Animated.View style={[styles.auraInput, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }]}>
+          <Animated.View style={[styles.auraInput, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.black, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }]}>
             <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground }]} />
            <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.foreground, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={18} color={colors.background} /></Pressable>
          </Animated.View>
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 4, paddingTop: 12 },
   attach: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   input: { flex: 1, minHeight: 64, maxHeight: 120, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, outlineWidth: 0 },
-  auraInput: { flex: 1, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 32, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 4 },
+  auraInput: { flex: 1, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 32, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 7 },
   send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   photoPreview: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 9, padding: 8, borderRadius: 15, borderWidth: 1 },
   photoPreviewImage: { width: 46, height: 46, borderRadius: 10 },
