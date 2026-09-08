@@ -35,13 +35,21 @@ type TargetWeightUnit = 'kg' | 'lb';
 type OnboardingMode = 'quick' | 'detailed';
 type OnboardingStepId = number | 'mode';
 
-const languageFlags: Record<Language, string> = {
-  tr: '🇹🇷',
-  en: '🇬🇧',
-  de: '🇩🇪',
-  fr: '🇫🇷',
-  es: '🇪🇸',
-};
+function MiniFlag({ language }: { language: Language }) {
+  if (language === 'tr') {
+    return <View style={[styles.flagFrame, styles.flagTurkey]}><View style={styles.flagTurkeyCrescent} /><View style={styles.flagTurkeyStar} /></View>;
+  }
+  if (language === 'en') {
+    return <View style={[styles.flagFrame, styles.flagUnitedKingdom]}><View style={styles.flagUkCrossVertical} /><View style={styles.flagUkCrossHorizontal} /><View style={styles.flagUkRedVertical} /><View style={styles.flagUkRedHorizontal} /></View>;
+  }
+  if (language === 'de') {
+    return <View style={[styles.flagFrame, styles.flagGermany]}><View style={styles.flagGermanyRed} /><View style={styles.flagGermanyGold} /></View>;
+  }
+  if (language === 'fr') {
+    return <View style={[styles.flagFrame, styles.flagFrance]}><View style={styles.flagFranceWhite} /><View style={styles.flagFranceRed} /></View>;
+  }
+  return <View style={[styles.flagFrame, styles.flagSpain]}><View style={styles.flagSpainYellow} /></View>;
+}
 
 function LanguageSelector({ language, onSelect }: { language: Language; onSelect: (language: Language) => void }) {
   const colors = useColors();
@@ -49,7 +57,7 @@ function LanguageSelector({ language, onSelect }: { language: Language; onSelect
     {(Object.keys(languageLabels) as Language[]).map((item) => (
       <Pressable key={item} onPress={() => onSelect(item)} style={styles.languageOption}>
         <Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text>
-        <Text style={styles.languageFlag}>{languageFlags[item]}</Text>
+        <MiniFlag language={item} />
       </Pressable>
     ))}
   </View>;
@@ -1130,7 +1138,23 @@ const styles = StyleSheet.create({
   languageRow: { flexDirection: 'row', gap: 8 },
   languageOption: { width: 20, alignItems: 'center', gap: 2 },
   language: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 12 },
-  languageFlag: { fontSize: 14, lineHeight: 16 },
+  flagFrame: { width: 20, height: 12, borderRadius: 2, overflow: 'hidden', position: 'relative', borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.16)' },
+  flagTurkey: { backgroundColor: '#E30A17' },
+  flagTurkeyCrescent: { position: 'absolute', left: 5, top: 3, width: 6, height: 6, borderRadius: 4, backgroundColor: '#FFFFFF' },
+  flagTurkeyStar: { position: 'absolute', left: 11, top: 4, width: 0, height: 0, borderTopWidth: 2, borderBottomWidth: 2, borderLeftWidth: 4, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#FFFFFF' },
+  flagUnitedKingdom: { backgroundColor: '#244B9B' },
+  flagUkCrossVertical: { position: 'absolute', left: 8, top: 0, width: 4, height: 12, backgroundColor: '#FFFFFF' },
+  flagUkCrossHorizontal: { position: 'absolute', left: 0, top: 4, width: 20, height: 4, backgroundColor: '#FFFFFF' },
+  flagUkRedVertical: { position: 'absolute', left: 9, top: 0, width: 2, height: 12, backgroundColor: '#CF142B' },
+  flagUkRedHorizontal: { position: 'absolute', left: 0, top: 5, width: 20, height: 2, backgroundColor: '#CF142B' },
+  flagGermany: { backgroundColor: '#000000' },
+  flagGermanyRed: { position: 'absolute', left: 0, right: 0, top: 4, height: 4, backgroundColor: '#DD0000' },
+  flagGermanyGold: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: '#FFCE00' },
+  flagFrance: { backgroundColor: '#0055A4' },
+  flagFranceWhite: { position: 'absolute', left: 7, top: 0, bottom: 0, width: 6, backgroundColor: '#FFFFFF' },
+  flagFranceRed: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 7, backgroundColor: '#EF4135' },
+  flagSpain: { backgroundColor: '#AA151B' },
+  flagSpainYellow: { position: 'absolute', left: 0, right: 0, top: 3, height: 6, backgroundColor: '#F1BF00' },
   questionBody: { flex: 1, minHeight: 0, marginTop: 10 },
   questionScrollContent: { paddingTop: 2, paddingBottom: 12 },
   coachQuestionVisual: { width: '100%', height: 282, alignSelf: 'center', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 8 },
