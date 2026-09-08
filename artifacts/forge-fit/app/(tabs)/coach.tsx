@@ -17,7 +17,7 @@ import { localDateKey } from '@/lib/nutritionDates';
 
 type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
 type CoachApiResponse = { content?: string; actions?: unknown[] };
-type CoachAtmosphere = 'morning' | 'afternoon' | 'night';
+type CoachAtmosphere = 'morning' | 'night';
 
 const COACH_STARS = [
   { x: 9, y: 13, size: 2, delay: 0 },
@@ -45,7 +45,6 @@ const COACH_STARS = [
 function getCoachAtmosphere(date = new Date()): CoachAtmosphere {
   const minutes = date.getHours() * 60 + date.getMinutes();
   if (minutes >= 21 * 60 || minutes < 6 * 60) return 'night';
-  if (minutes >= 15 * 60) return 'afternoon';
   return 'morning';
 }
 
@@ -118,23 +117,6 @@ function CoachAtmosphereBackground({ colors, reveal, overrideAtmosphere }: { col
       return <View style={styles.coachAtmosphereLayer}>
         <LinearGradient colors={[colors.coachMorningGlow, colors.white]} style={StyleSheet.absoluteFill} />
         <Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} />
-      </View>;
-    }
-    if (phase === 'afternoon') {
-      return <View style={styles.coachAtmosphereLayer}>
-        <LinearGradient
-          colors={[colors.coachAfternoonSun, colors.coachAfternoonLime, colors.coachAfternoonMist]}
-          locations={[0, 0.46, 1]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <Animated.View style={[styles.coachAfternoonGlow, {
-          opacity: ambientMotion.interpolate({ inputRange: [0, 1], outputRange: [0.28, 0.58] }),
-          transform: [{ translateX: ambientMotion.interpolate({ inputRange: [0, 1], outputRange: [-28, 22] }) }, { scale: ambientMotion.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.1] }) }],
-        }]}>
-          <LinearGradient colors={[colors.coachAfternoonHighlight, colors.coachTransparent]} style={StyleSheet.absoluteFill} />
-        </Animated.View>
       </View>;
     }
     return <View style={styles.coachAtmosphereLayer}>
@@ -383,8 +365,7 @@ export default function CoachScreen() {
           <Text style={[styles.atmospherePreviewLabel, { color: colors.mutedForeground }]}>{t('coachAtmospherePreview')}</Text>
           <View style={styles.atmospherePreviewButtons}>
             {([
-              ['morning', 'coachAtmosphereMorning'],
-              ['afternoon', 'coachAtmosphereAfternoon'],
+              ['morning', 'coachAtmosphereNormal'],
               ['night', 'coachAtmosphereNight'],
             ] as const).map(([value, labelKey]) => (
               <Pressable
