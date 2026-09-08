@@ -8,7 +8,6 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { Header } from '@/components/FitUI';
 import { DAILY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
@@ -164,7 +163,16 @@ export default function CoachScreen() {
       <Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: coachReveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} />
     </View>
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.secondary, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
-    <Header eyebrow="Intelligence / 05" title={t('coachTitle')} subtitle={t('coachSubtitle')} action="chatbubble-ellipses-outline" onAction={() => undefined} />
+    <View style={styles.referenceHeader}>
+      <View style={styles.referenceHeaderText}>
+        <Text style={[styles.referenceEyebrow, { color: colors.black }]}>{t('coachEyebrow').toUpperCase()}</Text>
+        <Text style={[styles.referenceTitle, { color: colors.black }]}>{t('coachTitle')}</Text>
+        <Text style={[styles.referenceSubtitle, { color: colors.black }]}>{t('coachSubtitle')}</Text>
+      </View>
+      <Pressable testID="header-action" accessibilityRole="button" accessibilityLabel={t('coachTitle')} onPress={() => undefined} style={({ pressed }) => [styles.referenceHeaderAction, { backgroundColor: colors.black, opacity: pressed ? 0.72 : 1 }]}>
+        <Ionicons name="chatbubble-ellipses-outline" size={25} color={colors.white} />
+      </Pressable>
+    </View>
     <View pointerEvents="none" style={styles.analysisFlightLayer}>
       <Animated.View style={[styles.analysisFlightCard, { backgroundColor: colors.primaryForeground, opacity: weeklyCardReveal.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.9, 0] }), transform: [{ translateX: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 20 - (screenSize.width / 2 - 130)] }) }, { translateY: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, chatOriginY + 42 - (screenSize.height - 220)] }) }, { scale: weeklyCardReveal.interpolate({ inputRange: [0, 0.75, 1], outputRange: [1, 0.84, 0.68] }) }] }]}><Ionicons name="sparkles" size={16} color={colors.primary} /><Text style={[styles.analysisFlightText, { color: colors.primary }]}>{t('weeklyAnalysisReading')}</Text></Animated.View>
     </View>
@@ -206,8 +214,8 @@ export default function CoachScreen() {
       />
        <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
           <Animated.View style={[styles.auraInput, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.black, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }]}>
-            <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground }]} />
-           <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.foreground, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={18} color={colors.background} /></Pressable>
+             <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground }]} />
+            <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.black, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.white} /></Pressable>
          </Animated.View>
       </View>
     </KeyboardAvoidingView>
@@ -224,6 +232,12 @@ const styles = StyleSheet.create({
   analysisFlightCard: { position: 'absolute', left: '50%', top: '100%', width: 260, marginLeft: -130, minHeight: 52, borderRadius: 17, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 9, shadowColor: '#000', shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
   analysisFlightText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
   coachFlyingAvatar: { position: 'absolute', width: 72, height: 72, borderRadius: 36, shadowColor: '#FFFFFF', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
+  referenceHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, paddingTop: 4, paddingBottom: 6 },
+  referenceHeaderText: { flex: 1, minWidth: 0 },
+  referenceEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 2.4, lineHeight: 16 },
+  referenceTitle: { fontFamily: 'Inter_700Bold', fontSize: 34, lineHeight: 40, marginTop: 8, letterSpacing: -1 },
+  referenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 17, lineHeight: 23, marginTop: 2, maxWidth: 310 },
+  referenceHeaderAction: { width: 52, height: 52, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
   caption: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
   limit: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   limitNumber: { fontFamily: 'Inter_700Bold', fontSize: 18 },
@@ -258,11 +272,11 @@ const styles = StyleSheet.create({
   typingLabel: { fontFamily: 'Inter_500Medium', fontSize: 12 },
   typingDots: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 14 },
   typingDot: { width: 5, height: 5, borderRadius: 3 },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 4, paddingTop: 12 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 4, paddingTop: 16 },
   attach: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  input: { flex: 1, minHeight: 64, maxHeight: 120, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, outlineWidth: 0 },
-  auraInput: { flex: 1, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 32, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 7 },
-  send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  input: { flex: 1, minHeight: 64, maxHeight: 82, width: '100%', paddingHorizontal: 17, paddingTop: 15, paddingBottom: 6, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, outlineWidth: 0 },
+  auraInput: { flex: 1, minHeight: 112, flexDirection: 'column', alignItems: 'stretch', borderWidth: 1.5, borderRadius: 25, paddingTop: 1, paddingHorizontal: 1, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 7 },
+  send: { width: 48, height: 48, borderRadius: 16, alignSelf: 'flex-end', alignItems: 'center', justifyContent: 'center', marginRight: 8, marginBottom: 8 },
   photoPreview: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 9, padding: 8, borderRadius: 15, borderWidth: 1 },
   photoPreviewImage: { width: 46, height: 46, borderRadius: 10 },
   photoPreviewCopy: { flex: 1, minWidth: 0 },
