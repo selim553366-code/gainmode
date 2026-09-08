@@ -1516,6 +1516,39 @@ const coachRatingTranslations = {
   },
 } as const;
 
+const coachAtmosphereTranslations = {
+  tr: {
+    coachAtmospherePreview: 'Arka plan önizlemesi',
+    coachAtmosphereMorning: 'Sabah',
+    coachAtmosphereAfternoon: 'Öğle',
+    coachAtmosphereNight: 'Akşam',
+  },
+  en: {
+    coachAtmospherePreview: 'Background preview',
+    coachAtmosphereMorning: 'Morning',
+    coachAtmosphereAfternoon: 'Afternoon',
+    coachAtmosphereNight: 'Evening',
+  },
+  de: {
+    coachAtmospherePreview: 'Hintergrundvorschau',
+    coachAtmosphereMorning: 'Morgen',
+    coachAtmosphereAfternoon: 'Nachmittag',
+    coachAtmosphereNight: 'Abend',
+  },
+  fr: {
+    coachAtmospherePreview: 'Aperçu de l’arrière-plan',
+    coachAtmosphereMorning: 'Matin',
+    coachAtmosphereAfternoon: 'Après-midi',
+    coachAtmosphereNight: 'Soir',
+  },
+  es: {
+    coachAtmospherePreview: 'Vista previa del fondo',
+    coachAtmosphereMorning: 'Mañana',
+    coachAtmosphereAfternoon: 'Tarde',
+    coachAtmosphereNight: 'Noche',
+  },
+} as const;
+
 const settingsTranslations = {
   tr: {
     settingsTitle: 'Ayarlar', settingsEyebrow: 'Tercihler', settingsSubtitle: 'Forge Fit deneyimini kendine göre düzenle.',
@@ -2031,7 +2064,7 @@ const themeTranslations = {
   es: { appearance: 'Apariencia', appearanceDescription: 'Elige la apariencia de GainMode o sigue automáticamente tu teléfono.', themeSystem: 'Sistema', themeLight: 'Claro', themeDark: 'Oscuro' },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof coachRatingTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr;
+export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof coachRatingTranslations.tr | keyof typeof coachAtmosphereTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr;
 
 const workoutReminderDescriptions: Record<Language, string> = {
   tr: 'Antrenman günlerinde saat 09:00’da o günün antrenmanını ve süresini hatırlat.',
@@ -2099,6 +2132,11 @@ export function translate(language: Language, key: TranslationKey): string {
     const ratingCopy = coachRatingTranslations[language] as Record<string, string>;
     const fallbackRating = coachRatingTranslations.en as Record<string, string>;
     return applyCurrentBrand(ratingCopy[key] ?? fallbackRating[key] ?? key);
+  }
+  if (key in coachAtmosphereTranslations.tr) {
+    const atmosphereCopy = coachAtmosphereTranslations[language] as Record<string, string>;
+    const fallbackAtmosphere = coachAtmosphereTranslations.en as Record<string, string>;
+    return applyCurrentBrand(atmosphereCopy[key] ?? fallbackAtmosphere[key] ?? key);
   }
   const base = translations[language] as Record<string, string>;
   const fallbackBase = translations.en as Record<string, string>;
