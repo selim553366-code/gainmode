@@ -45,7 +45,7 @@
         {
           "image": "./assets/images/coach-app-icon-final.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0B0D0C"
+          "backgroundColor": "#F7FAFC"
         }
       ],
       "expo-web-browser",

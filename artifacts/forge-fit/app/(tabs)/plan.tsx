@@ -41,14 +41,15 @@ function LiveFormAnalysisCard({ title, body, choices, onSelect }: {
   choices: ReadonlyArray<{ kind: string; label: string }>;
   onSelect: (kind: string) => void;
 }) {
-  return <View testID="live-form-analysis-bar" style={styles.liveAnalysisCard}>
+  const colors = useColors();
+  return <View testID="live-form-analysis-bar" style={[styles.liveAnalysisCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
     <View style={styles.liveAnalysisHeader}>
-      <View style={styles.liveAnalysisIcon}>
-        <Ionicons name="scan-outline" size={28} color="#071C34" />
+      <View style={[styles.liveAnalysisIcon, { backgroundColor: `${colors.primary}18` }]}>
+        <Ionicons name="scan-outline" size={28} color={colors.primary} />
       </View>
       <View style={styles.liveAnalysisCopy}>
-        <Text style={styles.liveAnalysisTitle}>{title}</Text>
-        <Text style={styles.liveAnalysisBody}>{body}</Text>
+        <Text style={[styles.liveAnalysisTitle, { color: colors.foreground }]}>{title}</Text>
+        <Text style={[styles.liveAnalysisBody, { color: colors.mutedForeground }]}>{body}</Text>
       </View>
     </View>
     <View style={styles.liveChoiceRow}>
@@ -58,10 +59,10 @@ function LiveFormAnalysisCard({ title, body, choices, onSelect }: {
         accessibilityRole="button"
         accessibilityLabel={choice.label}
         onPress={() => onSelect(choice.kind)}
-        style={({ pressed }) => [styles.liveChoice, { opacity: pressed ? 0.72 : 1 }]}
+        style={({ pressed }) => [styles.liveChoice, { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.72 : 1 }]}
       >
-        <Ionicons name="arrow-forward" size={22} color="#62C8FF" />
-        <Text style={styles.liveChoiceText}>{choice.label}</Text>
+        <Ionicons name="arrow-forward" size={22} color={colors.primary} />
+        <Text style={[styles.liveChoiceText, { color: colors.foreground }]}>{choice.label}</Text>
       </Pressable>)}
     </View>
   </View>;
@@ -154,15 +155,15 @@ const styles = StyleSheet.create({
   progressCaption: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 10 },
   startButton: { height: 54, borderRadius: 17, marginTop: 18, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   startButtonText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 15, textAlign: 'center' },
-  liveAnalysisCard: { width: '100%', aspectRatio: 2.43, borderRadius: 20, borderWidth: 1, marginTop: 10, padding: 12, overflow: 'hidden', backgroundColor: '#173650', borderColor: '#3D7594' },
+  liveAnalysisCard: { width: '100%', aspectRatio: 2.43, borderRadius: 20, borderWidth: 1, marginTop: 10, padding: 12, overflow: 'hidden' },
   liveAnalysisHeader: { flex: 1, flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  liveAnalysisIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#61C8FF', alignItems: 'center', justifyContent: 'center' },
+  liveAnalysisIcon: { width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   liveAnalysisCopy: { flex: 1, paddingTop: 1 },
-  liveAnalysisTitle: { color: '#FFFFFF', fontFamily: 'Inter_700Bold', fontSize: 17, lineHeight: 20 },
-  liveAnalysisBody: { color: '#A7C5DC', fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 15, marginTop: 3 },
+  liveAnalysisTitle: { fontFamily: 'Inter_700Bold', fontSize: 17, lineHeight: 20 },
+  liveAnalysisBody: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 15, marginTop: 3 },
   liveChoiceRow: { flexDirection: 'row', gap: 7, marginTop: 10 },
-  liveChoice: { flex: 1, minHeight: 40, borderRadius: 14, backgroundColor: '#091C34', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4, paddingHorizontal: 3 },
-  liveChoiceText: { color: '#F8FBFF', fontFamily: 'Inter_700Bold', fontSize: 11 },
+  liveChoice: { flex: 1, minHeight: 40, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 4, paddingHorizontal: 3 },
+  liveChoiceText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
   focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 18 },
   focusChip: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5 },
   focusChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useColors } from '@/hooks/useColors';
 import {
   Activity,
   Apple,
@@ -285,9 +286,10 @@ const iconMap: Record<IconName, IconComponent> = {
   'badge-lock': LockKeyhole,
 };
 
-export function AppIcon({ name, size = 24, color = '#FFFFFF' }: { name: IconName; size?: number; color?: string }) {
+export function AppIcon({ name, size = 24, color }: { name: IconName; size?: number; color?: string }) {
+  const colors = useColors();
   const Icon = iconMap[name];
-  return <Icon size={size} color={color} strokeWidth={2.2} />;
+  return <Icon size={size} color={color ?? colors.foreground} strokeWidth={2.2} />;
 }
 
 export const Ionicons = AppIcon;
