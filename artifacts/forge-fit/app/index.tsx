@@ -580,7 +580,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const isTargetStep = numericStep === targetStep && hasTargetWeightStep;
     const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[numericStep] ?? 'preferredDaysQuestion';
    return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
-     <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
+     <View style={styles.questionTop}><ForgeFitMark size={38} /><LanguageSelector language={language} onSelect={setLanguage} /></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
        <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
           <View style={styles.coachQuestionVisual}><AnswerAnalysisStatus /><View style={styles.coachPhotoStage}><CoachMotion onboarding variant="write" /></View></View>
@@ -605,13 +605,7 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
     <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
       <View style={styles.questionTop}>
         <ForgeFitMark size={38} />
-        <View style={styles.languageRow}>
-          {(Object.keys(languageLabels) as Language[]).map((item) => (
-            <Pressable key={item} onPress={() => setLanguage(item)}>
-              <Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <LanguageSelector language={language} onSelect={setLanguage} />
       </View>
       <View style={styles.modeChoiceContent}>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>{t('onboardingModeEyebrow')}</Text>
@@ -1133,8 +1127,10 @@ const styles = StyleSheet.create({
   entryRecoveryButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   questionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brandMark: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  languageRow: { flexDirection: 'row', gap: 11 },
-  language: { fontFamily: 'Inter_700Bold', fontSize: 10 },
+  languageRow: { flexDirection: 'row', gap: 8 },
+  languageOption: { width: 20, alignItems: 'center', gap: 2 },
+  language: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 12 },
+  languageFlag: { fontSize: 14, lineHeight: 16 },
   questionBody: { flex: 1, minHeight: 0, marginTop: 10 },
   questionScrollContent: { paddingTop: 2, paddingBottom: 12 },
   coachQuestionVisual: { width: '100%', height: 282, alignSelf: 'center', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 8 },
