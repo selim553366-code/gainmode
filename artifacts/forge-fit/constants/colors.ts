@@ -37,6 +37,7 @@ const colors = {
     orange: '#D87518',
     plum: '#7661D5',
     black: '#000000',
+    white: '#FFFFFF',
   },
   dark: {
     text: '#F7F8F2',
@@ -62,6 +63,7 @@ const colors = {
     orange: '#FFB66B',
     plum: '#B39BFF',
     black: '#000000',
+    white: '#FFFFFF',
   },
   radius: 18,
 };
