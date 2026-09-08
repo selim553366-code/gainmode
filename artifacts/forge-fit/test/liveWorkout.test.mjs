@@ -77,10 +77,34 @@ test('counts a side-view squat using the clearest single body side', () => {
 
 test('counts a front-view squat from both bent knees', () => {
   const state = runCycle('squat', [
-    { ...sidePose(170, 'left'), ...sidePose(170, 'right') },
-    { ...sidePose(95, 'left'), ...sidePose(95, 'right') },
-    { ...sidePose(130, 'left'), ...sidePose(130, 'right') },
-    { ...sidePose(170, 'left'), ...sidePose(170, 'right') },
+    {
+      ...sidePose(170, 'left'),
+      ...sidePose(170, 'right'),
+      nose: point(0.5, 0.14),
+      leftShoulder: point(0.4, 0.24),
+      rightShoulder: point(0.6, 0.24),
+    },
+    {
+      ...sidePose(95, 'left'),
+      ...sidePose(95, 'right'),
+      nose: point(0.5, 0.3),
+      leftShoulder: point(0.43, 0.36),
+      rightShoulder: point(0.57, 0.36),
+    },
+    {
+      ...sidePose(130, 'left'),
+      ...sidePose(130, 'right'),
+      nose: point(0.5, 0.25),
+      leftShoulder: point(0.42, 0.31),
+      rightShoulder: point(0.58, 0.31),
+    },
+    {
+      ...sidePose(170, 'left'),
+      ...sidePose(170, 'right'),
+      nose: point(0.5, 0.14),
+      leftShoulder: point(0.4, 0.24),
+      rightShoulder: point(0.6, 0.24),
+    },
   ]);
 
   assert.equal(state.reps, 1);
@@ -104,6 +128,17 @@ test('counts a front-view push-up when one arm is the clearest track', () => {
     pushupPose(90, false),
     pushupPose(130, false),
     pushupPose(170, false),
+  ]);
+
+  assert.equal(state.reps, 1);
+});
+
+test('counts a front-facing push-up with the head and both shoulders visible', () => {
+  const state = runCycle('pushup', [
+    pushupPose(170, true),
+    pushupPose(90, true),
+    pushupPose(130, true),
+    pushupPose(170, true),
   ]);
 
   assert.equal(state.reps, 1);

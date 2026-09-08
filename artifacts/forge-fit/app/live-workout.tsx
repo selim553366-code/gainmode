@@ -51,9 +51,9 @@ function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmar
 }
 
 function guideImageForKind(kind: ExerciseKind) {
-  if (kind === 'squat') return require('@/assets/images/live-guide-coach-squat.png');
-  if (kind === 'lunge') return require('@/assets/images/live-guide-coach-lunge.png');
-  return require('@/assets/images/live-guide-coach-pushup.png');
+  if (kind === 'squat') return require('@/assets/images/live-guide-coach-squat-front-skeleton.png');
+  if (kind === 'lunge') return require('@/assets/images/live-guide-coach-lunge-side-skeleton.png');
+  return require('@/assets/images/live-guide-coach-pushup-front-skeleton.png');
 }
 
 function ActionButton({ label, icon, onPress, disabled = false }: { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void; disabled?: boolean }) {
@@ -167,23 +167,24 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
        <Ionicons name="information-circle-outline" size={15} color={colors.primary} />
        <Text style={[styles.directionHintText, { color: colors.foreground }]}>{directionHint}</Text>
       </View> : null}
+       <View
+         accessibilityLabel={`${t('liveDepth')} ${analysis.depthPercent}%`}
+         style={[styles.depthSideRail, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.foreground}28` }]}
+       >
+         <Text style={[styles.depthSideCaption, { color: colors.mutedForeground }]}>{t('liveDepth').toUpperCase()}</Text>
+         <Text style={[styles.depthSidePercent, { color: analysis.depthPercent >= 100 ? colors.success : colors.foreground }]}>{analysis.depthPercent}%</Text>
+         <View style={[styles.depthTrack, { backgroundColor: `${colors.foreground}18`, borderColor: `${colors.foreground}28` }]}>
+           <View style={[styles.depthTargetLine, { backgroundColor: colors.success }]} />
+           <View style={[styles.depthFill, { height: `${analysis.depthPercent}%`, backgroundColor: analysis.depthPercent >= 100 ? colors.success : colors.primary }]} />
+         </View>
+         <Text style={[styles.depthSideTarget, { color: colors.success }]}>100%</Text>
+       </View>
       {showRepsPanel ? <View testID="live-workout-reps-panel" style={[styles.cameraBottom, { paddingBottom: insets.bottom + 8, backgroundColor: `${colors.background}EC`, borderColor: colors.border }]}>
          <View style={styles.metricRow}>
           <View>
             <Text style={[styles.metricCaption, { color: colors.mutedForeground }]}>{t('reps').toUpperCase()}</Text>
             <Animated.Text style={[styles.repNumber, { color: colors.foreground, transform: [{ scale: repPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.24] }) }] }]}>{analysis.state.reps}</Animated.Text>
           </View>
-           <View style={styles.depthMeterGroup}>
-             <View style={styles.depthMeterCopy}>
-               <Text style={[styles.metricCaption, { color: colors.mutedForeground }]}>{t('liveDepth').toUpperCase()}</Text>
-               <Text style={[styles.depthPercent, { color: analysis.depthPercent >= 100 ? colors.success : colors.foreground }]}>{analysis.depthPercent}%</Text>
-             </View>
-             <View accessibilityLabel={`${analysis.depthPercent}%`} style={[styles.depthTrack, { backgroundColor: `${colors.foreground}18`, borderColor: `${colors.foreground}28` }]}>
-               <View style={[styles.depthTargetLine, { backgroundColor: colors.success }]} />
-               <View style={[styles.depthFill, { height: `${analysis.depthPercent}%`, backgroundColor: analysis.depthPercent >= 100 ? colors.success : colors.primary }]} />
-             </View>
-             <Text style={[styles.depthTargetText, { color: colors.success }]}>100%</Text>
-           </View>
           <View style={styles.panelControls}>
             <View style={[styles.confidencePill, { backgroundColor: `${analysis.confidence > 0.65 ? colors.success : colors.orange}20` }]}><View style={[styles.confidenceDot, { backgroundColor: analysis.confidence > 0.65 ? colors.success : colors.orange }]} /><Text style={[styles.confidenceText, { color: analysis.confidence > 0.65 ? colors.success : colors.orange }]}>{Math.round(analysis.confidence * 100)}%</Text></View>
             <Pressable testID="hide-live-reps-panel" accessibilityRole="button" accessibilityLabel={t('hideRepsPanel')} onPress={() => setShowRepsPanel(false)} hitSlop={8} style={({ pressed }) => [styles.panelToggleButton, { backgroundColor: colors.secondary, opacity: pressed ? 0.65 : 1 }]}>
@@ -256,13 +257,13 @@ const styles = StyleSheet.create({
   modeToggle: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   cameraBottom: { position: 'absolute', left: 18, right: 18, bottom: 18, borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingTop: 10 },
   metricRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  depthMeterGroup: { flexDirection: 'row', alignItems: 'center', gap: 7, marginLeft: 12, marginRight: 'auto' },
-  depthMeterCopy: { alignItems: 'flex-end', minWidth: 50 },
-  depthPercent: { fontFamily: 'Inter_700Bold', fontSize: 16, lineHeight: 19, marginTop: 1 },
-  depthTrack: { width: 8, height: 54, borderRadius: 5, borderWidth: 1, overflow: 'hidden', justifyContent: 'flex-end' },
+   depthSideRail: { position: 'absolute', right: 12, top: '22%', bottom: '22%', width: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center', paddingVertical: 12, zIndex: 6 },
+   depthSideCaption: { fontFamily: 'Inter_700Bold', fontSize: 8, letterSpacing: 1.1, transform: [{ rotate: '-90deg' }], marginBottom: 8 },
+   depthSidePercent: { fontFamily: 'Inter_700Bold', fontSize: 16, lineHeight: 19, marginBottom: 8 },
+   depthTrack: { width: 10, flex: 1, minHeight: 180, maxHeight: 520, borderRadius: 6, borderWidth: 1, overflow: 'hidden', justifyContent: 'flex-end' },
   depthFill: { width: '100%', borderRadius: 4 },
   depthTargetLine: { position: 'absolute', top: 0, left: -2, right: -2, height: 2, zIndex: 2 },
-  depthTargetText: { fontFamily: 'Inter_700Bold', fontSize: 9, lineHeight: 12, transform: [{ rotate: '-90deg' }], marginLeft: -4, marginRight: -10 },
+   depthSideTarget: { fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 11, marginTop: 8 },
   panelControls: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   panelToggleButton: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   showRepsButton: { position: 'absolute', right: 20, borderRadius: 14, borderWidth: 1, minHeight: 36, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 6 },

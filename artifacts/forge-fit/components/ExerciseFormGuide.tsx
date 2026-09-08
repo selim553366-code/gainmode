@@ -7,9 +7,9 @@ import { translate, type Language, type TranslationKey } from '@/lib/i18n';
 type FormKind = 'push' | 'squat' | 'lunge' | 'hinge' | 'plank' | 'row' | 'press' | 'curl' | 'bridge' | 'calf' | 'pullup' | 'core';
 
 const formImages: Record<FormKind, ImageSourcePropType> = {
-  push: require('@/assets/images/live-guide-coach-pushup.png'),
-  squat: require('@/assets/images/live-guide-coach-squat.png'),
-  lunge: require('@/assets/images/live-guide-coach-lunge.png'),
+  push: require('@/assets/images/live-guide-coach-pushup-front-skeleton.png'),
+  squat: require('@/assets/images/live-guide-coach-squat-front-skeleton.png'),
+  lunge: require('@/assets/images/live-guide-coach-lunge-side-skeleton.png'),
   hinge: require('@/assets/images/form-coach-hinge.png'),
   plank: require('@/assets/images/form-coach-plank.png'),
   row: require('@/assets/images/form-coach-row.png'),

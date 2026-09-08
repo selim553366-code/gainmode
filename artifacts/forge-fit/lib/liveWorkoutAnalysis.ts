@@ -137,7 +137,18 @@ function sideConfidence(pose: PoseLandmarks, side: 'left' | 'right') {
 }
 
 function squatConfidence(pose: PoseLandmarks) {
-  return Math.max(sideConfidence(pose, 'left'), sideConfidence(pose, 'right'));
+  const frontView = visibilityFor(pose, [
+    'nose',
+    'leftShoulder',
+    'rightShoulder',
+    'leftHip',
+    'rightHip',
+    'leftKnee',
+    'rightKnee',
+    'leftAnkle',
+    'rightAnkle',
+  ]);
+  return Math.max(sideConfidence(pose, 'left'), sideConfidence(pose, 'right'), frontView);
 }
 
 function pushupConfidence(pose: PoseLandmarks) {
@@ -146,7 +157,8 @@ function pushupConfidence(pose: PoseLandmarks) {
   const bestArm = Math.max(leftArm, rightArm);
   const shoulders = centerPoint(pose, 'leftShoulder', 'rightShoulder');
   const hips = centerPoint(pose, 'leftHip', 'rightHip');
-  return average([bestArm, shoulders?.visibility ?? 0, hips?.visibility ?? 0]) ?? 0;
+  const head = point(pose, 'nose');
+  return average([bestArm, shoulders?.visibility ?? 0, hips?.visibility ?? 0, head?.visibility ?? 0]) ?? 0;
 }
 
 function bodyLength(pose: PoseLandmarks) {
@@ -181,8 +193,13 @@ function baseWarning(kind: ExerciseKind, pose: PoseLandmarks, confidence: number
   if (kind === 'pushup') {
     const leftElbow = point(pose, 'leftElbow');
     const rightElbow = point(pose, 'rightElbow');
-    if (leftElbow && Math.abs(leftElbow.x - shoulders.x) > 0.34) return 'liveElbowPosition';
-    if (rightElbow && Math.abs(rightElbow.x - shoulders.x) > 0.34) return 'liveElbowPosition';
+    const frontView = (point(pose, 'nose')?.visibility ?? 0) >= 0.55
+      && shoulders.visibility >= 0.55
+      && (point(pose, 'leftShoulder')?.visibility ?? 0) >= 0.5
+      && (point(pose, 'rightShoulder')?.visibility ?? 0) >= 0.5;
+    const elbowSpreadLimit = frontView ? 0.48 : 0.34;
+    if (leftElbow && Math.abs(leftElbow.x - shoulders.x) > elbowSpreadLimit) return 'liveElbowPosition';
+    if (rightElbow && Math.abs(rightElbow.x - shoulders.x) > elbowSpreadLimit) return 'liveElbowPosition';
     const bodyAngle = angle(shoulders, hips, ankles);
     if (bodyAngle !== null && bodyAngle < 148) return 'liveHipPosition';
   }

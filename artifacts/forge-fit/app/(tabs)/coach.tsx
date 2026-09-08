@@ -238,10 +238,10 @@ export default function CoachScreen() {
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
       />
-       <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
-           <View style={[styles.auraInput, { backgroundColor: `${colors.white}4D`, borderColor: colors.black, shadowColor: colors.black }]}>
-              <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" underlineColorAndroid="transparent" placeholder={loading ? t('analyzing') : text ? '' : animatedPrompt} placeholderTextColor={`${colors.black}80`} style={[styles.input, { color: colors.black, backgroundColor: 'transparent' }]} />
-            <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.black, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.white} /></Pressable>
+        <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
+            <View style={[styles.auraInput, { backgroundColor: colors.white, borderColor: colors.black, shadowColor: colors.black }]}>
+               <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" underlineColorAndroid="transparent" placeholder={loading ? t('analyzing') : text ? '' : animatedPrompt} placeholderTextColor={`${colors.black}80`} style={[styles.input, { color: colors.black, backgroundColor: colors.white }]} />
+             <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.black, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.white} /></Pressable>
           </View>
       </View>
     </KeyboardAvoidingView>
@@ -300,9 +300,9 @@ const styles = StyleSheet.create({
   typingDot: { width: 5, height: 5, borderRadius: 3 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 4, paddingTop: 16 },
   attach: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  input: { flex: 1, minHeight: 56, maxHeight: 72, width: '100%', paddingHorizontal: 17, paddingTop: 13, paddingBottom: 4, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, outlineWidth: 0 },
-  auraInput: { flex: 1, minHeight: 100, flexDirection: 'column', alignItems: 'stretch', overflow: 'hidden', borderWidth: 1.2, borderRadius: 25, paddingTop: 1, paddingHorizontal: 1, shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
-  send: { width: 48, height: 48, borderRadius: 16, alignSelf: 'flex-end', alignItems: 'center', justifyContent: 'center', marginRight: 8, marginBottom: 8 },
+  input: { flex: 1, minHeight: 72, maxHeight: 72, width: '100%', paddingHorizontal: 18, paddingRight: 72, paddingTop: 14, paddingBottom: 12, borderRadius: 21, borderWidth: 0, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, outlineWidth: 0 },
+  auraInput: { flex: 1, minHeight: 100, position: 'relative', flexDirection: 'row', alignItems: 'stretch', overflow: 'hidden', borderWidth: 1.2, borderRadius: 25, padding: 8, shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
+  send: { position: 'absolute', right: 8, bottom: 8, width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   photoPreview: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 9, padding: 8, borderRadius: 15, borderWidth: 1 },
   photoPreviewImage: { width: 46, height: 46, borderRadius: 10 },
   photoPreviewCopy: { flex: 1, minWidth: 0 },
