@@ -28,6 +28,7 @@ import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } 
 import { getEntryRoute } from '@/lib/entryFlow';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { isValidTestPremiumPromoCode } from '@/lib/testPremiumPromo';
+import { formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
@@ -1090,6 +1091,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
    const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>(() => annualPackage ? 'annual' : 'monthly');
    const canOfferAnnual = Boolean(annualPackage);
+  const annualMonthlyPrice = formatAnnualMonthlyPrice(annualPackage?.product);
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [promoOpen, setPromoOpen] = React.useState(false);
   const [promoCode, setPromoCode] = React.useState('');
@@ -1190,9 +1192,15 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
           <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text>
         </Pressable>
         <Pressable disabled={!canOfferAnnual} testID="welcome-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual', disabled: !canOfferAnnual }} onPress={() => { if (canOfferAnnual) setSelectedPlan('annual'); }} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border, opacity: canOfferAnnual ? 1 : 0.58 }]}>
+          {canOfferAnnual ? <View style={[styles.offerRecommendedBadge, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.offerRecommendedText, { color: colors.primaryForeground }]}>{t('premiumRecommended')}</Text>
+          </View> : null}
           <View style={styles.offerPlanHeader}><Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{canOfferAnnual ? <View style={[styles.offerSavingsBadge, { backgroundColor: `${colors.success}18` }]}><Text style={[styles.offerSavingsValue, { color: colors.success }]}>{t('premiumAnnualSavingsValue')}</Text><Text style={[styles.offerSavingsLabel, { color: colors.success }]}>{t('premiumAnnualSavingsLabel')}</Text></View> : null}</View>
           <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{annualPackage?.product.priceString ?? '—'}</Text>
-          <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
+          <View style={styles.offerAnnualPriceFooter}>
+            <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
+            {annualMonthlyPrice !== null ? <Text testID="annual-monthly-equivalent" style={[styles.offerMonthlyEquivalent, { color: colors.primary }]}>{annualMonthlyPrice} {t('premiumPerMonth')}</Text> : null}
+          </View>
         </Pressable>
       </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
@@ -1435,6 +1443,10 @@ const styles = StyleSheet.create({
   offerPlanLabel: { flex: 1, minWidth: 0, flexShrink: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
   offerPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 19, marginTop: 13 },
   offerPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 3 },
+  offerRecommendedBadge: { alignSelf: 'flex-start', maxWidth: '100%', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 4, marginBottom: 8 },
+  offerRecommendedText: { fontFamily: 'Inter_700Bold', fontSize: 9, lineHeight: 12 },
+  offerAnnualPriceFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: 5, rowGap: 3 },
+  offerMonthlyEquivalent: { flexGrow: 1, flexShrink: 1, textAlign: 'right', fontFamily: 'Inter_600SemiBold', fontSize: 10, lineHeight: 14, marginTop: 3 },
   offerTrialBadge: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 5, maxWidth: 88 },
   offerTrialIcon: { width: 16, height: 16, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   offerTrialBadgeText: { flexShrink: 1, fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 10, letterSpacing: 0.45, textAlign: 'center', textTransform: 'uppercase' },
