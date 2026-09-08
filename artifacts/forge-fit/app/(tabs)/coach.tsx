@@ -239,8 +239,8 @@ export default function CoachScreen() {
         keyboardShouldPersistTaps="handled"
       />
        <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
-           <View style={[styles.auraInput, { backgroundColor: `${colors.white}4D`, borderColor: colors.black, shadowColor: colors.black }]}>
-             <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : text ? '' : animatedPrompt} placeholderTextColor={`${colors.black}80`} style={[styles.input, { color: colors.black }]} />
+           <View style={[styles.auraInput, { backgroundColor: colors.secondary, borderColor: colors.black, shadowColor: colors.black }]}>
+              <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" underlineColorAndroid="transparent" placeholder={loading ? t('analyzing') : text ? '' : animatedPrompt} placeholderTextColor={`${colors.black}80`} style={[styles.input, { color: colors.black, backgroundColor: colors.secondary }]} />
             <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.black, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.white} /></Pressable>
           </View>
       </View>
