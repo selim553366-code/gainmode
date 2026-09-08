@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { Animated, Dimensions, Easing, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Ionicons } from '@/components/AppIcon';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useFit } from '@/context/FitContext';
@@ -16,7 +17,7 @@ import { apiUrl } from '@/lib/api';
 type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
 type CoachApiResponse = { content?: string; actions?: unknown[] };
 
-function TypingIndicator({ label, colors, lightBackground = false }: { label: string; colors: ReturnType<typeof useColors>; lightBackground?: boolean }) {
+function TypingIndicator({ label, colors }: { label: string; colors: ReturnType<typeof useColors> }) {
   const dots = React.useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
   React.useEffect(() => {
     const animations = dots.map((dot, index) => Animated.loop(Animated.sequence([
@@ -28,8 +29,8 @@ function TypingIndicator({ label, colors, lightBackground = false }: { label: st
     animations.forEach((animation) => animation.start());
     return () => animations.forEach((animation) => animation.stop());
   }, [dots]);
-  return <View style={[styles.typingBubble, { backgroundColor: lightBackground ? `${colors.foreground}C7` : colors.card, borderColor: lightBackground ? `${colors.primaryForeground}20` : colors.border }]}>
-    <Text style={[styles.typingLabel, { color: lightBackground ? `${colors.primaryForeground}B3` : colors.mutedForeground }]}>{label}</Text>
+  return <View style={[styles.typingBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Text style={[styles.typingLabel, { color: colors.mutedForeground }]}>{label}</Text>
     <View style={styles.typingDots}>{dots.map((dot, index) => <Animated.View key={index} style={[styles.typingDot, { backgroundColor: colors.primary, transform: [{ translateY: dot.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }]} />)}</View>
   </View>;
 }
@@ -157,11 +158,14 @@ export default function CoachScreen() {
       animation.stop();
     };
   }, [analysisId, weeklyAnalysis]);
-  return <View style={[styles.root, { backgroundColor: 'transparent', paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
-    <View pointerEvents="none" style={styles.coachBackgroundLayer}><Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: coachReveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} /></View>
-    <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.foreground, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
-    <Header eyebrow="Intelligence / 05" title={t('coachTitle')} subtitle={t('coachSubtitle')} action="chatbubble-ellipses-outline" onAction={() => undefined} lightBackground />
-    <Card style={[styles.coachCard, { backgroundColor: `${colors.foreground}B8`, borderColor: `${colors.foreground}99` }]}><View style={styles.coachCapabilityCopy}><Text style={[styles.coachCapabilityLabel, { color: `${colors.primaryForeground}99` }]}>{t('coachAiLabel').toUpperCase()}</Text><Text style={[styles.coachCapabilityText, { color: colors.primaryForeground }]}>{t('coachAiCapabilities')}</Text></View></Card>
+  return <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
+    <View pointerEvents="none" style={styles.coachBackgroundLayer}>
+      <LinearGradient colors={[colors.secondary, colors.background]} style={StyleSheet.absoluteFillObject} />
+      <Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: coachReveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} />
+    </View>
+    <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.background, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
+    <Header eyebrow="Intelligence / 05" title={t('coachTitle')} subtitle={t('coachSubtitle')} action="chatbubble-ellipses-outline" onAction={() => undefined} />
+    <Card style={[styles.coachCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={styles.coachCapabilityCopy}><Text style={[styles.coachCapabilityLabel, { color: colors.mutedForeground }]}>{t('coachAiLabel').toUpperCase()}</Text><Text style={[styles.coachCapabilityText, { color: colors.foreground }]}>{t('coachAiCapabilities')}</Text></View></Card>
     <View pointerEvents="none" style={styles.analysisFlightLayer}>
       <Animated.View style={[styles.analysisFlightCard, { backgroundColor: colors.primaryForeground, opacity: weeklyCardReveal.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.9, 0] }), transform: [{ translateX: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 20 - (screenSize.width / 2 - 130)] }) }, { translateY: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, chatOriginY + 42 - (screenSize.height - 220)] }) }, { scale: weeklyCardReveal.interpolate({ inputRange: [0, 0.75, 1], outputRange: [1, 0.84, 0.68] }) }] }]}><Ionicons name="sparkles" size={16} color={colors.primary} /><Text style={[styles.analysisFlightText, { color: colors.primary }]}>{t('weeklyAnalysisReading')}</Text></Animated.View>
     </View>
@@ -181,7 +185,7 @@ export default function CoachScreen() {
         }]}
       />
     </View>
-     <View style={styles.suggestions}><Pill label={t('coachWeightIncrease')} onPress={() => setText(t('coachWeightIncrease'))} lightBackground /><Pill label={t('coachNutritionTiming')} onPress={() => setText(t('coachNutritionTiming'))} lightBackground /></View>
+     <View style={styles.suggestions}><Pill label={t('coachWeightIncrease')} onPress={() => setText(t('coachWeightIncrease'))} /><Pill label={t('coachNutritionTiming')} onPress={() => setText(t('coachNutritionTiming'))} /></View>
     <KeyboardAvoidingView onLayout={({ nativeEvent }) => setChatOriginY(nativeEvent.layout.y)} style={styles.chatWrap} behavior="padding" keyboardVerticalOffset={0}>
       <FlatList
         style={styles.messagesList}
@@ -193,18 +197,20 @@ export default function CoachScreen() {
          >
            {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.84, 0.96, 1], outputRange: [0, 0, 0.42, 1] }) : 1 }]} /> : null}
            <View style={styles.messageContent}>
-              {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: `${colors.primaryForeground}F2`, borderColor: `${colors.primaryForeground}45` }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: `${colors.foreground}8C` }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primaryForeground }] : [styles.coachBubble, { backgroundColor: `${colors.foreground}C7`, borderColor: `${colors.primaryForeground}20` }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.foreground : colors.primaryForeground }]}>{item.text}</Text> : null}</View>}
-              {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: `${colors.foreground}D9`, borderColor: `${colors.primaryForeground}25` }]}><Text style={[styles.actionTitle, { color: colors.primaryForeground }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: `${colors.primaryForeground}D9` }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: `${colors.primaryForeground}45`, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
+              {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.foreground }] : [styles.coachBubble, { backgroundColor: colors.card, borderColor: colors.border }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.background : colors.foreground }]}>{item.text}</Text> : null}</View>}
+              {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.actionTitle, { color: colors.foreground }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: colors.foreground }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: colors.border, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.foreground }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
            </View>
         </View>}
-        ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} lightBackground /> : null}
+        ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : null}
         contentContainerStyle={styles.messageList}
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
       />
-       <View style={[styles.inputRow, { paddingBottom: insets.bottom + 8, backgroundColor: 'transparent' }]}>
-         <Animated.View style={[styles.auraInput, { borderColor: colors.primaryForeground, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }) }]}><TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={`${colors.primaryForeground}8C`} style={[styles.input, { backgroundColor: `${colors.foreground}C7`, color: colors.primaryForeground, borderColor: `${colors.primaryForeground}20` }]} /></Animated.View>
-         <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.primaryForeground, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.foreground} /></Pressable>
+       <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
+         <Animated.View style={[styles.auraInput, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.primary, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }]}>
+            <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground }]} />
+           <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.foreground, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={18} color={colors.background} /></Pressable>
+         </Animated.View>
       </View>
     </KeyboardAvoidingView>
   </View>;
@@ -230,20 +236,20 @@ const styles = StyleSheet.create({
   suggestions: { flexDirection: 'row', marginBottom: 8, overflow: 'hidden' },
   chatWrap: { flex: 1, minHeight: 0 },
   messagesList: { flex: 1, minHeight: 0 },
-  messageList: { paddingVertical: 12, gap: 10 },
-  messageRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  messageList: { paddingVertical: 20, gap: 16 },
+  messageRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   coachMessageRow: { alignSelf: 'flex-start', maxWidth: '90%' },
-  userMessageRow: { alignSelf: 'flex-end', maxWidth: '84%' },
+  userMessageRow: { alignSelf: 'flex-end', maxWidth: '90%' },
   messageContent: { flex: 1, minWidth: 0 },
-  weeklyMessageCard: { minWidth: 255, maxWidth: '100%', borderRadius: 18, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  weeklyMessageCard: { minWidth: 255, maxWidth: '100%', borderRadius: 24, borderWidth: 1, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   weeklyMessageIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   weeklyMessageLabel: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   weeklyMessageHint: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 3 },
   messageAvatar: { width: 30, height: 30, borderRadius: 15, marginTop: 2 },
-  bubble: { maxWidth: '84%', paddingHorizontal: 15, paddingVertical: 12, borderRadius: 18 },
-  userBubble: { borderBottomRightRadius: 6 },
-  coachBubble: { borderWidth: 1, borderBottomLeftRadius: 6 },
-  actionCard: { marginTop: 8, borderRadius: 16, borderWidth: 1, padding: 12, width: '100%' },
+  bubble: { maxWidth: '92%', paddingHorizontal: 18, paddingVertical: 14, borderRadius: 24 },
+  userBubble: { borderBottomRightRadius: 8 },
+  coachBubble: { borderWidth: 1, borderTopLeftRadius: 8, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  actionCard: { marginTop: 8, borderRadius: 20, borderWidth: 1, padding: 16, width: '100%' },
   actionTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, marginBottom: 7 },
   actionLine: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 17, marginBottom: 3 },
   actionButtons: { flexDirection: 'row', gap: 8, marginTop: 10 },
@@ -252,18 +258,18 @@ const styles = StyleSheet.create({
   actionStatus: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 7 },
   refreshButton: { minHeight: 36, alignSelf: 'flex-start', marginTop: 10, borderRadius: 11, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   messageImage: { width: 190, height: 145, borderRadius: 12, marginBottom: 7 },
-  welcomeGifCard: { width: 250, borderWidth: 1, borderRadius: 18, borderBottomLeftRadius: 6, padding: 6, overflow: 'hidden' },
-  welcomeGif: { width: 238, height: 178, borderRadius: 13 },
-  bubbleText: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20 },
-  typingBubble: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 18, borderBottomLeftRadius: 6, paddingHorizontal: 14, paddingVertical: 11 },
+  welcomeGifCard: { width: 250, borderWidth: 1, borderRadius: 24, borderTopLeftRadius: 8, padding: 6, overflow: 'hidden' },
+  welcomeGif: { width: 238, height: 178, borderRadius: 19 },
+  bubbleText: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22 },
+  typingBubble: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 24, borderTopLeftRadius: 8, paddingHorizontal: 18, paddingVertical: 14, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   typingLabel: { fontFamily: 'Inter_500Medium', fontSize: 12 },
   typingDots: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 14 },
   typingDot: { width: 5, height: 5, borderRadius: 3 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 9, paddingTop: 9 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 4, paddingTop: 12 },
   attach: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  input: { flex: 1, minHeight: 48, borderWidth: 1, borderRadius: 17, paddingHorizontal: 15, fontFamily: 'Inter_400Regular', fontSize: 13 },
-  auraInput: { flex: 1, borderWidth: 1.5, borderRadius: 19, shadowOpacity: 0.75, shadowRadius: 10, elevation: 3 },
-  send: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  input: { flex: 1, minHeight: 64, maxHeight: 120, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22 },
+  auraInput: { flex: 1, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 32, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 4 },
+  send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   photoPreview: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 9, padding: 8, borderRadius: 15, borderWidth: 1 },
   photoPreviewImage: { width: 46, height: 46, borderRadius: 10 },
   photoPreviewCopy: { flex: 1, minWidth: 0 },
