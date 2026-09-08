@@ -8,7 +8,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { Card, Header, Pill } from '@/components/FitUI';
+import { Header } from '@/components/FitUI';
 import { DAILY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
@@ -165,7 +165,6 @@ export default function CoachScreen() {
     </View>
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.background, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
     <Header eyebrow="Intelligence / 05" title={t('coachTitle')} subtitle={t('coachSubtitle')} action="chatbubble-ellipses-outline" onAction={() => undefined} />
-    <Card style={[styles.coachCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={styles.coachCapabilityCopy}><Text style={[styles.coachCapabilityLabel, { color: colors.mutedForeground }]}>{t('coachAiLabel').toUpperCase()}</Text><Text style={[styles.coachCapabilityText, { color: colors.foreground }]}>{t('coachAiCapabilities')}</Text></View></Card>
     <View pointerEvents="none" style={styles.analysisFlightLayer}>
       <Animated.View style={[styles.analysisFlightCard, { backgroundColor: colors.primaryForeground, opacity: weeklyCardReveal.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.9, 0] }), transform: [{ translateX: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 20 - (screenSize.width / 2 - 130)] }) }, { translateY: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, chatOriginY + 42 - (screenSize.height - 220)] }) }, { scale: weeklyCardReveal.interpolate({ inputRange: [0, 0.75, 1], outputRange: [1, 0.84, 0.68] }) }] }]}><Ionicons name="sparkles" size={16} color={colors.primary} /><Text style={[styles.analysisFlightText, { color: colors.primary }]}>{t('weeklyAnalysisReading')}</Text></Animated.View>
     </View>
@@ -185,7 +184,6 @@ export default function CoachScreen() {
         }]}
       />
     </View>
-     <View style={styles.suggestions}><Pill label={t('coachWeightIncrease')} onPress={() => setText(t('coachWeightIncrease'))} /><Pill label={t('coachNutritionTiming')} onPress={() => setText(t('coachNutritionTiming'))} /></View>
     <KeyboardAvoidingView onLayout={({ nativeEvent }) => setChatOriginY(nativeEvent.layout.y)} style={styles.chatWrap} behavior="padding" keyboardVerticalOffset={0}>
       <FlatList
         style={styles.messagesList}
@@ -226,14 +224,9 @@ const styles = StyleSheet.create({
   analysisFlightCard: { position: 'absolute', left: '50%', top: '100%', width: 260, marginLeft: -130, minHeight: 52, borderRadius: 17, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 9, shadowColor: '#000', shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
   analysisFlightText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
   coachFlyingAvatar: { position: 'absolute', width: 72, height: 72, borderRadius: 36, shadowColor: '#FFFFFF', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
-  coachCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15 },
-  coachCapabilityCopy: { flex: 1, paddingRight: 4 },
-  coachCapabilityLabel: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1.2 },
-  coachCapabilityText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18, marginTop: 5 },
   caption: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
   limit: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   limitNumber: { fontFamily: 'Inter_700Bold', fontSize: 18 },
-  suggestions: { flexDirection: 'row', marginBottom: 8, overflow: 'hidden' },
   chatWrap: { flex: 1, minHeight: 0 },
   messagesList: { flex: 1, minHeight: 0 },
   messageList: { paddingVertical: 20, gap: 16 },
