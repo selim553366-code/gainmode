@@ -43,6 +43,7 @@ export default function CoachScreen() {
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<Message[]>([{ id: 'welcome', text: t('coachWelcome'), from: 'coach' }]);
   const [loading, setLoading] = useState(false);
+  const [animatedPrompt, setAnimatedPrompt] = useState('');
   const [chatOriginY, setChatOriginY] = React.useState(0);
   const [coachMessageOffsetY, setCoachMessageOffsetY] = React.useState(12);
   const inputRef = useRef<TextInput>(null);
@@ -59,6 +60,37 @@ export default function CoachScreen() {
   const flyingStartY = screenSize.height - tabBarBottomPadding - 120;
   const flyingTargetX = 20;
   const flyingTargetY = chatOriginY + coachMessageOffsetY + 2;
+  React.useEffect(() => {
+    const prompts = [t('coachPromptWeight'), t('coachPromptCalories')];
+    let phraseIndex = 0;
+    let characterIndex = 0;
+    let holdTicks = 0;
+    let deleting = false;
+    setAnimatedPrompt('');
+    const interval = setInterval(() => {
+      const phrase = prompts[phraseIndex] ?? '';
+      if (!deleting) {
+        if (characterIndex < phrase.length) {
+          characterIndex += 1;
+          setAnimatedPrompt(phrase.slice(0, characterIndex));
+        } else {
+          holdTicks += 1;
+          if (holdTicks >= 16) {
+            deleting = true;
+            holdTicks = 0;
+          }
+        }
+      } else if (characterIndex > 0) {
+        characterIndex -= 1;
+        setAnimatedPrompt(phrase.slice(0, characterIndex));
+      } else {
+        phraseIndex = (phraseIndex + 1) % prompts.length;
+        deleting = false;
+        holdTicks = 0;
+      }
+    }, 72);
+    return () => clearInterval(interval);
+  }, [language]);
   React.useEffect(() => {
     const timeout = setTimeout(() => {
       setMessages((current) => current.some((item) => item.id === 'welcome-gif') ? current : [...current, { id: 'welcome-gif', text: '', from: 'coach', media: 'welcomeGif' }]);
@@ -214,7 +246,7 @@ export default function CoachScreen() {
       />
        <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
           <Animated.View style={[styles.auraInput, { backgroundColor: `${colors.white}4D`, borderColor: colors.black, shadowColor: colors.black, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }]}>
-             <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={`${colors.black}80`} style={[styles.input, { color: colors.black }]} />
+             <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : text ? '' : animatedPrompt} placeholderTextColor={`${colors.black}80`} style={[styles.input, { color: colors.black }]} />
             <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.black, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.white} /></Pressable>
          </Animated.View>
       </View>
