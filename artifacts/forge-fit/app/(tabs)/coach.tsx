@@ -17,6 +17,148 @@ import { localDateKey } from '@/lib/nutritionDates';
 
 type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
 type CoachApiResponse = { content?: string; actions?: unknown[] };
+type CoachAtmosphere = 'morning' | 'afternoon' | 'night';
+
+const COACH_STARS = [
+  { x: 9, y: 13, size: 2, delay: 0 },
+  { x: 21, y: 27, size: 3, delay: 850 },
+  { x: 36, y: 11, size: 2, delay: 1400 },
+  { x: 49, y: 20, size: 2, delay: 480 },
+  { x: 64, y: 9, size: 3, delay: 1900 },
+  { x: 79, y: 18, size: 2, delay: 1120 },
+  { x: 91, y: 12, size: 2, delay: 2300 },
+  { x: 14, y: 42, size: 2, delay: 1750 },
+  { x: 30, y: 51, size: 3, delay: 620 },
+  { x: 46, y: 39, size: 2, delay: 2650 },
+  { x: 58, y: 56, size: 2, delay: 920 },
+  { x: 73, y: 43, size: 3, delay: 2100 },
+  { x: 87, y: 53, size: 2, delay: 320 },
+  { x: 7, y: 68, size: 2, delay: 1280 },
+  { x: 23, y: 79, size: 2, delay: 2380 },
+  { x: 41, y: 72, size: 3, delay: 760 },
+  { x: 56, y: 86, size: 2, delay: 1600 },
+  { x: 69, y: 69, size: 2, delay: 2850 },
+  { x: 84, y: 80, size: 3, delay: 1060 },
+  { x: 96, y: 66, size: 2, delay: 1980 },
+] as const;
+
+function getCoachAtmosphere(date = new Date()): CoachAtmosphere {
+  const minutes = date.getHours() * 60 + date.getMinutes();
+  if (minutes >= 21 * 60 || minutes < 6 * 60) return 'night';
+  if (minutes >= 15 * 60) return 'afternoon';
+  return 'morning';
+}
+
+function TwinklingStar({ star, color }: { star: (typeof COACH_STARS)[number]; color: string }) {
+  const twinkle = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const animation = Animated.loop(Animated.sequence([
+      Animated.delay(star.delay),
+      Animated.timing(twinkle, { toValue: 1, duration: 1050, useNativeDriver: true }),
+      Animated.timing(twinkle, { toValue: 0, duration: 1450, useNativeDriver: true }),
+      Animated.delay(1100 + star.delay / 2),
+    ]));
+    animation.start();
+    return () => animation.stop();
+  }, [star.delay, twinkle]);
+
+  return <Animated.View style={[styles.coachStar, {
+    left: `${star.x}%`,
+    top: `${star.y}%`,
+    width: star.size,
+    height: star.size,
+    borderRadius: star.size / 2,
+    backgroundColor: color,
+    opacity: twinkle.interpolate({ inputRange: [0, 1], outputRange: [0.28, 1] }),
+    transform: [{ scale: twinkle.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1.65] }) }],
+  }]} />;
+}
+
+function CoachAtmosphereBackground({ colors, reveal }: { colors: ReturnType<typeof useColors>; reveal: Animated.Value }) {
+  const initialAtmosphere = React.useMemo(() => getCoachAtmosphere(), []);
+  const [atmosphere, setAtmosphere] = React.useState<CoachAtmosphere>(initialAtmosphere);
+  const [previousAtmosphere, setPreviousAtmosphere] = React.useState<CoachAtmosphere>(initialAtmosphere);
+  const transition = React.useRef(new Animated.Value(1)).current;
+  const ambientMotion = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const animation = Animated.loop(Animated.sequence([
+      Animated.timing(ambientMotion, { toValue: 1, duration: 6000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(ambientMotion, { toValue: 0, duration: 6000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    animation.start();
+    return () => animation.stop();
+  }, [ambientMotion]);
+
+  React.useEffect(() => {
+    const checkAtmosphere = () => {
+      const nextAtmosphere = getCoachAtmosphere();
+      if (nextAtmosphere === atmosphere) return;
+      setPreviousAtmosphere(atmosphere);
+      setAtmosphere(nextAtmosphere);
+      transition.setValue(0);
+      Animated.timing(transition, {
+        toValue: 1,
+        duration: 90000,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setPreviousAtmosphere(nextAtmosphere);
+      });
+    };
+    const interval = setInterval(checkAtmosphere, 60000);
+    return () => clearInterval(interval);
+  }, [atmosphere, transition]);
+
+  const renderAtmosphere = (phase: CoachAtmosphere) => {
+    if (phase === 'morning') {
+      return <View style={styles.coachAtmosphereLayer}>
+        <LinearGradient colors={[colors.coachMorningGlow, colors.white]} style={StyleSheet.absoluteFill} />
+        <Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} />
+      </View>;
+    }
+    if (phase === 'afternoon') {
+      return <View style={styles.coachAtmosphereLayer}>
+        <LinearGradient
+          colors={[colors.coachAfternoonSun, colors.coachAfternoonLime, colors.coachAfternoonMist]}
+          locations={[0, 0.46, 1]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <Animated.View style={[styles.coachAfternoonGlow, {
+          opacity: ambientMotion.interpolate({ inputRange: [0, 1], outputRange: [0.28, 0.58] }),
+          transform: [{ translateX: ambientMotion.interpolate({ inputRange: [0, 1], outputRange: [-28, 22] }) }, { scale: ambientMotion.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.1] }) }],
+        }]}>
+          <LinearGradient colors={[colors.coachAfternoonHighlight, colors.coachTransparent]} style={StyleSheet.absoluteFill} />
+        </Animated.View>
+      </View>;
+    }
+    return <View style={styles.coachAtmosphereLayer}>
+      <LinearGradient
+        colors={[colors.coachNightPurple, colors.coachNightDeep, colors.coachNightBlack]}
+        locations={[0, 0.45, 1]}
+        start={{ x: 0.05, y: 0 }}
+        end={{ x: 0.85, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <Animated.View style={[styles.coachNightGlow, {
+        opacity: ambientMotion.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.3] }),
+        transform: [{ translateX: ambientMotion.interpolate({ inputRange: [0, 1], outputRange: [-18, 18] }) }, { translateY: ambientMotion.interpolate({ inputRange: [0, 1], outputRange: [12, -12] }) }],
+      }]}>
+        <LinearGradient colors={[`${colors.plum}70`, colors.coachTransparent]} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+      <View style={styles.coachStarField}>{COACH_STARS.map((star) => <TwinklingStar key={`${star.x}-${star.y}`} star={star} color={colors.coachStar} />)}</View>
+    </View>;
+  };
+
+  const isTransitioning = previousAtmosphere !== atmosphere;
+  return <View pointerEvents="none" style={styles.coachBackgroundLayer}>
+    {isTransitioning ? <Animated.View style={[styles.coachAtmosphereLayer, { opacity: transition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>{renderAtmosphere(previousAtmosphere)}</Animated.View> : null}
+    <Animated.View style={[styles.coachAtmosphereLayer, { opacity: isTransitioning ? transition : 1 }]}>{renderAtmosphere(atmosphere)}</Animated.View>
+  </View>;
+}
 
 function TypingIndicator({ label, colors }: { label: string; colors: ReturnType<typeof useColors> }) {
   const dots = React.useRef([0, 1, 2].map(() => new Animated.Value(0))).current;
@@ -227,10 +369,7 @@ export default function CoachScreen() {
     };
   }, [analysisId, weeklyAnalysis]);
   return <View style={[styles.root, { backgroundColor: colors.white, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
-    <View pointerEvents="none" style={styles.coachBackgroundLayer}>
-      <LinearGradient colors={[colors.secondary, colors.white]} style={StyleSheet.absoluteFill} />
-      <Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: coachReveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} />
-    </View>
+     <CoachAtmosphereBackground colors={colors} reveal={coachReveal} />
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.secondary, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
     <View style={styles.referenceHeader}>
       <View style={styles.referenceHeaderText}>
@@ -296,7 +435,12 @@ export default function CoachScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, paddingHorizontal: 20 },
   coachBackgroundLayer: { ...StyleSheet.absoluteFill },
+  coachAtmosphereLayer: { ...StyleSheet.absoluteFill },
   coachBackground: { ...StyleSheet.absoluteFill },
+  coachAfternoonGlow: { position: 'absolute', width: '82%', height: '58%', top: '-10%', left: '-16%', borderRadius: 999, overflow: 'hidden' },
+  coachNightGlow: { position: 'absolute', width: '110%', height: '62%', top: '-10%', left: '-24%', borderRadius: 999, overflow: 'hidden' },
+  coachStarField: { ...StyleSheet.absoluteFill },
+  coachStar: { position: 'absolute' },
   coachReveal: { position: 'absolute', width: 56, height: 56, borderRadius: 28, left: '50%', marginLeft: -28, bottom: 44, shadowColor: '#FFFFFF', shadowOpacity: 0.52, shadowRadius: 28, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
   coachFlightLayer: { ...StyleSheet.absoluteFill, zIndex: 4 },
   analysisFlightLayer: { ...StyleSheet.absoluteFill, zIndex: 5 },
