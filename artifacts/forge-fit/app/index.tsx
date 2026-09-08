@@ -831,6 +831,14 @@ function GrowthComparisonScreen({ onContinue }: { onContinue: () => void }) {
           </View>
           <Text style={[styles.growthBarTitle, { color: colors.foreground }]}>{t('growthGainModeTitle')}</Text>
           <Text style={[styles.growthBarBody, { color: colors.mutedForeground }]}>{t('growthGainModeBody')}</Text>
+          <View style={styles.growthFeatureList}>
+            {(['growthFeaturePhotoCalories', 'growthFeatureCalorieGoal', 'growthFeatureWorkoutPlan', 'growthFeatureAiCoach'] as const).map((key) => (
+              <View key={key} style={styles.growthFeatureRow}>
+                <View style={[styles.growthFeatureDot, { backgroundColor: colors.primary }]} />
+                <Text style={[styles.growthFeatureText, { color: colors.mutedForeground }]}>{t(key)}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     </Animated.View>
@@ -1377,6 +1385,10 @@ const styles = StyleSheet.create({
   growthRate: { fontFamily: 'Inter_700Bold', fontSize: 24, lineHeight: 30, letterSpacing: -0.6, marginTop: 10 },
   growthBarTitle: { fontFamily: 'Inter_700Bold', fontSize: 13, lineHeight: 17, textAlign: 'center', marginTop: 13 },
   growthBarBody: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 4, maxWidth: 132 },
+  growthFeatureList: { alignSelf: 'stretch', gap: 3, marginTop: 9, paddingHorizontal: 3 },
+  growthFeatureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 5 },
+  growthFeatureDot: { width: 4, height: 4, borderRadius: 2, marginTop: 5 },
+  growthFeatureText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 9.5, lineHeight: 13, textAlign: 'left' },
   completionContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   completionCoachStage: { alignItems: 'center', marginBottom: 22 },
   completionCheckmark: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginBottom: -6, zIndex: 2 },
