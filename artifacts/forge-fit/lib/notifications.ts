@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import { isRunningInExpoGo } from 'expo';
-import * as Notifications from 'expo-notifications';
+import type * as Notifications from 'expo-notifications';
 import { formatWorkoutReminder, Language, translate } from '@/lib/i18n';
 import type { Profile, Workout } from '@/context/FitContext';
 import { DAILY_MOOD_NOTIFICATION_HOUR, DAILY_MOOD_NOTIFICATION_MINUTE } from '@/lib/dailyMood';
@@ -19,14 +19,53 @@ const CHANNEL_ID = 'forge-fit-reminders';
 const isAndroidExpoGo = Platform.OS === 'android' && isRunningInExpoGo();
 export const notificationsSupported = Platform.OS !== 'web' && !isAndroidExpoGo;
 
+type NotificationsModule = typeof import('expo-notifications');
+type NotificationResponse = Notifications.NotificationResponse;
+
+let notificationsModulePromise: Promise<NotificationsModule> | null = null;
+
+function loadNotifications() {
+  if (!notificationsSupported) return Promise.resolve(null);
+  notificationsModulePromise ??= import('expo-notifications');
+  return notificationsModulePromise;
+}
+
 if (notificationsSupported) {
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    }),
+  void loadNotifications().then((Notifications) => {
+    Notifications?.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+  });
+}
+
+export function subscribeToNotificationResponses(onResponse: (response: NotificationResponse) => void) {
+  if (!notificationsSupported) return () => undefined;
+
+  let cancelled = false;
+  let subscription: { remove: () => void } | null = null;
+  void loadNotifications().then((Notifications) => {
+    if (!Notifications || cancelled) return;
+    subscription = Notifications.addNotificationResponseReceivedListener(onResponse);
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (!cancelled && response) onResponse(response);
+    }).catch(() => undefined);
+  });
+
+  return () => {
+    cancelled = true;
+    subscription?.remove();
+  };
+}
+
+export function clearNotificationResponse() {
+  if (!notificationsSupported) return;
+  void loadNotifications().then((Notifications) => {
+    void Notifications?.clearLastNotificationResponseAsync().catch(() => undefined);
   });
 }
 
@@ -42,6 +81,8 @@ const dayToWeekday: Record<string, number> = {
 
 async function prepareNotifications() {
   if (!notificationsSupported) return false;
+  const Notifications = await loadNotifications();
+  if (!Notifications) return false;
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'GainMode reminders',
@@ -55,6 +96,8 @@ async function prepareNotifications() {
 
 export async function requestNotificationPermission() {
   if (!notificationsSupported) return false;
+  const Notifications = await loadNotifications();
+  if (!Notifications) return false;
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
   if (!current.canAskAgain) return false;
@@ -64,6 +107,8 @@ export async function requestNotificationPermission() {
 
 export async function hasNotificationPermission() {
   if (!notificationsSupported) return false;
+  const Notifications = await loadNotifications();
+  if (!Notifications) return false;
   const permissions = await Notifications.getPermissionsAsync();
   return permissions.granted;
 }
@@ -89,6 +134,8 @@ function content(language: Language, titleKey: Parameters<typeof translate>[1], 
 }
 
 async function scheduleDaily(language: Language, titleKey: Parameters<typeof translate>[1], bodyKey: Parameters<typeof translate>[1], hour: number, minute = 0) {
+  const Notifications = await loadNotifications();
+  if (!Notifications) return;
   await Notifications.scheduleNotificationAsync({
     content: content(language, titleKey, bodyKey),
     trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, channelId: CHANNEL_ID, hour, minute },
@@ -96,6 +143,8 @@ async function scheduleDaily(language: Language, titleKey: Parameters<typeof tra
 }
 
 async function scheduleWeekly(language: Language, titleKey: Parameters<typeof translate>[1], bodyKey: Parameters<typeof translate>[1], weekday: number, hour: number, minute = 0) {
+  const Notifications = await loadNotifications();
+  if (!Notifications) return;
   await Notifications.scheduleNotificationAsync({
     content: content(language, titleKey, bodyKey),
     trigger: { type: Notifications.SchedulableTriggerInputTypes.WEEKLY, channelId: CHANNEL_ID, weekday, hour, minute },
@@ -103,6 +152,8 @@ async function scheduleWeekly(language: Language, titleKey: Parameters<typeof tr
 }
 
 async function scheduleWorkoutReminder(language: Language, workout: Workout, weekday: number) {
+  const Notifications = await loadNotifications();
+  if (!Notifications) return;
   const workoutName = translate(language, workout.name as Parameters<typeof translate>[1]) || workout.name;
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -118,6 +169,8 @@ async function scheduleWorkoutReminder(language: Language, workout: Workout, wee
 let notificationSync = Promise.resolve();
 
 async function scheduleWeightReminder(language: Language) {
+  const Notifications = await loadNotifications();
+  if (!Notifications) return;
   await Notifications.scheduleNotificationAsync({
     content: {
       title: translate(language, 'notificationWeightTitle'),
@@ -148,6 +201,8 @@ async function syncFitnessNotificationsNow({
   weightLogs: { date: string }[];
 }) {
   if (!notificationsSupported) return;
+  const Notifications = await loadNotifications();
+  if (!Notifications) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
   if (!(await requestNotificationPermission())) return;
   if (!(await prepareNotifications())) return;

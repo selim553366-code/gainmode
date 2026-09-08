@@ -10,6 +10,7 @@
 - [Forge Fit Android release builds](forge-fit-android-build.md) — native checks work locally; Android cloud builds must resolve Expo config from the Forge Fit artifact, not the workspace root.
 - [OpenAPI and Zod codegen](openapi-zod-codegen.md) — this workspace’s Zod 3 generator mishandles OpenAPI integer response fields; verify generated schemas after API changes.
 - [Forge Fit local notifications](forge-fit-notifications.md) — reminder scheduling is native-device behavior; web previews only validate the settings UI.
+- [Forge Fit Expo Go notification imports](forge-fit-notification-imports.md) — SDK 57 requires dynamic expo-notifications loading to avoid Android Expo Go import-time failures.
 - [Forge Fit premium celebration routing](forge-fit-premium-celebration.md) — onboarding success UI must live above entry routing because premium state changes can unmount the offer immediately.
 - [Forge Fit mobile API endpoint](forge-fit-mobile-api.md) — standalone Android builds need an explicit published API base URL instead of relying on the dev domain.
 - [Forge Fit workout planning](forge-fit-workout-plan.md) — group every workout by muscle area, filter movements by equipment, and derive completion from exercises.

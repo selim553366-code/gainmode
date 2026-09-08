@@ -14,7 +14,7 @@ import {
 } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
 import { router } from 'expo-router';
-import * as Notifications from 'expo-notifications';
+import type { NotificationResponse } from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { FitProvider, useFit } from '@/context/FitContext';
@@ -26,7 +26,7 @@ import colors from '@/constants/colors';
 import { CelebrationBurst, triggerHaptic } from '@/components/FitUI';
 import { Ionicons } from '@/components/AppIcon';
 import { badges, badgeText, badgeUi } from '@/lib/badges';
-import { notificationsSupported } from '@/lib/notifications';
+import { clearNotificationResponse, subscribeToNotificationResponses } from '@/lib/notifications';
 
 function BadgeUnlockCelebration() {
   const { hydrated, language, unlockedBadgeIds } = useFit();
@@ -102,11 +102,11 @@ function RootLayoutNav() {
   const { resolvedTheme } = useTheme();
   const handledNotificationResponse = useRef<string | null>(null);
   useEffect(() => {
-    if (!notificationsSupported) return undefined;
-    const openNotificationDestination = (response: Notifications.NotificationResponse | null) => {
-      if (!response || handledNotificationResponse.current === response.notification.request.identifier) return;
-      const data = response.notification.request.content.data;
-      if (!data || typeof data !== 'object') return;
+    const openNotificationDestination = (response: NotificationResponse) => {
+      if (handledNotificationResponse.current === response.notification.request.identifier) return;
+      const notificationData = response.notification.request.content.data;
+      if (!notificationData || typeof notificationData !== 'object') return;
+      const data = notificationData as Record<string, unknown>;
       const supportedSources = [
         'forge-fit-daily-mood',
         'forge-fit-workout',
@@ -117,7 +117,7 @@ function RootLayoutNav() {
       ];
       if (!supportedSources.includes(String(data?.source))) return;
       handledNotificationResponse.current = response.notification.request.identifier;
-      Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+      clearNotificationResponse();
       setTimeout(() => {
         if (data.source === 'forge-fit-workout' && typeof data.workoutDay === 'string') {
           router.push({ pathname: '/(tabs)/plan', params: { day: data.workoutDay } });
@@ -142,9 +142,7 @@ function RootLayoutNav() {
         router.push('/daily-mood');
       }, 0);
     };
-    const subscription = Notifications.addNotificationResponseReceivedListener(openNotificationDestination);
-    Notifications.getLastNotificationResponseAsync().then(openNotificationDestination).catch(() => undefined);
-    return () => subscription.remove();
+    return subscribeToNotificationResponses(openNotificationDestination);
   }, []);
 
   return (
