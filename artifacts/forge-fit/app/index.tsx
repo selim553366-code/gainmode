@@ -61,6 +61,45 @@ function CoachMotion({ variant, large = false, onboarding = false }: { variant: 
   return <Image source={source} resizeMode="contain" style={[large ? styles.coachLarge : styles.coachSmall, !large && variant === 'wave' ? styles.coachWaveQuestion : null]} />;
 }
 
+const languageFlags: Record<Language, string> = {
+  tr: '🇹🇷',
+  en: '🇬🇧',
+  de: '🇩🇪',
+  fr: '🇫🇷',
+  es: '🇪🇸',
+};
+
+function LanguagePicker({ language, setLanguage }: { language: Language; setLanguage: (language: Language) => void }) {
+  const colors = useColors();
+  return (
+    <View style={styles.languageRow}>
+      {(Object.keys(languageLabels) as Language[]).map((item) => {
+        const selected = language === item;
+        return (
+          <Pressable
+            key={item}
+            accessibilityRole="button"
+            accessibilityLabel={languageLabels[item]}
+            hitSlop={4}
+            onPress={() => {
+              triggerHaptic();
+              setLanguage(item);
+            }}
+            style={({ pressed }) => [styles.languageButton, {
+              backgroundColor: selected ? `${colors.primary}18` : `${colors.card}D9`,
+              borderColor: selected ? colors.primary : `${colors.border}B8`,
+              opacity: pressed ? 0.72 : 1,
+            }]}
+          >
+            <Text style={styles.languageFlag}>{languageFlags[item]}</Text>
+            <Text style={[styles.language, { color: selected ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function AnswerAnalysisStatus() {
   const colors = useColors();
   const { language } = useFit();
@@ -560,7 +599,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const isTargetStep = numericStep === targetStep && hasTargetWeightStep;
     const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[numericStep] ?? 'preferredDaysQuestion';
    return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
-     <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
+     <View style={styles.questionTop}><ForgeFitMark size={38} /><LanguagePicker language={language} setLanguage={setLanguage} /></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
        <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
           <View style={styles.coachQuestionVisual}><AnswerAnalysisStatus /><View style={styles.coachPhotoStage}><CoachMotion onboarding variant="write" /></View></View>
@@ -585,13 +624,7 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
     <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
       <View style={styles.questionTop}>
         <ForgeFitMark size={38} />
-        <View style={styles.languageRow}>
-          {(Object.keys(languageLabels) as Language[]).map((item) => (
-            <Pressable key={item} onPress={() => setLanguage(item)}>
-              <Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <LanguagePicker language={language} setLanguage={setLanguage} />
       </View>
       <View style={styles.modeChoiceContent}>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>{t('onboardingModeEyebrow')}</Text>
@@ -689,7 +722,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
 
    const orbRotateValue = orbRotation.interpolate({ inputRange: [0, 1], outputRange: ['-5deg', '0deg'] });
    return <AnimatedLinearGradient colors={[colors.background, colors.secondary, colors.background]} style={[styles.full, { opacity: pageOpacity, transform: [{ translateX: pageTranslateX }] }]}>
-      <View style={styles.questionTop}><ForgeFitMark size={38} /><View style={styles.languageRow}>{(Object.keys(languageLabels) as Language[]).map((item) => <Pressable key={item} onPress={() => setLanguage(item)}><Text style={[styles.language, { color: language === item ? colors.primary : colors.mutedForeground }]}>{item.toUpperCase()}</Text></Pressable>)}</View></View>
+       <View style={styles.questionTop}><ForgeFitMark size={38} /><LanguagePicker language={language} setLanguage={setLanguage} /></View>
      <View style={styles.welcomeContent}><Animated.View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18`, transform: [{ scale: orbScale }, { rotate: orbRotateValue }] }]}><Image source={require('@/assets/images/coach-welcome.png')} resizeMode="cover" style={styles.welcomeCoachImage} /></Animated.View><Animated.View style={{ opacity: copyOpacity, transform: [{ translateY: copyTranslateY }] }}><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text></Animated.View></View>
       <Animated.View style={{ opacity: buttonOpacity, transform: [{ translateY: buttonTranslateY }] }}><Pressable onPress={startAdventure} disabled={leaving} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></Animated.View>
    </AnimatedLinearGradient>;
@@ -1113,8 +1146,10 @@ const styles = StyleSheet.create({
   entryRecoveryButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   questionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brandMark: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  languageRow: { flexDirection: 'row', gap: 11 },
-  language: { fontFamily: 'Inter_700Bold', fontSize: 10 },
+  languageRow: { flexDirection: 'row', gap: 6 },
+  languageButton: { width: 42, minHeight: 48, borderWidth: 1, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingVertical: 5 },
+  languageFlag: { fontSize: 17, lineHeight: 20 },
+  language: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 0.4, marginTop: 1 },
   questionBody: { flex: 1, minHeight: 0, marginTop: 10 },
   questionScrollContent: { paddingTop: 2, paddingBottom: 12 },
   coachQuestionVisual: { width: '100%', height: 282, alignSelf: 'center', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 8 },
