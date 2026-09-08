@@ -47,7 +47,6 @@ export default function CoachScreen() {
   const [chatOriginY, setChatOriginY] = React.useState(0);
   const [coachMessageOffsetY, setCoachMessageOffsetY] = React.useState(12);
   const inputRef = useRef<TextInput>(null);
-  const aura = useRef(new Animated.Value(0)).current;
   const coachReveal = useRef(new Animated.Value(0)).current;
   const weeklyCardReveal = useRef(new Animated.Value(0)).current;
   const lastAnalysisId = useRef<string | undefined>(undefined);
@@ -97,11 +96,6 @@ export default function CoachScreen() {
     }, 1350);
     return () => clearTimeout(timeout);
   }, []);
-  React.useEffect(() => {
-    const loop = Animated.loop(Animated.sequence([Animated.timing(aura, { toValue: 1, duration: 1800, useNativeDriver: true }), Animated.timing(aura, { toValue: 0, duration: 1800, useNativeDriver: true })]));
-    loop.start();
-    return () => loop.stop();
-  }, [aura]);
   useFocusEffect(React.useCallback(() => {
     if (coachIntroPending) markCoachIntroSeen();
     coachReveal.setValue(0);
@@ -245,10 +239,10 @@ export default function CoachScreen() {
         keyboardShouldPersistTaps="handled"
       />
        <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
-          <Animated.View style={[styles.auraInput, { backgroundColor: `${colors.white}4D`, borderColor: colors.black, shadowColor: colors.black, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }]}>
+           <View style={[styles.auraInput, { backgroundColor: `${colors.white}4D`, borderColor: colors.black, shadowColor: colors.black }]}>
              <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : text ? '' : animatedPrompt} placeholderTextColor={`${colors.black}80`} style={[styles.input, { color: colors.black }]} />
             <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.black, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.white} /></Pressable>
-         </Animated.View>
+          </View>
       </View>
     </KeyboardAvoidingView>
   </View>;
