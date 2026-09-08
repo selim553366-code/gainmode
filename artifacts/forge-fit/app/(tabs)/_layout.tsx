@@ -1,6 +1,5 @@
 import React from 'react';
-import { Animated, Easing, Image, PanResponder, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
@@ -13,9 +12,6 @@ import { isDailyMoodDue } from '@/lib/dailyMood';
 import { localDateKey } from '@/lib/nutritionDates';
 
 const tabOrder = ['index', 'nutrition', 'coach', 'plan', 'progress'];
-const COACH_POSITION_KEY = 'forge-fit-coach-tab-position';
-const COACH_LONG_PRESS_MS = 3000;
-const COACH_BUTTON_SIZE = 88;
 
 type TabRoute = { key: string; name: string };
 type TabBarProps = {
@@ -29,116 +25,10 @@ type TabBarProps = {
 
 function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean; label: string; onPress: () => void; colors: ReturnType<typeof useColors> }) {
   const { coachThinking } = useFit();
-  const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
   const logoScale = React.useRef(new Animated.Value(focused ? 0.8 : 1)).current;
   const logoDeparture = React.useRef(new Animated.Value(focused ? 0 : 1)).current;
   const circleCollapse = React.useRef(new Animated.Value(focused ? 1 : 0)).current;
   const thinkingTransition = React.useRef(new Animated.Value(coachThinking ? 1 : 0)).current;
-  const position = React.useRef(new Animated.ValueXY()).current;
-  const positionRef = React.useRef({ x: 0, y: 0 });
-  const dragStartRef = React.useRef({ x: 0, y: 0 });
-  const dragReadyRef = React.useRef(false);
-  const gestureCanceledRef = React.useRef(false);
-  const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const coachBaseBottom = Math.max(0, Math.max(insets.bottom, 10) - 33);
-
-  const clampPosition = React.useCallback((next: { x: number; y: number }) => {
-    const maxHorizontal = Math.max(0, (width - COACH_BUTTON_SIZE) / 2);
-    const minY = -(height - coachBaseBottom - insets.top - COACH_BUTTON_SIZE);
-    return {
-      x: Math.max(-maxHorizontal, Math.min(maxHorizontal, next.x)),
-      y: Math.max(minY, Math.min(0, next.y)),
-    };
-  }, [coachBaseBottom, height, insets.top, width]);
-
-  const setPosition = React.useCallback((next: { x: number; y: number }) => {
-    const clamped = clampPosition(next);
-    positionRef.current = clamped;
-    position.setValue(clamped);
-    return clamped;
-  }, [clampPosition, position]);
-
-  React.useEffect(() => {
-    let active = true;
-    void AsyncStorage.getItem(COACH_POSITION_KEY).then((stored) => {
-      if (!active || !stored) return;
-      try {
-        const parsed = JSON.parse(stored) as { x?: unknown; y?: unknown };
-        if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
-          setPosition({ x: parsed.x, y: parsed.y });
-        }
-      } catch {
-        void AsyncStorage.removeItem(COACH_POSITION_KEY);
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, [setPosition]);
-
-  React.useEffect(() => {
-    setPosition(positionRef.current);
-  }, [setPosition]);
-
-  React.useEffect(() => () => {
-    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-  }, []);
-
-  const panResponder = React.useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => {
-      dragReadyRef.current = false;
-      gestureCanceledRef.current = false;
-      dragStartRef.current = positionRef.current;
-      longPressTimerRef.current = setTimeout(() => {
-        dragReadyRef.current = true;
-        Animated.spring(logoScale, {
-          toValue: 1.08,
-          friction: 6,
-          tension: 90,
-          useNativeDriver: true,
-        }).start();
-      }, COACH_LONG_PRESS_MS);
-    },
-    onPanResponderMove: (_event, gesture) => {
-      if (!dragReadyRef.current && Math.hypot(gesture.dx, gesture.dy) > 10) {
-        gestureCanceledRef.current = true;
-        if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-        longPressTimerRef.current = null;
-        return;
-      }
-      if (!dragReadyRef.current) return;
-      setPosition({
-        x: dragStartRef.current.x + gesture.dx,
-        y: dragStartRef.current.y + gesture.dy,
-      });
-    },
-    onPanResponderRelease: () => {
-      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-      if (dragReadyRef.current) {
-        dragReadyRef.current = false;
-        void AsyncStorage.setItem(COACH_POSITION_KEY, JSON.stringify(positionRef.current));
-        Animated.spring(logoScale, {
-          toValue: focused ? 0.8 : 1,
-          friction: 7,
-          tension: 70,
-          useNativeDriver: true,
-        }).start();
-        return;
-      }
-      if (!gestureCanceledRef.current) onPress();
-    },
-    onPanResponderTerminate: () => {
-      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-      dragReadyRef.current = false;
-      gestureCanceledRef.current = false;
-      setPosition(dragStartRef.current);
-    },
-  }), [focused, logoScale, onPress, setPosition]);
 
   React.useEffect(() => {
     Animated.spring(logoScale, {
@@ -178,19 +68,12 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
   }, [coachThinking, thinkingTransition]);
 
   return (
-    <Animated.View
+    <Pressable
       accessibilityRole="tab"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
-      {...panResponder.panHandlers}
-      style={[
-        styles.coachTabItem,
-        {
-          bottom: coachBaseBottom,
-          left: width / 2 - COACH_BUTTON_SIZE / 2,
-          transform: position.getTranslateTransform(),
-        },
-      ]}
+      onPress={onPress}
+      style={styles.coachTabItem}
     >
       <View style={[styles.coachTabButton, { shadowColor: colors.primary }]}>
         <Animated.View style={{ transform: [{ scale: logoScale }] }}>
@@ -202,7 +85,7 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
         <Text style={[styles.coachTabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
         {focused ? <View style={[styles.coachTabDot, { backgroundColor: colors.primary }]} /> : null}
       </View>
-    </Animated.View>
+    </Pressable>
   );
 }
 
@@ -212,7 +95,6 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   const routes = tabOrder
     .map((name) => state.routes.find((route) => route.name === name))
     .filter((route): route is typeof state.routes[number] => Boolean(route));
-  const coachRoute = routes.find((route) => route.name === 'coach');
   const handlePress = (route: typeof routes[number]) => {
     const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
     if (!event.defaultPrevented) navigation.navigate(route.name);
@@ -233,7 +115,15 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
           const focused = state.index === state.routes.findIndex((item) => item.key === route.key);
           const label = typeof descriptor.options.title === 'string' ? descriptor.options.title : route.name;
           if (route.name === 'coach') {
-            return <View key={route.key} style={styles.tabItem} />;
+            return (
+              <CoachTabButton
+                key={route.key}
+                focused={focused}
+                label={label}
+                onPress={() => handlePress(route)}
+                colors={colors}
+              />
+            );
           }
           return (
             <Pressable
@@ -250,14 +140,6 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
           );
         })}
       </View>
-      {coachRoute ? (
-        <CoachTabButton
-          focused={state.index === state.routes.findIndex((item) => item.key === coachRoute.key)}
-          label={descriptors[coachRoute.key].options.title ?? coachRoute.name}
-          onPress={() => handlePress(coachRoute)}
-          colors={colors}
-        />
-      ) : null}
     </View>
   );
 }
@@ -314,13 +196,13 @@ const styles = StyleSheet.create({
   tabBar: { height: 78, borderRadius: 28, borderWidth: 1, flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 4, shadowOpacity: 0.32, shadowRadius: 18, shadowOffset: { width: 0, height: -5 }, elevation: 16 },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 5, paddingBottom: 9, paddingTop: 12 },
   tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
-  coachTabItem: { position: 'absolute', width: 88, height: 116, alignItems: 'center', justifyContent: 'flex-start', overflow: 'visible', zIndex: 30 },
-  coachTabButton: { alignItems: 'center', shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 4 }, elevation: 18 },
+  coachTabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
+  coachTabButton: { position: 'absolute', top: -42, alignItems: 'center', shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 4 }, elevation: 18 },
   coachTabCircle: { width: 88, height: 88, borderRadius: 44, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.42, shadowRadius: 14, shadowOffset: { width: 0, height: 0 }, elevation: 13 },
   coachTabImage: { width: 88, height: 88, borderRadius: 44 },
   coachThinkingImage: { width: 100, height: 100, transform: [{ translateY: 6 }] },
   coachThinkingOverlay: { position: 'absolute', left: -6, top: -6 },
-  coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 7, letterSpacing: 0.8 },
+  coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 11, letterSpacing: 0.8 },
   coachTabDot: { width: 5, height: 5, borderRadius: 3, marginTop: 4 },
   moodPromptOverlay: { position: 'absolute', left: 14, right: 14, zIndex: 20 },
   moodPrompt: { borderRadius: 20, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9, shadowOpacity: 0.28, shadowRadius: 15, shadowOffset: { width: 0, height: 7 }, elevation: 10 },
