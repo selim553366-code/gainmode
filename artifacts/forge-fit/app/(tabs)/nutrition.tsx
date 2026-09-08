@@ -261,7 +261,7 @@ export default function NutritionScreen() {
     void searchFood({ q: code, language, limit: 1 })
       .then((result) => {
         if (requestId !== barcodeRequestId.current) return;
-        const item = result.items[0];
+        const item = result?.items?.[0];
         if (item) {
           setBarcodeResult(item);
         } else {

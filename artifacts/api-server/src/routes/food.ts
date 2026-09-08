@@ -288,6 +288,7 @@ async function searchUsda(query: string, limit: number): Promise<NormalizedFood[
 }
 
 router.get("/food/search", async (req, res) => {
+  res.set("Cache-Control", "no-store");
   const rawQuery = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const query = /^\]?(?:C1|E0|d2|Q3)/i.test(rawQuery) || /^\d{8,14}$/.test(rawQuery)
     ? normalizeBarcode(rawQuery)

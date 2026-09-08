@@ -6,6 +6,10 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// Mobile clients do not have a shared response cache to hydrate from when a
+// conditional GET receives 304, so return the JSON body for every API request.
+app.disable("etag");
+
 app.use(
   pinoHttp({
     logger,
