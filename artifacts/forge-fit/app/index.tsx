@@ -1085,7 +1085,6 @@ function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: (
 function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: () => void; onPurchaseSuccess: () => void }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
     const { language, enableTestPremium } = useFit();
      const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
@@ -1096,8 +1095,6 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
   const [promoCode, setPromoCode] = React.useState('');
   const [promoError, setPromoError] = React.useState<string | null>(null);
   const [promoCelebrationVisible, setPromoCelebrationVisible] = React.useState(false);
-   const [explorePage, setExplorePage] = React.useState(0);
-   const [showExplore, setShowExplore] = React.useState(false);
    const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
    const benefits: Array<{ icon?: React.ComponentProps<typeof Ionicons>['name']; logo?: boolean; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' | 'premiumFeature4' | 'premiumFeature5' }> = [
     { logo: true, key: 'premiumWelcomeBenefit1' },
@@ -1155,19 +1152,6 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
     setPromoError(null);
     setPromoCelebrationVisible(true);
   };
-   if (showExplore) {
-     return <AccessExploreScreen
-       page={explorePage}
-       onBack={() => setShowExplore(false)}
-       onNext={() => {
-         if (explorePage === accessExploreSlides.length - 1) {
-           setShowExplore(false);
-           return;
-         }
-         setExplorePage((current) => current + 1);
-       }}
-     />;
-   }
    return <>
    <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.offerGradient}>
     <View style={[styles.offerHeader, { paddingTop: insets.top + 10 }]}>
@@ -1210,11 +1194,6 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
         </Pressable>
       </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
-      <Pressable accessibilityRole="button" accessibilityLabel={t('premiumExploreCta')} onPress={() => { triggerHaptic(); setExplorePage(0); setShowExplore(true); }} style={({ pressed }) => [styles.exploreCta, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}48`, opacity: pressed ? 0.74 : 1 }]}>
-        <View style={[styles.exploreCtaIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="sparkles-outline" size={17} color={colors.primary} /></View>
-        <View style={styles.exploreCtaCopy}><Text style={[styles.exploreCtaTitle, { color: colors.foreground }]}>{t('premiumExploreCta')}</Text><Text style={[styles.exploreCtaSubtitle, { color: colors.mutedForeground }]}>{t('premiumWelcomeReason')}</Text></View>
-        <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-      </Pressable>
       <View style={styles.offerPromoSection}>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: promoOpen }} onPress={() => { setPromoOpen((open) => !open); setPromoError(null); }} style={styles.offerPromoToggle}>
           <Ionicons name="ticket-outline" size={14} color={colors.mutedForeground} />
