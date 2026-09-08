@@ -35,7 +35,7 @@ const skeletonConnections: Array<[PoseJoint, PoseJoint]> = [
 
 function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmarks; width: number; height: number; color: string }) {
   const displayX = (normalizedX: number) => cameraDisplayX(normalizedX) * width;
-  return <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
     <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       {skeletonConnections.map(([from, to]) => {
         const start = pose[from];
@@ -139,7 +139,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
 
   return <View testID="live-workout-compact-panel" style={[styles.cameraRoot, { backgroundColor: skeletonOnly ? colors.black : colors.background }]}>
     <PoseCamera
-       style={[StyleSheet.absoluteFillObject, skeletonOnly ? styles.hiddenCamera : null]}
+       style={[StyleSheet.absoluteFill, skeletonOnly ? styles.hiddenCamera : null]}
       facing="front"
        profile="quality"
       resolution="720p"
@@ -231,8 +231,8 @@ export default function LiveWorkoutScreen() {
 const styles = StyleSheet.create({
   cameraRoot: { flex: 1, backgroundColor: '#020B18' },
   hiddenCamera: { opacity: 0 },
-  cameraShade: { ...StyleSheet.absoluteFillObject, backgroundColor: '#020B1830' },
-  neonFrame: { ...StyleSheet.absoluteFillObject, margin: 18, borderWidth: 2, borderRadius: 30, shadowOpacity: 0.7, shadowRadius: 18 },
+  cameraShade: { ...StyleSheet.absoluteFill, backgroundColor: '#020B1830' },
+  neonFrame: { ...StyleSheet.absoluteFill, margin: 18, borderWidth: 2, borderRadius: 30, shadowOpacity: 0.7, shadowRadius: 18 },
   liveHeader: { position: 'absolute', left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 8 },
   liveBadge: { height: 32, borderRadius: 12, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#FFFFFF' },
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
   feedback: { minHeight: 40, borderRadius: 12, borderWidth: 1, marginTop: 7, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
   feedbackText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 15 },
   privacyText: { fontFamily: 'Inter_400Regular', fontSize: 9, lineHeight: 12, marginTop: 7 },
-  guideBackdrop: { ...StyleSheet.absoluteFillObject, zIndex: 20, backgroundColor: '#020B18B8', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
+  guideBackdrop: { ...StyleSheet.absoluteFill, zIndex: 20, backgroundColor: '#020B18B8', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
   guideCard: { width: '100%', maxWidth: 420, borderRadius: 24, borderWidth: 1, padding: 12, shadowColor: '#000000', shadowOpacity: 0.28, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
   guideHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   guideTitleRow: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 9 },

@@ -191,7 +191,7 @@ export default function CoachScreen() {
   }, [analysisId, weeklyAnalysis]);
   return <View style={[styles.root, { backgroundColor: colors.white, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
     <View pointerEvents="none" style={styles.coachBackgroundLayer}>
-      <LinearGradient colors={[colors.secondary, colors.white]} style={StyleSheet.absoluteFillObject} />
+      <LinearGradient colors={[colors.secondary, colors.white]} style={StyleSheet.absoluteFill} />
       <Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: coachReveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} />
     </View>
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.secondary, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
@@ -256,11 +256,11 @@ export default function CoachScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, paddingHorizontal: 20 },
-  coachBackgroundLayer: { ...StyleSheet.absoluteFillObject },
-  coachBackground: { ...StyleSheet.absoluteFillObject },
+  coachBackgroundLayer: { ...StyleSheet.absoluteFill },
+  coachBackground: { ...StyleSheet.absoluteFill },
   coachReveal: { position: 'absolute', width: 56, height: 56, borderRadius: 28, left: '50%', marginLeft: -28, bottom: 44, shadowColor: '#FFFFFF', shadowOpacity: 0.52, shadowRadius: 28, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
-  coachFlightLayer: { ...StyleSheet.absoluteFillObject, zIndex: 4 },
-  analysisFlightLayer: { ...StyleSheet.absoluteFillObject, zIndex: 5 },
+  coachFlightLayer: { ...StyleSheet.absoluteFill, zIndex: 4 },
+  analysisFlightLayer: { ...StyleSheet.absoluteFill, zIndex: 5 },
   analysisFlightCard: { position: 'absolute', left: '50%', top: '100%', width: 260, marginLeft: -130, minHeight: 52, borderRadius: 17, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 9, shadowColor: '#000', shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
   analysisFlightText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
   coachFlyingAvatar: { position: 'absolute', width: 72, height: 72, borderRadius: 36, shadowColor: '#FFFFFF', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 10 },

@@ -16,12 +16,6 @@
     "icon": "./assets/images/coach-app-icon-final.png",
     "scheme": "forge-fit",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/coach-app-icon-final.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0B0D0C"
-    },
     "ios": {
       "bundleIdentifier": "com.forgefit2.app",
       "supportsTablet": false
@@ -46,6 +40,14 @@
         }
       ],
       "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/coach-app-icon-final.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0B0D0C"
+        }
+      ],
       "expo-web-browser",
       "expo-notifications",
       [

@@ -20,3 +20,9 @@ Expo CLI may fail before Metro starts when its online dependency-version request
 **Why:** The Forge Fit workflow encountered `Unexpected end of JSON input` inside Expo’s remote version lookup while local dependency checks were already clean.
 
 **How to apply:** If this exact startup failure recurs, use `EXPO_OFFLINE=1` in the Forge Fit dev command, then restart the managed workflow and verify Metro opens its configured port.
+
+Expo SDK upgrades require a direct SDK-matched `babel-preset-expo` dependency in the mobile workspace when the monorepo root can expose an older preset.
+
+**Why:** During the SDK 57 migration, Metro’s React Native codegen failed inside `VirtualViewExperimentalNativeComponent` until Forge Fit resolved `babel-preset-expo` 57 instead of the workspace-root Expo 54 preset.
+
+**How to apply:** Pin `babel-preset-expo` with the artifact’s Expo SDK, then run both Expo Doctor and iOS/Android exports before diagnosing codegen failures as application bugs.

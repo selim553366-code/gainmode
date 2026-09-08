@@ -79,7 +79,7 @@ function BadgeUnlockCelebration() {
 const badgeCelebrationStyles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#061629B8', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   card: { width: '100%', maxWidth: 350, minHeight: 300, borderRadius: 30, borderWidth: 2, padding: 28, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  glow: { ...StyleSheet.absoluteFillObject },
+  glow: { ...StyleSheet.absoluteFill },
   icon: { width: 92, height: 92, borderRadius: 32, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.3, textAlign: 'center' },
   title: { fontFamily: 'Inter_700Bold', fontSize: 27, lineHeight: 33, textAlign: 'center', marginTop: 8 },
@@ -105,6 +105,7 @@ function RootLayoutNav() {
     const openNotificationDestination = (response: Notifications.NotificationResponse | null) => {
       if (!response || handledNotificationResponse.current === response.notification.request.identifier) return;
       const data = response.notification.request.content.data;
+      if (!data || typeof data !== 'object') return;
       const supportedSources = [
         'forge-fit-daily-mood',
         'forge-fit-workout',

@@ -733,7 +733,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   const haloOpacity = haloPulse.interpolate({ inputRange: [0, 1], outputRange: [0.42, 0.78] });
 
   return <AnimatedLinearGradient colors={[colors.background, colors.secondary, colors.background]} style={[styles.full, { opacity: pageOpacity, transform: [{ translateX: pageTranslateX }] }]}>
-    <View style={[StyleSheet.absoluteFillObject, styles.welcomeBackdropDecorations]}>
+    <View style={[StyleSheet.absoluteFill, styles.welcomeBackdropDecorations]}>
       <Animated.View style={[styles.welcomeAmbientGlow, { backgroundColor: `${colors.primary}20`, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
     </View>
     <View style={styles.questionTop}><ForgeFitMark size={38} /><Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text><LanguageSelector language={language} onSelect={setLanguage} /></View>

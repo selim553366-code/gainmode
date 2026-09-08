@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   neonCameraInner: { flex: 1, borderRadius: 23, overflow: 'hidden', position: 'relative', backgroundColor: 'transparent' },
   neonMealFrame: { width: 310, height: 310 },
   neonBarcodeFrame: { width: 310, height: 178 },
-  neonFrameGlow: { ...StyleSheet.absoluteFillObject, borderWidth: 1, borderRadius: 26, shadowOpacity: 0.95, shadowRadius: 22, shadowOffset: { width: 0, height: 0 }, elevation: 12 },
+  neonFrameGlow: { ...StyleSheet.absoluteFill, borderWidth: 1, borderRadius: 26, shadowOpacity: 0.95, shadowRadius: 22, shadowOffset: { width: 0, height: 0 }, elevation: 12 },
   frameCorner: { position: 'absolute', width: 34, height: 34, borderWidth: 3 },
   frameTopLeft: { left: -1, top: -1, borderRightWidth: 0, borderBottomWidth: 0, borderTopLeftRadius: 26 },
   frameTopRight: { right: -1, top: -1, borderLeftWidth: 0, borderBottomWidth: 0, borderTopRightRadius: 26 },

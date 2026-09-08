@@ -89,8 +89,8 @@ export default function FeaturesScreen() {
 
 const styles = StyleSheet.create({
   hero: { minHeight: 178, borderRadius: 25, overflow: 'hidden', marginBottom: 16 },
-  heroImage: { ...StyleSheet.absoluteFillObject, opacity: 0.45 },
-  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: '#06162966' },
+  heroImage: { ...StyleSheet.absoluteFill, opacity: 0.45 },
+  heroOverlay: { ...StyleSheet.absoluteFill, backgroundColor: '#06162966' },
   heroCopy: { padding: 20, paddingTop: 22 },
   heroEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.3 },
   heroTitle: { fontFamily: 'Inter_700Bold', fontSize: 25, lineHeight: 30, marginTop: 9, maxWidth: '90%' },
