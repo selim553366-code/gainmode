@@ -9,7 +9,6 @@ import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
 import { isProfileEditAvailable } from '@/lib/profileEdit';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 import { apiUrl } from '@/lib/api';
-import { addInboxNotification } from '@/lib/inboxNotifications';
 
 type LegalSection = 'privacy' | 'terms' | null;
 type FeedbackCategory = 'bug' | 'suggestion' | 'subscription' | 'payment' | 'notifications' | 'other';
@@ -68,7 +67,6 @@ export default function SettingsScreen() {
         body: JSON.stringify({ message, category: feedbackCategory, language, screen: 'settings', replyTo }),
       });
       if (!response.ok) throw new Error('feedback request failed');
-      await addInboxNotification({ title: t('feedbackNotificationTitle'), body: t('feedbackNotificationBody') });
       setFeedbackText('');
       setFeedbackEmail('');
       setFeedbackSent(true);
@@ -187,24 +185,6 @@ export default function SettingsScreen() {
         </Pressable>
       </Card>
 
-      <SectionTitle title={t('notificationsTitle')} />
-      <Card>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/notifications')}
-          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
-        >
-          <View style={[styles.iconBox, { backgroundColor: `${colors.blue}20` }]}>
-            <Ionicons name="notifications-outline" size={21} color={colors.blue} />
-          </View>
-          <View style={styles.rowCopy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('notificationsTitle')}</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('notificationsSubtitle')}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
-        </Pressable>
-      </Card>
-
       <SectionTitle title={t('feedbackTitle')} />
       <Card>
         <Pressable
@@ -234,10 +214,6 @@ export default function SettingsScreen() {
                 </View>
                 <Text style={[styles.feedbackSuccessTitle, { color: colors.foreground }]}>{t('feedbackSentTitle')}</Text>
                 <Text style={[styles.feedbackSuccessBody, { color: colors.mutedForeground }]}>{t('feedbackSentBody')}</Text>
-                <Pressable accessibilityRole="button" onPress={() => router.push('/notifications')} style={({ pressed }) => [styles.feedbackNotificationsButton, { borderColor: `${colors.primary}55`, backgroundColor: `${colors.primary}12`, opacity: pressed ? 0.72 : 1 }]}>
-                  <Ionicons name="notifications-outline" size={16} color={colors.primary} />
-                  <Text style={[styles.feedbackNotificationsText, { color: colors.primary }]}>{t('notificationsTitle')}</Text>
-                </Pressable>
               </Animated.View>
             ) : (
               <>
@@ -397,6 +373,4 @@ const styles = StyleSheet.create({
   feedbackSuccessIcon: { width: 72, height: 72, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   feedbackSuccessTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, textAlign: 'center' },
   feedbackSuccessBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 7, maxWidth: 285 },
-  feedbackNotificationsButton: { minHeight: 40, borderWidth: 1, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 14, marginTop: 15 },
-  feedbackNotificationsText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
 });
