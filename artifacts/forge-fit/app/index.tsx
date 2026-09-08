@@ -584,7 +584,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const isTargetStep = numericStep === targetStep && hasTargetWeightStep;
     const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[numericStep] ?? 'preferredDaysQuestion';
    return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
-     <View style={styles.questionTop}><ForgeFitMark size={38} /><LanguageSelector language={language} onSelect={setLanguage} /></View>
+     <View style={styles.questionTop}><ForgeFitMark size={38} /><Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE</Text><LanguageSelector language={language} onSelect={setLanguage} /></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
        <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
           <View style={styles.coachQuestionVisual}><AnswerAnalysisStatus /><View style={styles.coachPhotoStage}><CoachMotion onboarding variant="write" /></View></View>
@@ -607,8 +607,9 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
 
   return (
     <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
-      <View style={styles.questionTop}>
-        <ForgeFitMark size={38} />
+       <View style={styles.questionTop}>
+         <ForgeFitMark size={38} />
+         <Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE</Text>
         <LanguageSelector language={language} onSelect={setLanguage} />
       </View>
       <View style={styles.modeChoiceContent}>
@@ -733,7 +734,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
     <View style={[StyleSheet.absoluteFillObject, styles.welcomeBackdropDecorations]}>
       <Animated.View style={[styles.welcomeAmbientGlow, { backgroundColor: `${colors.primary}20`, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
     </View>
-    <View style={styles.questionTop}><ForgeFitMark size={38} /><LanguageSelector language={language} onSelect={setLanguage} /></View>
+    <View style={styles.questionTop}><ForgeFitMark size={38} /><Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE</Text><LanguageSelector language={language} onSelect={setLanguage} /></View>
     <View style={styles.welcomeContent}>
       <View style={styles.welcomeVisualStage}>
         <Animated.View style={[styles.welcomeHaloRing, { borderColor: `${colors.primary}42`, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
@@ -1178,6 +1179,7 @@ const styles = StyleSheet.create({
   entryRecoveryButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   questionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brandMark: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  brandWordmark: { flex: 1, textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 2.5, marginHorizontal: 14 },
   languageRow: { flexDirection: 'row', gap: 8 },
   languageOption: { width: 20, alignItems: 'center', gap: 2 },
   language: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 12 },
