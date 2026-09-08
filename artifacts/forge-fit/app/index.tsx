@@ -660,57 +660,104 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   const colors = useColors();
   const { language, setLanguage } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-   const { width } = useWindowDimensions();
-   const [leaving, setLeaving] = React.useState(false);
-   const orbScale = React.useRef(new Animated.Value(0.78)).current;
-   const orbRotation = React.useRef(new Animated.Value(0)).current;
-   const copyOpacity = React.useRef(new Animated.Value(0)).current;
-   const copyTranslateY = React.useRef(new Animated.Value(22)).current;
-   const buttonOpacity = React.useRef(new Animated.Value(0)).current;
-   const buttonTranslateY = React.useRef(new Animated.Value(28)).current;
-   const pageTranslateX = React.useRef(new Animated.Value(0)).current;
-   const pageOpacity = React.useRef(new Animated.Value(1)).current;
+  const { width } = useWindowDimensions();
+  const [leaving, setLeaving] = React.useState(false);
+  const orbScale = React.useRef(new Animated.Value(0.78)).current;
+  const orbRotation = React.useRef(new Animated.Value(0)).current;
+  const coachFloat = React.useRef(new Animated.Value(0)).current;
+  const haloPulse = React.useRef(new Animated.Value(0)).current;
+  const copyOpacity = React.useRef(new Animated.Value(0)).current;
+  const copyTranslateY = React.useRef(new Animated.Value(22)).current;
+  const buttonOpacity = React.useRef(new Animated.Value(0)).current;
+  const buttonTranslateY = React.useRef(new Animated.Value(28)).current;
+  const pageTranslateX = React.useRef(new Animated.Value(0)).current;
+  const pageOpacity = React.useRef(new Animated.Value(1)).current;
 
-   React.useEffect(() => {
-     Animated.parallel([
-       Animated.spring(orbScale, { toValue: 1, damping: 13, stiffness: 145, mass: 0.8, useNativeDriver: true }),
-       Animated.timing(orbRotation, { toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-       Animated.sequence([
-         Animated.delay(120),
-         Animated.parallel([
-           Animated.timing(copyOpacity, { toValue: 1, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-           Animated.timing(copyTranslateY, { toValue: 0, duration: 620, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-         ]),
-       ]),
-       Animated.sequence([
-         Animated.delay(250),
-         Animated.parallel([
-           Animated.timing(buttonOpacity, { toValue: 1, duration: 460, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-           Animated.timing(buttonTranslateY, { toValue: 0, duration: 560, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-         ]),
-       ]),
-     ]).start();
-   }, [buttonOpacity, buttonTranslateY, copyOpacity, copyTranslateY, orbRotation, orbScale]);
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.spring(orbScale, { toValue: 1, damping: 13, stiffness: 145, mass: 0.8, useNativeDriver: true }),
+      Animated.timing(orbRotation, { toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.sequence([
+        Animated.delay(120),
+        Animated.parallel([
+          Animated.timing(copyOpacity, { toValue: 1, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.timing(copyTranslateY, { toValue: 0, duration: 620, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        ]),
+      ]),
+      Animated.sequence([
+        Animated.delay(250),
+        Animated.parallel([
+          Animated.timing(buttonOpacity, { toValue: 1, duration: 460, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.timing(buttonTranslateY, { toValue: 0, duration: 560, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        ]),
+      ]),
+    ]).start();
+  }, [buttonOpacity, buttonTranslateY, copyOpacity, copyTranslateY, orbRotation, orbScale]);
 
-   const startAdventure = () => {
-     if (leaving) return;
-     triggerHaptic();
-     setLeaving(true);
-     Animated.parallel([
-       Animated.timing(pageTranslateX, { toValue: -width, duration: 560, easing: Easing.bezier(0.22, 0.61, 0.36, 1), useNativeDriver: true }),
-       Animated.timing(pageOpacity, { toValue: 0.96, duration: 440, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-       Animated.timing(orbScale, { toValue: 1.08, duration: 560, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-     ]).start(({ finished }) => {
-       if (finished) onStart();
-     });
-   };
+  React.useEffect(() => {
+    const floatLoop = Animated.loop(Animated.sequence([
+      Animated.timing(coachFloat, { toValue: 1, duration: 1900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(coachFloat, { toValue: 0, duration: 1900, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    const haloLoop = Animated.loop(Animated.sequence([
+      Animated.timing(haloPulse, { toValue: 1, duration: 2300, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(haloPulse, { toValue: 0, duration: 2300, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+    ]));
+    floatLoop.start();
+    haloLoop.start();
+    return () => {
+      floatLoop.stop();
+      haloLoop.stop();
+    };
+  }, [coachFloat, haloPulse]);
 
-   const orbRotateValue = orbRotation.interpolate({ inputRange: [0, 1], outputRange: ['-5deg', '0deg'] });
-   return <AnimatedLinearGradient colors={[colors.background, colors.secondary, colors.background]} style={[styles.full, { opacity: pageOpacity, transform: [{ translateX: pageTranslateX }] }]}>
-      <View style={styles.questionTop}><ForgeFitMark size={38} /><LanguageSelector language={language} onSelect={setLanguage} /></View>
-     <View style={styles.welcomeContent}><Animated.View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18`, transform: [{ scale: orbScale }, { rotate: orbRotateValue }] }]}><Image source={require('@/assets/images/coach-welcome.png')} resizeMode="cover" style={styles.welcomeCoachImage} /></Animated.View><Animated.View style={{ opacity: copyOpacity, transform: [{ translateY: copyTranslateY }] }}><Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text><Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text></Animated.View></View>
-      <Animated.View style={{ opacity: buttonOpacity, transform: [{ translateY: buttonTranslateY }] }}><Pressable onPress={startAdventure} disabled={leaving} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></Animated.View>
-   </AnimatedLinearGradient>;
+  const startAdventure = () => {
+    if (leaving) return;
+    triggerHaptic();
+    setLeaving(true);
+    Animated.parallel([
+      Animated.timing(pageTranslateX, { toValue: -width, duration: 560, easing: Easing.bezier(0.22, 0.61, 0.36, 1), useNativeDriver: true }),
+      Animated.timing(pageOpacity, { toValue: 0.96, duration: 440, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(orbScale, { toValue: 1.08, duration: 560, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start(({ finished }) => {
+      if (finished) onStart();
+    });
+  };
+
+  const orbRotateValue = orbRotation.interpolate({ inputRange: [0, 1], outputRange: ['-5deg', '0deg'] });
+  const coachTranslateY = coachFloat.interpolate({ inputRange: [0, 1], outputRange: [3, -7] });
+  const haloScale = haloPulse.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.08] });
+  const haloOpacity = haloPulse.interpolate({ inputRange: [0, 1], outputRange: [0.42, 0.78] });
+
+  return <AnimatedLinearGradient colors={[colors.background, colors.secondary, colors.background]} style={[styles.full, { opacity: pageOpacity, transform: [{ translateX: pageTranslateX }] }]}>
+    <View style={[StyleSheet.absoluteFillObject, styles.welcomeBackdropDecorations]}>
+      <Animated.View style={[styles.welcomeAmbientGlow, { backgroundColor: `${colors.primary}20`, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
+    </View>
+    <View style={styles.questionTop}><ForgeFitMark size={38} /><LanguageSelector language={language} onSelect={setLanguage} /></View>
+    <View style={styles.welcomeContent}>
+      <View style={styles.welcomeVisualStage}>
+        <Animated.View style={[styles.welcomeHaloRing, { borderColor: `${colors.primary}42`, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
+        <Animated.View style={[styles.welcomeHaloRingInner, { backgroundColor: `${colors.primary}12`, transform: [{ scale: haloScale }] }]} />
+        <Animated.View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18`, transform: [{ translateY: coachTranslateY }, { scale: orbScale }, { rotate: orbRotateValue }] }]}>
+          <Image source={require('@/assets/images/coach-welcome.png')} resizeMode="cover" style={styles.welcomeCoachImage} />
+        </Animated.View>
+      </View>
+      <Animated.View style={{ opacity: copyOpacity, transform: [{ translateY: copyTranslateY }] }}>
+        <Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text>
+        <Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text>
+      </Animated.View>
+    </View>
+    <Animated.View style={[styles.welcomeActionPanel, { backgroundColor: `${colors.card}E8`, borderColor: `${colors.primary}35`, shadowColor: colors.primary, opacity: buttonOpacity, transform: [{ translateY: buttonTranslateY }] }]}>
+      <View style={styles.welcomeActionHintRow}>
+        <View style={[styles.welcomeActionHintDot, { backgroundColor: colors.primary }]} />
+        <Text style={[styles.welcomeActionHint, { color: colors.mutedForeground }]}>{t('welcomeCtaHint')}</Text>
+      </View>
+      <Pressable onPress={startAdventure} disabled={leaving} style={({ pressed }) => [styles.nextButton, styles.welcomeStartButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
+        <Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text>
+        <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
+      </Pressable>
+    </Animated.View>
+  </AnimatedLinearGradient>;
 }
 
 function CompletionCheckmark() {
@@ -1221,11 +1268,21 @@ const styles = StyleSheet.create({
   nextButton: { minHeight: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10 },
   nextText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   skip: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 12 },
+  welcomeAmbientGlow: { position: 'absolute', left: -60, right: -60, top: 140, height: 430, borderRadius: 220 },
+  welcomeBackdropDecorations: { pointerEvents: 'none' },
   welcomeContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
-   welcomeOrb: { width: 245, height: 245, borderRadius: 122, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 22 },
-   welcomeCoachImage: { width: 245, height: 245 },
+  welcomeVisualStage: { width: 292, height: 292, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  welcomeHaloRing: { position: 'absolute', width: 286, height: 286, borderRadius: 143, borderWidth: 1.5 },
+  welcomeHaloRingInner: { position: 'absolute', width: 268, height: 268, borderRadius: 134 },
+  welcomeOrb: { width: 245, height: 245, borderRadius: 122, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  welcomeCoachImage: { width: 245, height: 245 },
   welcomeTitle: { textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 33, lineHeight: 38, letterSpacing: -1.2 },
   welcomeSubtitle: { textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 23, marginTop: 12, maxWidth: 310 },
+  welcomeActionPanel: { width: '100%', borderWidth: 1, borderRadius: 27, padding: 10, shadowOpacity: 0.17, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  welcomeActionHintRow: { minHeight: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 8, paddingBottom: 6 },
+  welcomeActionHintDot: { width: 5, height: 5, borderRadius: 3 },
+  welcomeActionHint: { fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, textAlign: 'center' },
+  welcomeStartButton: { minHeight: 58, borderRadius: 20 },
   completionContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   completionCoachStage: { alignItems: 'center', marginBottom: 22 },
   completionCheckmark: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginBottom: -6, zIndex: 2 },
