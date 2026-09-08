@@ -278,6 +278,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const { language, setLanguage, completeOnboarding, setIntroSeen, profile: savedProfile, username: savedUsername } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [started, setStarted] = React.useState(editMode);
+  const [growthSeen, setGrowthSeen] = React.useState(editMode);
   const [step, setStep] = React.useState(0);
   const [equipment, setEquipment] = React.useState<Equipment>('bodyweight');
   const [equipmentDetails, setEquipmentDetails] = React.useState('');
@@ -575,6 +576,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   };
 
      if (!started) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} /></View>;
+     if (!growthSeen) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><GrowthComparisonScreen onContinue={() => setGrowthSeen(true)} /></View>;
     if (!editMode && activeStep === 'mode') return <OnboardingModeChoice onSelect={chooseMode} onBack={() => { setOnboardingMode(null); setStep(0); }} />;
     if (buildingPlan) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><PlanBuildingScreen onComplete={finish} /></View>;
     if (step === total && equipment === 'gym' && !overloadSeen) return <View style={[styles.onboardingShell, { backgroundColor: colors.background }]}><ProgressiveOverloadScreen onContinue={() => setOverloadSeen(true)} /></View>;
@@ -759,6 +761,84 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
       </Pressable>
     </Animated.View>
   </AnimatedLinearGradient>;
+}
+
+function GrowthComparisonScreen({ onContinue }: { onContinue: () => void }) {
+  const colors = useColors();
+  const { language, setLanguage } = useFit();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const [leaving, setLeaving] = React.useState(false);
+  const leftFill = React.useRef(new Animated.Value(0)).current;
+  const rightFill = React.useRef(new Animated.Value(0)).current;
+  const contentOpacity = React.useRef(new Animated.Value(0)).current;
+  const contentTranslateY = React.useRef(new Animated.Value(18)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(contentOpacity, { toValue: 1, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(contentTranslateY, { toValue: 0, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.sequence([
+        Animated.delay(240),
+        Animated.timing(leftFill, { toValue: 1, duration: 850, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      ]),
+      Animated.sequence([
+        Animated.delay(430),
+        Animated.timing(rightFill, { toValue: 1, duration: 1050, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
+      ]),
+    ]).start();
+  }, [contentOpacity, contentTranslateY, leftFill, rightFill]);
+
+  const leaveScreen = () => {
+    if (leaving) return;
+    triggerHaptic();
+    setLeaving(true);
+    Animated.parallel([
+      Animated.timing(contentOpacity, { toValue: 0, duration: 220, useNativeDriver: true }),
+      Animated.timing(contentTranslateY, { toValue: -12, duration: 260, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+    ]).start(({ finished }) => {
+      if (finished) onContinue();
+    });
+  };
+
+  const leftHeight = leftFill.interpolate({ inputRange: [0, 1], outputRange: [0, 52] });
+  const rightHeight = rightFill.interpolate({ inputRange: [0, 1], outputRange: [0, 238] });
+
+  return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
+    <View style={styles.questionTop}>
+      <ForgeFitMark size={38} />
+      <Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text>
+      <LanguageSelector language={language} onSelect={setLanguage} />
+    </View>
+    <Animated.View style={[styles.growthContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>
+      <Text style={[styles.growthEyebrow, { color: colors.primary }]}>{t('growthEyebrow')}</Text>
+      <Text style={[styles.growthTitle, { color: colors.foreground }]}>{t('growthTitle')}</Text>
+      <Text style={[styles.growthBody, { color: colors.mutedForeground }]}>{t('growthBody')}</Text>
+      <View style={styles.growthBars}>
+        <View style={styles.growthBarColumn}>
+          <View style={[styles.growthBarTrack, { backgroundColor: `${colors.mutedForeground}12`, borderColor: colors.border }]}>
+            <Animated.View style={[styles.growthBarFill, { height: leftHeight, backgroundColor: `${colors.mutedForeground}70` }]}>
+              <Text style={[styles.growthRate, { color: colors.foreground }]}>{t('growthSlowRate')}</Text>
+            </Animated.View>
+          </View>
+          <Text style={[styles.growthBarTitle, { color: colors.foreground }]}>{t('growthUnplannedTitle')}</Text>
+          <Text style={[styles.growthBarBody, { color: colors.mutedForeground }]}>{t('growthUnplannedBody')}</Text>
+        </View>
+        <View style={styles.growthBarColumn}>
+          <View style={[styles.growthBarTrack, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}55` }]}>
+            <Animated.View style={[styles.growthBarFill, { height: rightHeight, backgroundColor: colors.primary }]}>
+              <Text style={[styles.growthRate, { color: colors.primaryForeground }]}>{t('growthFastRate')}</Text>
+            </Animated.View>
+          </View>
+          <Text style={[styles.growthBarTitle, { color: colors.foreground }]}>{t('growthGainModeTitle')}</Text>
+          <Text style={[styles.growthBarBody, { color: colors.mutedForeground }]}>{t('growthGainModeBody')}</Text>
+        </View>
+      </View>
+    </Animated.View>
+    <Pressable accessibilityRole="button" onPress={leaveScreen} disabled={leaving} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || leaving ? 0.72 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
+      <Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('growthContinue')}</Text>
+      <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
+    </Pressable>
+  </LinearGradient>;
 }
 
 function CompletionCheckmark() {
@@ -1286,6 +1366,17 @@ const styles = StyleSheet.create({
   welcomeActionHintDot: { width: 5, height: 5, borderRadius: 3 },
   welcomeActionHint: { fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, textAlign: 'center' },
   welcomeStartButton: { minHeight: 58, borderRadius: 20 },
+  growthContent: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 16 },
+  growthEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.7, marginBottom: 12, textAlign: 'center' },
+  growthTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, lineHeight: 35, letterSpacing: -0.9, textAlign: 'center', maxWidth: 330 },
+  growthBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, textAlign: 'center', maxWidth: 320, marginTop: 12 },
+  growthBars: { width: '100%', flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 28 },
+  growthBarColumn: { flex: 1, alignItems: 'center', maxWidth: 145 },
+  growthBarTrack: { width: 104, height: 270, borderRadius: 26, borderWidth: 1, overflow: 'hidden', justifyContent: 'flex-end', alignItems: 'center' },
+  growthBarFill: { width: '100%', minHeight: 0, borderRadius: 24, alignItems: 'center', justifyContent: 'flex-start' },
+  growthRate: { fontFamily: 'Inter_700Bold', fontSize: 24, lineHeight: 30, letterSpacing: -0.6, marginTop: 10 },
+  growthBarTitle: { fontFamily: 'Inter_700Bold', fontSize: 13, lineHeight: 17, textAlign: 'center', marginTop: 13 },
+  growthBarBody: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, textAlign: 'center', marginTop: 4, maxWidth: 132 },
   completionContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   completionCoachStage: { alignItems: 'center', marginBottom: 22 },
   completionCheckmark: { width: 52, height: 52, borderRadius: 26, borderWidth: 2, alignItems: 'center', justifyContent: 'center', marginBottom: -6, zIndex: 2 },
