@@ -41,16 +41,16 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
   const dragReadyRef = React.useRef(false);
   const gestureCanceledRef = React.useRef(false);
   const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const coachBaseBottom = Math.max(0, Math.max(insets.bottom, 10) - 33);
 
   const clampPosition = React.useCallback((next: { x: number; y: number }) => {
     const maxHorizontal = Math.max(0, (width - COACH_BUTTON_SIZE) / 2);
-    const baseBottom = Math.max(insets.bottom, 10) + 32;
-    const minY = -(height - baseBottom - insets.top - COACH_BUTTON_SIZE);
+    const minY = -(height - coachBaseBottom - insets.top - COACH_BUTTON_SIZE);
     return {
       x: Math.max(-maxHorizontal, Math.min(maxHorizontal, next.x)),
       y: Math.max(minY, Math.min(0, next.y)),
     };
-  }, [height, insets.bottom, insets.top, width]);
+  }, [coachBaseBottom, height, insets.top, width]);
 
   const setPosition = React.useCallback((next: { x: number; y: number }) => {
     const clamped = clampPosition(next);
@@ -186,7 +186,7 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
       style={[
         styles.coachTabItem,
         {
-          bottom: Math.max(insets.bottom, 10) + 32,
+          bottom: coachBaseBottom,
           left: width / 2 - COACH_BUTTON_SIZE / 2,
           transform: position.getTranslateTransform(),
         },
