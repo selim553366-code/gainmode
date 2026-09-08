@@ -68,7 +68,8 @@
           "cameraPermissionText": "GainMode uses the camera to analyze your movement."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,
