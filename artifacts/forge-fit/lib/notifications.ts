@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { isRunningInExpoGo } from 'expo';
 import * as Notifications from 'expo-notifications';
 import { formatWorkoutReminder, Language, translate } from '@/lib/i18n';
 import type { Profile, Workout } from '@/context/FitContext';
@@ -15,8 +16,10 @@ export type NotificationSettings = {
 export type NotificationSettingKey = keyof NotificationSettings;
 
 const CHANNEL_ID = 'forge-fit-reminders';
+const isAndroidExpoGo = Platform.OS === 'android' && isRunningInExpoGo();
+export const notificationsSupported = Platform.OS !== 'web' && !isAndroidExpoGo;
 
-if (Platform.OS !== 'web') {
+if (notificationsSupported) {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: true,
@@ -38,7 +41,7 @@ const dayToWeekday: Record<string, number> = {
 };
 
 async function prepareNotifications() {
-  if (Platform.OS === 'web') return false;
+  if (!notificationsSupported) return false;
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
       name: 'GainMode reminders',
@@ -51,7 +54,7 @@ async function prepareNotifications() {
 }
 
 export async function requestNotificationPermission() {
-  if (Platform.OS === 'web') return true;
+  if (!notificationsSupported) return false;
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
   if (!current.canAskAgain) return false;
@@ -60,7 +63,7 @@ export async function requestNotificationPermission() {
 }
 
 export async function hasNotificationPermission() {
-  if (Platform.OS === 'web') return true;
+  if (!notificationsSupported) return false;
   const permissions = await Notifications.getPermissionsAsync();
   return permissions.granted;
 }
@@ -144,7 +147,7 @@ async function syncFitnessNotificationsNow({
   language: Language;
   weightLogs: { date: string }[];
 }) {
-  if (Platform.OS === 'web') return;
+  if (!notificationsSupported) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
   if (!(await requestNotificationPermission())) return;
   if (!(await prepareNotifications())) return;
@@ -184,6 +187,7 @@ export function syncFitnessNotifications(args: {
   language: Language;
   weightLogs: { date: string }[];
 }) {
+  if (!notificationsSupported) return Promise.resolve();
   const nextSync = notificationSync.catch(() => undefined).then(() => syncFitnessNotificationsNow(args));
   notificationSync = nextSync.catch(() => undefined);
   return nextSync;

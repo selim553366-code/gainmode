@@ -26,6 +26,7 @@ import colors from '@/constants/colors';
 import { CelebrationBurst, triggerHaptic } from '@/components/FitUI';
 import { Ionicons } from '@/components/AppIcon';
 import { badges, badgeText, badgeUi } from '@/lib/badges';
+import { notificationsSupported } from '@/lib/notifications';
 
 function BadgeUnlockCelebration() {
   const { hydrated, language, unlockedBadgeIds } = useFit();
@@ -101,7 +102,7 @@ function RootLayoutNav() {
   const { resolvedTheme } = useTheme();
   const handledNotificationResponse = useRef<string | null>(null);
   useEffect(() => {
-    if (Platform.OS === 'web') return undefined;
+    if (!notificationsSupported) return undefined;
     const openNotificationDestination = (response: Notifications.NotificationResponse | null) => {
       if (!response || handledNotificationResponse.current === response.notification.request.identifier) return;
       const data = response.notification.request.content.data;
