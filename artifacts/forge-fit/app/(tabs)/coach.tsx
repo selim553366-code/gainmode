@@ -213,7 +213,7 @@ export default function CoachScreen() {
         keyboardShouldPersistTaps="handled"
       />
        <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
-          <Animated.View style={[styles.auraInput, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.black, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }]}>
+          <Animated.View style={[styles.auraInput, { backgroundColor: `${colors.white}4D`, borderColor: colors.black, shadowColor: colors.black, opacity: aura.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }]}>
              <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" placeholder={loading ? t('analyzing') : t('askCoach')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground }]} />
             <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.black, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.white} /></Pressable>
          </Animated.View>
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 4, paddingTop: 16 },
   attach: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   input: { flex: 1, minHeight: 64, maxHeight: 82, width: '100%', paddingHorizontal: 17, paddingTop: 15, paddingBottom: 6, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, outlineWidth: 0 },
-  auraInput: { flex: 1, minHeight: 112, flexDirection: 'column', alignItems: 'stretch', borderWidth: 1.5, borderRadius: 25, paddingTop: 1, paddingHorizontal: 1, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 7 },
+  auraInput: { flex: 1, minHeight: 112, flexDirection: 'column', alignItems: 'stretch', borderWidth: 1.2, borderRadius: 25, paddingTop: 1, paddingHorizontal: 1, shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
   send: { width: 48, height: 48, borderRadius: 16, alignSelf: 'flex-end', alignItems: 'center', justifyContent: 'center', marginRight: 8, marginBottom: 8 },
   photoPreview: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 9, padding: 8, borderRadius: 15, borderWidth: 1 },
   photoPreviewImage: { width: 46, height: 46, borderRadius: 10 },
