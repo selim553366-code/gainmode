@@ -75,7 +75,6 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
   const [capturedPhoto, setCapturedPhoto] = React.useState<CapturedPhoto | null>(null);
   const scanLocked = React.useRef(false);
   const cameraRef = React.useRef<CameraView>(null);
-  const glow = React.useRef(new Animated.Value(0.58)).current;
   const scanLine = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
@@ -87,21 +86,15 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
 
   React.useEffect(() => {
     if (!visible || Platform.OS === 'web') return;
-    const glowLoop = Animated.loop(Animated.sequence([
-      Animated.timing(glow, { toValue: 1, duration: 1200, useNativeDriver: false }),
-      Animated.timing(glow, { toValue: 0.58, duration: 1200, useNativeDriver: false }),
-    ]));
-    glowLoop.start();
     const scanLoop = mode === 'barcode' ? Animated.loop(Animated.sequence([
       Animated.timing(scanLine, { toValue: 1, duration: 1700, useNativeDriver: false }),
       Animated.timing(scanLine, { toValue: 0, duration: 1700, useNativeDriver: false }),
     ])) : null;
     scanLoop?.start();
     return () => {
-      glowLoop.stop();
       scanLoop?.stop();
     };
-  }, [glow, mode, scanLine, visible]);
+  }, [mode, scanLine, visible]);
 
   const capturePhoto = async () => {
     if (!cameraRef.current || capturing || !onPhoto) return;
@@ -139,7 +132,7 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
            scanLocked.current = true;
            onScanned?.(data);
          } : undefined}
-       />}{mode === 'barcode' ? <Animated.View style={[styles.scanLine, { backgroundColor: colors.primary, shadowColor: colors.primary, transform: [{ translateY: scanLine.interpolate({ inputRange: [0, 1], outputRange: [0, 145] }) }] }]} /> : null}</View><Animated.View style={[styles.neonFrameGlow, { borderColor: colors.primary, shadowColor: colors.primary, opacity: glow }]} /><View style={[styles.frameCorner, styles.frameTopLeft, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameTopRight, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameBottomLeft, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameBottomRight, { borderColor: colors.primary }]} /></LinearGradient><Text style={[styles.scannerHint, { color: colors.foreground }]}>{capturedPhoto ? photoGuidance : hint}</Text></View> : null}
+        />}{mode === 'barcode' ? <Animated.View style={[styles.scanLine, { backgroundColor: colors.primary, shadowColor: colors.primary, transform: [{ translateY: scanLine.interpolate({ inputRange: [0, 1], outputRange: [0, 145] }) }] }]} /> : null}</View><View style={[styles.neonFrameGlow, { borderColor: colors.primary, shadowColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameTopLeft, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameTopRight, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameBottomLeft, { borderColor: colors.primary }]} /><View style={[styles.frameCorner, styles.frameBottomRight, { borderColor: colors.primary }]} /></LinearGradient><Text style={[styles.scannerHint, { color: colors.foreground }]}>{capturedPhoto ? photoGuidance : hint}</Text></View> : null}
        {cameraReady ? <View style={[styles.scannerBottom, { paddingBottom: insets.bottom + 22 }]}>{mode === 'meal' ? capturedPhoto ? <View style={styles.photoReview}><View style={styles.photoReviewRow}><Pressable accessibilityRole="button" accessibilityLabel={sendPhotoLabel} onPress={submitPhoto} style={[styles.photoSendButton, { backgroundColor: colors.primary }]}><Ionicons name="share-outline" size={18} color={colors.primaryForeground} /><Text style={[styles.photoSendText, { color: colors.primaryForeground }]}>{sendPhotoLabel}</Text></Pressable><Text style={[styles.photoGuidance, { color: colors.foreground }]}>{photoGuidance}</Text></View><Pressable accessibilityRole="button" onPress={() => setCapturedPhoto(null)} style={[styles.photoRetakeButton, { borderColor: `${colors.primary}65`, backgroundColor: `${colors.background}D9` }]}><Ionicons name="camera-outline" size={16} color={colors.foreground} /><Text style={[styles.cameraControlText, { color: colors.foreground }]}>{retakeLabel}</Text></Pressable></View> : <View style={styles.mealCameraControls}><Pressable accessibilityLabel={flipLabel} onPress={() => setFacing((current) => current === 'back' ? 'front' : 'back')} style={[styles.cameraControlButton, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}65` }]}><Ionicons name="camera-outline" size={20} color={colors.foreground} /><Text style={[styles.cameraControlText, { color: colors.foreground }]}>{flipLabel}</Text></Pressable><Pressable accessibilityLabel={captureLabel} onPress={capturePhoto} disabled={capturing} style={[styles.shutterButton, { backgroundColor: `${colors.background}AA`, borderColor: colors.primary, opacity: capturing ? 0.55 : 1 }]}><View style={[styles.shutterInner, { backgroundColor: colors.primary }]} /></Pressable><View style={styles.cameraControlSpacer} /></View> : <View style={[styles.barcodeReady, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}55` }]}><Ionicons name="scan-outline" size={16} color={colors.primary} /><Text style={[styles.barcodeReadyText, { color: colors.foreground }]}>{hint}</Text></View>}</View> : null}
     </View>
   </Modal>;
