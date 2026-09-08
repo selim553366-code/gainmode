@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { Animated, Dimensions, Easing, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert, Animated, Dimensions, Easing, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Ionicons } from '@/components/AppIcon';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,6 +13,7 @@ import { DAILY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 import { apiUrl } from '@/lib/api';
+import { localDateKey } from '@/lib/nutritionDates';
 
 type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
 type CoachApiResponse = { content?: string; actions?: unknown[] };
@@ -44,6 +46,10 @@ export default function CoachScreen() {
   const [messages, setMessages] = useState<Message[]>([{ id: 'welcome', text: t('coachWelcome'), from: 'coach' }]);
   const [loading, setLoading] = useState(false);
   const [animatedPrompt, setAnimatedPrompt] = useState('');
+  const [dailyRating, setDailyRating] = useState<number | null>(null);
+  const [ratingLoaded, setRatingLoaded] = useState(false);
+  const [ratingSending, setRatingSending] = useState<number | null>(null);
+  const [ratedMessageId, setRatedMessageId] = useState<string | null>(null);
   const [chatOriginY, setChatOriginY] = React.useState(0);
   const [coachMessageOffsetY, setCoachMessageOffsetY] = React.useState(12);
   const inputRef = useRef<TextInput>(null);
@@ -54,6 +60,8 @@ export default function CoachScreen() {
   const revealScale = Math.max(34, Math.ceil(Math.hypot(screenSize.width, screenSize.height) / 28));
   const flyingAvatarSize = 72;
   const targetAvatarSize = 30;
+  const ratingDateKey = localDateKey();
+  const ratingStorageKey = `forge-fit-coach-rating-${ratingDateKey}`;
   const tabBarBottomPadding = Math.max(insets.bottom, 10);
   const flyingStartX = screenSize.width / 2 - flyingAvatarSize / 2;
   const flyingStartY = screenSize.height - tabBarBottomPadding - 120;
@@ -90,6 +98,21 @@ export default function CoachScreen() {
     }, 72);
     return () => clearInterval(interval);
   }, [language]);
+  React.useEffect(() => {
+    let cancelled = false;
+    setRatingLoaded(false);
+    void AsyncStorage.getItem(ratingStorageKey).then((value) => {
+      if (cancelled) return;
+      const parsed = Number(value);
+      setDailyRating(Number.isInteger(parsed) && parsed >= 1 && parsed <= 5 ? parsed : null);
+      setRatingLoaded(true);
+    }).catch(() => {
+      if (!cancelled) setRatingLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ratingStorageKey]);
   React.useEffect(() => {
     const timeout = setTimeout(() => {
       setMessages((current) => current.some((item) => item.id === 'welcome-gif') ? current : [...current, { id: 'welcome-gif', text: '', from: 'coach', media: 'welcomeGif' }]);
@@ -167,6 +190,26 @@ export default function CoachScreen() {
   const rejectActions = (messageId: string) => {
     setMessages((current) => current.map((item) => item.id === messageId ? { ...item, actionStatus: 'rejected' } : item));
   };
+  const ratingTarget = [...messages].reverse().find((item) => item.from === 'coach' && Boolean(item.text) && !item.media && !item.variant);
+  const rateCoachMessage = async (message: Message, rating: number) => {
+    if (ratingSending !== null || dailyRating !== null) return;
+    setRatingSending(rating);
+    try {
+      const response = await fetch(apiUrl('/api/coach-rating'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating, message: message.text, language, username: username ?? undefined, screen: 'coach' }),
+      });
+      if (!response.ok) throw new Error('coach rating request failed');
+      await AsyncStorage.setItem(ratingStorageKey, String(rating));
+      setDailyRating(rating);
+      setRatedMessageId(message.id);
+    } catch {
+      Alert.alert(t('coachRatingErrorTitle'), t('coachRatingErrorBody'));
+    } finally {
+      setRatingSending(null);
+    }
+  };
   React.useEffect(() => {
     if (weeklyAnalysis !== '1' || !analysisId || lastAnalysisId.current === analysisId) return undefined;
     lastAnalysisId.current = analysisId;
@@ -230,7 +273,9 @@ export default function CoachScreen() {
            {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.84, 0.96, 1], outputRange: [0, 0, 0.42, 1] }) : 1 }]} /> : null}
            <View style={styles.messageContent}>
                {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.white, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={styles.welcomeGifCard}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.black }] : [styles.coachBubble, { backgroundColor: colors.white }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.white : colors.black }]}>{item.text}</Text> : null}</View>}
-               {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: colors.white, borderColor: colors.border }]}><Text style={[styles.actionTitle, { color: colors.black }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: colors.black }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: colors.border, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.black }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
+                {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: colors.white, borderColor: colors.border }]}><Text style={[styles.actionTitle, { color: colors.black }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: colors.black }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: colors.border, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.black }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
+                {ratingLoaded && ratingTarget?.id === item.id && dailyRating === null ? <View style={[styles.ratingCard, { backgroundColor: colors.white, borderColor: colors.border }]}><Text style={[styles.ratingPrompt, { color: colors.black }]}>{t('coachRatingPrompt')}</Text><View style={styles.ratingStars}>{[1, 2, 3, 4, 5].map((value) => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} ${t('coachRatingStars')}`} disabled={ratingSending !== null} onPress={() => void rateCoachMessage(item, value)} style={({ pressed }) => [styles.ratingStar, { opacity: ratingSending !== null && ratingSending !== value ? 0.4 : pressed ? 0.65 : 1 }]}><Ionicons name="star" size={24} color={colors.orange} /></Pressable>)}</View>{ratingSending !== null ? <Text style={[styles.ratingStatus, { color: colors.mutedForeground }]}>{t('coachRatingSending')}</Text> : null}</View> : null}
+                {ratedMessageId === item.id ? <Text style={[styles.ratingThanks, { color: colors.success }]}>{t('coachRatingThanks')}</Text> : null}
            </View>
         </View>}
         ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : null}
@@ -290,6 +335,12 @@ const styles = StyleSheet.create({
   actionButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   actionStatus: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 7 },
   refreshButton: { minHeight: 36, alignSelf: 'flex-start', marginTop: 10, borderRadius: 11, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  ratingCard: { marginTop: 10, borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12 },
+  ratingPrompt: { fontFamily: 'Inter_600SemiBold', fontSize: 12, lineHeight: 18 },
+  ratingStars: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
+  ratingStar: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  ratingStatus: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 5 },
+  ratingThanks: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 8 },
   messageImage: { width: 190, height: 145, borderRadius: 12, marginBottom: 7 },
   welcomeGifCard: { width: 238, borderRadius: 19, overflow: 'hidden' },
   welcomeGif: { width: 238, height: 178, borderRadius: 19 },

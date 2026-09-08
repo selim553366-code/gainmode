@@ -1473,6 +1473,49 @@ const onboardingMotivationTranslations: Record<Language, { title: string; intro:
   },
 };
 
+const coachRatingTranslations = {
+  tr: {
+    coachRatingPrompt: 'Bu koç mesajını nasıl buldun?',
+    coachRatingStars: 'yıldız',
+    coachRatingSending: 'Puanın gönderiliyor...',
+    coachRatingThanks: 'Puanın için teşekkürler!',
+    coachRatingErrorTitle: 'Puan gönderilemedi',
+    coachRatingErrorBody: 'Puanın şu anda gönderilemedi. Lütfen tekrar dene.',
+  },
+  en: {
+    coachRatingPrompt: 'How did you find this coach message?',
+    coachRatingStars: 'stars',
+    coachRatingSending: 'Sending your rating...',
+    coachRatingThanks: 'Thanks for your rating!',
+    coachRatingErrorTitle: 'Rating not sent',
+    coachRatingErrorBody: 'Your rating could not be sent right now. Please try again.',
+  },
+  de: {
+    coachRatingPrompt: 'Wie findest du diese Coach-Nachricht?',
+    coachRatingStars: 'Sterne',
+    coachRatingSending: 'Deine Bewertung wird gesendet...',
+    coachRatingThanks: 'Danke für deine Bewertung!',
+    coachRatingErrorTitle: 'Bewertung nicht gesendet',
+    coachRatingErrorBody: 'Deine Bewertung konnte gerade nicht gesendet werden. Bitte versuche es erneut.',
+  },
+  fr: {
+    coachRatingPrompt: 'Que penses-tu de ce message du coach ?',
+    coachRatingStars: 'étoiles',
+    coachRatingSending: 'Envoi de ta note...',
+    coachRatingThanks: 'Merci pour ta note !',
+    coachRatingErrorTitle: 'Note non envoyée',
+    coachRatingErrorBody: 'Ta note n’a pas pu être envoyée. Réessaie dans un instant.',
+  },
+  es: {
+    coachRatingPrompt: '¿Qué te pareció este mensaje del coach?',
+    coachRatingStars: 'estrellas',
+    coachRatingSending: 'Enviando tu valoración...',
+    coachRatingThanks: '¡Gracias por tu valoración!',
+    coachRatingErrorTitle: 'No se pudo enviar la valoración',
+    coachRatingErrorBody: 'No se pudo enviar tu valoración. Inténtalo de nuevo.',
+  },
+} as const;
+
 const settingsTranslations = {
   tr: {
     settingsTitle: 'Ayarlar', settingsEyebrow: 'Tercihler', settingsSubtitle: 'Forge Fit deneyimini kendine göre düzenle.',
@@ -1988,7 +2031,7 @@ const themeTranslations = {
   es: { appearance: 'Apariencia', appearanceDescription: 'Elige la apariencia de GainMode o sigue automáticamente tu teléfono.', themeSystem: 'Sistema', themeLight: 'Claro', themeDark: 'Oscuro' },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr;
+export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof coachRatingTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr;
 
 const workoutReminderDescriptions: Record<Language, string> = {
   tr: 'Antrenman günlerinde saat 09:00’da o günün antrenmanını ve süresini hatırlat.',
@@ -2051,6 +2094,11 @@ export function translate(language: Language, key: TranslationKey): string {
     const workoutPlan = workoutPlanTranslations[language] as Record<string, string>;
     const fallbackWorkoutPlan = workoutPlanTranslations.en as Record<string, string>;
     return applyCurrentBrand(workoutPlan[key] ?? fallbackWorkoutPlan[key] ?? key);
+  }
+  if (key in coachRatingTranslations.tr) {
+    const ratingCopy = coachRatingTranslations[language] as Record<string, string>;
+    const fallbackRating = coachRatingTranslations.en as Record<string, string>;
+    return applyCurrentBrand(ratingCopy[key] ?? fallbackRating[key] ?? key);
   }
   const base = translations[language] as Record<string, string>;
   const fallbackBase = translations.en as Record<string, string>;
