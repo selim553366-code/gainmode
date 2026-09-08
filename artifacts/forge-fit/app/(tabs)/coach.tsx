@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   typingDot: { width: 5, height: 5, borderRadius: 3 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 4, paddingTop: 12 },
   attach: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  input: { flex: 1, minHeight: 64, maxHeight: 120, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22 },
+  input: { flex: 1, minHeight: 64, maxHeight: 120, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, outlineWidth: 0 },
   auraInput: { flex: 1, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 32, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 4 },
   send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   photoPreview: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 9, padding: 8, borderRadius: 15, borderWidth: 1 },
