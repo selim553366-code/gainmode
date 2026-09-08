@@ -137,15 +137,18 @@ const premiumPlanTranslations: Record<Language, {
   premiumAnnualPlan: string;
   premiumPerYear: string;
   premiumSelectedPlan: string;
+  premiumTrialShort: string;
   premiumAnnualSavings: string;
+  premiumAnnualSavingsValue: string;
+  premiumAnnualSavingsLabel: string;
   premiumAnnualBenefit: string;
   premiumMonthlyBenefit: string;
 }> = {
-  tr: { premiumMonthlyPlan: 'Aylık', premiumAnnualPlan: 'Yıllık', premiumPerYear: '/ yıl', premiumSelectedPlan: 'Seçilen plan', premiumAnnualSavings: '%37 tasarruf', premiumAnnualBenefit: 'Yıllık planla daha az öde ve tüm yıl Premium erişimini koru.', premiumMonthlyBenefit: 'Aylık planla istediğin zaman esnekçe devam et.' },
-  en: { premiumMonthlyPlan: 'Monthly', premiumAnnualPlan: 'Annual', premiumPerYear: '/ year', premiumSelectedPlan: 'Selected plan', premiumAnnualSavings: 'Save 37%', premiumAnnualBenefit: 'Pay less with the annual plan and keep Premium all year.', premiumMonthlyBenefit: 'Stay flexible with a month-to-month plan.' },
-  de: { premiumMonthlyPlan: 'Monatlich', premiumAnnualPlan: 'Jährlich', premiumPerYear: '/ Jahr', premiumSelectedPlan: 'Ausgewählter Plan', premiumAnnualSavings: '37 % sparen', premiumAnnualBenefit: 'Mit dem Jahresplan weniger zahlen und Premium das ganze Jahr nutzen.', premiumMonthlyBenefit: 'Mit dem Monatsplan flexibel bleiben.' },
-  fr: { premiumMonthlyPlan: 'Mensuel', premiumAnnualPlan: 'Annuel', premiumPerYear: '/ an', premiumSelectedPlan: 'Formule choisie', premiumAnnualSavings: 'Économise 37 %', premiumAnnualBenefit: 'Paie moins avec l’offre annuelle et garde Premium toute l’année.', premiumMonthlyBenefit: 'Reste flexible avec une formule mensuelle.' },
-  es: { premiumMonthlyPlan: 'Mensual', premiumAnnualPlan: 'Anual', premiumPerYear: '/ año', premiumSelectedPlan: 'Plan seleccionado', premiumAnnualSavings: 'Ahorra un 37 %', premiumAnnualBenefit: 'Paga menos con el plan anual y disfruta de Premium todo el año.', premiumMonthlyBenefit: 'Mantén la flexibilidad con el plan mensual.' },
+  tr: { premiumMonthlyPlan: 'Aylık', premiumAnnualPlan: 'Yıllık', premiumPerYear: '/ yıl', premiumSelectedPlan: 'Seçilen plan', premiumTrialShort: '3 gün ücretsiz', premiumAnnualSavings: '%37 tasarruf', premiumAnnualSavingsValue: '37%', premiumAnnualSavingsLabel: 'tasarruf', premiumAnnualBenefit: 'Yıllık planla daha az öde ve tüm yıl Premium erişimini koru.', premiumMonthlyBenefit: 'Aylık planla istediğin zaman esnekçe devam et.' },
+  en: { premiumMonthlyPlan: 'Monthly', premiumAnnualPlan: 'Annual', premiumPerYear: '/ year', premiumSelectedPlan: 'Selected plan', premiumTrialShort: '3 days free', premiumAnnualSavings: 'Save 37%', premiumAnnualSavingsValue: '37%', premiumAnnualSavingsLabel: 'save', premiumAnnualBenefit: 'Pay less with the annual plan and keep Premium all year.', premiumMonthlyBenefit: 'Stay flexible with a month-to-month plan.' },
+  de: { premiumMonthlyPlan: 'Monatlich', premiumAnnualPlan: 'Jährlich', premiumPerYear: '/ Jahr', premiumSelectedPlan: 'Ausgewählter Plan', premiumTrialShort: '3 Tage gratis', premiumAnnualSavings: '37 % sparen', premiumAnnualSavingsValue: '37 %', premiumAnnualSavingsLabel: 'sparen', premiumAnnualBenefit: 'Mit dem Jahresplan weniger zahlen und Premium das ganze Jahr nutzen.', premiumMonthlyBenefit: 'Mit dem Monatsplan flexibel bleiben.' },
+  fr: { premiumMonthlyPlan: 'Mensuel', premiumAnnualPlan: 'Annuel', premiumPerYear: '/ an', premiumSelectedPlan: 'Formule choisie', premiumTrialShort: '3 jours offerts', premiumAnnualSavings: 'Économise 37 %', premiumAnnualSavingsValue: '37 %', premiumAnnualSavingsLabel: 'économies', premiumAnnualBenefit: 'Paie moins avec l’offre annuelle et garde Premium toute l’année.', premiumMonthlyBenefit: 'Reste flexible avec une formule mensuelle.' },
+  es: { premiumMonthlyPlan: 'Mensual', premiumAnnualPlan: 'Anual', premiumPerYear: '/ año', premiumSelectedPlan: 'Plan seleccionado', premiumTrialShort: '3 días gratis', premiumAnnualSavings: 'Ahorra un 37 %', premiumAnnualSavingsValue: '37 %', premiumAnnualSavingsLabel: 'ahorro', premiumAnnualBenefit: 'Paga menos con el plan anual y disfruta de Premium todo el año.', premiumMonthlyBenefit: 'Mantén la flexibilidad con el plan mensual.' },
 };
 
 const usageLimitCopy: Record<Language, { coach: string; photo: string }> = {

@@ -1191,15 +1191,19 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
       <Text style={[styles.offerReason, { color: colors.foreground }]}>{t('premiumWelcomeReason')}</Text>
         <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}>{benefit.logo ? <ForgeFitMark size={25} /> : <Ionicons name={benefit.icon!} size={17} color={colors.primary} />}</View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
     </View>
-    <View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View>
       <View style={styles.offerPlanChoices}>
         <Pressable testID="welcome-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.border }]}>
-          <Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumMonthlyPlan')}</Text>
+          <View style={styles.offerPlanHeader}>
+            <Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumMonthlyPlan')}</Text>
+            <View style={[styles.offerTrialBadge, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}>
+              <Text style={[styles.offerTrialBadgeText, { color: colors.success }]}>{t('premiumTrialShort')}</Text>
+            </View>
+          </View>
           <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{monthlyPackage?.product.priceString ?? '—'}</Text>
           <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text>
         </Pressable>
         <Pressable disabled={!canOfferAnnual} testID="welcome-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual', disabled: !canOfferAnnual }} onPress={() => { if (canOfferAnnual) setSelectedPlan('annual'); }} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border, opacity: canOfferAnnual ? 1 : 0.58 }]}>
-          <View style={styles.offerPlanHeader}><Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{canOfferAnnual ? <Text style={[styles.offerPlanSavings, { color: colors.success }]}>{t('premiumAnnualSavings')}</Text> : null}</View>
+          <View style={styles.offerPlanHeader}><Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{canOfferAnnual ? <View style={[styles.offerSavingsBadge, { backgroundColor: `${colors.success}18` }]}><Text style={[styles.offerSavingsValue, { color: colors.success }]}>{t('premiumAnnualSavingsValue')}</Text><Text style={[styles.offerSavingsLabel, { color: colors.success }]}>{t('premiumAnnualSavingsLabel')}</Text></View> : null}</View>
           <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{annualPackage?.product.priceString ?? '—'}</Text>
           <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
         </Pressable>
@@ -1253,7 +1257,7 @@ function OfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () =>
   const colors = useColors();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}><View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><ForgeFitMark size={74} /></View><Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('premiumSubtitle')}</Text><View style={styles.features}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3', 'premiumFeature4', 'premiumFeature5'] as const).map((key) => <View key={key} style={styles.feature}><Ionicons name="checkmark-circle" size={20} color={colors.primary} /><Text style={[styles.featureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View><View style={[styles.offerTrial, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}><Ionicons name="gift-outline" size={17} color={colors.success} /><Text style={[styles.offerTrialText, { color: colors.success }]}>{t('premiumTrial')}</Text></View><Pressable onPress={() => { triggerHaptic(); onUnlock(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable><Pressable onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('cancel')}</Text></Pressable></LinearGradient>;
+  return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}><View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><ForgeFitMark size={74} /></View><Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('premiumSubtitle')}</Text><View style={styles.features}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3', 'premiumFeature4', 'premiumFeature5'] as const).map((key) => <View key={key} style={styles.feature}><Ionicons name="checkmark-circle" size={20} color={colors.primary} /><Text style={[styles.featureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View><Pressable onPress={() => { triggerHaptic(); onUnlock(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable><Pressable onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('cancel')}</Text></Pressable></LinearGradient>;
 }
 
 const styles = StyleSheet.create({
@@ -1449,12 +1453,14 @@ const styles = StyleSheet.create({
   offerPlanLabel: { flex: 1, minWidth: 0, flexShrink: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
   offerPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 19, marginTop: 13 },
   offerPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 3 },
-  offerPlanSavings: { flexShrink: 0, fontFamily: 'Inter_700Bold', fontSize: 8, letterSpacing: 0.3 },
+  offerTrialBadge: { flexShrink: 0, borderWidth: 1, borderRadius: 7, paddingHorizontal: 5, paddingVertical: 3, maxWidth: 82 },
+  offerTrialBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 10, textAlign: 'center' },
+  offerSavingsBadge: { flexShrink: 0, alignItems: 'flex-end', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 3 },
+  offerSavingsValue: { fontFamily: 'Inter_700Bold', fontSize: 14, lineHeight: 16, letterSpacing: -0.2 },
+  offerSavingsLabel: { fontFamily: 'Inter_700Bold', fontSize: 7, lineHeight: 9, letterSpacing: 0.3, textTransform: 'uppercase' },
   features: { gap: 17, paddingVertical: 20 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   featureText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 14 },
-  offerTrial: { alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 14 },
-  offerTrialText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
   offerPromoSection: { width: '100%', marginTop: 2, marginBottom: 8 },
   offerPromoToggle: { minHeight: 32, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 10 },
