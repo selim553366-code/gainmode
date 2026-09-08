@@ -4,7 +4,8 @@ import { ReplitConnectors } from "@replit/connectors-sdk";
 const router: IRouter = Router();
 const feedbackRecipient = "selim553366@gmail.com";
 const maxFeedbackLength = 4_000;
-const supportedCategories = new Set(["bug", "suggestion", "other"]);
+const supportedCategories = new Set(["bug", "suggestion", "subscription", "payment", "notifications", "other"]);
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function escapeHtml(value: string) {
   return value
@@ -24,6 +25,7 @@ router.post("/feedback", async (req: Request, res: Response) => {
   const category = normalizeValue(req.body?.category, "other").toLowerCase();
   const language = normalizeValue(req.body?.language, "en");
   const screen = normalizeValue(req.body?.screen, "settings");
+  const replyTo = typeof req.body?.replyTo === "string" ? req.body.replyTo.trim().toLowerCase() : "";
 
   if (!message) {
     return res.status(400).json({ error: "Feedback message is required." });
@@ -34,11 +36,15 @@ router.post("/feedback", async (req: Request, res: Response) => {
   if (!supportedCategories.has(category)) {
     return res.status(400).json({ error: "Feedback category is invalid." });
   }
+  if (!emailPattern.test(replyTo) || replyTo.length > 254) {
+    return res.status(400).json({ error: "A valid reply email is required." });
+  }
 
   const safeMessage = escapeHtml(message);
   const safeCategory = escapeHtml(category);
   const safeLanguage = escapeHtml(language);
   const safeScreen = escapeHtml(screen);
+  const safeReplyTo = escapeHtml(replyTo);
   const subject = `Forge Fit feedback — ${category}`;
   const text = [
     "New Forge Fit feedback",
@@ -46,6 +52,7 @@ router.post("/feedback", async (req: Request, res: Response) => {
     `Category: ${category}`,
     `Language: ${language}`,
     `Screen: ${screen}`,
+    `Reply-to: ${replyTo}`,
     "",
     message,
   ].join("\n");
@@ -54,6 +61,7 @@ router.post("/feedback", async (req: Request, res: Response) => {
     <p><strong>Category:</strong> ${safeCategory}</p>
     <p><strong>Language:</strong> ${safeLanguage}</p>
     <p><strong>Screen:</strong> ${safeScreen}</p>
+    <p><strong>Reply-to:</strong> ${safeReplyTo}</p>
     <hr />
     <p style="white-space: pre-wrap">${safeMessage}</p>
   `;
@@ -66,6 +74,7 @@ router.post("/feedback", async (req: Request, res: Response) => {
       body: JSON.stringify({
         from: "Forge Fit <onboarding@resend.dev>",
         to: [feedbackRecipient],
+        reply_to: replyTo,
         subject,
         text,
         html,

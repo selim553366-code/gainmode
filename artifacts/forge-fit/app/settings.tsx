@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
@@ -9,13 +9,17 @@ import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
 import { isProfileEditAvailable } from '@/lib/profileEdit';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 import { apiUrl } from '@/lib/api';
+import { addInboxNotification } from '@/lib/inboxNotifications';
 
 type LegalSection = 'privacy' | 'terms' | null;
-type FeedbackCategory = 'bug' | 'suggestion' | 'other';
+type FeedbackCategory = 'bug' | 'suggestion' | 'subscription' | 'payment' | 'notifications' | 'other';
 
 const feedbackCategories = [
   { value: 'bug', label: 'feedbackBug' },
   { value: 'suggestion', label: 'feedbackSuggestion' },
+  { value: 'subscription', label: 'feedbackSubscription' },
+  { value: 'payment', label: 'feedbackPayment' },
+  { value: 'notifications', label: 'feedbackNotifications' },
   { value: 'other', label: 'feedbackOther' },
 ] as const;
 
@@ -34,23 +38,40 @@ export default function SettingsScreen() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('suggestion');
   const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackEmail, setFeedbackEmail] = useState('');
+  const [feedbackSent, setFeedbackSent] = useState(false);
   const [feedbackSending, setFeedbackSending] = useState(false);
+  const feedbackSuccessProgress = React.useRef(new Animated.Value(0)).current;
   const languages = Object.keys(languageLabels) as Language[];
+
+  React.useEffect(() => {
+    if (!feedbackSent) return undefined;
+    feedbackSuccessProgress.setValue(0);
+    const animation = Animated.spring(feedbackSuccessProgress, { toValue: 1, friction: 7, tension: 80, useNativeDriver: true });
+    animation.start();
+    return () => animation.stop();
+  }, [feedbackSent, feedbackSuccessProgress]);
 
   const submitFeedback = async () => {
     const message = feedbackText.trim();
-    if (!message || feedbackSending) return;
+    const replyTo = feedbackEmail.trim().toLowerCase();
+    if (!message || !replyTo || feedbackSending) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo)) {
+      Alert.alert(t('feedbackErrorTitle'), t('feedbackEmailInvalid'));
+      return;
+    }
     setFeedbackSending(true);
     try {
       const response = await fetch(apiUrl('/api/feedback'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, category: feedbackCategory, language, screen: 'settings' }),
+        body: JSON.stringify({ message, category: feedbackCategory, language, screen: 'settings', replyTo }),
       });
       if (!response.ok) throw new Error('feedback request failed');
+      await addInboxNotification({ title: t('feedbackNotificationTitle'), body: t('feedbackNotificationBody') });
       setFeedbackText('');
-      setFeedbackOpen(false);
-      Alert.alert(t('feedbackSentTitle'), t('feedbackSentBody'));
+      setFeedbackEmail('');
+      setFeedbackSent(true);
     } catch {
       Alert.alert(t('feedbackErrorTitle'), t('feedbackErrorBody'));
     } finally {
@@ -166,12 +187,33 @@ export default function SettingsScreen() {
         </Pressable>
       </Card>
 
+      <SectionTitle title={t('notificationsTitle')} />
+      <Card>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/notifications')}
+          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
+        >
+          <View style={[styles.iconBox, { backgroundColor: `${colors.blue}20` }]}>
+            <Ionicons name="notifications-outline" size={21} color={colors.blue} />
+          </View>
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('notificationsTitle')}</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('notificationsSubtitle')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
+        </Pressable>
+      </Card>
+
       <SectionTitle title={t('feedbackTitle')} />
       <Card>
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ expanded: feedbackOpen }}
-          onPress={() => setFeedbackOpen((current) => !current)}
+          onPress={() => setFeedbackOpen((current) => {
+            if (current) setFeedbackSent(false);
+            return !current;
+          })}
           style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
         >
           <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
@@ -185,41 +227,68 @@ export default function SettingsScreen() {
         </Pressable>
         {feedbackOpen ? (
           <View style={[styles.feedbackDetails, { borderTopColor: colors.border }]}>
-            <Text style={[styles.feedbackLabel, { color: colors.foreground }]}>{t('feedbackType')}</Text>
-            <View style={styles.feedbackTypeRow}>
-              {feedbackCategories.map((item) => {
-                const selected = feedbackCategory === item.value;
-                return (
-                  <Pressable
-                    key={item.value}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected }}
-                    onPress={() => setFeedbackCategory(item.value)}
-                    style={({ pressed }) => [styles.feedbackType, { backgroundColor: selected ? colors.primary : colors.secondary, borderColor: selected ? colors.primary : colors.border, opacity: pressed ? 0.72 : 1 }]}
-                  >
-                    <Text style={[styles.feedbackTypeText, { color: selected ? colors.primaryForeground : colors.foreground }]}>{t(item.label)}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <TextInput
-              multiline
-              numberOfLines={5}
-              value={feedbackText}
-              onChangeText={setFeedbackText}
-              placeholder={t('feedbackPlaceholder')}
-              placeholderTextColor={colors.mutedForeground}
-              textAlignVertical="top"
-              style={[styles.feedbackInput, { color: colors.foreground, backgroundColor: colors.secondary, borderColor: colors.border }]}
-            />
-            <Pressable
-              accessibilityRole="button"
-              disabled={!feedbackText.trim() || feedbackSending}
-              onPress={submitFeedback}
-              style={({ pressed }) => [styles.feedbackButton, { backgroundColor: colors.primary, opacity: !feedbackText.trim() || feedbackSending ? 0.45 : pressed ? 0.75 : 1 }]}
-            >
-              <Text style={[styles.feedbackButtonText, { color: colors.primaryForeground }]}>{feedbackSending ? t('feedbackSending') : t('feedbackSend')}</Text>
-            </Pressable>
+            {feedbackSent ? (
+              <Animated.View style={[styles.feedbackSuccess, { opacity: feedbackSuccessProgress, transform: [{ scale: feedbackSuccessProgress.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }] }]}>
+                <View style={[styles.feedbackSuccessIcon, { backgroundColor: `${colors.success}20` }]}>
+                  <Ionicons name="checkmark-circle" size={46} color={colors.success} />
+                </View>
+                <Text style={[styles.feedbackSuccessTitle, { color: colors.foreground }]}>{t('feedbackSentTitle')}</Text>
+                <Text style={[styles.feedbackSuccessBody, { color: colors.mutedForeground }]}>{t('feedbackSentBody')}</Text>
+                <Pressable accessibilityRole="button" onPress={() => router.push('/notifications')} style={({ pressed }) => [styles.feedbackNotificationsButton, { borderColor: `${colors.primary}55`, backgroundColor: `${colors.primary}12`, opacity: pressed ? 0.72 : 1 }]}>
+                  <Ionicons name="notifications-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.feedbackNotificationsText, { color: colors.primary }]}>{t('notificationsTitle')}</Text>
+                </Pressable>
+              </Animated.View>
+            ) : (
+              <>
+                <Text style={[styles.feedbackLabel, { color: colors.foreground }]}>{t('feedbackType')}</Text>
+                <View style={styles.feedbackTypeRow}>
+                  {feedbackCategories.map((item) => {
+                    const selected = feedbackCategory === item.value;
+                    return (
+                      <Pressable
+                        key={item.value}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected }}
+                        onPress={() => setFeedbackCategory(item.value)}
+                        style={({ pressed }) => [styles.feedbackType, { backgroundColor: selected ? colors.primary : colors.secondary, borderColor: selected ? colors.primary : colors.border, opacity: pressed ? 0.72 : 1 }]}
+                      >
+                        <Text style={[styles.feedbackTypeText, { color: selected ? colors.primaryForeground : colors.foreground }]}>{t(item.label)}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <TextInput
+                  value={feedbackEmail}
+                  onChangeText={setFeedbackEmail}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  placeholder={t('feedbackEmailPlaceholder')}
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[styles.feedbackEmailInput, { color: colors.foreground, backgroundColor: colors.secondary, borderColor: colors.border }]}
+                />
+                <Text style={[styles.feedbackHint, { color: colors.mutedForeground }]}>{t('feedbackEmailHint')}</Text>
+                <TextInput
+                  multiline
+                  numberOfLines={5}
+                  value={feedbackText}
+                  onChangeText={setFeedbackText}
+                  placeholder={t('feedbackPlaceholder')}
+                  placeholderTextColor={colors.mutedForeground}
+                  textAlignVertical="top"
+                  style={[styles.feedbackInput, { color: colors.foreground, backgroundColor: colors.secondary, borderColor: colors.border }]}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={!feedbackText.trim() || !feedbackEmail.trim() || feedbackSending}
+                  onPress={submitFeedback}
+                  style={({ pressed }) => [styles.feedbackButton, { backgroundColor: colors.primary, opacity: !feedbackText.trim() || !feedbackEmail.trim() || feedbackSending ? 0.45 : pressed ? 0.75 : 1 }]}
+                >
+                  <Text style={[styles.feedbackButtonText, { color: colors.primaryForeground }]}>{feedbackSending ? t('feedbackSending') : t('feedbackSend')}</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         ) : null}
       </Card>
@@ -319,7 +388,15 @@ const styles = StyleSheet.create({
   feedbackTypeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   feedbackType: { borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 9 },
   feedbackTypeText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  feedbackEmailInput: { minHeight: 46, borderWidth: 1, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 11, fontFamily: 'Inter_400Regular', fontSize: 13 },
+  feedbackHint: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: -5 },
   feedbackInput: { minHeight: 112, borderWidth: 1, borderRadius: 16, paddingHorizontal: 13, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19 },
   feedbackButton: { minHeight: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
   feedbackButtonText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  feedbackSuccess: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8 },
+  feedbackSuccessIcon: { width: 72, height: 72, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  feedbackSuccessTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, textAlign: 'center' },
+  feedbackSuccessBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 7, maxWidth: 285 },
+  feedbackNotificationsButton: { minHeight: 40, borderWidth: 1, borderRadius: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 14, marginTop: 15 },
+  feedbackNotificationsText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
 });
