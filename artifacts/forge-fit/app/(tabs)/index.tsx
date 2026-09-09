@@ -35,9 +35,8 @@ function CalorieProgressFill({ progress, color }: { progress: number; color: str
   );
 }
 
-function CalorieRing({ progress, colors }: { progress: number; colors: ReturnType<typeof useColors> }) {
+function CalorieRing({ progress, ink }: { progress: number; ink: string }) {
   const entrance = React.useRef(new Animated.Value(0)).current;
-  const activeSegments = Math.round(Math.min(Math.max(progress, 0), 1) * 16);
 
   React.useEffect(() => {
     entrance.setValue(0);
@@ -55,31 +54,14 @@ function CalorieRing({ progress, colors }: { progress: number; colors: ReturnTyp
       style={[
         styles.ring,
         {
-          borderColor: `${colors.primary}18`,
+          borderColor: `${ink}22`,
           opacity: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] }),
           transform: [{ scale: entrance.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1] }) }],
         },
       ]}
     >
-      <View style={styles.ringSegments} pointerEvents="none">
-        {Array.from({ length: 16 }, (_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.ringSegment,
-              {
-                backgroundColor: index < activeSegments ? colors.primary : `${colors.primary}22`,
-                transform: [{ rotate: `${index * 22.5}deg` }, { translateY: -42 }],
-              },
-            ]}
-          />
-        ))}
-      </View>
-      <View style={[styles.ringCenter, { backgroundColor: colors.secondary }]}>
-        <Text style={[styles.ringPercent, { color: colors.foreground }]}>
-          {progress > 0 ? `${Math.round(Math.min(progress, 1) * 100)}%` : '—'}
-        </Text>
-        <Text style={[styles.ringCaption, { color: colors.mutedForeground }]}> </Text>
+      <View style={[styles.ringInner, { borderColor: ink }]}>
+        <Text style={[styles.ringPercent, { color: ink }]}>{`${Math.round(Math.min(Math.max(progress, 0), 1) * 100)}%`}</Text>
       </View>
     </Animated.View>
   );
@@ -115,6 +97,8 @@ export default function TodayScreen() {
     { protein: 0, carbs: 0, fat: 0 },
   );
   const calorieProgress = calorieGoal ? calories / calorieGoal : 0;
+  const heroInk = '#0A1D33';
+  const heroMuted = '#355A74';
 
   return (
     <Screen bottomPadding={120}>
@@ -144,48 +128,48 @@ export default function TodayScreen() {
 
       <View style={styles.homeContent}>
         <LinearGradient
-          colors={[colors.secondary, colors.surfaceSoft]}
+          colors={['#79CEF3', '#68BDEB']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.heroCard, { borderColor: `${colors.blue}2B` }]}
+          style={[styles.heroCard, { borderColor: '#A8E1FA', shadowColor: colors.blue }]}
         >
-          <View style={[styles.heroAccent, { backgroundColor: `${colors.blue}18` }]} />
-          <CalorieProgressFill progress={calorieProgress} color={colors.primary} />
+          <View style={[styles.heroAccent, { backgroundColor: '#FFFFFF18' }]} />
+          <CalorieProgressFill progress={calorieProgress} color={heroInk} />
 
           <View style={styles.homeGreeting}>
             <View>
-              <Text style={[styles.homeGreetingTitle, { color: colors.foreground }]}>
+              <Text style={[styles.homeGreetingTitle, { color: heroInk }]}>
                 {`${t('goodMorning')}, ${username ?? ''}`.trim()}
               </Text>
-              <Text style={[styles.homeGreetingSubtitle, { color: colors.mutedForeground }]}>{t('ready')}</Text>
+              <Text style={[styles.homeGreetingSubtitle, { color: heroMuted }]}>{t('ready')}</Text>
             </View>
-            <View style={[styles.todayMark, { backgroundColor: `${colors.primary}12` }]}>
-              <Ionicons name="sunny-outline" size={18} color={colors.primary} />
+            <View style={[styles.todayMark, { backgroundColor: '#FFFFFF35' }]}>
+              <Ionicons name="sunny-outline" size={18} color={heroInk} />
             </View>
           </View>
 
           <View style={styles.heroTop}>
             <View style={styles.heroLead}>
-              <Text style={[styles.heroEyebrow, { color: colors.mutedForeground }]}>{t('calories').toUpperCase()}</Text>
-              <AnimatedNumber value={calories} style={[styles.heroNumber, { color: colors.foreground }]} />
-              <Text style={[styles.heroMeta, { color: colors.mutedForeground }]}>
+              <Text style={[styles.heroEyebrow, { color: heroInk }]}>{t('calories').toUpperCase()}</Text>
+              <AnimatedNumber value={calories} style={[styles.heroNumber, { color: heroInk }]} />
+              <Text style={[styles.heroMeta, { color: heroMuted }]}>
                 / {calorieGoal?.toLocaleString() ?? '—'} {t('caloriesShort')}
               </Text>
             </View>
-            <CalorieRing progress={calorieProgress} colors={colors} />
+            <CalorieRing progress={calorieProgress} ink={heroInk} />
           </View>
 
-          <View style={[styles.heroDivider, { backgroundColor: `${colors.foreground}12` }]} />
+          <View style={[styles.heroDivider, { backgroundColor: `${heroInk}20` }]} />
           <View style={styles.heroBottom}>
             <View>
-              <Text style={[styles.heroSmallLabel, { color: colors.mutedForeground }]}>{t('remaining')}</Text>
-              <Text style={[styles.heroSmallValue, { color: colors.foreground }]}>
+              <Text style={[styles.heroSmallLabel, { color: heroMuted }]}>{t('remaining')}</Text>
+              <Text style={[styles.heroSmallValue, { color: heroInk }]}>
                 {calorieGoal ? `${Math.max(calorieGoal - calories, 0)} ${t('caloriesShort')}` : '—'}
               </Text>
             </View>
             <View style={styles.heroStatus}>
-              <Ionicons name="information-circle-outline" size={15} color={colors.mutedForeground} />
-              <Text style={[styles.heroStatusText, { color: colors.mutedForeground }]}>{t('noData')}</Text>
+              <Ionicons name="information-circle-outline" size={15} color={heroInk} />
+              <Text style={[styles.heroStatusText, { color: heroInk }]}>{t('noData')}</Text>
             </View>
           </View>
 
@@ -197,22 +181,22 @@ export default function TodayScreen() {
             style={({ pressed }) => [
               styles.heroPhotoAction,
               {
-                backgroundColor: `${colors.card}A8`,
-                borderColor: `${colors.primary}20`,
+                backgroundColor: '#0A2038EB',
+                borderColor: '#183B58',
                 opacity: pressed ? 0.72 : 1,
                 transform: [{ scale: pressed ? 0.985 : 1 }],
               },
             ]}
           >
-            <View style={[styles.heroPhotoActionIcon, { backgroundColor: `${colors.primary}16` }]}>
-              <Ionicons name="camera-outline" size={17} color={colors.primary} />
+            <View style={[styles.heroPhotoActionIcon, { backgroundColor: '#74C9F033' }]}>
+              <Ionicons name="camera-outline" size={17} color="#7FD4FA" />
             </View>
-            <Text style={[styles.heroPhotoActionText, { color: colors.foreground }]}>{t('analyzeMealPhoto')}</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+            <Text style={[styles.heroPhotoActionText, { color: '#8EDBFA' }]}>{t('analyzeMealPhoto')}</Text>
+            <Ionicons name="arrow-forward" size={16} color="#8EDBFA" />
           </Pressable>
         </LinearGradient>
 
-        <View style={[styles.metricRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={styles.metricRow}>
           <Metric
             icon="flame-outline"
             value={
@@ -224,7 +208,6 @@ export default function TodayScreen() {
             label={t('protein')}
             color={colors.blue}
           />
-          <View style={[styles.metricDivider, { backgroundColor: colors.border }]} />
           <Metric
             icon="flash-outline"
             value={
@@ -236,7 +219,6 @@ export default function TodayScreen() {
             label={t('carbs')}
             color={colors.orange}
           />
-          <View style={[styles.metricDivider, { backgroundColor: colors.border }]} />
           <Metric
             icon="nutrition-outline"
             value={
@@ -291,11 +273,15 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   homeContent: { paddingTop: 26 },
   heroCard: {
-    borderRadius: 28,
+    borderRadius: 30,
     borderWidth: 1,
-    padding: 20,
+    padding: 22,
     overflow: 'hidden',
     marginBottom: 18,
+    shadowOpacity: 0.2,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 7,
   },
   heroAccent: {
     position: 'absolute',
@@ -339,36 +325,23 @@ const styles = StyleSheet.create({
   heroNumber: { fontFamily: 'Inter_700Bold', fontSize: 48, letterSpacing: -2.6, marginTop: 5 },
   heroMeta: { fontFamily: 'Inter_500Medium', fontSize: 13, marginTop: -3 },
   ring: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
-    borderWidth: 1,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 14,
   },
-  ringSegments: {
-    position: 'absolute',
-    width: 104,
-    height: 104,
+  ringInner: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ringSegment: {
-    position: 'absolute',
-    width: 7,
-    height: 18,
-    borderRadius: 99,
-  },
-  ringCenter: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ringPercent: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.4 },
-  ringCaption: { fontFamily: 'Inter_500Medium', fontSize: 1, height: 1 },
+  ringPercent: { fontFamily: 'Inter_700Bold', fontSize: 16, letterSpacing: -0.4 },
   heroDivider: { height: 1, marginVertical: 18 },
   heroBottom: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   heroSmallLabel: { fontFamily: 'Inter_400Regular', fontSize: 11 },
@@ -388,16 +361,12 @@ const styles = StyleSheet.create({
   heroPhotoActionIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   heroPhotoActionText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 0.1 },
   metricRow: {
-    minHeight: 92,
-    borderRadius: 20,
-    borderWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: 8,
+    justifyContent: 'center',
+    gap: 22,
     marginBottom: 27,
   },
-  metricDivider: { width: 1, height: 39 },
   metricGoal: { fontFamily: 'Inter_500Medium', fontSize: 10 },
   workoutCard: { flexDirection: 'row', alignItems: 'center', gap: 13, minHeight: 86, paddingVertical: 16 },
   workoutIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
