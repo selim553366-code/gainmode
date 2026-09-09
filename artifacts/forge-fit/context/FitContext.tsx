@@ -72,6 +72,7 @@ type FitState = {
   goalProjection: GoalProjection | null;
   profile: Profile | null;
   username: string | null;
+  registeredAt: string | null;
   onboardingComplete: boolean;
   coachIntroPending: boolean;
   introSeen: boolean;
@@ -144,6 +145,7 @@ const initialState: FitState = {
   goalProjection: null,
   profile: null,
   username: null,
+  registeredAt: null,
   onboardingComplete: false,
   coachIntroPending: false,
   introSeen: false,
@@ -286,6 +288,11 @@ export function FitProvider({ children }: { children: ReactNode }) {
           const merged = {
             ...initialState,
             ...storedState,
+            registeredAt: typeof parsed.registeredAt === 'string'
+              ? parsed.registeredAt
+              : parsed.onboardingComplete
+                ? new Date().toISOString()
+                : null,
              // Premium access must come from RevenueCat, never from a locally persisted test flag.
              isPremium: false,
             notificationSettings: initialState.notificationSettings,
@@ -475,6 +482,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
         ...current,
         profile,
         username,
+         registeredAt: current.registeredAt ?? new Date().toISOString(),
         weight: profile.weight,
         calorieGoal,
         proteinGoal,
