@@ -1,4 +1,4 @@
-import type { FitnessGoal, Meal, Profile, Workout } from '@/context/FitContext';
+import type { Meal, Profile, Workout } from '@/context/FitContext';
 import { getWeeklySummary, type WeeklySummary } from '@/lib/weeklyAnalysis';
 import { getMealsForRange, localDateKey, mealDateKey } from '@/lib/nutritionDates';
 
@@ -70,25 +70,25 @@ export function buildCoachContext(input: CoachContextInput) {
   const wantsProgress = words.progress.test(message);
   const wantsProfile = words.profile.test(message);
   const wantsMutation = words.mutation.test(message);
-  const broadRequest = !wantsNutrition && !wantsWorkout && !wantsProgress && !wantsProfile;
   const includeNutrition = wantsNutrition;
   const includeWorkout = wantsWorkout || wantsMutation;
   const includeProgress = wantsProgress || message.toLocaleLowerCase().includes('weekly') || message.includes('haftalık') || message.toLocaleLowerCase().includes('hebdo');
-  const includeProfile = wantsProfile || wantsMutation;
+  const includeFullProfile = wantsProfile || wantsMutation;
+  const includeTargets = includeFullProfile || includeNutrition || includeProgress;
   const context: Record<string, unknown> = {
     username: input.username,
   };
 
-  if (includeProfile) {
+  if (includeFullProfile) {
     context.profile = input.profile;
+  }
+  if (includeTargets) {
     context.targets = {
       calories: input.calorieGoal,
       protein: input.proteinGoal,
       carbs: input.carbsGoal,
       fat: input.fatGoal,
     };
-  } else {
-    context.goal = input.profile?.goal ?? null;
   }
 
   if (includeNutrition) {
