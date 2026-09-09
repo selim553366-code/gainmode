@@ -7,7 +7,13 @@ The managed Forge Fit preview can run Expo Metro on a dynamic port while the sta
 
 **Why:** The static build helper may ask for an interactive port change and fail in non-interactive mode when another managed artifact owns port 8081, even though the app itself bundles and renders correctly.
 
-**How to apply:** Restart the Forge Fit workflow after code changes, inspect its bundling logs, and use a direct web export for compile validation. Treat a static-build port collision as an environment issue unless the workflow itself reports a bundle error.
+**How to apply:** Restart the Forge Fit workflow after code changes, inspect its bundling logs, and use a direct web export for compile validation. Treat a static-build port collision or `ENOSPC` watcher-limit failure as environment issues unless the workflow itself reports a bundle error.
+
+Static Expo builds can also fail after the port is freed when Metro reaches the workspace-wide file-watcher limit (`ENOSPC`); managed Metro bundling may still succeed.
+
+**Why:** The build helper watches a pnpm monorepo with multiple Expo artifacts, so the host watcher quota can be exhausted independently of the app source.
+
+**How to apply:** Report the static export as environment-blocked after typecheck, tests, and managed workflow bundling pass; do not change application code solely to address this host limit.
 
 Expo dependencies in this pnpm monorepo must be added to the Forge Fit workspace with an SDK-matched version; generic package installation can target the workspace root or select an incompatible latest version.
 
