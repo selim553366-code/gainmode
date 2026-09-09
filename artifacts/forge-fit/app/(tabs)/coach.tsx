@@ -119,7 +119,9 @@ function CoachAtmosphereBackground({ colors, reveal, overrideAtmosphere }: { col
         <Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} />
       </View>;
     }
-    return <View style={styles.coachAtmosphereLayer}>
+    return <Animated.View style={[styles.coachAtmosphereLayer, {
+      opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }),
+    }]}>
       <LinearGradient
         colors={[colors.coachNightPurple, colors.coachNightDeep, colors.coachNightBlack]}
         locations={[0, 0.45, 1]}
@@ -134,7 +136,7 @@ function CoachAtmosphereBackground({ colors, reveal, overrideAtmosphere }: { col
         <LinearGradient colors={[`${colors.plum}70`, colors.coachTransparent]} style={StyleSheet.absoluteFill} />
       </Animated.View>
       <View style={styles.coachStarField}>{COACH_STARS.map((star) => <TwinklingStar key={`${star.x}-${star.y}`} star={star} color={colors.coachStar} />)}</View>
-    </View>;
+    </Animated.View>;
   };
 
   const isTransitioning = previousAtmosphere !== atmosphere;
