@@ -141,19 +141,19 @@ export default function TodayScreen() {
               style={({ pressed }) => [
                 styles.heroBadgePill,
                 {
-                  backgroundColor: `${colors.heroAccent}24`,
-                  borderColor: `${colors.heroAccent}55`,
+                  backgroundColor: colors.heroBadgeBackground,
+                  borderColor: colors.heroBadgeBorder,
                   opacity: pressed ? 0.72 : 1,
                 },
               ]}
             >
-              <Ionicons name="sparkles-outline" size={14} color={heroInk} />
-              <Text numberOfLines={1} style={[styles.heroBadgeText, { color: heroInk }]}>{badgeText(badgeUi.title, language)}</Text>
+              <Ionicons name="sparkles-outline" size={14} color={colors.heroBadgeForeground} />
+              <Text numberOfLines={1} style={[styles.heroBadgeText, { color: colors.heroBadgeForeground }]}>{badgeText(badgeUi.title, language)}</Text>
             </Pressable>
-            <View style={[styles.heroStreakPill, { backgroundColor: `${colors.orange}22`, borderColor: `${colors.orange}65` }]}>
-              <Ionicons name="flame" size={14} color={colors.orange} />
-              <Text style={[styles.heroStreakValue, { color: colors.orange }]}>{streak}</Text>
-              <Text style={[styles.heroStreakLabel, { color: colors.orange }]}>{t('streak')}</Text>
+            <View style={[styles.heroStreakPill, { backgroundColor: colors.heroStreakBackground, borderColor: colors.heroStreakBorder }]}>
+              <Ionicons name="flame" size={14} color={colors.heroStreakForeground} />
+              <Text style={[styles.heroStreakValue, { color: colors.heroStreakForeground }]}>{streak}</Text>
+              <Text style={[styles.heroStreakLabel, { color: colors.heroStreakForeground }]}>{t('streak')}</Text>
             </View>
           </View>
           <CalorieProgressFill progress={calorieProgress} color={heroInk} />
