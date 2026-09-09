@@ -587,7 +587,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const isTargetStep = numericStep === targetStep && hasTargetWeightStep;
     const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[numericStep] ?? 'preferredDaysQuestion';
    return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
-     <View style={styles.questionTop}><ForgeFitMark size={38} /><Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text><LanguageSelector language={language} onSelect={setLanguage} /></View>
+     <View style={styles.questionTop}><ForgeFitMark size={38} /><Text style={[styles.brandWordmark, { color: colors.foreground }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text><LanguageSelector language={language} onSelect={setLanguage} /></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
        <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
           <View style={styles.coachQuestionVisual}><AnswerAnalysisStatus /><View style={styles.coachPhotoStage}><CoachMotion onboarding variant="write" /></View></View>
@@ -751,7 +751,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         <Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text>
       </Animated.View>
     </View>
-    <Animated.View style={[styles.welcomeActionPanel, { backgroundColor: `${colors.card}E8`, borderColor: `${colors.primary}35`, shadowColor: colors.primary, opacity: buttonOpacity, transform: [{ translateY: buttonTranslateY }] }]}>
+    <Animated.View style={[styles.welcomeActionPanel, { backgroundColor: colors.glass, borderColor: colors.glassBorder, shadowColor: colors.primary, opacity: buttonOpacity, transform: [{ translateY: buttonTranslateY }] }]}>
       <View style={styles.welcomeActionHintRow}>
         <View style={[styles.welcomeActionHintDot, { backgroundColor: colors.primary }]} />
         <Text style={[styles.welcomeActionHint, { color: colors.mutedForeground }]}>{t('welcomeCtaHint')}</Text>
@@ -1173,12 +1173,12 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
       <Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumWelcomeTitle')}</Text>
       <Text style={[styles.offerBody, { color: colors.mutedForeground }]}>{t('premiumWelcomeBody')}</Text>
       </View>
-    <View style={[styles.offerValueCard, { backgroundColor: `${colors.card}D9`, borderColor: colors.border }]}>
+    <View style={[styles.offerValueCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
       <Text style={[styles.offerReason, { color: colors.foreground }]}>{t('premiumWelcomeReason')}</Text>
         <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}>{benefit.logo ? <ForgeFitMark size={25} /> : <Ionicons name={benefit.icon!} size={17} color={colors.primary} />}</View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
     </View>
       <View style={styles.offerPlanChoices}>
-        <Pressable testID="welcome-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.border }]}>
+        <Pressable testID="welcome-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : colors.glass, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.glassBorder }]}>
           <View style={styles.offerPlanHeader}>
             <Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumMonthlyPlan')}</Text>
             <View style={[styles.offerTrialBadge, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}>
@@ -1191,7 +1191,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
           <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{monthlyPackage?.product.priceString ?? '—'}</Text>
           <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text>
         </Pressable>
-        <Pressable disabled={!canOfferAnnual} testID="welcome-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual', disabled: !canOfferAnnual }} onPress={() => { if (canOfferAnnual) setSelectedPlan('annual'); }} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border, opacity: canOfferAnnual ? 1 : 0.58 }]}>
+        <Pressable disabled={!canOfferAnnual} testID="welcome-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual', disabled: !canOfferAnnual }} onPress={() => { if (canOfferAnnual) setSelectedPlan('annual'); }} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : colors.glass, borderColor: selectedPlan === 'annual' ? colors.primary : colors.glassBorder, opacity: canOfferAnnual ? 1 : 0.58 }]}>
           {canOfferAnnual ? <View style={[styles.offerRecommendedBadge, { backgroundColor: colors.primary }]}>
             <Text style={[styles.offerRecommendedText, { color: colors.primaryForeground }]}>{t('premiumRecommended')}</Text>
           </View> : null}
@@ -1350,7 +1350,7 @@ const styles = StyleSheet.create({
   dayText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   error: { fontFamily: 'Inter_500Medium', fontSize: 12, marginTop: 12 },
   buttonArea: { gap: 13 },
-  nextButton: { minHeight: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10 },
+  nextButton: { minHeight: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 5 },
   nextText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   skip: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 12 },
   welcomeAmbientGlow: { position: 'absolute', left: -60, right: -60, top: 140, height: 430, borderRadius: 220 },

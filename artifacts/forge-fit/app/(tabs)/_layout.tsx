@@ -109,7 +109,7 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
 
   return (
     <View pointerEvents="box-none" style={[styles.tabBarOverlay, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-      <View style={[styles.tabBar, { backgroundColor: colors.background, borderColor: colors.border, shadowColor: colors.background }]}>
+       <View style={[styles.tabBar, { backgroundColor: colors.glass, borderColor: colors.glassBorder, shadowColor: colors.primary }]}>
         {routes.map((route) => {
           const descriptor = descriptors[route.key];
           const focused = state.index === state.routes.findIndex((item) => item.key === route.key);

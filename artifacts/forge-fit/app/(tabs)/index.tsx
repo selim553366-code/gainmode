@@ -61,7 +61,7 @@ export default function TodayScreen() {
       />
 
        <View style={styles.homeContent}>
-       <View style={[styles.heroCard, { backgroundColor: colors.primary }]}>
+       <LinearGradient colors={[colors.primary, colors.blue, colors.primary]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.heroCard, { borderColor: colors.glassBorder, shadowColor: colors.primary }]}>
         <CalorieProgressFill progress={calorieGoal ? calories / calorieGoal : 0} color={colors.primaryForeground} />
         <View style={styles.heroGlow} />
          <View style={styles.homeGreeting}>
@@ -85,14 +85,14 @@ export default function TodayScreen() {
           <View><Text style={[styles.heroSmallLabel, { color: `${colors.primaryForeground}A8` }]}>{t('remaining')}</Text><Text style={[styles.heroSmallValue, { color: colors.primaryForeground }]}>{calorieGoal ? `${Math.max(calorieGoal - calories, 0)} ${t('caloriesShort')}` : '—'}</Text></View>
            <View style={styles.heroStatus}><Ionicons name="information-circle-outline" size={15} color={colors.primaryForeground} /><Text style={[styles.heroStatusText, { color: colors.primaryForeground }]}>{t('noData')}</Text></View>
         </View>
-         <Pressable testID="analyze-meal-photo" onPress={() => router.push({ pathname: '/(tabs)/nutrition', params: { openCamera: 'meal' } })} style={({ pressed }) => [styles.heroPhotoAction, { borderColor: `${colors.primaryForeground}35`, opacity: pressed ? 0.8 : 1 }]}>
-           <LinearGradient colors={[`${colors.primaryForeground}F2`, `${colors.primaryForeground}C7`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroPhotoActionGradient}>
-             <View style={[styles.heroPhotoActionIcon, { backgroundColor: `${colors.primary}35` }]}><Ionicons name="camera-outline" size={16} color={colors.primary} /></View>
-             <Text style={[styles.heroPhotoActionText, { color: colors.primary }]}>{t('analyzeMealPhoto')}</Text>
-             <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+          <Pressable testID="analyze-meal-photo" onPress={() => router.push({ pathname: '/(tabs)/nutrition', params: { openCamera: 'meal' } })} style={({ pressed }) => [styles.heroPhotoAction, { backgroundColor: colors.glass, borderColor: colors.glassBorder, opacity: pressed ? 0.8 : 1 }]}>
+            <LinearGradient colors={[colors.glassHighlight, colors.glass]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroPhotoActionGradient}>
+              <View style={[styles.heroPhotoActionIcon, { backgroundColor: `${colors.primary}55` }]}><Ionicons name="camera-outline" size={16} color={colors.primaryForeground} /></View>
+              <Text style={[styles.heroPhotoActionText, { color: colors.primaryForeground }]}>{t('analyzeMealPhoto')}</Text>
+              <Ionicons name="arrow-forward" size={16} color={colors.primaryForeground} />
            </LinearGradient>
          </Pressable>
-      </View>
+       </LinearGradient>
 
       <View style={styles.metricRow}>
         <Metric icon="flame-outline" value={<><AnimatedNumber value={macros.protein} suffix=" g" /><Text style={[styles.metricGoal, { color: colors.mutedForeground }]}>{proteinGoal ? ` / ${proteinGoal} g` : ' / —'}</Text></>} label={t('protein')} color={colors.blue} />
@@ -116,7 +116,7 @@ export default function TodayScreen() {
 
 const styles = StyleSheet.create({
   homeContent: { paddingTop: 30 },
-  heroCard: { borderRadius: 28, padding: 22, overflow: 'hidden', marginBottom: 16 },
+   heroCard: { borderRadius: 30, borderWidth: 1, padding: 22, overflow: 'hidden', marginBottom: 16, shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 12 }, elevation: 7 },
   homeGreeting: { marginBottom: 18 },
   homeGreetingTitle: { fontFamily: 'Inter_700Bold', fontSize: 22, lineHeight: 27, letterSpacing: -0.5 },
   homeGreetingSubtitle: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, marginTop: 3 },

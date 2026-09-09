@@ -19,3 +19,4 @@
 - [Video artifact metadata](video-artifact-metadata.md) — preserve immutable artifact metadata and repair missing services through verified TOML replacement.
 - [PNPM patched dependencies](pnpm-patched-dependencies.md) — patched dependency edits require a valid unified diff and a regenerated lockfile hash.
 - [Expo SDK React alignment](expo-sdk-react-alignment.md) — multi-Expo workspaces must pin React per artifact when SDK-required versions differ.
+- [Forge Fit visual language](forge-fit-visual-language.md) — keep the app light, spacious, blue-white, and premium with restrained glass controls and soft elevated cards.
