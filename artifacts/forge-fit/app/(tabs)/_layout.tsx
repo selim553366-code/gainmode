@@ -92,9 +92,21 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
 function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const coachFocused = state.routes[state.index]?.name === 'coach';
+  const coachBarTransition = React.useRef(new Animated.Value(coachFocused ? 1 : 0)).current;
   const routes = tabOrder
     .map((name) => state.routes.find((route) => route.name === name))
     .filter((route): route is typeof state.routes[number] => Boolean(route));
+  React.useEffect(() => {
+    const animation = Animated.timing(coachBarTransition, {
+      toValue: coachFocused ? 1 : 0,
+      duration: 1400,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: false,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [coachBarTransition, coachFocused]);
   const handlePress = (route: typeof routes[number]) => {
     const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
     if (!event.defaultPrevented) navigation.navigate(route.name);
@@ -109,7 +121,8 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
 
   return (
     <View pointerEvents="box-none" style={[styles.tabBarOverlay, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-       <View style={[styles.tabBar, { backgroundColor: colors.glass, borderColor: colors.glassBorder, shadowColor: colors.primary }]}>
+       <View style={[styles.tabBar, { backgroundColor: colors.glass, borderColor: coachFocused ? `${colors.coachNightPurple}B8` : colors.glassBorder, shadowColor: coachFocused ? colors.coachNightBlack : colors.primary }]}>
+         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.tabBarCoachShade, { backgroundColor: colors.coachNightDeep, opacity: coachBarTransition.interpolate({ inputRange: [0, 1], outputRange: [0, 0.86] }) }]} />
         {routes.map((route) => {
           const descriptor = descriptors[route.key];
           const focused = state.index === state.routes.findIndex((item) => item.key === route.key);
@@ -134,8 +147,8 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
               onPress={() => handlePress(route)}
               style={styles.tabItem}
             >
-              <Feather name={iconForRoute(route.name)} size={22} color={focused ? colors.primary : colors.mutedForeground} />
-              <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
+               <Feather name={iconForRoute(route.name)} size={22} color={focused ? colors.primary : coachFocused ? `${colors.white}B8` : colors.mutedForeground} />
+               <Text style={[styles.tabLabel, { color: focused ? colors.primary : coachFocused ? `${colors.white}B8` : colors.mutedForeground }]}>{label}</Text>
             </Pressable>
           );
         })}
@@ -193,7 +206,8 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBarOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 12, zIndex: 10 },
-  tabBar: { height: 78, borderRadius: 28, borderWidth: 1, flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 4, shadowOpacity: 0.32, shadowRadius: 18, shadowOffset: { width: 0, height: -5 }, elevation: 16 },
+  tabBar: { height: 78, borderRadius: 28, borderWidth: 1, overflow: 'hidden', flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 4, shadowOpacity: 0.32, shadowRadius: 18, shadowOffset: { width: 0, height: -5 }, elevation: 16 },
+  tabBarCoachShade: { borderRadius: 28 },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 5, paddingBottom: 9, paddingTop: 12 },
   tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   coachTabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
