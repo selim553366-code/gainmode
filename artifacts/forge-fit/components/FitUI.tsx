@@ -22,10 +22,12 @@ export function ForgeFitMark({ size = 28, style }: { size?: number; style?: obje
 }
 
 export function GainModeWordmark({ color }: { color: string }) {
-  return <View accessibilityLabel="GainMode" style={styles.gainModeWordmarkWrap}>
-    <Text style={[styles.gainModeWordmark, { color }]}>GAINMODE</Text>
-    <Text style={[styles.gainModeTrademark, { color }]}>™</Text>
-  </View>;
+  return <Image
+    accessibilityLabel="GainMode"
+    source={require('@/assets/images/gainmode-wordmark.png')}
+    resizeMode="contain"
+    style={[styles.gainModeWordmark, { tintColor: color }]}
+  />;
 }
 
 export function triggerHaptic(style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) {
@@ -479,9 +481,7 @@ export const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerActionsCentered: { position: 'absolute', right: 0, top: 0, zIndex: 2 },
   headerBrand: { width: 138, height: 44, alignItems: 'flex-start', justifyContent: 'center', zIndex: 1, transform: [{ translateY: 4 }] },
-  gainModeWordmarkWrap: { flexDirection: 'row', alignItems: 'flex-start' },
-  gainModeWordmark: { fontFamily: 'Inter_500Medium', fontSize: 18, letterSpacing: 0.15, lineHeight: 19 },
-  gainModeTrademark: { fontFamily: 'Inter_600SemiBold', fontSize: 6.5, lineHeight: 8, marginLeft: 2, marginTop: -3 },
+  gainModeWordmark: { width: 150, height: 20 },
   headerBrandWordmark: { fontFamily: 'Inter_700Bold', fontSize: 18, letterSpacing: -1.35 },
   headerBrandTrademark: { fontFamily: 'Inter_700Bold', fontSize: 7, lineHeight: 9, position: 'relative', top: -7 },
   streakPill: { minHeight: 44, borderRadius: 15, borderWidth: 1, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 4 },
