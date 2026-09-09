@@ -1424,7 +1424,7 @@ const styles = StyleSheet.create({
   welcomeAmbientGlow: { position: 'absolute', left: -60, right: -60, top: 140, height: 430, borderRadius: 220 },
   welcomeBackdropDecorations: { pointerEvents: 'none' },
    welcomeHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingTop: 0, paddingLeft: 0, paddingRight: 0, zIndex: 3 },
-   welcomeLogoDock: { transform: [{ translateX: -12 }, { translateY: -4 }] },
+   welcomeLogoDock: { transform: [{ translateX: -8 }, { translateY: -6 }] },
    welcomeLanguageDock: { transform: [{ translateY: -6 }, { translateX: 8 }] },
   welcomeBrand: { fontFamily: 'Inter_700Bold', fontSize: 25, letterSpacing: -1.2 },
    welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.46)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.76)' },
