@@ -7,4 +7,4 @@ Forge Fit should use a light, spacious blue-white product interface: pale atmosp
 
 **Why:** The user explicitly chose a clean premium fitness-product direction inspired by generous whitespace, translucent buttons, thin borders, soft glow, and rounded media-led cards.
 
-**How to apply:** Keep the shared theme tokens as the source of truth, preserve strong text contrast and mobile hit targets, and carry the same visual language across onboarding, premium, home, nutrition, coach, plan, and progress without changing i18n or product behavior.
+**How to apply:** Keep the shared theme tokens as the source of truth, use semantic foreground/card colors instead of black/white shortcuts in dark mode, preserve strong text contrast and mobile hit targets, and carry the same visual language across onboarding, premium, home, nutrition, coach, plan, and progress without changing i18n or product behavior.

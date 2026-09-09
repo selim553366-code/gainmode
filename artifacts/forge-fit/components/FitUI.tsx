@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
+import { ActivityIndicator, Animated, Image, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -57,7 +57,7 @@ export function Screen({ children, scroll = true, bottomPadding = 104 }: { child
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{backdrop}</ScrollView> : backdrop;
 }
 
-export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, featureLabel, featureAction, premiumLabel, premiumAction, premiumIcon = 'trophy-outline', premiumOwned = false, streak, streakLabel, centered = false, lightBackground = false, showText = true }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; featureLabel?: string; featureAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumIcon?: IconName; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean; lightBackground?: boolean; showText?: boolean }) {
+export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, actionDisabled = false, featureLabel, featureAction, premiumLabel, premiumAction, premiumIcon = 'trophy-outline', premiumOwned = false, streak, streakLabel, centered = false, lightBackground = false, showText = true }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; actionDisabled?: boolean; featureLabel?: string; featureAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumIcon?: IconName; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean; lightBackground?: boolean; showText?: boolean }) {
   const colors = useColors();
   const premiumColor = premiumOwned ? colors.success : colors.primary;
   const headingColor = lightBackground ? colors.primaryForeground : colors.foreground;
@@ -72,7 +72,7 @@ export function Header({ eyebrow, title, subtitle, action, actionLogo = false, o
       {streak !== undefined ? <View accessibilityLabel={`${streak} ${streakLabel ?? ''}`} style={[styles.streakPill, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Ionicons name="flame" size={15} color={colors.orange} /><Text style={[styles.streakValue, { color: colors.orange }]}>{streak}</Text>{streakLabel ? <Text style={[styles.streakLabel, { color: colors.orange }]}>{streakLabel}</Text> : null}</View> : null}
       {featureLabel && featureAction ? <Pressable accessibilityRole="button" accessibilityLabel={featureLabel} onPress={() => { triggerHaptic(); featureAction(); }} style={({ pressed }) => [styles.featurePill, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="sparkles-outline" size={14} color={colors.primary} /><Text style={[styles.featurePillText, { color: colors.primary }]}>{featureLabel}</Text></Pressable> : null}
       {premiumAction ? <Pressable accessibilityLabel={premiumLabel} testID="header-premium" onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); premiumAction(); }} style={({ pressed }) => [styles.premiumPill, { backgroundColor: `${premiumColor}20`, borderColor: `${premiumColor}70`, opacity: pressed ? 0.72 : 1 }]}>{premiumOwned ? <Ionicons name="checkmark-circle" size={13} color={premiumColor} /> : <Ionicons name={premiumIcon} size={15} color={premiumColor} />}<Text style={[styles.premiumPillText, { color: premiumColor }]}>{premiumLabel}</Text></Pressable> : null}
-       {action && onAction ? <Pressable testID="header-action" onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.glass, borderColor: colors.glassBorder, shadowColor: colors.primary, opacity: pressed ? 0.65 : 1 }]}>{actionLogo ? <ForgeFitMark size={27} /> : <Ionicons name={action} size={20} color={colors.foreground} />}</Pressable> : null}
+       {action && onAction ? <Pressable testID="header-action" accessibilityRole="button" accessibilityState={{ disabled: actionDisabled }} disabled={actionDisabled} onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.glass, borderColor: colors.glassBorder, shadowColor: colors.primary, opacity: actionDisabled ? 0.48 : pressed ? 0.65 : 1 }]}>{actionLogo ? <ForgeFitMark size={27} /> : <Ionicons name={action} size={20} color={colors.foreground} />}</Pressable> : null}
     </View>
   </View>;
 }
@@ -214,6 +214,13 @@ export function PremiumSuccessCelebration({ visible, onDone, modal = true }: { v
 export function EmptyState({ icon, title, text }: { icon: IconName; title: string; text: string }) {
   const colors = useColors();
   return <View style={styles.empty}><View style={[styles.emptyIcon, { backgroundColor: colors.secondary }]}><Ionicons name={icon} size={24} color={colors.primary} /></View><Text style={[styles.emptyTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{text}</Text></View>;
+}
+
+export function InlineStatus({ icon, text, color, loading = false }: { icon: IconName; text: string; color: string; loading?: boolean }) {
+  return <View style={[styles.inlineStatus, { backgroundColor: `${color}0D`, borderColor: `${color}28` }]}>
+    {loading ? <ActivityIndicator size="small" color={color} /> : <View style={[styles.inlineStatusIcon, { backgroundColor: `${color}18` }]}><Ionicons name={icon} size={15} color={color} /></View>}
+    <Text style={[styles.inlineStatusText, { color }]}>{text}</Text>
+  </View>;
 }
 
 export function PremiumLock() {
@@ -425,7 +432,7 @@ export function PremiumAccessStatusModal({ visible, onClose }: { visible: boolea
 export const styles = StyleSheet.create({
   ambientBackdrop: { flex: 1, minHeight: '100%', overflow: 'hidden' },
   screen: { paddingHorizontal: 20, minHeight: '100%' },
-  header: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 26 },
+  header: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 20 },
   headerText: { flex: 1 },
   headerTextCentered: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 0 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -441,8 +448,8 @@ export const styles = StyleSheet.create({
   iconButton: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
   premiumPill: { height: 38, borderRadius: 15, borderWidth: 1, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
   premiumPillText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8 },
-  card: { borderRadius: 24, borderWidth: 1, padding: 18, marginBottom: 16 },
-  sectionTitle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, marginBottom: 12 },
+  card: { borderRadius: 24, borderWidth: 1, padding: 16, marginBottom: 16 },
+  sectionTitle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, marginBottom: 10 },
   sectionText: { fontFamily: 'Inter_600SemiBold', fontSize: 17 },
   link: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   progressTrack: { height: 7, borderRadius: 8, overflow: 'hidden' },
@@ -467,6 +474,9 @@ export const styles = StyleSheet.create({
   emptyIcon: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   emptyTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 16 },
   emptyText: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 7 },
+  inlineStatus: { minHeight: 48, borderRadius: 15, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  inlineStatusIcon: { width: 28, height: 28, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  inlineStatusText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16 },
   lockScreen: { flex: 1, minHeight: '100%', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, overflow: 'hidden' },
   lockPreviewShell: { width: '100%', height: 275, borderRadius: 28, borderWidth: 1, padding: 15, overflow: 'hidden' },
   lockPreviewTop: { flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 14 },

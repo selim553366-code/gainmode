@@ -10,7 +10,7 @@ import { useFit, Meal } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { apiUrl } from '@/lib/api';
 import { useColors } from '@/hooks/useColors';
-import { Card, ForgeFitMark, Header, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
+import { Card, ForgeFitMark, Header, InlineStatus, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 import { DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { getAiClientId } from '@/lib/aiUsage';
@@ -389,23 +389,23 @@ export default function NutritionScreen() {
          </View>
        </View>
      </Modal>
-     {barcodeLoading ? <Card style={styles.barcodeResultCard}><View style={styles.barcodeResultHeader}><Ionicons name="search-outline" size={18} color={colors.primary} /><Text style={[styles.barcodeResultTitle, { color: colors.foreground }]}>{t('barcodeLookingUp')}</Text></View><ActivityIndicator color={colors.primary} /></Card> : null}
-     {barcodeError ? <Card style={styles.barcodeResultCard}><View style={styles.barcodeResultHeader}><Ionicons name="alert-circle" size={18} color={colors.destructive} /><Text style={[styles.barcodeResultTitle, { color: colors.destructive }]}>{barcodeError}</Text></View></Card> : null}
+      {barcodeLoading ? <View style={styles.inlineStateWrap}><InlineStatus icon="search-outline" text={t('barcodeLookingUp')} color={colors.primary} loading /></View> : null}
+      {barcodeError ? <View style={styles.inlineStateWrap}><InlineStatus icon="alert-circle" text={barcodeError} color={colors.destructive} /></View> : null}
      {barcodeResult ? <Card style={styles.barcodeResultCard}><View style={styles.barcodeResultHeader}><View style={[styles.barcodeResultIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="scan-outline" size={18} color={colors.primary} /></View><View style={styles.barcodeResultHeading}><Text style={[styles.barcodeResultEyebrow, { color: colors.primary }]}>{t('barcodeNutritionTitle')}</Text><Text style={[styles.barcodeProductName, { color: colors.foreground }]}>{barcodeResult.name}</Text><Text style={[styles.resultServing, { color: colors.mutedForeground }]}>{barcodeResult.serving}</Text></View></View><View style={[styles.barcodeMacroGrid, { borderTopColor: colors.border }]}><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('calories')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.foreground }]}>{barcodeResult.calories} {t('caloriesShort')}</Text></View><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('protein')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.blue }]}>{formatNutrition(barcodeResult.protein)}g</Text></View><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('carbs')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.orange }]}>{formatNutrition(barcodeResult.carbs)}g</Text></View><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('fat')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.plum }]}>{formatNutrition(barcodeResult.fat)}g</Text></View></View><Pressable onPress={addBarcodeResult} style={({ pressed }) => [styles.barcodeAddButton, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="add-circle-outline" size={17} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('barcodeAddMeal')}</Text></Pressable></Card> : null}
     <SectionTitle title={t('searchFood')} />
     <Card style={styles.searchCard}>
       <View style={styles.searchRow}><Ionicons name="search-outline" size={18} color={colors.mutedForeground} /><TextInput testID="food-search" value={search} onChangeText={setSearch} placeholder={t('searchPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.searchInput, { color: colors.foreground }]} autoCapitalize="none" returnKeyType="search" />{normalizedSearch ? <Pressable testID="clear-food-search" onPress={() => { setSearch(''); setDebouncedSearch(''); }} hitSlop={8}><Ionicons name="close-circle" size={18} color={colors.mutedForeground} /></Pressable> : null}</View>
       {!normalizedSearch ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('searchFoodHint')}</Text> : null}
       {normalizedSearch.length === 1 ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('searchTooShort')}</Text> : null}
-      {searchEnabled && foodSearchLoading ? <View style={styles.stateRow}><ActivityIndicator size="small" color={colors.primary} /><Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('searchingFood')}</Text></View> : null}
-      {searchEnabled && foodSearchError ? <Text style={[styles.searchHint, { color: colors.destructive }]}>{t('foodSearchError')}</Text> : null}
-      {searchEnabled && !foodSearchLoading && !foodSearchError && foodSearchItems.length === 0 ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('noFoodResults')}</Text> : null}
+       {searchEnabled && foodSearchLoading ? <View style={styles.inlineStateWrap}><InlineStatus icon="search-outline" text={t('searchingFood')} color={colors.primary} loading /></View> : null}
+       {searchEnabled && foodSearchError ? <View style={styles.inlineStateWrap}><InlineStatus icon="alert-circle" text={t('foodSearchError')} color={colors.destructive} /></View> : null}
+       {searchEnabled && !foodSearchLoading && !foodSearchError && foodSearchItems.length === 0 ? <View style={styles.inlineStateWrap}><InlineStatus icon="restaurant-outline" text={t('noFoodResults')} color={colors.mutedForeground} /></View> : null}
       {searchEnabled && !foodSearchLoading && !foodSearchError ? foodSearchItems.map((food) => <Pressable key={`${food.id}-${food.name}`} onPress={() => addFood(food)} style={({ pressed }) => [styles.resultRow, { borderTopColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><View style={styles.resultContent}><Text style={[styles.mealName, { color: colors.foreground }]}>{food.name}</Text><Text style={[styles.resultServing, { color: colors.mutedForeground }]}>{food.serving}</Text><View style={styles.nutritionLine}><Text style={[styles.nutritionValue, { color: colors.foreground }]}>{food.calories} {t('caloriesShort')}</Text><Text style={[styles.nutritionValue, { color: colors.blue }]}>{formatNutrition(food.protein)}g {t('protein')}</Text><Text style={[styles.nutritionValue, { color: colors.orange }]}>{formatNutrition(food.carbs)}g {t('carbs')}</Text><Text style={[styles.nutritionValue, { color: colors.plum }]}>{formatNutrition(food.fat)}g {t('fat')}</Text></View></View><Ionicons name="add-circle-outline" size={22} color={colors.primary} /></Pressable>) : null}
     </Card>
      <SectionTitle title={t('loggedFoods')} />
      <View style={[styles.mealTabs, { backgroundColor: `${colors.secondary}A8`, borderColor: colors.border }]}>
-       <Pressable testID="daily-meals-tab" accessibilityRole="tab" accessibilityState={{ selected: mealSection === 'daily' }} onPress={() => setMealSection('daily')} style={[styles.mealTab, mealSection === 'daily' && { backgroundColor: colors.white, shadowColor: colors.black }]}><Text style={[styles.mealTabText, { color: mealSection === 'daily' ? colors.black : colors.mutedForeground }]}>{t('loggedFoods')}</Text></Pressable>
-       <Pressable testID="saved-meals-tab" accessibilityRole="tab" accessibilityState={{ selected: mealSection === 'saved' }} onPress={() => setMealSection('saved')} style={[styles.mealTab, mealSection === 'saved' && { backgroundColor: colors.white, shadowColor: colors.black }]}><Text style={[styles.mealTabText, { color: mealSection === 'saved' ? colors.black : colors.mutedForeground }]}>{t('savedMealsTab')}</Text></Pressable>
+       <Pressable testID="daily-meals-tab" accessibilityRole="tab" accessibilityState={{ selected: mealSection === 'daily' }} onPress={() => setMealSection('daily')} style={[styles.mealTab, mealSection === 'daily' && { backgroundColor: colors.card, shadowColor: colors.primary }]}><Text style={[styles.mealTabText, { color: mealSection === 'daily' ? colors.foreground : colors.mutedForeground }]}>{t('loggedFoods')}</Text></Pressable>
+       <Pressable testID="saved-meals-tab" accessibilityRole="tab" accessibilityState={{ selected: mealSection === 'saved' }} onPress={() => setMealSection('saved')} style={[styles.mealTab, mealSection === 'saved' && { backgroundColor: colors.card, shadowColor: colors.primary }]}><Text style={[styles.mealTabText, { color: mealSection === 'saved' ? colors.foreground : colors.mutedForeground }]}>{t('savedMealsTab')}</Text></Pressable>
      </View>
      <Card style={styles.mealCard}>
        {mealSection === 'daily' ? <>
@@ -462,6 +462,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, height: 40, fontFamily: 'Inter_400Regular', fontSize: 13 },
   searchHint: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 10 },
   stateRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 10 },
+  inlineStateWrap: { marginTop: 10 },
   resultRow: { borderTopWidth: 1, paddingTop: 13, marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
   resultContent: { flex: 1 },
   resultServing: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 3 },

@@ -119,7 +119,7 @@ function CoachAtmosphereBackground({ colors, reveal }: { colors: ReturnType<type
   const renderAtmosphere = (phase: CoachAtmosphere) => {
     if (phase === 'morning') {
       return <View style={styles.coachAtmosphereLayer}>
-        <LinearGradient colors={[colors.coachMorningGlow, colors.white]} style={StyleSheet.absoluteFill} />
+         <LinearGradient colors={[colors.coachMorningGlow, colors.background]} style={StyleSheet.absoluteFill} />
         <Animated.Image source={require('@/assets/images/coach-background.jpeg')} resizeMode="cover" style={[styles.coachBackground, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]} />
       </View>;
     }
@@ -162,8 +162,8 @@ function TypingIndicator({ label, colors }: { label: string; colors: ReturnType<
     animations.forEach((animation) => animation.start());
     return () => animations.forEach((animation) => animation.stop());
   }, [dots]);
-  return <View style={[styles.typingBubble, { backgroundColor: colors.white, borderColor: colors.border }]}>
-    <Text style={[styles.typingLabel, { color: colors.black }]}>{label}</Text>
+  return <View style={[styles.typingBubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Text style={[styles.typingLabel, { color: colors.foreground }]}>{label}</Text>
     <View style={styles.typingDots}>{dots.map((dot, index) => <Animated.View key={index} style={[styles.typingDot, { backgroundColor: colors.primary, transform: [{ translateY: dot.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }]} />)}</View>
   </View>;
 }
@@ -397,17 +397,17 @@ export default function CoachScreen() {
       animation.stop();
     };
   }, [analysisId, weeklyAnalysis, weeklyAnalysisUnlocked]);
-  return <View style={[styles.root, { backgroundColor: colors.white, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
+  return <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
      <CoachAtmosphereBackground colors={colors} reveal={coachReveal} />
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.secondary, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
     <View style={styles.referenceHeader}>
       <View style={styles.referenceHeaderText}>
-        <Text style={[styles.referenceEyebrow, { color: colors.black }]}>{t('coachEyebrow').toUpperCase()}</Text>
-        <Text style={[styles.referenceTitle, { color: colors.black }]}>{t('coachTitle')}</Text>
-        <Text style={[styles.referenceSubtitle, { color: colors.black }]}>{t('coachSubtitle')}</Text>
+       <Text style={[styles.referenceEyebrow, { color: colors.foreground }]}>{t('coachEyebrow').toUpperCase()}</Text>
+         <Text style={[styles.referenceTitle, { color: colors.foreground }]}>{t('coachTitle')}</Text>
+         <Text style={[styles.referenceSubtitle, { color: colors.mutedForeground }]}>{t('coachSubtitle')}</Text>
       </View>
-      <Pressable testID="header-action" accessibilityRole="button" accessibilityLabel={t('coachTitle')} onPress={() => undefined} style={({ pressed }) => [styles.referenceHeaderAction, { backgroundColor: colors.black, opacity: pressed ? 0.72 : 1 }]}>
-        <Ionicons name="chatbubble-ellipses-outline" size={25} color={colors.white} />
+       <Pressable testID="header-action" accessibilityRole="button" accessibilityLabel={t('coachTitle')} onPress={() => undefined} style={({ pressed }) => [styles.referenceHeaderAction, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}>
+         <Ionicons name="chatbubble-ellipses-outline" size={25} color={colors.primaryForeground} />
       </Pressable>
     </View>
     <View pointerEvents="none" style={styles.analysisFlightLayer}>
@@ -440,9 +440,9 @@ export default function CoachScreen() {
          >
            {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.84, 0.96, 1], outputRange: [0, 0, 0.42, 1] }) : 1 }]} /> : null}
            <View style={styles.messageContent}>
-               {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.white, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={styles.welcomeGifCard}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.black }] : [styles.coachBubble, { backgroundColor: colors.white }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.white : colors.black }]}>{item.text}</Text> : null}</View>}
-                {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: colors.white, borderColor: colors.border }]}><Text style={[styles.actionTitle, { color: colors.black }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: colors.black }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: colors.border, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.black }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
-                {ratingLoaded && ratingTarget?.id === item.id && dailyRating === null ? <View style={[styles.ratingCard, { backgroundColor: colors.white, borderColor: colors.border }]}><Text style={[styles.ratingPrompt, { color: colors.black }]}>{t('coachRatingPrompt')}</Text><View style={styles.ratingStars}>{[1, 2, 3, 4, 5].map((value) => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} ${t('coachRatingStars')}`} disabled={ratingSending !== null} onPress={() => void rateCoachMessage(item, value)} style={({ pressed }) => [styles.ratingStar, { opacity: ratingSending !== null && ratingSending !== value ? 0.4 : pressed ? 0.65 : 1 }]}><Ionicons name="star" size={24} color={colors.orange} /></Pressable>)}</View>{ratingSending !== null ? <Text style={[styles.ratingStatus, { color: colors.mutedForeground }]}>{t('coachRatingSending')}</Text> : null}</View> : null}
+                {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={styles.welcomeGifCard}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text> : null}</View>}
+                 {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.actionTitle, { color: colors.foreground }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: colors.foreground }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: colors.border, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.foreground }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
+                {ratingLoaded && ratingTarget?.id === item.id && dailyRating === null ? <View style={[styles.ratingCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.ratingPrompt, { color: colors.foreground }]}>{t('coachRatingPrompt')}</Text><View style={styles.ratingStars}>{[1, 2, 3, 4, 5].map((value) => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} ${t('coachRatingStars')}`} disabled={ratingSending !== null} onPress={() => void rateCoachMessage(item, value)} style={({ pressed }) => [styles.ratingStar, { opacity: ratingSending !== null && ratingSending !== value ? 0.4 : pressed ? 0.65 : 1 }]}><Ionicons name="star" size={24} color={colors.orange} /></Pressable>)}</View>{ratingSending !== null ? <Text style={[styles.ratingStatus, { color: colors.mutedForeground }]}>{t('coachRatingSending')}</Text> : null}</View> : null}
                 {ratedMessageId === item.id ? <Text style={[styles.ratingThanks, { color: colors.success }]}>{t('coachRatingThanks')}</Text> : null}
            </View>
         </View>}
@@ -452,9 +452,9 @@ export default function CoachScreen() {
         keyboardShouldPersistTaps="handled"
       />
         <View style={[styles.inputRow, { paddingBottom: insets.bottom + 12, backgroundColor: 'transparent' }]}>
-            <View style={[styles.auraInput, { backgroundColor: colors.white, borderColor: colors.black, shadowColor: colors.black }]}>
-               <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" underlineColorAndroid="transparent" placeholder={loading ? t('analyzing') : text ? '' : animatedPrompt} placeholderTextColor={`${colors.black}80`} style={[styles.input, { color: colors.black, backgroundColor: colors.white }]} />
-             <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.black, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.white} /></Pressable>
+             <View style={[styles.auraInput, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.primary }]}>
+                <TextInput ref={inputRef} value={text} onChangeText={setText} onSubmitEditing={send} returnKeyType="send" underlineColorAndroid="transparent" placeholder={loading ? t('analyzing') : text ? '' : animatedPrompt} placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground, backgroundColor: colors.card }]} />
+              <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.primaryForeground} /></Pressable>
           </View>
       </View>
     </KeyboardAvoidingView>

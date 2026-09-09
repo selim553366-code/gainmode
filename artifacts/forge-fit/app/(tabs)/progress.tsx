@@ -67,7 +67,7 @@ export default function ProgressScreen() {
   };
 
   return <Screen>
-     <Header eyebrow={t('weeklyAiEyebrow')} title={t('weeklyAiTitle')} subtitle={t('weeklyAiSubtitle')} action="analytics-outline" onAction={requestAnalysis} />
+     <Header eyebrow={t('weeklyAiEyebrow')} title={t('weeklyAiTitle')} subtitle={t('weeklyAiSubtitle')} action={weeklyAnalysisUnlocked ? 'analytics-outline' : 'badge-lock'} actionDisabled={!weeklyAnalysisUnlocked || launching} onAction={requestAnalysis} />
     <Animated.View style={{ opacity: launchProgress.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.94, 0.55] }), transform: [{ translateY: launchProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -18] }) }, { scale: launchProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] }) }] }}>
       <LinearGradient colors={[colors.primary, colors.blue]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
         <View pointerEvents="none" style={[styles.heroOrb, { backgroundColor: `${colors.primaryForeground}18` }]} />
@@ -82,7 +82,7 @@ export default function ProgressScreen() {
           <View style={{ flex: 1 }}><Text style={[styles.heroLabel, { color: `${colors.primaryForeground}A8` }]}>{t('weeklyWeightChange')}</Text><Text style={[styles.heroWeight, { color: colors.primaryForeground }]}>{formatChange(summary.weightChangeKg)}</Text><Text style={[styles.heroOutcome, { color: colors.primaryForeground }]}>{outcomeCopy(summary.weightOutcome, t)}</Text></View>
           <View style={[styles.heroBadge, { backgroundColor: `${colors.primaryForeground}18`, borderColor: `${colors.primaryForeground}2C` }]}><Ionicons name={summary.weightOutcome === 'gained' ? 'trending-up-outline' : summary.weightOutcome === 'lost' ? 'trending-down' : 'analytics-outline'} size={28} color={colors.primaryForeground} /><Text style={[styles.heroBadgeText, { color: `${colors.primaryForeground}C2` }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View>
         </View> : <View style={styles.muscleFocus}><View style={[styles.muscleFocusIcon, { backgroundColor: `${colors.primaryForeground}18` }]}><Ionicons name="barbell-outline" size={26} color={colors.primaryForeground} /></View><View style={{ flex: 1 }}><Text style={[styles.heroLabel, { color: `${colors.primaryForeground}A8` }]}>{t('weeklyMuscleFocus')}</Text><Text style={[styles.muscleFocusText, { color: colors.primaryForeground }]}>{t('weeklyMuscleSubtitle')}</Text></View></View>}
-        <Pressable testID="get-weekly-ai-analysis" accessibilityRole="button" accessibilityLabel={t('weeklyAnalysisCta')} onPress={requestAnalysis} style={({ pressed }) => [styles.analysisButton, { backgroundColor: colors.primaryForeground, opacity: pressed || launching ? 0.8 : 1 }]}>
+        <Pressable testID="get-weekly-ai-analysis" accessibilityRole="button" accessibilityState={{ disabled: !weeklyAnalysisUnlocked || launching }} accessibilityLabel={t('weeklyAnalysisCta')} disabled={!weeklyAnalysisUnlocked || launching} onPress={requestAnalysis} style={({ pressed }) => [styles.analysisButton, { backgroundColor: colors.primaryForeground, opacity: !weeklyAnalysisUnlocked ? 0.62 : pressed || launching ? 0.8 : 1 }]}>
            <View style={[styles.analysisButtonIcon, { backgroundColor: `${colors.primary}24` }]}><Ionicons name={launching ? 'arrow-up' : weeklyAnalysisUnlocked ? 'trending-up-outline' : 'badge-lock'} size={17} color={colors.primary} /></View>
           <Text style={[styles.analysisButtonText, { color: colors.primary }]}>{launching ? t('weeklyAnalysisSending') : weeklyAnalysisUnlocked ? t('weeklyAnalysisCta') : t('weeklyAnalysisUnlockIn').replace('{days}', String(weeklyAnalysisDays))}</Text>
           {!launching ? <Ionicons name={weeklyAnalysisUnlocked ? 'arrow-forward' : 'badge-lock'} size={17} color={colors.primary} /> : <Ionicons name="ellipsis-horizontal" size={17} color={colors.primary} />}
@@ -97,15 +97,14 @@ export default function ProgressScreen() {
       <StatTile icon="activity" value={<AnimatedNumber value={summary.totalExercises} />} label={t('weeklyTotalExercises')} color={colors.blue} />
       <StatTile icon="flame-outline" value={summary.calorieConsistency === null ? '—' : `${summary.calorieConsistency}%`} label={t('weeklyCalorieConsistency')} color={colors.success} />
     </View>
-     <Card style={styles.loadCard}>
-       <View style={[styles.loadIcon, { backgroundColor: `${colors.orange}18` }]}><Ionicons name="barbell-outline" size={20} color={colors.orange} /></View>
-       <View style={styles.loadCopy}><Text style={[styles.loadTitle, { color: colors.foreground }]}>{summary.dumbbellWeightKg ? `${summary.dumbbellWeightKg} kg · ${t('weeklyDumbbellLoad')}` : t('weeklyWorkoutCalories')}</Text><Text style={[styles.loadHint, { color: colors.mutedForeground }]}>{summary.dumbbellWeightKg ? t('weeklyDumbbellLoadHint') : t('weeklyWorkoutCaloriesHint')}</Text></View>
-       <Text style={[styles.loadValue, { color: colors.orange }]}>{summary.dumbbellWeightKg ? `${summary.dumbbellWeightKg} kg` : `${summary.workoutCalories} ${t('caloriesShort')}`}</Text>
-     </Card>
-
-    <Card style={styles.consistencyCard}>
+     <Card style={styles.consistencyCard}>
       <View style={styles.consistencyHeader}><View style={[styles.consistencyIcon, { backgroundColor: `${colors.success}18` }]}><Ionicons name="checkmark-circle-outline" size={19} color={colors.success} /></View><View style={{ flex: 1 }}><Text style={[styles.consistencyTitle, { color: colors.foreground }]}>{t('weeklyCalorieTitle')}</Text><Text style={[styles.consistencySubtitle, { color: colors.mutedForeground }]}>{summary.trackedCalorieDays > 0 ? `${summary.onTargetCalorieDays}/${summary.trackedCalorieDays} ${t('weeklyCalorieDays')}` : t('weeklyCalorieNoData')}</Text></View><Text style={[styles.consistencyValue, { color: colors.success }]}>{summary.calorieConsistency === null ? '—' : `${summary.calorieConsistency}%`}</Text></View>
       <View style={[styles.track, { backgroundColor: colors.secondary }]}><View style={[styles.fill, { width: `${summary.calorieConsistency ?? 0}%`, backgroundColor: colors.success }]} /></View>
+       <View style={[styles.loadRow, { borderTopColor: colors.border }]}>
+         <View style={[styles.loadIcon, { backgroundColor: `${colors.orange}18` }]}><Ionicons name="barbell-outline" size={18} color={colors.orange} /></View>
+         <View style={styles.loadCopy}><Text style={[styles.loadTitle, { color: colors.foreground }]}>{summary.dumbbellWeightKg ? `${summary.dumbbellWeightKg} kg · ${t('weeklyDumbbellLoad')}` : t('weeklyWorkoutCalories')}</Text><Text style={[styles.loadHint, { color: colors.mutedForeground }]}>{summary.dumbbellWeightKg ? t('weeklyDumbbellLoadHint') : t('weeklyWorkoutCaloriesHint')}</Text></View>
+         <Text style={[styles.loadValue, { color: colors.orange }]}>{summary.dumbbellWeightKg ? `${summary.dumbbellWeightKg} kg` : `${summary.workoutCalories} ${t('caloriesShort')}`}</Text>
+       </View>
     </Card>
 
     {tracksWeight ? <Card style={styles.chartCard}>
@@ -151,7 +150,7 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: 'Inter_700Bold', fontSize: 22, marginTop: 12 },
   statLabel: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 4 },
   inlineUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  loadCard: { padding: 15, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 16 },
+   loadRow: { borderTopWidth: 1, marginTop: 15, paddingTop: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
   loadIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   loadCopy: { flex: 1 },
   loadTitle: { fontFamily: 'Inter_700Bold', fontSize: 13 },
