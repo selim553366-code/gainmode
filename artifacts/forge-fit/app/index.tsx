@@ -314,6 +314,9 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const [onboardingMode, setOnboardingMode] = React.useState<OnboardingMode | null>(editMode ? 'detailed' : null);
   const [taken, setTaken] = React.useState<string[]>([]);
   const [error, setError] = React.useState('');
+   const [questionViewportHeight, setQuestionViewportHeight] = React.useState(0);
+   const [questionContentHeight, setQuestionContentHeight] = React.useState(0);
+   const [questionScrollOffset, setQuestionScrollOffset] = React.useState(0);
   const slide = React.useRef(new Animated.Value(1)).current;
   const targetStep = 15;
   const hasTargetWeightStep = goal === 'weightGain' || goal === 'weightLoss';
@@ -554,6 +557,11 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       if (gesture.dx > 55) goBack();
     },
   }), [language, step, activeStep, username, equipment, gymLevel, dumbbellWeightKg, dumbbellWeightText, age, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, ageText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
+   React.useEffect(() => {
+     setQuestionScrollOffset(0);
+     setQuestionContentHeight(0);
+     setQuestionViewportHeight(0);
+   }, [activeStep]);
   const titleKeys = ['nameFirstQuestion', 'equipmentQuestion', 'heightQuestion', 'weightQuestion', 'ageQuestion', 'goalQuestion', 'sexQuestion', 'activityQuestion', 'trainingDaysQuestion', 'durationQuestion', 'speedQuestion', 'dietQuestion', 'proteinQuestion', 'experienceQuestion', 'preferredDaysQuestion'] as const;
   const selectedDays = (day: string) => setPreferredDays((current) => {
     if (current.includes(day)) return current.filter((item) => item !== day);
@@ -604,8 +612,17 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
       <OnboardingAtmosphere />
      <View style={styles.questionTop}><GainModeWordmark color={colors.foreground} /><LanguageSelector language={language} onSelect={setLanguage} /></View>
-    <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
-       <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
+     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
+        <KeyboardAwareScrollViewCompat
+          contentContainerStyle={styles.questionScrollContent}
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          bottomOffset={72}
+          onLayout={({ nativeEvent }) => setQuestionViewportHeight(nativeEvent.layout.height)}
+          onContentSizeChange={(_, height) => setQuestionContentHeight(height)}
+          onScroll={({ nativeEvent }) => setQuestionScrollOffset(nativeEvent.contentOffset.y)}
+          scrollEventThrottle={16}
+        >
           <View style={styles.coachQuestionVisual}><AnswerAnalysisStatus /><View style={styles.coachPhotoStage}><CoachMotion onboarding variant="write" /></View></View>
           {editMode ? <View style={[styles.profileEditInfoBar, { backgroundColor: `${colors.blue}16`, borderColor: `${colors.blue}55` }]}><Ionicons name="information-circle-outline" size={18} color={colors.blue} /><Text style={[styles.profileEditInfoText, { color: colors.foreground }]}>{t('profileEditLimitBar')}</Text></View> : null}
         <Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / {total}</Text>
@@ -614,6 +631,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
         {renderBody()}
         {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       </KeyboardAwareScrollViewCompat>
+         <OnboardingScrollHint visible={questionContentHeight > questionViewportHeight + 18 && questionScrollOffset < questionContentHeight - questionViewportHeight - 18} />
     </Animated.View>
        <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View>
   </LinearGradient>;
@@ -1332,6 +1350,7 @@ const styles = StyleSheet.create({
   onboardingBlobCyan: { width: 300, height: 360, bottom: -70, right: -90 },
    questionBody: { flex: 1, minHeight: 0, marginTop: -6 },
    questionScrollContent: { paddingTop: 0, paddingBottom: 12 },
+   questionScrollHint: { position: 'absolute', left: 0, right: 0, bottom: 8, alignItems: 'center', justifyContent: 'center', gap: 1 },
    coachQuestionVisual: { width: '100%', height: 376, alignSelf: 'center', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 4 },
   answerAnalysisStatus: { minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 3, paddingHorizontal: 8 },
   answerAnalysisBox: { width: 42, height: 34, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
