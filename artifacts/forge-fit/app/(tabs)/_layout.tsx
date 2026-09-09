@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
@@ -26,44 +26,17 @@ type TabBarProps = {
 
 function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean; label: string; onPress: () => void; colors: ReturnType<typeof useColors> }) {
   const { coachThinking } = useFit();
-  const logoScale = React.useRef(new Animated.Value(focused ? 0.8 : 1)).current;
-  const logoDeparture = React.useRef(new Animated.Value(focused ? 0 : 1)).current;
-  const circleCollapse = React.useRef(new Animated.Value(focused ? 1 : 0)).current;
+  const logoScale = React.useRef(new Animated.Value(focused ? 0.9 : 1)).current;
   const thinkingTransition = React.useRef(new Animated.Value(coachThinking ? 1 : 0)).current;
 
   React.useEffect(() => {
     Animated.spring(logoScale, {
-      toValue: focused ? 0.8 : 1,
+      toValue: focused ? 0.9 : 1,
       friction: 7,
       tension: 70,
       useNativeDriver: true,
     }).start();
   }, [focused, logoScale]);
-  React.useEffect(() => {
-    Animated.timing(logoDeparture, {
-      toValue: focused ? 0 : 1,
-      duration: focused ? 180 : 260,
-      useNativeDriver: true,
-    }).start();
-  }, [focused, logoDeparture]);
-  React.useEffect(() => {
-    const animation = focused
-      ? Animated.timing(circleCollapse, {
-        toValue: 1,
-        duration: 820,
-        easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true,
-      })
-      : Animated.spring(circleCollapse, {
-        toValue: 0,
-        damping: 13,
-        stiffness: 155,
-        mass: 0.7,
-        useNativeDriver: true,
-      });
-    animation.start();
-    return () => animation.stop();
-  }, [circleCollapse, focused]);
   React.useEffect(() => {
     Animated.timing(thinkingTransition, { toValue: coachThinking ? 1 : 0, duration: 360, useNativeDriver: true }).start();
   }, [coachThinking, thinkingTransition]);
@@ -78,8 +51,8 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
     >
       <View style={[styles.coachTabButton, { shadowColor: colors.primary }]}>
         <Animated.View style={{ transform: [{ scale: logoScale }] }}>
-          <Animated.View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary, opacity: circleCollapse.interpolate({ inputRange: [0, 0.46, 0.72, 1], outputRange: [1, 1, 0.78, 0] }), transform: [{ translateY: circleCollapse.interpolate({ inputRange: [0, 0.32, 0.58, 1], outputRange: [0, 0, 10, 18] }) }, { scale: circleCollapse.interpolate({ inputRange: [0, 0.32, 0.66, 1], outputRange: [1, 1, 0.62, 0] }) }, { rotate: circleCollapse.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-18deg'] }) }] }]}>
-            <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, { opacity: Animated.multiply(logoDeparture, thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] })) }]} />
+          <Animated.View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary }]}>
+            <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, { opacity: thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} />
             <Animated.Image source={require('@/assets/images/coach-thinking-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, styles.coachThinkingImage, styles.coachThinkingOverlay, { opacity: thinkingTransition }]} />
           </Animated.View>
         </Animated.View>
@@ -207,12 +180,12 @@ const styles = StyleSheet.create({
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 5, paddingBottom: 9, paddingTop: 12 },
   tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   coachTabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
-  coachTabButton: { position: 'absolute', left: 0, right: 0, top: -42, alignItems: 'center', shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 4 }, elevation: 18 },
-  coachTabCircle: { width: 88, height: 88, borderRadius: 44, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.42, shadowRadius: 14, shadowOffset: { width: 0, height: 0 }, elevation: 13 },
-  coachTabImage: { width: 88, height: 88, borderRadius: 44 },
-  coachThinkingImage: { width: 98, height: 98, transform: [{ translateY: 5 }] },
-  coachThinkingOverlay: { position: 'absolute', left: -5, top: -5 },
-  coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 5, letterSpacing: 0.4 },
+  coachTabButton: { position: 'absolute', top: -34, alignItems: 'center', shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 4 }, elevation: 18 },
+  coachTabCircle: { width: 76, height: 76, borderRadius: 38, borderWidth: 2, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.42, shadowRadius: 14, shadowOffset: { width: 0, height: 0 }, elevation: 13 },
+  coachTabImage: { width: 76, height: 76, borderRadius: 38 },
+  coachThinkingImage: { width: 84, height: 84, transform: [{ translateY: 4 }] },
+  coachThinkingOverlay: { position: 'absolute', left: -4, top: -4 },
+  coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, marginTop: 5, letterSpacing: 0.4 },
   coachTabDot: { width: 4, height: 4, borderRadius: 2, marginTop: 2 },
   moodPromptOverlay: { position: 'absolute', left: 14, right: 14, zIndex: 20 },
   moodPrompt: { borderRadius: 20, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9, shadowOpacity: 0.28, shadowRadius: 15, shadowOffset: { width: 0, height: 7 }, elevation: 10 },

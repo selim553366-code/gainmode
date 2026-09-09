@@ -144,7 +144,7 @@ export default function TodayScreen() {
 
       <View style={styles.homeContent}>
         <LinearGradient
-          colors={[colors.card, colors.card]}
+          colors={[colors.secondary, colors.surfaceSoft]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.heroCard, { borderColor: `${colors.blue}2B` }]}
@@ -197,18 +197,18 @@ export default function TodayScreen() {
             style={({ pressed }) => [
               styles.heroPhotoAction,
               {
-                backgroundColor: colors.primary,
-                borderColor: colors.primary,
-                opacity: pressed ? 0.82 : 1,
+                backgroundColor: `${colors.card}A8`,
+                borderColor: `${colors.primary}20`,
+                opacity: pressed ? 0.72 : 1,
                 transform: [{ scale: pressed ? 0.985 : 1 }],
               },
             ]}
           >
-            <View style={[styles.heroPhotoActionIcon, { backgroundColor: `${colors.primaryForeground}2B` }]}>
-              <Ionicons name="camera-outline" size={17} color={colors.primaryForeground} />
+            <View style={[styles.heroPhotoActionIcon, { backgroundColor: `${colors.primary}16` }]}>
+              <Ionicons name="camera-outline" size={17} color={colors.primary} />
             </View>
-            <Text style={[styles.heroPhotoActionText, { color: colors.primaryForeground }]}>{t('analyzeMealPhoto')}</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.primaryForeground} />
+            <Text style={[styles.heroPhotoActionText, { color: colors.foreground }]}>{t('analyzeMealPhoto')}</Text>
+            <Ionicons name="arrow-forward" size={16} color={colors.primary} />
           </Pressable>
         </LinearGradient>
 
