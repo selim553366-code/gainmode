@@ -77,7 +77,7 @@ function formatImperialHeightLabel(heightCm: number) {
 
 function CoachMotion({ variant, large = false, onboarding = false }: { variant: CoachMotionVariant; large?: boolean; onboarding?: boolean }) {
   const source = onboarding
-    ? require('@/assets/images/coach-wave-static-v4.png')
+    ? require('@/assets/images/coach-wave-transparent.png')
     : variant === 'wave'
       ? require('@/assets/images/coach-wave-direct.jpg')
       : variant === 'write'
@@ -862,7 +862,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
      <View style={[styles.welcomeReferenceCard, { backgroundColor: colors.colorScheme === 'dark' ? colors.glass : 'rgba(255,255,255,0.39)', borderColor: colors.colorScheme === 'dark' ? colors.glassBorder : 'rgba(255,255,255,0.82)' }]}>
       <Animated.View style={[styles.welcomeCardGlow, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
       <Animated.View style={[styles.welcomeCharacterStage, { transform: [{ translateY: coachTranslateY }, { scale: orbScale }, { rotate: orbRotateValue }] }]}>
-        <Image source={require('@/assets/images/coach-wave-static-v4.png')} resizeMode="contain" style={styles.welcomeReferenceCharacter} />
+         <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={styles.welcomeReferenceCharacter} />
       </Animated.View>
       <Animated.View style={[styles.welcomeReferenceCopy, { transform: [{ translateY: copyTranslateY }] }]}>
         <Text style={[styles.welcomeReferenceTitle, { color: colors.foreground }]}>{t('welcomeHeroTitle')}</Text>
@@ -1491,7 +1491,7 @@ const styles = StyleSheet.create({
    welcomeReferenceCard: { flex: 1, marginHorizontal: 25, marginTop: 38, marginBottom: 12, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.82)', backgroundColor: 'rgba(255,255,255,0.39)', overflow: 'hidden', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 22, shadowColor: '#2558D9', shadowOpacity: 0.12, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
   welcomeCardGlow: { position: 'absolute', width: 260, height: 260, top: 64, borderRadius: 130, alignSelf: 'center' },
    welcomeCharacterStage: { width: 260, height: 260, marginTop: 52, borderRadius: 130, overflow: 'visible', alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },
-   welcomeReferenceCharacter: { width: '100%', height: '100%', transform: [{ scale: 1.18 }] },
+    welcomeReferenceCharacter: { width: 350, height: 350 },
   welcomeReferenceCopy: { width: '100%', paddingHorizontal: 18, alignItems: 'center' },
   welcomeReferenceTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, lineHeight: 34, letterSpacing: -1, textAlign: 'center' },
   welcomeReferenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 12, maxWidth: 270 },
