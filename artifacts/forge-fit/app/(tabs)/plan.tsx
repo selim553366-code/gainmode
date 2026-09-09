@@ -70,7 +70,7 @@ function LiveFormAnalysisCard({ title, body, choices, onSelect }: {
 
 export default function PlanScreen() {
   const colors = useColors();
-  const { language, workouts } = useFit();
+  const { language, workouts, refreshWorkoutCycleIfReady } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const liveT = (key: LiveWorkoutCopyKey) => liveTranslate(language, key);
   const params = useLocalSearchParams<{ day?: string }>();
@@ -88,6 +88,10 @@ export default function PlanScreen() {
   React.useEffect(() => {
     if (requestedDay) setActiveDay(requestedDay);
   }, [requestedDay]);
+
+  React.useEffect(() => {
+    if (workouts[0]?.day && activeDay === workouts[0].day) refreshWorkoutCycleIfReady(activeDay);
+  }, [activeDay, refreshWorkoutCycleIfReady, workouts]);
 
   if (workouts.length === 0) return <Screen><Header eyebrow={t('planEyebrow')} title={t('planTitle')} subtitle={t('planSubtitle')} /><EmptyState icon="barbell-outline" title={t('noWorkout')} text={t('createPlan')} /></Screen>;
   return <View style={[styles.page, { backgroundColor: colors.background }]}>

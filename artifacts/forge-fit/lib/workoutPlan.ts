@@ -267,6 +267,16 @@ export function addExerciseToPlan(workouts: Workout[], workoutId: string, name: 
 }
 
 export function buildWorkoutPlan(profile: Profile): Workout[] {
+  return buildWorkoutPlanForCycle(profile, 0);
+}
+
+function selectCycleExercises(exercises: TranslationKey[], count: number, cycle: number) {
+  if (exercises.length === 0) return [];
+  const offset = ((cycle % exercises.length) + exercises.length) % exercises.length;
+  return Array.from({ length: count }, (_, index) => exercises[(offset + index) % exercises.length]);
+}
+
+export function buildWorkoutPlanForCycle(profile: Profile, cycle: number): Workout[] {
   const count = Math.min(Math.max(profile.trainingDays ?? 3, 2), 6);
   const areasByDay = splitAreas[count];
   const library = chooseLibrary(profile);
@@ -283,7 +293,7 @@ export function buildWorkoutPlan(profile: Profile): Workout[] {
   const days = preferredDayNames(profile, count);
 
   return areasByDay.map((areas, dayIndex) => {
-    const exercises = areas.flatMap((muscleGroup) => library[muscleGroup].slice(0, exercisesPerArea).map((name, exerciseIndex) => ({
+    const exercises = areas.flatMap((muscleGroup) => selectCycleExercises(library[muscleGroup], exercisesPerArea, cycle).map((name, exerciseIndex) => ({
       id: `${dayIndex}-${muscleGroup}-${exerciseIndex}`,
       name,
       muscleGroup,
@@ -305,6 +315,10 @@ export function buildWorkoutPlan(profile: Profile): Workout[] {
 
 export function workoutIsComplete(workout: Workout) {
   return workout.exercises.length > 0 && workout.exercises.every((exercise) => Boolean(exercise.completed));
+}
+
+export function workoutsAreComplete(workouts: Workout[]) {
+  return workouts.length > 0 && workouts.every(workoutIsComplete);
 }
 
 /**

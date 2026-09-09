@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { addExerciseToPlan, buildWorkoutPlan, dumbbellExerciseKeys, getWorkoutForDate, getWeekdayKey, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete } from '../lib/workoutPlan.ts';
+import { addExerciseToPlan, buildWorkoutPlan, buildWorkoutPlanForCycle, dumbbellExerciseKeys, getWorkoutForDate, getWeekdayKey, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete } from '../lib/workoutPlan.ts';
 
 const profile = (overrides = {}) => ({
   equipment: 'bodyweight',
@@ -25,6 +25,17 @@ test('keeps every generated muscle group between two and three exercises', () =>
       assert.ok(exercises.length >= 2 && exercises.length <= 3, `${group} has ${exercises.length} exercises`);
     }
   }
+});
+
+test('rotates exercise choices when a completed workout cycle refreshes', () => {
+  const firstCycle = buildWorkoutPlanForCycle(profile({ trainingDays: 3 }), 0);
+  const secondCycle = buildWorkoutPlanForCycle(profile({ trainingDays: 3 }), 1);
+
+  assert.notDeepEqual(
+    firstCycle.flatMap((workout) => workout.exercises.map((exercise) => exercise.name)),
+    secondCycle.flatMap((workout) => workout.exercises.map((exercise) => exercise.name)),
+  );
+  assert.ok(secondCycle.every((workout) => workout.exercises.every((exercise) => exercise.completed === false)));
 });
 
 test('assigns workouts only to preferred days so other days remain rest days', () => {
@@ -238,6 +249,16 @@ test('a workout is complete only when every exercise is complete', () => {
     ...workout,
     exercises: workout.exercises.map((exercise, index) => ({ ...exercise, completed: index > 0 })),
   }), false);
+});
+
+test('marks a workout cycle complete only when every workout is complete', () => {
+  const workouts = buildWorkoutPlan(profile({ trainingDays: 2 }));
+
+  assert.equal(workoutsAreComplete(workouts), false);
+  assert.equal(workoutsAreComplete(workouts.map((workout) => ({
+    ...workout,
+    exercises: workout.exercises.map((exercise) => ({ ...exercise, completed: true })),
+  }))), true);
 });
 
 test('restores individual exercise completion after a persisted round-trip', () => {
