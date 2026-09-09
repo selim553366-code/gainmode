@@ -105,7 +105,7 @@ export default function PlanScreen() {
              <Text style={[styles.weekTableTitle, { color: colors.foreground }]}>{completedWorkouts} / {workouts.length} <Text style={[styles.weekTableTitleUnit, { color: colors.mutedForeground }]}>{t('completed').toLowerCase()}</Text></Text>
            </View>
            <View style={[styles.weekTableBadge, { backgroundColor: completedWorkouts > 0 ? `${colors.success}18` : colors.secondary }]}>
-             <Ionicons name={completedWorkouts > 0 ? 'checkmark-circle' : 'calendar-outline'} size={17} color={completedWorkouts > 0 ? colors.success : colors.mutedForeground} />
+             <Ionicons name={completedWorkouts > 0 ? 'checkmark-circle' : 'badge-calendar'} size={17} color={completedWorkouts > 0 ? colors.success : colors.mutedForeground} />
            </View>
          </View>
          <View style={[styles.weekTableTrack, { backgroundColor: colors.secondary }]}>
