@@ -351,9 +351,9 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const [onboardingMode, setOnboardingMode] = React.useState<OnboardingMode | null>(editMode ? 'detailed' : null);
   const [taken, setTaken] = React.useState<string[]>([]);
   const [error, setError] = React.useState('');
-   const [questionViewportHeight, setQuestionViewportHeight] = React.useState(0);
-   const [questionContentHeight, setQuestionContentHeight] = React.useState(0);
-   const [questionScrollOffset, setQuestionScrollOffset] = React.useState(0);
+    const [questionViewportHeight, setQuestionViewportHeight] = React.useState(0);
+    const [questionAnswerBottom, setQuestionAnswerBottom] = React.useState(0);
+    const [questionScrollOffset, setQuestionScrollOffset] = React.useState(0);
   const slide = React.useRef(new Animated.Value(1)).current;
   const targetStep = 15;
   const hasTargetWeightStep = goal === 'weightGain' || goal === 'weightLoss';
@@ -596,7 +596,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   }), [language, step, activeStep, username, equipment, gymLevel, dumbbellWeightKg, dumbbellWeightText, age, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, ageText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
    React.useEffect(() => {
      setQuestionScrollOffset(0);
-     setQuestionContentHeight(0);
+     setQuestionAnswerBottom(0);
      setQuestionViewportHeight(0);
    }, [activeStep]);
   const titleKeys = ['nameFirstQuestion', 'equipmentQuestion', 'heightQuestion', 'weightQuestion', 'ageQuestion', 'goalQuestion', 'sexQuestion', 'activityQuestion', 'trainingDaysQuestion', 'durationQuestion', 'speedQuestion', 'dietQuestion', 'proteinQuestion', 'experienceQuestion', 'preferredDaysQuestion'] as const;
@@ -656,19 +656,20 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
           bounces={false}
           bottomOffset={72}
           onLayout={({ nativeEvent }) => setQuestionViewportHeight(nativeEvent.layout.height)}
-          onContentSizeChange={(_, height) => setQuestionContentHeight(height)}
           onScroll={({ nativeEvent }) => setQuestionScrollOffset(nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
         >
           <View style={styles.coachQuestionVisual}><AnswerAnalysisStatus /><View style={styles.coachPhotoStage}><CoachMotion onboarding variant="write" /></View></View>
           {editMode ? <View style={[styles.profileEditInfoBar, { backgroundColor: `${colors.blue}16`, borderColor: `${colors.blue}55` }]}><Ionicons name="information-circle-outline" size={18} color={colors.blue} /><Text style={[styles.profileEditInfoText, { color: colors.foreground }]}>{t('profileEditLimitBar')}</Text></View> : null}
-        <Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / {total}</Text>
-        {optional ? <Text style={[styles.optionalLabel, { color: colors.primary }]}>{t('optionalLabel')}</Text> : null}
-         <Text style={[styles.questionTitle, { color: colors.foreground }]}>{t(titleKey)}</Text>
-        {renderBody()}
-        {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
+         <View onLayout={({ nativeEvent }) => setQuestionAnswerBottom(nativeEvent.layout.y + nativeEvent.layout.height)}>
+           <Text style={[styles.eyebrow, { color: colors.primary }]}>{step + 1} / {total}</Text>
+           {optional ? <Text style={[styles.optionalLabel, { color: colors.primary }]}>{t('optionalLabel')}</Text> : null}
+            <Text style={[styles.questionTitle, { color: colors.foreground }]}>{t(titleKey)}</Text>
+           {renderBody()}
+           {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
+         </View>
       </KeyboardAwareScrollViewCompat>
-         <OnboardingScrollHint visible={questionContentHeight > questionViewportHeight + 18 && questionScrollOffset < questionContentHeight - questionViewportHeight - 18} />
+         <OnboardingScrollHint visible={questionAnswerBottom > questionViewportHeight + 18 && questionScrollOffset < Math.max(0, questionAnswerBottom - questionViewportHeight - 18)} />
     </Animated.View>
        <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View>
   </LinearGradient>;
