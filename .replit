@@ -26,7 +26,6 @@ packages = ["eas-cli"]
 [userenv]
 
 [userenv.shared]
-LUNA_API_BASE_URL = "https://api.experientiallabs.ai/v1"
 
 [userenv.production]
 EXPO_PUBLIC_DOMAIN = "unfolded-superior-webpages.replit.app"
