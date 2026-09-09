@@ -8,3 +8,9 @@ Use transparent full-canvas overlays aligned to the exact anatomy reference imag
 **Why:** Approximate percentage rectangles and generic SVG shapes bleed into adjacent muscles, especially shoulder/biceps boundaries, and make workout combinations look anatomically wrong.
 
 **How to apply:** Keep one transparent mask per supported front/back muscle group and compose only the masks listed by the workout split. Push days must never activate the front biceps mask.
+
+Workout split reference images have separate light-theme copies with the anatomy canvas color matched to the light secondary surface; dark mode continues using the navy originals.
+
+**Why:** The original navy image background appears as a hard rectangle inside the light anatomy card, while reusing one asset across themes breaks the visual hierarchy.
+
+**How to apply:** Select the light/dark asset set from the active color scheme without changing workout map keys or hotspot coordinates.

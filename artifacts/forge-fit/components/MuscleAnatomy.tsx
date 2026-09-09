@@ -14,6 +14,7 @@ type MuscleAnatomyProps = {
   onSelect: (muscle: MuscleGroup) => void;
   activeColor: string;
   selectedColor: string;
+  isDark?: boolean;
 };
 
 type Hotspot = {
@@ -119,46 +120,34 @@ const muscleMasks: Record<BodySide, Partial<Record<MuscleGroup, number>>> = {
   },
 };
 
-const workoutMaps: Record<WorkoutMapKey, { front: number; back: number }> = {
-  push: {
-    front: require('@/assets/images/workout-day-visuals/crops/push-front.png'),
-    back: require('@/assets/images/workout-day-visuals/crops/push-back.png'),
-  },
-  pull: {
-    front: require('@/assets/images/workout-day-visuals/crops/pull-front.png'),
-    back: require('@/assets/images/workout-day-visuals/crops/pull-back.png'),
-  },
-  leg: {
-    front: require('@/assets/images/workout-day-visuals/crops/leg-front.png'),
-    back: require('@/assets/images/workout-day-visuals/crops/leg-back.png'),
-  },
-  upper: {
-    front: require('@/assets/images/workout-day-visuals/crops/upper-front.png'),
-    back: require('@/assets/images/workout-day-visuals/crops/upper-back.png'),
-  },
-  lower: {
-    front: require('@/assets/images/workout-day-visuals/crops/lower-front.png'),
-    back: require('@/assets/images/workout-day-visuals/crops/lower-back.png'),
-  },
-  'push-core': {
-    front: require('@/assets/images/workout-day-visuals/crops/push-core-front.png'),
-    back: require('@/assets/images/workout-day-visuals/crops/push-core-back.png'),
-  },
-  'pull-triceps': {
-    front: require('@/assets/images/workout-day-visuals/crops/pull-triceps-front.png'),
-    back: require('@/assets/images/workout-day-visuals/crops/pull-triceps-back.png'),
-  },
-  full: {
-    front: require('@/assets/images/workout-day-visuals/crops/full-front.png'),
-    back: require('@/assets/images/workout-day-visuals/crops/full-back.png'),
-  },
+const darkWorkoutMaps: Record<WorkoutMapKey, { front: number; back: number }> = {
+  push: { front: require('@/assets/images/workout-day-visuals/crops/push-front.png'), back: require('@/assets/images/workout-day-visuals/crops/push-back.png') },
+  pull: { front: require('@/assets/images/workout-day-visuals/crops/pull-front.png'), back: require('@/assets/images/workout-day-visuals/crops/pull-back.png') },
+  leg: { front: require('@/assets/images/workout-day-visuals/crops/leg-front.png'), back: require('@/assets/images/workout-day-visuals/crops/leg-back.png') },
+  upper: { front: require('@/assets/images/workout-day-visuals/crops/upper-front.png'), back: require('@/assets/images/workout-day-visuals/crops/upper-back.png') },
+  lower: { front: require('@/assets/images/workout-day-visuals/crops/lower-front.png'), back: require('@/assets/images/workout-day-visuals/crops/lower-back.png') },
+  'push-core': { front: require('@/assets/images/workout-day-visuals/crops/push-core-front.png'), back: require('@/assets/images/workout-day-visuals/crops/push-core-back.png') },
+  'pull-triceps': { front: require('@/assets/images/workout-day-visuals/crops/pull-triceps-front.png'), back: require('@/assets/images/workout-day-visuals/crops/pull-triceps-back.png') },
+  full: { front: require('@/assets/images/workout-day-visuals/crops/full-front.png'), back: require('@/assets/images/workout-day-visuals/crops/full-back.png') },
 };
 
-export function MuscleAnatomy({ side, activeMuscles, mapKey, selectedMuscle, onSelect }: MuscleAnatomyProps) {
+const lightWorkoutMaps: Record<WorkoutMapKey, { front: number; back: number }> = {
+  push: { front: require('@/assets/images/workout-day-visuals/crops/light/push-front-light.png'), back: require('@/assets/images/workout-day-visuals/crops/light/push-back-light.png') },
+  pull: { front: require('@/assets/images/workout-day-visuals/crops/light/pull-front-light.png'), back: require('@/assets/images/workout-day-visuals/crops/light/pull-back-light.png') },
+  leg: { front: require('@/assets/images/workout-day-visuals/crops/light/leg-front-light.png'), back: require('@/assets/images/workout-day-visuals/crops/light/leg-back-light.png') },
+  upper: { front: require('@/assets/images/workout-day-visuals/crops/light/upper-front-light.png'), back: require('@/assets/images/workout-day-visuals/crops/light/upper-back-light.png') },
+  lower: { front: require('@/assets/images/workout-day-visuals/crops/light/lower-front-light.png'), back: require('@/assets/images/workout-day-visuals/crops/light/lower-back-light.png') },
+  'push-core': { front: require('@/assets/images/workout-day-visuals/crops/light/push-core-front-light.png'), back: require('@/assets/images/workout-day-visuals/crops/light/push-core-back-light.png') },
+  'pull-triceps': { front: require('@/assets/images/workout-day-visuals/crops/light/pull-triceps-front-light.png'), back: require('@/assets/images/workout-day-visuals/crops/light/pull-triceps-back-light.png') },
+  full: { front: require('@/assets/images/workout-day-visuals/crops/light/full-front-light.png'), back: require('@/assets/images/workout-day-visuals/crops/light/full-back-light.png') },
+};
+
+export function MuscleAnatomy({ side, activeMuscles, mapKey, selectedMuscle, onSelect, isDark = false }: MuscleAnatomyProps) {
   const hotspots = side === 'front' ? frontHotspots : backHotspots;
+  const workoutMap = (isDark ? darkWorkoutMaps : lightWorkoutMaps)[mapKey];
   return <View style={styles.crop}>
     <Image
-      source={workoutMaps[mapKey][side]}
+      source={workoutMap[side]}
       resizeMode="contain"
       style={styles.referenceImage}
       accessibilityLabel={side === 'front' ? 'Front muscle anatomy' : 'Back muscle anatomy'}

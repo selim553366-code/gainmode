@@ -180,6 +180,7 @@ export default function WorkoutSessionScreen() {
             onSelect={selectMuscle}
             activeColor={colors.primary}
             selectedColor={colors.blue}
+             isDark={colors.colorScheme === 'dark'}
           />
           {showTapHint ? <Animated.View pointerEvents="none" style={[styles.tapHint, {
             backgroundColor: colors.card,
