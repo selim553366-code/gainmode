@@ -83,7 +83,7 @@ function CoachMotion({ variant, large = false, onboarding = false }: { variant: 
       : variant === 'write'
         ? require('@/assets/images/coach-writing-no-bg.png')
         : require('@/assets/images/coach-thumbs-up-no-bg.png');
-  return <Image source={source} resizeMode="contain" style={[large ? styles.coachLarge : styles.coachSmall, !large && variant === 'wave' ? styles.coachWaveQuestion : null]} />;
+  return <Image source={source} resizeMode="contain" style={[large ? styles.coachLarge : onboarding ? styles.coachOnboarding : styles.coachSmall, !large && variant === 'wave' ? styles.coachWaveQuestion : null]} />;
 }
 
 function AnswerAnalysisStatus() {
@@ -1332,7 +1332,7 @@ const styles = StyleSheet.create({
   onboardingBlobCyan: { width: 300, height: 360, bottom: -70, right: -90 },
   questionBody: { flex: 1, minHeight: 0, marginTop: 10 },
   questionScrollContent: { paddingTop: 2, paddingBottom: 12 },
-  coachQuestionVisual: { width: '100%', height: 282, alignSelf: 'center', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 8 },
+   coachQuestionVisual: { width: '100%', height: 300, alignSelf: 'center', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 8 },
   answerAnalysisStatus: { minHeight: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 3, paddingHorizontal: 8 },
   answerAnalysisBox: { width: 42, height: 34, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   answerAnalysisPacket: { position: 'absolute', left: 5, width: 13, height: 3, borderRadius: 3 },
@@ -1342,8 +1342,9 @@ const styles = StyleSheet.create({
   answerAnalysisLabel: { maxWidth: 220, flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12.5, lineHeight: 17 },
   profileEditInfoBar: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderWidth: 1, borderRadius: 13, padding: 11, marginTop: 10 },
   profileEditInfoText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 17 },
-  coachPhotoStage: { width: 238, height: 238, alignItems: 'center', justifyContent: 'center' },
+   coachPhotoStage: { width: 258, height: 258, alignItems: 'center', justifyContent: 'center' },
   coachSmall: { width: 238, height: 238 },
+   coachOnboarding: { width: 258, height: 258 },
   coachWaveQuestion: { transform: [{ translateX: 7 }] },
   coachLarge: { width: 220, height: 220 },
   homeEquipmentDetails: { gap: 8, marginTop: 16 },
