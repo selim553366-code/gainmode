@@ -21,6 +21,10 @@ export function ForgeFitMark({ size = 28, style }: { size?: number; style?: obje
   </View>;
 }
 
+export function GainModeWordmark({ color }: { color: string }) {
+  return <Text accessibilityLabel="GainMode" style={[styles.gainModeWordmark, { color }]}>GAINMODE<Text style={[styles.gainModeTrademark, { color }]}>™</Text></Text>;
+}
+
 export function triggerHaptic(style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) {
   Haptics.impactAsync(style).catch(() => undefined);
 }
@@ -37,6 +41,31 @@ function AmbientBackdrop({ children }: { children: ReactNode }) {
   const colors = useColors();
   const softBlue = blendColors(colors.background, colors.blue, 0.12);
   const blueMist = blendColors(colors.background, colors.blue, 0.2);
+  const drift = React.useRef(new Animated.Value(0)).current;
+  const breathe = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const driftLoop = Animated.loop(Animated.sequence([
+      Animated.timing(drift, { toValue: 1, duration: 12000, useNativeDriver: true }),
+      Animated.timing(drift, { toValue: 0, duration: 12000, useNativeDriver: true }),
+    ]));
+    const breatheLoop = Animated.loop(Animated.sequence([
+      Animated.timing(breathe, { toValue: 1, duration: 5200, useNativeDriver: true }),
+      Animated.timing(breathe, { toValue: 0, duration: 5200, useNativeDriver: true }),
+    ]));
+    driftLoop.start();
+    breatheLoop.start();
+    return () => {
+      driftLoop.stop();
+      breatheLoop.stop();
+    };
+  }, [breathe, drift]);
+
+  const driftX = drift.interpolate({ inputRange: [0, 1], outputRange: [-24, 28] });
+  const driftY = drift.interpolate({ inputRange: [0, 1], outputRange: [18, -24] });
+  const scale = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.08] });
+  const opacity = breathe.interpolate({ inputRange: [0, 1], outputRange: [0.18, 0.32] });
+
   return <LinearGradient
     colors={[colors.background, softBlue, blueMist, colors.background]}
     locations={[0, 0.3, 0.68, 1]}
@@ -44,16 +73,19 @@ function AmbientBackdrop({ children }: { children: ReactNode }) {
     end={{ x: 0.95, y: 1 }}
     style={styles.ambientBackdrop}
   >
+    <Animated.View pointerEvents="none" style={[styles.ambientBlob, styles.ambientBlobBlue, { backgroundColor: colors.blue, opacity, transform: [{ translateX: driftX }, { translateY: driftY }, { scale }] }]} />
+    <Animated.View pointerEvents="none" style={[styles.ambientBlob, styles.ambientBlobPurple, { backgroundColor: colors.plum, opacity, transform: [{ translateX: Animated.multiply(driftY, -0.8) }, { translateY: Animated.multiply(driftX, -0.55) }, { scale }] }]} />
+    <Animated.View pointerEvents="none" style={[styles.ambientBlob, styles.ambientBlobCyan, { backgroundColor: colors.secondary, opacity, transform: [{ translateX: Animated.multiply(driftX, -0.65) }, { translateY: Animated.multiply(driftY, -0.7) }, { scale }] }]} />
     {children}
   </LinearGradient>;
 }
 
-export function Screen({ children, scroll = true, bottomPadding = 104 }: { children: ReactNode; scroll?: boolean; bottomPadding?: number }) {
+export function Screen({ children, scroll = true, bottomPadding = 104, ambient = true }: { children: ReactNode; scroll?: boolean; bottomPadding?: number; ambient?: boolean }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topSpacing = Platform.OS === 'ios' ? 28 : 16;
   const content = <View style={[styles.screen, { paddingTop: insets.top + topSpacing, paddingBottom: insets.bottom + bottomPadding }]}>{children}</View>;
-  const backdrop = <AmbientBackdrop>{content}</AmbientBackdrop>;
+  const backdrop = ambient ? <AmbientBackdrop>{content}</AmbientBackdrop> : <View style={[styles.plainBackdrop, { backgroundColor: colors.background }]}>{content}</View>;
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{backdrop}</ScrollView> : backdrop;
 }
 
@@ -68,7 +100,7 @@ export function Header({ eyebrow, title, subtitle, action, actionLogo = false, o
       <Text style={[styles.title, { color: headingColor }]}>{title}</Text>
       {subtitle ? <Text style={[styles.subtitle, { color: supportingColor }]}>{subtitle}</Text> : null}
     </View> : null}
-    {brandMark ? <View accessibilityLabel="GainMode" style={styles.headerBrand}><Text style={[styles.headerBrandWordmark, { color: colors.foreground }]}>GAINMODE<Text style={styles.headerBrandTrademark}>™</Text></Text></View> : null}
+    {brandMark ? <View accessibilityLabel="GainMode" style={styles.headerBrand}><GainModeWordmark color={colors.foreground} /></View> : null}
     <View style={[styles.headerActions, centered ? styles.headerActionsCentered : null]}>
       {streak !== undefined ? <View accessibilityLabel={`${streak} ${streakLabel ?? ''}`} style={[styles.streakPill, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Ionicons name="flame" size={15} color={colors.orange} /><Text style={[styles.streakValue, { color: colors.orange }]}>{streak}</Text>{streakLabel ? <Text style={[styles.streakLabel, { color: colors.orange }]}>{streakLabel}</Text> : null}</View> : null}
       {featureLabel && featureAction ? <Pressable accessibilityRole="button" accessibilityLabel={featureLabel} onPress={() => { triggerHaptic(); featureAction(); }} style={({ pressed }) => [styles.featurePill, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="sparkles-outline" size={14} color={colors.primary} /><Text style={[styles.featurePillText, { color: colors.primary }]}>{featureLabel}</Text></Pressable> : null}
@@ -432,6 +464,11 @@ export function PremiumAccessStatusModal({ visible, onClose }: { visible: boolea
 
 export const styles = StyleSheet.create({
   ambientBackdrop: { flex: 1, minHeight: '100%', overflow: 'hidden' },
+  plainBackdrop: { flex: 1, minHeight: '100%' },
+  ambientBlob: { position: 'absolute', borderRadius: 999 },
+  ambientBlobBlue: { width: 430, height: 300, top: 70, right: -170 },
+  ambientBlobPurple: { width: 370, height: 520, top: 210, left: -180 },
+  ambientBlobCyan: { width: 320, height: 380, bottom: -110, right: -100 },
   screen: { paddingHorizontal: 20, minHeight: '100%' },
   header: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 20 },
   headerText: { flex: 1 },
@@ -439,8 +476,10 @@ export const styles = StyleSheet.create({
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerActionsCentered: { position: 'absolute', right: 0, top: 0, zIndex: 2 },
   headerBrand: { width: 138, height: 44, alignItems: 'flex-start', justifyContent: 'center', zIndex: 1, transform: [{ translateY: 4 }] },
-  headerBrandWordmark: { fontFamily: 'Inter_700Bold', fontSize: 15, letterSpacing: 2.7 },
-  headerBrandTrademark: { fontFamily: 'Inter_700Bold', fontSize: 9, lineHeight: 11, position: 'relative', top: -4 },
+  gainModeWordmark: { fontFamily: 'Inter_700Bold', fontSize: 18, letterSpacing: -1.35, lineHeight: 22 },
+  gainModeTrademark: { fontFamily: 'Inter_700Bold', fontSize: 7, lineHeight: 9, position: 'relative', top: -7, marginLeft: 1 },
+  headerBrandWordmark: { fontFamily: 'Inter_700Bold', fontSize: 18, letterSpacing: -1.35 },
+  headerBrandTrademark: { fontFamily: 'Inter_700Bold', fontSize: 7, lineHeight: 9, position: 'relative', top: -7 },
   streakPill: { minHeight: 44, borderRadius: 15, borderWidth: 1, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 4 },
   streakValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   streakLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
