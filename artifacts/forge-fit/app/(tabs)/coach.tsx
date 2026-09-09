@@ -25,7 +25,6 @@ type CoachApiResponse = { content?: string; actions?: unknown[] };
 type CoachAtmosphere = 'morning' | 'night';
 
 const COACH_ATMOSPHERE_STORAGE_KEY = 'forge-fit-coach-atmosphere-v1';
-const COACH_MESSAGES_RESET_KEY = 'forge-fit-coach-messages-reset-v2';
 
 const COACH_STARS = [
   { x: 9, y: 13, size: 2, delay: 0 },
@@ -240,18 +239,17 @@ export default function CoachScreen() {
     let cancelled = false;
     void (async () => {
       try {
-        const hasReset = await AsyncStorage.getItem(COACH_MESSAGES_RESET_KEY);
-        if (hasReset !== '1') {
-          await AsyncStorage.removeItem(COACH_MESSAGES_STORAGE_KEY);
-          await AsyncStorage.setItem(COACH_MESSAGES_RESET_KEY, '1');
-          if (!cancelled) setMessages([]);
-        } else {
-          const value = await AsyncStorage.getItem(COACH_MESSAGES_STORAGE_KEY);
-          const restoredMessages = parseStoredCoachMessages(value);
-          if (!cancelled) setMessages(restoredMessages ?? []);
+        const value = await AsyncStorage.getItem(COACH_MESSAGES_STORAGE_KEY);
+        const restoredMessages = parseStoredCoachMessages(value);
+        if (!cancelled) {
+          setMessages(restoredMessages?.length ? restoredMessages : [{
+            id: 'coach-welcome',
+            text: t('coachWelcome'),
+            from: 'coach',
+          }]);
         }
       } catch {
-        if (!cancelled) setMessages([]);
+        if (!cancelled) setMessages([{ id: 'coach-welcome', text: t('coachWelcome'), from: 'coach' }]);
       } finally {
         if (!cancelled) setMessagesHydrated(true);
       }
@@ -259,7 +257,7 @@ export default function CoachScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [language]);
   React.useEffect(() => {
     let cancelled = false;
     void AsyncStorage.getItem(COACH_ATMOSPHERE_STORAGE_KEY).then((value) => {
