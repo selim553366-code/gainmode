@@ -128,34 +128,58 @@ function isSimpleCoachRequest(message: string) {
   return /(kaç|kaldı|hedef|kalori|protein|karbonhidrat|yağ|öğün|yemek|bugün|motivasyon|merhaba|selam|how many|calorie|protein|carb|fat|meal|today|motivat|\bhello\b|\bhi\b|wie viel|kalorien|repas|calories|combien|comida|calorías|cuánto)/i.test(normalized);
 }
 
-async function askOpenAiWithOptions(
+async function requestChatCompletion(
+  url: string,
+  apiKey: string,
+  model: string,
   messages: unknown[],
-  options: { maxCompletionTokens?: number; model: string },
+  maxCompletionTokens: number,
 ) {
-  const lunaApiKey = process.env["LUNA_API_KEY"];
-  const lunaBaseUrl = process.env["LUNA_API_BASE_URL"];
-  const useLuna = Boolean(lunaApiKey && lunaBaseUrl);
-  const model = useLuna ? LUNA_MODEL : options.model;
-  const response = await fetch(
-    useLuna
-      ? `${lunaBaseUrl!.replace(/\/$/, "")}/chat/completions`
-      : openAiUrl(),
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${useLuna ? lunaApiKey : process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? ""}`,
-      },
-      body: JSON.stringify({ model, messages, max_completion_tokens: options.maxCompletionTokens ?? 1200 }),
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
     },
-  );
-  if (!response.ok) throw new Error(`OpenAI request failed with ${response.status}.`);
+    body: JSON.stringify({ model, messages, max_completion_tokens: maxCompletionTokens }),
+  });
+  if (!response.ok) {
+    const providerError = (await response.text()).slice(0, 1000);
+    throw new Error(`AI provider request failed with ${response.status}: ${providerError}`);
+  }
   const payload = await response.json() as { choices?: { message?: { content?: string } }[]; usage?: OpenAiUsage };
   return {
     content: payload.choices?.[0]?.message?.content?.trim() ?? "",
     usage: payload.usage,
     model,
   };
+}
+
+async function askOpenAiWithOptions(
+  messages: unknown[],
+  options: { maxCompletionTokens?: number; model: string },
+) {
+  const lunaApiKey = process.env["LUNA_API_KEY"];
+  const lunaBaseUrl = process.env["LUNA_API_BASE_URL"];
+  const openAiApiKey = process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? "";
+  const maxCompletionTokens = options.maxCompletionTokens ?? 1200;
+
+  if (lunaApiKey && lunaBaseUrl) {
+    try {
+      return await requestChatCompletion(
+        `${lunaBaseUrl.replace(/\/$/, "")}/chat/completions`,
+        lunaApiKey,
+        LUNA_MODEL,
+        messages,
+        maxCompletionTokens,
+      );
+    } catch (error) {
+      if (!openAiApiKey) throw error;
+      console.warn("Luna provider unavailable; using the configured OpenAI fallback.");
+    }
+  }
+
+  return requestChatCompletion(openAiUrl(), openAiApiKey, options.model, messages, maxCompletionTokens);
 }
 
 function logAiUsage(req: Request, operation: string, clientId: string | null, result: { model: string; usage?: OpenAiUsage }) {
@@ -177,7 +201,7 @@ function logAiUsage(req: Request, operation: string, clientId: string | null, re
       totalTokens: Math.max(0, Math.round(result.usage?.total_tokens ?? inputTokens + outputTokens)),
       cachedInputTokens,
       reasoningTokens,
-      estimatedCostUsd: Number(estimatedCostUsd.toFixed(8)),
+      estimatedCostUsd: estimatedCostUsd === null ? null : Number(estimatedCostUsd.toFixed(8)),
     },
   }, "AI usage measured");
 }
@@ -221,7 +245,7 @@ Supported profile fields are equipment, equipmentDetails, gymLevel, height, weig
     if (!result.content) return res.status(502).json({ error: "AI coach returned an empty response." });
     return res.json(result);
   } catch (error) {
-    req.log?.error?.({ error }, "Coach request failed");
+    req.log?.error?.({ errorMessage: error instanceof Error ? error.message : String(error) }, "Coach request failed");
     return res.status(502).json({ error: "AI coach unavailable." });
   }
 });
@@ -251,7 +275,7 @@ router.post("/ai/food-analysis", async (req, res) => {
     }
     return res.json({ name: result.name ?? "Analyzed meal", calories: Number(result.calories) || 0, protein: Number(result.protein) || 0, carbs: Number(result.carbs) || 0, fat: Number(result.fat) || 0 });
   } catch (error) {
-    req.log?.error?.({ error }, "Food analysis failed");
+    req.log?.error?.({ errorMessage: error instanceof Error ? error.message : String(error) }, "Food analysis failed");
     return res.status(502).json({ error: "Food analysis unavailable." });
   }
 });

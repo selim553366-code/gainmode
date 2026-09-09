@@ -1,4 +1,5 @@
 - [Forge Fit AI and access model](forge-fit-ai.md) — local-first user state with server-side GPT-5 mini and premium usage gates.
+- [Experiential Labs Luna gateway](experiential-labs-luna.md) — use its OpenAI-compatible v1 endpoint when available, but keep an explicit fallback while organization review can block requests.
 - [Forge Fit onboarding personalization](forge-fit-onboarding.md) — required profile first, optional refinements second, with native-friendly transparent coach media.
 - [Food search provider resilience](food-search-providers.md) — Open Food Facts may rate-limit the .org endpoint; keep the alternate .net source available and combine USDA for generic foods.
 - [Forge Fit nutrition date ranges](forge-fit-nutrition-dates.md) — daily totals use the local calendar day while historical meals remain available for weekly/monthly views.
