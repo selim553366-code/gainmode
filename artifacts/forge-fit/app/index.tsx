@@ -796,7 +796,9 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return <AnimatedLinearGradient colors={[colors.background, colors.secondary, colors.background]} style={[styles.full, { opacity: pageOpacity, transform: [{ translateX: pageTranslateX }] }]}>
     <OnboardingAtmosphere />
     <View style={styles.welcomeHeader}>
-       <GainModeWordmark color={colors.foreground} width={128} height={18} />
+       <View style={styles.welcomeLogoDock}>
+         <GainModeWordmark color={colors.foreground} width={128} height={18} />
+       </View>
        <View style={styles.welcomeLanguageDock}>
          <WelcomeLanguageSelector language={language} onSelect={setLanguage} />
        </View>
@@ -1421,8 +1423,9 @@ const styles = StyleSheet.create({
   skip: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 12 },
   welcomeAmbientGlow: { position: 'absolute', left: -60, right: -60, top: 140, height: 430, borderRadius: 220 },
   welcomeBackdropDecorations: { pointerEvents: 'none' },
-   welcomeHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingTop: 4, paddingLeft: 9, paddingRight: 8, zIndex: 3 },
-   welcomeLanguageDock: { transform: [{ translateY: -3 }, { translateX: 3 }] },
+   welcomeHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingTop: 0, paddingLeft: 0, paddingRight: 0, zIndex: 3 },
+   welcomeLogoDock: { transform: [{ translateX: -12 }, { translateY: -4 }] },
+   welcomeLanguageDock: { transform: [{ translateY: -6 }, { translateX: 8 }] },
   welcomeBrand: { fontFamily: 'Inter_700Bold', fontSize: 25, letterSpacing: -1.2 },
    welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.46)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.76)' },
   welcomeLanguageOption: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
