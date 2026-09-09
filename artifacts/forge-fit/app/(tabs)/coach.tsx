@@ -242,12 +242,17 @@ export default function CoachScreen() {
         const value = await AsyncStorage.getItem(COACH_MESSAGES_STORAGE_KEY);
         const restoredMessages = parseStoredCoachMessages(value);
         if (!cancelled) {
-          setMessages(restoredMessages?.length ? restoredMessages : [{
+          const initialMessages: Message[] = restoredMessages?.length ? restoredMessages : [{
             id: 'coach-welcome',
             text: t('coachWelcome'),
             from: 'coach',
             media: 'welcomeGif',
-          }]);
+          }];
+          const welcomeIndex = initialMessages.findIndex((message) => message.id === 'coach-welcome' || (message.from === 'coach' && !message.variant && !message.media));
+          if (welcomeIndex >= 0 && !initialMessages.some((message) => message.media === 'welcomeGif')) {
+            initialMessages[welcomeIndex] = { ...initialMessages[welcomeIndex], media: 'welcomeGif' };
+          }
+          setMessages(initialMessages);
         }
       } catch {
         if (!cancelled) setMessages([{ id: 'coach-welcome', text: t('coachWelcome'), from: 'coach', media: 'welcomeGif' }]);
