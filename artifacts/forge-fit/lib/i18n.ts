@@ -145,11 +145,11 @@ const premiumPlanTranslations: Record<Language, {
   premiumAnnualBenefit: string;
   premiumMonthlyBenefit: string;
 }> = {
-  tr: { premiumRecommended: 'Önerilen', premiumMonthlyPlan: 'Aylık', premiumAnnualPlan: 'Yıllık', premiumPerYear: '/ yıl', premiumSelectedPlan: 'Seçilen plan', premiumTrialShort: '3 gün ücretsiz', premiumAnnualSavings: '%37 tasarruf', premiumAnnualSavingsValue: '37%', premiumAnnualSavingsLabel: 'tasarruf', premiumAnnualBenefit: 'Yıllık planla daha az öde ve tüm yıl Premium erişimini koru.', premiumMonthlyBenefit: 'Aylık planla istediğin zaman esnekçe devam et.' },
-  en: { premiumRecommended: 'Recommended', premiumMonthlyPlan: 'Monthly', premiumAnnualPlan: 'Annual', premiumPerYear: '/ year', premiumSelectedPlan: 'Selected plan', premiumTrialShort: '3 days free', premiumAnnualSavings: 'Save 37%', premiumAnnualSavingsValue: '37%', premiumAnnualSavingsLabel: 'save', premiumAnnualBenefit: 'Pay less with the annual plan and keep Premium all year.', premiumMonthlyBenefit: 'Stay flexible with a month-to-month plan.' },
-  de: { premiumRecommended: 'Empfohlen', premiumMonthlyPlan: 'Monatlich', premiumAnnualPlan: 'Jährlich', premiumPerYear: '/ Jahr', premiumSelectedPlan: 'Ausgewählter Plan', premiumTrialShort: '3 Tage gratis', premiumAnnualSavings: '37 % sparen', premiumAnnualSavingsValue: '37 %', premiumAnnualSavingsLabel: 'sparen', premiumAnnualBenefit: 'Mit dem Jahresplan weniger zahlen und Premium das ganze Jahr nutzen.', premiumMonthlyBenefit: 'Mit dem Monatsplan flexibel bleiben.' },
-  fr: { premiumRecommended: 'Recommandé', premiumMonthlyPlan: 'Mensuel', premiumAnnualPlan: 'Annuel', premiumPerYear: '/ an', premiumSelectedPlan: 'Formule choisie', premiumTrialShort: '3 jours offerts', premiumAnnualSavings: 'Économise 37 %', premiumAnnualSavingsValue: '37 %', premiumAnnualSavingsLabel: 'économies', premiumAnnualBenefit: 'Paie moins avec l’offre annuelle et garde Premium toute l’année.', premiumMonthlyBenefit: 'Reste flexible avec une formule mensuelle.' },
-  es: { premiumRecommended: 'Recomendado', premiumMonthlyPlan: 'Mensual', premiumAnnualPlan: 'Anual', premiumPerYear: '/ año', premiumSelectedPlan: 'Plan seleccionado', premiumTrialShort: '3 días gratis', premiumAnnualSavings: 'Ahorra un 37 %', premiumAnnualSavingsValue: '37 %', premiumAnnualSavingsLabel: 'ahorro', premiumAnnualBenefit: 'Paga menos con el plan anual y disfruta de Premium todo el año.', premiumMonthlyBenefit: 'Mantén la flexibilidad con el plan mensual.' },
+  tr: { premiumRecommended: 'Önerilen', premiumMonthlyPlan: 'Aylık', premiumAnnualPlan: 'Yıllık', premiumPerYear: '/ yıl', premiumSelectedPlan: 'Seçilen plan', premiumTrialShort: '3 gün ücretsiz', premiumAnnualSavings: '%33 tasarruf', premiumAnnualSavingsValue: '33%', premiumAnnualSavingsLabel: 'tasarruf', premiumAnnualBenefit: 'Yıllık planla daha az öde ve tüm yıl Premium erişimini koru.', premiumMonthlyBenefit: 'Aylık planla istediğin zaman esnekçe devam et.' },
+  en: { premiumRecommended: 'Recommended', premiumMonthlyPlan: 'Monthly', premiumAnnualPlan: 'Annual', premiumPerYear: '/ year', premiumSelectedPlan: 'Selected plan', premiumTrialShort: '3 days free', premiumAnnualSavings: 'Save 33%', premiumAnnualSavingsValue: '33%', premiumAnnualSavingsLabel: 'save', premiumAnnualBenefit: 'Pay less with the annual plan and keep Premium all year.', premiumMonthlyBenefit: 'Stay flexible with a month-to-month plan.' },
+  de: { premiumRecommended: 'Empfohlen', premiumMonthlyPlan: 'Monatlich', premiumAnnualPlan: 'Jährlich', premiumPerYear: '/ Jahr', premiumSelectedPlan: 'Ausgewählter Plan', premiumTrialShort: '3 Tage gratis', premiumAnnualSavings: '33 % sparen', premiumAnnualSavingsValue: '33 %', premiumAnnualSavingsLabel: 'sparen', premiumAnnualBenefit: 'Mit dem Jahresplan weniger zahlen und Premium das ganze Jahr nutzen.', premiumMonthlyBenefit: 'Mit dem Monatsplan flexibel bleiben.' },
+  fr: { premiumRecommended: 'Recommandé', premiumMonthlyPlan: 'Mensuel', premiumAnnualPlan: 'Annuel', premiumPerYear: '/ an', premiumSelectedPlan: 'Formule choisie', premiumTrialShort: '3 jours offerts', premiumAnnualSavings: 'Économise 33 %', premiumAnnualSavingsValue: '33 %', premiumAnnualSavingsLabel: 'économies', premiumAnnualBenefit: 'Paie moins avec l’offre annuelle et garde Premium toute l’année.', premiumMonthlyBenefit: 'Reste flexible avec une formule mensuelle.' },
+  es: { premiumRecommended: 'Recomendado', premiumMonthlyPlan: 'Mensual', premiumAnnualPlan: 'Anual', premiumPerYear: '/ año', premiumSelectedPlan: 'Plan seleccionado', premiumTrialShort: '3 días gratis', premiumAnnualSavings: 'Ahorra un 33 %', premiumAnnualSavingsValue: '33 %', premiumAnnualSavingsLabel: 'ahorro', premiumAnnualBenefit: 'Paga menos con el plan anual y disfruta de Premium todo el año.', premiumMonthlyBenefit: 'Mantén la flexibilidad con el plan mensual.' },
 };
 
 const usageLimitCopy: Record<Language, { coach: string; photo: string }> = {
@@ -177,7 +177,7 @@ const streakUiTranslations: Record<Language, {
   es: { streakTitle: 'Racha diaria', streakSubtitle: 'Un poco más fuerte cada día.', currentStreak: 'Racha actual', streakDays: 'días', streakCalendarTitle: 'Últimos 7 días', streakToday: 'Hoy', streakCompleted: 'Completado', streakKeepGoing: 'Completa una actividad hoy para mantener vivo tu fuego.' },
 };
 
-export function getPremiumPreviewPrice(language: Language, amount = 7.99) {
+export function getPremiumPreviewPrice(language: Language, amount = 9.99) {
   const selected = premiumPreviewPriceByLanguage[language];
   const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale.replace('_', '-').toLowerCase();
   const usesBritishEnglish = language === 'en' && deviceLocale.startsWith('en-gb');
@@ -194,7 +194,7 @@ export function getPremiumPreviewPrice(language: Language, amount = 7.99) {
 
 export function getPremiumPreviewPriceOptions(language: Language) {
   const labels = premiumPriceOptionLabels[language];
-  return `${labels.monthly} ${getPremiumPreviewPrice(language, 7.99)} • ${labels.annual} ${getPremiumPreviewPrice(language, 59.99)}`;
+  return `${labels.monthly} ${getPremiumPreviewPrice(language, 9.99)} • ${labels.annual} ${getPremiumPreviewPrice(language, 79.99)}`;
 }
 
 const profileEditTranslations = {
