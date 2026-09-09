@@ -1128,7 +1128,7 @@ const onboardingTranslations = {
     premiumWelcomeBenefit1: 'Hedeflerine göre kişisel koçluk',
     premiumWelcomeBenefit2: 'Yemeklerini kolayca analiz edip günlüğünü tutma',
     premiumWelcomeBenefit3: 'Her gün motive kalman için FitBud desteği',
-    premiumWelcomeCta: 'Premium’u başlat',
+    premiumWelcomeCta: 'Değişimi başlat!',
     premiumWelcomeSkip: 'Şimdilik keşfet',
   },
   en: {
@@ -1206,7 +1206,7 @@ const onboardingTranslations = {
     premiumWelcomeBenefit1: 'Personal coaching built around your goals',
     premiumWelcomeBenefit2: 'Easy meal analysis and nutrition tracking',
     premiumWelcomeBenefit3: 'FitBud support to keep you motivated',
-    premiumWelcomeCta: 'Start Premium',
+    premiumWelcomeCta: 'Start the changing!',
     premiumWelcomeSkip: 'Explore for now',
   },
   de: {
@@ -1284,7 +1284,7 @@ const onboardingTranslations = {
     premiumWelcomeBenefit1: 'Persönliches Coaching passend zu deinen Zielen',
     premiumWelcomeBenefit2: 'Einfache Essensanalyse und Ernährungstracking',
     premiumWelcomeBenefit3: 'FitBud-Unterstützung für deine Motivation',
-    premiumWelcomeCta: 'Premium starten',
+    premiumWelcomeCta: 'Starte deine Veränderung!',
     premiumWelcomeSkip: 'Erst einmal entdecken',
   },
   fr: {
@@ -1362,7 +1362,7 @@ const onboardingTranslations = {
     premiumWelcomeBenefit1: 'Un coaching personnel selon tes objectifs',
     premiumWelcomeBenefit2: 'Une analyse des repas et un suivi nutritionnel simples',
     premiumWelcomeBenefit3: 'Le soutien de FitBud pour rester motivé',
-    premiumWelcomeCta: 'Démarrer Premium',
+    premiumWelcomeCta: 'Commence ton changement !',
     premiumWelcomeSkip: 'Découvrir pour le moment',
   },
   es: {
@@ -1440,7 +1440,7 @@ const onboardingTranslations = {
     premiumWelcomeBenefit1: 'Coaching personal según tus objetivos',
     premiumWelcomeBenefit2: 'Análisis de comidas y seguimiento nutricional fáciles',
     premiumWelcomeBenefit3: 'El apoyo de FitBud para mantener tu motivación',
-    premiumWelcomeCta: 'Iniciar Premium',
+    premiumWelcomeCta: '¡Empieza el cambio!',
     premiumWelcomeSkip: 'Explorar por ahora',
   },
 } as const;
