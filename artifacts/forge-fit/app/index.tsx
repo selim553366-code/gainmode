@@ -806,7 +806,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
     <View style={styles.welcomeReferenceCard}>
       <Animated.View style={[styles.welcomeCardGlow, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
       <Animated.View style={[styles.welcomeCharacterStage, { transform: [{ translateY: coachTranslateY }, { scale: orbScale }, { rotate: orbRotateValue }] }]}>
-        <Image source={require('@/assets/images/coach-wave-static-v3.png')} resizeMode="contain" style={styles.welcomeReferenceCharacter} />
+        <Image source={require('@/assets/images/coach-wave-static-v4.png')} resizeMode="contain" style={styles.welcomeReferenceCharacter} />
       </Animated.View>
       <Animated.View style={[styles.welcomeReferenceCopy, { transform: [{ translateY: copyTranslateY }] }]}>
         <Text style={[styles.welcomeReferenceTitle, { color: colors.foreground }]}>{t('welcomeHeroTitle')}</Text>
@@ -1431,9 +1431,9 @@ const styles = StyleSheet.create({
   welcomeLanguageOption: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   welcomeLanguageSelected: { backgroundColor: 'rgba(255,255,255,0.88)', shadowColor: '#2E63E6', shadowOpacity: 0.12, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
    welcomeReferenceCard: { flex: 1, marginHorizontal: 25, marginTop: 38, marginBottom: 12, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.82)', backgroundColor: 'rgba(255,255,255,0.39)', overflow: 'hidden', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 22, shadowColor: '#2558D9', shadowOpacity: 0.12, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
-  welcomeCardGlow: { position: 'absolute', width: 260, height: 260, top: 28, borderRadius: 130 },
-   welcomeCharacterStage: { width: '100%', flex: 1, minHeight: 320, alignItems: 'center', justifyContent: 'center' },
-   welcomeReferenceCharacter: { width: '100%', height: '100%', transform: [{ scale: 1.08 }] },
+  welcomeCardGlow: { position: 'absolute', width: 260, height: 260, top: 12, borderRadius: 130 },
+   welcomeCharacterStage: { width: 260, height: 260, borderRadius: 130, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+   welcomeReferenceCharacter: { width: '100%', height: '100%', transform: [{ scale: 1.1 }] },
   welcomeReferenceCopy: { width: '100%', paddingHorizontal: 18, alignItems: 'center' },
   welcomeReferenceTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, lineHeight: 34, letterSpacing: -1, textAlign: 'center' },
   welcomeReferenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 12, maxWidth: 270 },
