@@ -54,7 +54,7 @@ const colors = {
     tint: '#176CFF',
     background: '#73C4EE',
     foreground: '#08243D',
-    card: '#79C9F2',
+    card: '#FFFFFF',
     cardForeground: '#08243D',
     primary: '#126CF0',
     primaryForeground: '#FFFFFF',

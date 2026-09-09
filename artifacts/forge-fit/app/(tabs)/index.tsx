@@ -144,7 +144,7 @@ export default function TodayScreen() {
 
       <View style={styles.homeContent}>
         <LinearGradient
-          colors={[colors.secondary, colors.surfaceSoft]}
+          colors={[colors.card, colors.card]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.heroCard, { borderColor: `${colors.blue}2B` }]}
