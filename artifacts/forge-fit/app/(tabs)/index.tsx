@@ -297,7 +297,7 @@ export default function TodayScreen() {
 }
 
 const styles = StyleSheet.create({
-  homeContent: { paddingTop: 26 },
+  homeContent: { paddingTop: 10 },
   heroCard: {
     borderRadius: 30,
     borderWidth: 1,
