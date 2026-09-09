@@ -191,7 +191,9 @@ export default function CoachScreen() {
   const flyingAvatarSize = 72;
   const targetAvatarSize = 30;
   const ratingDateKey = localDateKey();
-  const ratingStorageKey = `forge-fit-coach-rating-${ratingDateKey}`;
+  // Keep the restored first-reply rating flow separate from the previous
+  // latest-message flow, so an old rating cannot hide the restored prompt.
+  const ratingStorageKey = `forge-fit-coach-rating-v2-${ratingDateKey}`;
   const tabBarBottomPadding = Math.max(insets.bottom, 10);
   const flyingStartX = screenSize.width / 2 - flyingAvatarSize / 2;
   const flyingStartY = screenSize.height - tabBarBottomPadding - 120;
