@@ -14,3 +14,9 @@ Nutrition burn estimates use the same equipment intensity factors as goal projec
 **Why:** The nutrition screen must reflect the workout progress the user actually completed without introducing a second calorie model.
 
 **How to apply:** Reuse the shared workout intensity and completion helpers when changing workout calorie display, net calories, or remaining nutrition targets.
+
+For per-exercise calorie labels, allocate the full planned workout burn evenly across the workout’s exercises; the label describes the estimated burn if that exercise is completed.
+
+**Why:** Users need an actionable calorie estimate beside each movement while the sum of the individual estimates remains aligned with the workout-level model.
+
+**How to apply:** Use the shared equipment intensity and planned duration, divide by the total exercise count, and keep the value independent of the exercise’s current completion state.
