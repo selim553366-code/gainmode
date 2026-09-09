@@ -119,6 +119,7 @@ export default function TodayScreen() {
               }
             : undefined
         }
+        brandMark
         showText={false}
       />
 

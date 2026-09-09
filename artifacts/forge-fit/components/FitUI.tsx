@@ -57,7 +57,7 @@ export function Screen({ children, scroll = true, bottomPadding = 104 }: { child
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{backdrop}</ScrollView> : backdrop;
 }
 
-export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, actionDisabled = false, featureLabel, featureAction, premiumLabel, premiumAction, premiumIcon = 'trophy-outline', premiumOwned = false, streak, streakLabel, centered = false, lightBackground = false, showText = true }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; actionDisabled?: boolean; featureLabel?: string; featureAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumIcon?: IconName; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean; lightBackground?: boolean; showText?: boolean }) {
+export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, actionDisabled = false, featureLabel, featureAction, premiumLabel, premiumAction, premiumIcon = 'trophy-outline', premiumOwned = false, streak, streakLabel, centered = false, lightBackground = false, showText = true, brandMark = false }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; actionDisabled?: boolean; featureLabel?: string; featureAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumIcon?: IconName; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean; lightBackground?: boolean; showText?: boolean; brandMark?: boolean }) {
   const colors = useColors();
   const premiumColor = premiumOwned ? colors.success : colors.primary;
   const headingColor = lightBackground ? colors.primaryForeground : colors.foreground;
@@ -68,6 +68,7 @@ export function Header({ eyebrow, title, subtitle, action, actionLogo = false, o
       <Text style={[styles.title, { color: headingColor }]}>{title}</Text>
       {subtitle ? <Text style={[styles.subtitle, { color: supportingColor }]}>{subtitle}</Text> : null}
     </View> : null}
+    {brandMark ? <View accessibilityLabel="Forge Fit" style={styles.headerBrand}><ForgeFitMark size={38} /></View> : null}
     <View style={[styles.headerActions, centered ? styles.headerActionsCentered : null]}>
       {streak !== undefined ? <View accessibilityLabel={`${streak} ${streakLabel ?? ''}`} style={[styles.streakPill, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Ionicons name="flame" size={15} color={colors.orange} /><Text style={[styles.streakValue, { color: colors.orange }]}>{streak}</Text>{streakLabel ? <Text style={[styles.streakLabel, { color: colors.orange }]}>{streakLabel}</Text> : null}</View> : null}
       {featureLabel && featureAction ? <Pressable accessibilityRole="button" accessibilityLabel={featureLabel} onPress={() => { triggerHaptic(); featureAction(); }} style={({ pressed }) => [styles.featurePill, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="sparkles-outline" size={14} color={colors.primary} /><Text style={[styles.featurePillText, { color: colors.primary }]}>{featureLabel}</Text></Pressable> : null}
@@ -437,6 +438,7 @@ export const styles = StyleSheet.create({
   headerTextCentered: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 0 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerActionsCentered: { position: 'absolute', right: 0, top: 0, zIndex: 2 },
+  headerBrand: { width: 44, height: 44, alignItems: 'flex-start', justifyContent: 'center', zIndex: 1 },
   streakPill: { minHeight: 44, borderRadius: 15, borderWidth: 1, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 4 },
   streakValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   streakLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
