@@ -119,6 +119,43 @@ function AnswerAnalysisStatus() {
   </View>;
 }
 
+function OnboardingScrollHint({ visible }: { visible: boolean }) {
+  const colors = useColors();
+  const handTranslateY = React.useRef(new Animated.Value(0)).current;
+  const hintOpacity = React.useRef(new Animated.Value(0.6)).current;
+
+  React.useEffect(() => {
+    if (!visible) {
+      handTranslateY.stopAnimation();
+      hintOpacity.stopAnimation();
+      handTranslateY.setValue(0);
+      hintOpacity.setValue(0);
+      return;
+    }
+
+    const loop = Animated.loop(Animated.sequence([
+      Animated.parallel([
+        Animated.timing(handTranslateY, { toValue: 10, duration: 720, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(hintOpacity, { toValue: 1, duration: 360, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(handTranslateY, { toValue: 0, duration: 720, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(hintOpacity, { toValue: 0.6, duration: 360, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      ]),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [handTranslateY, hintOpacity, visible]);
+
+  if (!visible) return null;
+  return <Animated.View pointerEvents="none" style={[styles.questionScrollHint, { opacity: hintOpacity }]}>
+    <Animated.View style={{ transform: [{ translateY: handTranslateY }] }}>
+      <Ionicons name="hand-pointer" size={24} color={colors.primary} />
+    </Animated.View>
+    <Ionicons name="chevron-down" size={16} color={colors.primary} />
+  </Animated.View>;
+}
+
 function ChoiceButton({ label, selected, onPress, icon }: { label: string; selected: boolean; onPress: () => void; icon?: React.ComponentProps<typeof Ionicons>['name'] }) {
   const colors = useColors();
   return <Pressable onPress={() => { triggerHaptic(); onPress(); }} style={({ pressed }) => [styles.choice, { backgroundColor: selected ? `${colors.primary}20` : colors.card, borderColor: selected ? colors.primary : colors.border, opacity: pressed ? 0.78 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}>
