@@ -365,6 +365,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
    }, [editMode, onboardingMode, selectedFields, hasTargetWeightStep]);
   const total = selectedStepIds.length;
   const activeStep = selectedStepIds[step] ?? step;
+   const scrollHintEligible = activeStep === 1 || activeStep === 5 || activeStep === 7 || activeStep === 8 || activeStep === 11 || activeStep === 14;
   const recommendedTargetWeight = React.useMemo(() => recommendTargetWeight({ height, weight, age, goal, sex, activity, goalRate }), [height, weight, age, goal, sex, activity, goalRate]);
 
   React.useEffect(() => {
@@ -652,13 +653,12 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
         <View style={styles.welcomeLogoDock}><GainModeWordmark color={colors.foreground} width={128} height={18} /></View>
         <View style={styles.welcomeLanguageDock}><WelcomeLanguageSelector language={language} onSelect={setLanguage} /></View>
       </View>
-     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
+      <Animated.View {...swipeResponder.panHandlers} onLayout={({ nativeEvent }) => setQuestionViewportHeight(nativeEvent.layout.height)} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
         <KeyboardAwareScrollViewCompat
           contentContainerStyle={styles.questionScrollContent}
           showsVerticalScrollIndicator={false}
           bounces={false}
           bottomOffset={72}
-          onLayout={({ nativeEvent }) => setQuestionViewportHeight(nativeEvent.layout.height)}
           onScroll={({ nativeEvent }) => setQuestionScrollOffset(nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
         >
@@ -672,7 +672,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
            {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
          </View>
       </KeyboardAwareScrollViewCompat>
-         <OnboardingScrollHint visible={questionAnswerBottom > questionViewportHeight + 18 && questionScrollOffset < Math.max(0, questionAnswerBottom - questionViewportHeight - 18)} />
+         <OnboardingScrollHint visible={scrollHintEligible && questionAnswerBottom > questionViewportHeight + 18 && questionScrollOffset < Math.max(0, questionAnswerBottom - questionViewportHeight - 18)} />
     </Animated.View>
        <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View>
   </LinearGradient>;
@@ -686,9 +686,9 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
   return (
     <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
        <OnboardingAtmosphere />
-       <View style={styles.questionTop}>
-         <GainModeWordmark color={colors.foreground} />
-        <LanguageSelector language={language} onSelect={setLanguage} />
+       <View style={styles.welcomeHeader}>
+         <View style={styles.welcomeLogoDock}><GainModeWordmark color={colors.foreground} width={128} height={18} /></View>
+         <View style={styles.welcomeLanguageDock}><WelcomeLanguageSelector language={language} onSelect={setLanguage} /></View>
       </View>
       <View style={styles.modeChoiceContent}>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>{t('onboardingModeEyebrow')}</Text>
@@ -922,10 +922,10 @@ function GrowthComparisonScreen({ onContinue }: { onContinue: () => void }) {
 
   return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
     <OnboardingAtmosphere />
-    <View style={styles.questionTop}>
-       <GainModeWordmark color={colors.foreground} />
-      <LanguageSelector language={language} onSelect={setLanguage} />
-    </View>
+     <View style={styles.welcomeHeader}>
+       <View style={styles.welcomeLogoDock}><GainModeWordmark color={colors.foreground} width={128} height={18} /></View>
+       <View style={styles.welcomeLanguageDock}><WelcomeLanguageSelector language={language} onSelect={setLanguage} /></View>
+     </View>
     <Animated.View style={[styles.growthContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>
       <Text style={[styles.growthEyebrow, { color: colors.primary }]}>{t('growthEyebrow')}</Text>
       <Text style={[styles.growthTitle, { color: colors.foreground }]}>{t('growthTitle')}</Text>
