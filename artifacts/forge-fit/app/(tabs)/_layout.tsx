@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 5, paddingBottom: 9, paddingTop: 12 },
   tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   coachTabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
-  coachTabButton: { position: 'absolute', top: -38, alignItems: 'center', shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 4 }, elevation: 14 },
+  coachTabButton: { position: 'absolute', top: -34, alignItems: 'center', shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 4 }, elevation: 14 },
   coachTabCircle: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 0 }, elevation: 11 },
   coachTabImage: { width: 80, height: 80, borderRadius: 40 },
   coachThinkingImage: { width: 90, height: 90, transform: [{ translateY: 5 }] },
