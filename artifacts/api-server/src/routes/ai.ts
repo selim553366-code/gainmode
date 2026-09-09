@@ -4,6 +4,7 @@ const router: IRouter = Router();
 const COACH_MODEL = "gpt-5-mini";
 const SIMPLE_COACH_MODEL = "gpt-5-nano";
 const FOOD_ANALYSIS_MODEL = "gpt-5-mini";
+const LUNA_MODEL = "gpt-5.6-luna";
 const MODEL_PRICING_USD_PER_MILLION: Record<string, { input: number; output: number }> = {
   "gpt-5-mini": { input: 0.25, output: 2 },
   "gpt-5-nano": { input: 0.05, output: 0.4 },
@@ -153,8 +154,10 @@ function logAiUsage(req: Request, operation: string, clientId: string | null, re
   const outputTokens = Math.max(0, Math.round(result.usage?.completion_tokens ?? 0));
   const cachedInputTokens = Math.max(0, Math.round(result.usage?.prompt_tokens_details?.cached_tokens ?? 0));
   const reasoningTokens = Math.max(0, Math.round(result.usage?.completion_tokens_details?.reasoning_tokens ?? 0));
-  const pricing = MODEL_PRICING_USD_PER_MILLION[result.model] ?? MODEL_PRICING_USD_PER_MILLION[COACH_MODEL];
-  const estimatedCostUsd = (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+  const pricing = MODEL_PRICING_USD_PER_MILLION[result.model];
+  const estimatedCostUsd = pricing
+    ? (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000
+    : null;
   req.log?.info?.({
     aiUsage: {
       operation,
