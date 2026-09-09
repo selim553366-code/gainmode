@@ -147,8 +147,11 @@ export default function TodayScreen() {
                 },
               ]}
             >
-              <Ionicons name="sparkles-outline" size={14} color={colors.heroBadgeForeground} />
-              <Text numberOfLines={1} style={[styles.heroBadgeText, { color: colors.heroBadgeForeground }]}>{badgeText(badgeUi.title, language)}</Text>
+              <Ionicons name="badge-master" size={16} color={colors.heroBadgeForeground} />
+              <View style={styles.heroBadgeCopy}>
+                <Text numberOfLines={1} style={[styles.heroBadgeText, { color: colors.heroBadgeForeground }]}>{badgeText(badgeUi.title, language)}</Text>
+                <Text numberOfLines={1} style={[styles.heroBadgeHint, { color: colors.heroBadgeForeground }]}>{t('badgesClickToView')}</Text>
+              </View>
             </Pressable>
             <View style={[styles.heroStreakPill, { backgroundColor: colors.heroStreakBackground, borderColor: colors.heroStreakBorder }]}>
               <Ionicons name="flame" size={14} color={colors.heroStreakForeground} />
@@ -332,10 +335,22 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   heroBadgeText: {
-    flex: 1,
     fontFamily: 'Inter_700Bold',
     fontSize: 10,
     letterSpacing: 0.15,
+  },
+  heroBadgeCopy: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroBadgeHint: {
+    flexShrink: 1,
+    fontFamily: 'Inter_500Medium',
+    fontSize: 8.5,
+    opacity: 0.86,
   },
   heroStreakPill: {
     minHeight: 40,
