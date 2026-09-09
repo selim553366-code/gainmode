@@ -109,7 +109,7 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
 
   return (
     <View pointerEvents="box-none" style={[styles.tabBarOverlay, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-      <View style={[styles.tabBar, { backgroundColor: colors.background, borderColor: colors.border, shadowColor: colors.background }]}>
+      <View style={[styles.tabBar, { backgroundColor: colors.card, borderColor: `${colors.primary}45`, shadowColor: colors.primary }]}>
         {routes.map((route) => {
           const descriptor = descriptors[route.key];
           const focused = state.index === state.routes.findIndex((item) => item.key === route.key);
@@ -164,7 +164,7 @@ function DailyMoodPrompt() {
       <View style={[styles.moodPrompt, { backgroundColor: colors.card, borderColor: `${colors.primary}70`, shadowColor: colors.background }]}>
         <View style={[styles.moodPromptIcon, { backgroundColor: `${colors.primary}1F` }]}><Ionicons name="sparkles" size={19} color={colors.primary} /></View>
         <View style={styles.moodPromptCopy}><Text style={[styles.moodPromptTitle, { color: colors.foreground }]}>{t('dailyMoodPromptTitle')}</Text><Text style={[styles.moodPromptBody, { color: colors.mutedForeground }]}>{t('dailyMoodPromptBody')}</Text></View>
-        <Pressable accessibilityRole="button" onPress={() => { setDismissed(true); router.push('/daily-mood'); }} style={({ pressed }) => [styles.moodPromptButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.moodPromptButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodOpen')}</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { setDismissed(true); router.push('/daily-mood'); }} style={({ pressed }) => [styles.moodPromptButton, { backgroundColor: colors.primary, shadowColor: colors.primary, shadowOpacity: pressed ? 0.16 : 0.28, shadowRadius: pressed ? 6 : 10, elevation: pressed ? 2 : 5, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.moodPromptButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodOpen')}</Text></Pressable>
         <Pressable accessibilityLabel={t('dailyMoodLater')} onPress={() => setDismissed(true)} hitSlop={8}><Ionicons name="close" size={18} color={colors.mutedForeground} /></Pressable>
       </View>
     </View>
@@ -193,12 +193,12 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBarOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 12, zIndex: 10 },
-  tabBar: { height: 78, borderRadius: 28, borderWidth: 1, flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 4, shadowOpacity: 0.32, shadowRadius: 18, shadowOffset: { width: 0, height: -5 }, elevation: 16 },
+  tabBar: { height: 78, borderRadius: 28, borderWidth: 1, flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 4, shadowOpacity: 0.28, shadowRadius: 20, shadowOffset: { width: 0, height: -5 }, elevation: 16 },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 5, paddingBottom: 9, paddingTop: 12 },
   tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   coachTabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
-  coachTabButton: { position: 'absolute', top: -42, alignItems: 'center', shadowOpacity: 0.5, shadowRadius: 18, shadowOffset: { width: 0, height: 4 }, elevation: 18 },
-  coachTabCircle: { width: 88, height: 88, borderRadius: 44, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.42, shadowRadius: 14, shadowOffset: { width: 0, height: 0 }, elevation: 13 },
+  coachTabButton: { position: 'absolute', top: -42, alignItems: 'center', shadowOpacity: 0.52, shadowRadius: 21, shadowOffset: { width: 0, height: 4 }, elevation: 18 },
+  coachTabCircle: { width: 88, height: 88, borderRadius: 44, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.48, shadowRadius: 17, shadowOffset: { width: 0, height: 0 }, elevation: 13 },
   coachTabImage: { width: 88, height: 88, borderRadius: 44 },
   coachThinkingImage: { width: 100, height: 100, transform: [{ translateY: 6 }] },
   coachThinkingOverlay: { position: 'absolute', left: -6, top: -6 },

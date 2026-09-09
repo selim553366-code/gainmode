@@ -121,7 +121,7 @@ function AnswerAnalysisStatus() {
 
 function ChoiceButton({ label, selected, onPress, icon }: { label: string; selected: boolean; onPress: () => void; icon?: React.ComponentProps<typeof Ionicons>['name'] }) {
   const colors = useColors();
-  return <Pressable onPress={() => { triggerHaptic(); onPress(); }} style={({ pressed }) => [styles.choice, { backgroundColor: selected ? `${colors.primary}20` : colors.card, borderColor: selected ? colors.primary : colors.border, opacity: pressed ? 0.78 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}>
+  return <Pressable onPress={() => { triggerHaptic(); onPress(); }} style={({ pressed }) => [styles.choice, { backgroundColor: selected ? `${colors.primary}20` : colors.card, borderColor: selected ? `${colors.primary}B8` : `${colors.primary}2E`, shadowColor: colors.primary, shadowOpacity: selected ? 0.24 : 0.07, shadowRadius: selected ? 12 : 7, elevation: selected ? 4 : 2, opacity: pressed ? 0.78 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}>
     {icon ? <View style={[styles.choiceIcon, { backgroundColor: selected ? colors.primary : colors.secondary }]}><Ionicons name={icon} size={19} color={selected ? colors.primaryForeground : colors.foreground} /></View> : null}
     <Text style={[styles.choiceText, { color: colors.foreground }]}>{label}</Text>
     {selected ? <Ionicons name="checkmark-circle" size={20} color={colors.primary} /> : null}
@@ -599,7 +599,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
         {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       </KeyboardAwareScrollViewCompat>
     </Animated.View>
-       <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View>
+        <View style={styles.buttonArea}><Pressable onPress={() => { triggerHaptic(); next(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, shadowColor: colors.primary, shadowOpacity: pressed ? 0.18 : 0.34, shadowRadius: pressed ? 8 : 15, elevation: pressed ? 3 : 8, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{step === total - 1 ? t('continueToPlan') : t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View>
   </LinearGradient>;
 }
 
@@ -623,7 +623,7 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
           <Pressable
             accessibilityRole="button"
             onPress={() => onSelect('quick')}
-            style={({ pressed }) => [styles.modeChoiceCard, { backgroundColor: colors.card, borderColor: `${colors.primary}65`, opacity: pressed ? 0.76 : 1 }]}
+            style={({ pressed }) => [styles.modeChoiceCard, { backgroundColor: colors.card, borderColor: `${colors.primary}80`, shadowColor: colors.primary, shadowOpacity: pressed ? 0.16 : 0.16, shadowRadius: pressed ? 7 : 13, elevation: pressed ? 3 : 5, opacity: pressed ? 0.76 : 1 }]}
           >
             <View style={[styles.modeChoiceIcon, { backgroundColor: `${colors.primary}20` }]}>
               <Ionicons name="flash-outline" size={22} color={colors.primary} />
@@ -638,7 +638,7 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
           <Pressable
             accessibilityRole="button"
             onPress={() => onSelect('detailed')}
-            style={({ pressed }) => [styles.modeChoiceCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.76 : 1 }]}
+            style={({ pressed }) => [styles.modeChoiceCard, { backgroundColor: colors.card, borderColor: `${colors.blue}52`, shadowColor: colors.blue, shadowOpacity: pressed ? 0.12 : 0.1, shadowRadius: pressed ? 7 : 12, elevation: pressed ? 3 : 4, opacity: pressed ? 0.76 : 1 }]}
           >
             <View style={[styles.modeChoiceIcon, { backgroundColor: `${colors.blue}20` }]}>
               <Ionicons name="analytics-outline" size={22} color={colors.blue} />

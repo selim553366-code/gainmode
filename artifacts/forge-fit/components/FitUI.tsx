@@ -16,9 +16,9 @@ type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
 export function ForgeFitMark({ size = 28, style }: { size?: number; style?: object }) {
   const colors = useColors();
-  return <View style={[{ width: size, height: size, borderRadius: size * 0.24, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.primary }, style]}>
+  return <LinearGradient colors={[colors.primary, colors.plum]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[{ width: size, height: size, borderRadius: size * 0.24, alignItems: 'center', justifyContent: 'center', shadowColor: colors.primary, shadowOpacity: 0.32, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5 }, style]}>
     <Ionicons name="barbell-outline" size={size * 0.64} color={colors.primaryForeground} />
-  </View>;
+  </LinearGradient>;
 }
 
 export function triggerHaptic(style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) {
@@ -35,11 +35,11 @@ function blendColors(base: string, accent: string, amount: number) {
 
 function AmbientBackdrop({ children }: { children: ReactNode }) {
   const colors = useColors();
-  const softBlue = blendColors(colors.background, colors.blue, 0.12);
-  const blueMist = blendColors(colors.background, colors.blue, 0.2);
+  const softPrimary = blendColors(colors.background, colors.primary, 0.1);
+  const accentMist = blendColors(colors.background, colors.accent, 0.08);
   return <LinearGradient
-    colors={[colors.background, softBlue, blueMist, colors.background]}
-    locations={[0, 0.3, 0.68, 1]}
+    colors={[colors.background, softPrimary, accentMist, colors.background]}
+    locations={[0, 0.3, 0.7, 1]}
     start={{ x: 0.05, y: 0 }}
     end={{ x: 0.95, y: 1 }}
     style={styles.ambientBackdrop}
@@ -72,7 +72,7 @@ export function Header({ eyebrow, title, subtitle, action, actionLogo = false, o
       {streak !== undefined ? <View accessibilityLabel={`${streak} ${streakLabel ?? ''}`} style={[styles.streakPill, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Ionicons name="flame" size={15} color={colors.orange} /><Text style={[styles.streakValue, { color: colors.orange }]}>{streak}</Text>{streakLabel ? <Text style={[styles.streakLabel, { color: colors.orange }]}>{streakLabel}</Text> : null}</View> : null}
       {featureLabel && featureAction ? <Pressable accessibilityRole="button" accessibilityLabel={featureLabel} onPress={() => { triggerHaptic(); featureAction(); }} style={({ pressed }) => [styles.featurePill, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="sparkles-outline" size={14} color={colors.primary} /><Text style={[styles.featurePillText, { color: colors.primary }]}>{featureLabel}</Text></Pressable> : null}
       {premiumAction ? <Pressable accessibilityLabel={premiumLabel} testID="header-premium" onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); premiumAction(); }} style={({ pressed }) => [styles.premiumPill, { backgroundColor: `${premiumColor}20`, borderColor: `${premiumColor}70`, opacity: pressed ? 0.72 : 1 }]}>{premiumOwned ? <Ionicons name="checkmark-circle" size={13} color={premiumColor} /> : <Ionicons name={premiumIcon} size={15} color={premiumColor} />}<Text style={[styles.premiumPillText, { color: premiumColor }]}>{premiumLabel}</Text></Pressable> : null}
-      {action && onAction ? <Pressable testID="header-action" onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}>{actionLogo ? <ForgeFitMark size={27} /> : <Ionicons name={action} size={20} color={colors.foreground} />}</Pressable> : null}
+      {action && onAction ? <Pressable testID="header-action" onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.card, borderColor: `${colors.primary}45`, shadowColor: colors.primary, opacity: pressed ? 0.65 : 1 }]}>{actionLogo ? <ForgeFitMark size={27} /> : <Ionicons name={action} size={20} color={colors.foreground} />}</Pressable> : null}
     </View>
   </View>;
 }
@@ -86,13 +86,13 @@ export function Card({ children, style, onPress }: { children: ReactNode; style?
   const colors = useColors();
   const pressed = React.useRef(new Animated.Value(0)).current;
   const setPressed = (value: number) => Animated.spring(pressed, { toValue: value, friction: 8, tension: 90, useNativeDriver: true }).start();
-  const content = <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, style, onPress ? { transform: [{ scale: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) }], shadowColor: colors.primary, shadowOpacity: pressed.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.34] }), shadowRadius: pressed.interpolate({ inputRange: [0, 1], outputRange: [8, 16] }), elevation: pressed.interpolate({ inputRange: [0, 1], outputRange: [2, 7] }) } : null]}>{children}</Animated.View>;
+  const content = <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: `${colors.primary}28`, shadowColor: colors.primary, shadowOpacity: onPress ? pressed.interpolate({ inputRange: [0, 1], outputRange: [0.14, 0.34] }) : 0.1, shadowRadius: onPress ? pressed.interpolate({ inputRange: [0, 1], outputRange: [10, 18] }) : 12, elevation: onPress ? pressed.interpolate({ inputRange: [0, 1], outputRange: [3, 8] }) : 3 }, style, onPress ? { transform: [{ scale: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) }] } : null]}>{children}</Animated.View>;
   return onPress ? <Pressable onPress={() => { triggerHaptic(); onPress(); }} onPressIn={() => setPressed(1)} onPressOut={() => setPressed(0)}>{content}</Pressable> : content;
 }
 
 export function IconButton({ icon, onPress, label }: { icon: IconName; onPress?: () => void; label?: string }) {
   const colors = useColors();
-  return <Pressable accessibilityLabel={label} testID={label} onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.secondary, opacity: pressed ? 0.6 : 1 }]}><Ionicons name={icon} size={20} color={colors.foreground} /></Pressable>;
+  return <Pressable accessibilityLabel={label} testID={label} onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.secondary, borderColor: `${colors.primary}3D`, shadowColor: colors.primary, opacity: pressed ? 0.6 : 1 }]}><Ionicons name={icon} size={20} color={colors.foreground} /></Pressable>;
 }
 
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
@@ -121,12 +121,12 @@ export function ActionTile({ icon, title, subtitle, onPress, color }: { icon: Ic
   const colors = useColors();
   const pressed = React.useRef(new Animated.Value(0)).current;
   const setPressed = (value: number) => Animated.spring(pressed, { toValue: value, friction: 8, tension: 90, useNativeDriver: true }).start();
-  return <Pressable testID={title} onPress={() => { triggerHaptic(); onPress?.(); }} onPressIn={() => setPressed(1)} onPressOut={() => setPressed(0)}><Animated.View style={[styles.actionTile, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: color, shadowOpacity: pressed.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.3] }), shadowRadius: pressed.interpolate({ inputRange: [0, 1], outputRange: [5, 14] }), elevation: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 6] }), transform: [{ translateY: pressed.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }, { scale: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) }] }]}><View style={[styles.actionIcon, { backgroundColor: `${color}20` }]}><Ionicons name={icon} size={20} color={color} /></View><Text style={[styles.actionTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.actionSubtitle, { color: colors.mutedForeground }]}>{subtitle}</Text></Animated.View></Pressable>;
+  return <Pressable testID={title} onPress={() => { triggerHaptic(); onPress?.(); }} onPressIn={() => setPressed(1)} onPressOut={() => setPressed(0)}><Animated.View style={[styles.actionTile, { backgroundColor: colors.card, borderColor: `${color}52`, shadowColor: color, shadowOpacity: pressed.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.34] }), shadowRadius: pressed.interpolate({ inputRange: [0, 1], outputRange: [7, 16] }), elevation: pressed.interpolate({ inputRange: [0, 1], outputRange: [2, 7] }), transform: [{ translateY: pressed.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }, { scale: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) }] }]}><View style={[styles.actionIcon, { backgroundColor: `${color}20`, borderColor: `${color}55`, borderWidth: 1 }]}><Ionicons name={icon} size={20} color={color} /></View><Text style={[styles.actionTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.actionSubtitle, { color: colors.mutedForeground }]}>{subtitle}</Text></Animated.View></Pressable>;
 }
 
 export function Pill({ label, active, onPress, lightBackground = false }: { label: string; active?: boolean; onPress?: () => void; lightBackground?: boolean }) {
   const colors = useColors();
-  return <Pressable onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.pill, { backgroundColor: lightBackground ? (active ? `${colors.primary}D9` : `${colors.foreground}B8`) : (active ? colors.primary : colors.secondary), borderWidth: lightBackground ? 1 : 0, borderColor: lightBackground ? `${colors.primaryForeground}20` : 'transparent', opacity: pressed ? 0.72 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}><Text style={[styles.pillText, { color: lightBackground || active ? colors.primaryForeground : colors.mutedForeground }]}>{label}</Text></Pressable>;
+  return <Pressable onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.pill, { backgroundColor: lightBackground ? (active ? `${colors.primary}D9` : `${colors.foreground}B8`) : (active ? colors.primary : colors.secondary), borderWidth: 1, borderColor: active ? `${colors.primary}A8` : `${colors.primary}2E`, shadowColor: colors.primary, shadowOpacity: active ? 0.22 : 0.06, shadowRadius: active ? 10 : 5, elevation: active ? 3 : 1, opacity: pressed ? 0.72 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}><Text style={[styles.pillText, { color: lightBackground || active ? colors.primaryForeground : colors.mutedForeground }]}>{label}</Text></Pressable>;
 }
 
 export function CelebrationBurst({ visible, onDone, title, subtitle, duration = 1650 }: { visible: boolean; onDone?: () => void; title?: string; subtitle?: string; duration?: number }) {
@@ -441,7 +441,7 @@ export const styles = StyleSheet.create({
   iconButton: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   premiumPill: { height: 38, borderRadius: 15, borderWidth: 1, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
   premiumPillText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8 },
-  card: { borderRadius: 24, borderWidth: 1, padding: 18, marginBottom: 16 },
+  card: { borderRadius: 26, borderWidth: 1, padding: 18, marginBottom: 16, shadowOffset: { width: 0, height: 6 } },
   sectionTitle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, marginBottom: 12 },
   sectionText: { fontFamily: 'Inter_600SemiBold', fontSize: 17 },
   link: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
@@ -451,11 +451,11 @@ export const styles = StyleSheet.create({
   metricIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
   metricValue: { fontFamily: 'Inter_700Bold', fontSize: 16 },
   metricLabel: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
-  actionTile: { width: '48%', minHeight: 118, borderRadius: 20, borderWidth: 1, padding: 14, marginBottom: 12 },
-  actionIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  actionTile: { width: '48%', minHeight: 118, borderRadius: 22, borderWidth: 1, padding: 14, marginBottom: 12, shadowOffset: { width: 0, height: 6 } },
+  actionIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   actionTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
   actionSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
-  pill: { paddingHorizontal: 15, paddingVertical: 10, borderRadius: 30, marginRight: 8 },
+  pill: { paddingHorizontal: 15, paddingVertical: 10, borderRadius: 30, marginRight: 8, shadowOffset: { width: 0, height: 3 } },
   pillText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   celebrationLayer: { ...StyleSheet.absoluteFill, zIndex: 30, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   confettiPiece: { position: 'absolute', top: '50%', left: '50%', width: 8, height: 13, borderRadius: 3, marginLeft: -4, marginTop: -6 },
