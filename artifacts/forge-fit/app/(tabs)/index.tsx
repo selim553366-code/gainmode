@@ -11,7 +11,7 @@ import { getMealsForRange } from '@/lib/nutritionDates';
 import { getCurrentStreak } from '@/lib/streak';
 import { getWorkoutForDate } from '@/lib/workoutPlan';
 import { badgeText, badgeUi } from '@/lib/badges';
-import { AnimatedNumber, Card, Header, Metric, PremiumAccessStatusModal, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
+import { AnimatedNumber, Card, Header, Metric, PremiumAccessStatusModal, PremiumOfferModal, Screen, SectionTitle, triggerHaptic } from '@/components/FitUI';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
   const level = React.useRef(new Animated.Value(0)).current;
@@ -97,8 +97,8 @@ export default function TodayScreen() {
     { protein: 0, carbs: 0, fat: 0 },
   );
   const calorieProgress = calorieGoal ? calories / calorieGoal : 0;
-  const heroInk = '#0A1D33';
-  const heroMuted = '#355A74';
+  const heroInk = colors.heroInk;
+  const heroMuted = colors.heroMuted;
 
   return (
     <Screen bottomPadding={120}>
@@ -119,21 +119,43 @@ export default function TodayScreen() {
               }
             : undefined
         }
-        streak={streak}
-        streakLabel={t('streak')}
-        featureLabel={badgeText(badgeUi.title, language)}
-        featureAction={() => router.push('/badges')}
         showText={false}
       />
 
       <View style={styles.homeContent}>
         <LinearGradient
-          colors={['#79CEF3', '#68BDEB']}
+          colors={[colors.heroBackgroundStart, colors.heroBackgroundEnd]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.heroCard, { borderColor: '#A8E1FA', shadowColor: colors.blue }]}
+          style={[styles.heroCard, { borderColor: colors.heroBorder, shadowColor: colors.blue }]}
         >
-          <View style={[styles.heroAccent, { backgroundColor: '#FFFFFF18' }]} />
+          <View style={[styles.heroAccent, { backgroundColor: `${colors.heroAccent}18` }]} />
+          <View style={styles.heroMetaRow}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={badgeText(badgeUi.title, language)}
+              onPress={() => {
+                triggerHaptic();
+                router.push('/badges');
+              }}
+              style={({ pressed }) => [
+                styles.heroBadgePill,
+                {
+                  backgroundColor: `${colors.heroAccent}24`,
+                  borderColor: `${colors.heroAccent}55`,
+                  opacity: pressed ? 0.72 : 1,
+                },
+              ]}
+            >
+              <Ionicons name="sparkles-outline" size={14} color={heroInk} />
+              <Text numberOfLines={1} style={[styles.heroBadgeText, { color: heroInk }]}>{badgeText(badgeUi.title, language)}</Text>
+            </Pressable>
+            <View style={[styles.heroStreakPill, { backgroundColor: `${colors.orange}22`, borderColor: `${colors.orange}65` }]}>
+              <Ionicons name="flame" size={14} color={colors.orange} />
+              <Text style={[styles.heroStreakValue, { color: colors.orange }]}>{streak}</Text>
+              <Text style={[styles.heroStreakLabel, { color: colors.orange }]}>{t('streak')}</Text>
+            </View>
+          </View>
           <CalorieProgressFill progress={calorieProgress} color={heroInk} />
 
           <View style={styles.homeGreeting}>
@@ -143,7 +165,7 @@ export default function TodayScreen() {
               </Text>
               <Text style={[styles.homeGreetingSubtitle, { color: heroMuted }]}>{t('ready')}</Text>
             </View>
-            <View style={[styles.todayMark, { backgroundColor: '#FFFFFF35' }]}>
+            <View style={[styles.todayMark, { backgroundColor: `${colors.heroAccent}35` }]}>
               <Ionicons name="sunny-outline" size={18} color={heroInk} />
             </View>
           </View>
@@ -181,18 +203,18 @@ export default function TodayScreen() {
             style={({ pressed }) => [
               styles.heroPhotoAction,
               {
-                backgroundColor: '#0A2038EB',
-                borderColor: '#183B58',
+                backgroundColor: `${colors.heroActionBackground}EB`,
+                borderColor: colors.heroActionBorder,
                 opacity: pressed ? 0.72 : 1,
                 transform: [{ scale: pressed ? 0.985 : 1 }],
               },
             ]}
           >
-            <View style={[styles.heroPhotoActionIcon, { backgroundColor: '#74C9F033' }]}>
-              <Ionicons name="camera-outline" size={17} color="#7FD4FA" />
+            <View style={[styles.heroPhotoActionIcon, { backgroundColor: `${colors.heroActionIconBackground}33` }]}>
+              <Ionicons name="camera-outline" size={17} color={colors.heroActionForeground} />
             </View>
-            <Text style={[styles.heroPhotoActionText, { color: '#8EDBFA' }]}>{t('analyzeMealPhoto')}</Text>
-            <Ionicons name="arrow-forward" size={16} color="#8EDBFA" />
+            <Text style={[styles.heroPhotoActionText, { color: colors.heroActionForeground }]}>{t('analyzeMealPhoto')}</Text>
+            <Ionicons name="arrow-forward" size={16} color={colors.heroActionForeground} />
           </Pressable>
         </LinearGradient>
 
@@ -291,6 +313,41 @@ const styles = StyleSheet.create({
     right: -78,
     top: -74,
   },
+  heroMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 16,
+  },
+  heroBadgePill: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 40,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroBadgeText: {
+    flex: 1,
+    fontFamily: 'Inter_700Bold',
+    fontSize: 10,
+    letterSpacing: 0.15,
+  },
+  heroStreakPill: {
+    minHeight: 40,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  heroStreakValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  heroStreakLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   homeGreeting: {
     flexDirection: 'row',
     alignItems: 'center',
