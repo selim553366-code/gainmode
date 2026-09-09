@@ -8,7 +8,7 @@ import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey } from '@/lib/nutritionDates';
 import { addStreakActivity, getCurrentStreak, normalizeStreakDates } from '@/lib/streak';
 import { badges, type BadgeMetric } from '@/lib/badges';
-import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
+import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, getWorkoutIntensity, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
 import { TEST_PREMIUM_PROMO_STORAGE_KEY } from '@/lib/testPremiumPromo';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
@@ -233,7 +233,7 @@ function calculateNutritionGoals(profile: Profile, workouts: Workout[]) {
 export function createGoalProjection(profile: Profile, calorieGoal: number, workouts: Workout[], targetWeight = profile.targetWeight ?? recommendTargetWeight(profile)): GoalProjection {
   const direction: GoalProjection['direction'] = targetWeight < profile.weight ? 'loss' : targetWeight > profile.weight ? 'gain' : 'maintain';
   const weeklyWorkoutMinutes = workouts.reduce((total, workout) => total + workout.duration, 0);
-  const workoutIntensity = profile.equipment === 'gym' ? 6.5 : profile.equipment === 'home' ? 5.5 : 5;
+  const workoutIntensity = getWorkoutIntensity(profile);
   const dailyWorkoutCalories = (weeklyWorkoutMinutes * workoutIntensity) / 7;
   const energyGap = estimateMaintenanceCalories(profile) + dailyWorkoutCalories - calorieGoal;
   const dailyCalorieGap = Math.round(Math.abs(energyGap));

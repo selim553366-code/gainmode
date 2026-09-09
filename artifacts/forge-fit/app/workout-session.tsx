@@ -10,7 +10,7 @@ import { ExerciseFormGuide, hasExerciseFormGuide } from '@/components/ExerciseFo
 import { useFit } from '@/context/FitContext';
 import { useColors } from '@/hooks/useColors';
 import { translate, type TranslationKey } from '@/lib/i18n';
-import type { MuscleGroup } from '@/lib/workoutPlan';
+import { estimateExerciseCalories, type MuscleGroup } from '@/lib/workoutPlan';
 
 type BodySide = 'front' | 'back';
 const MUSCLE_TAP_HINT_SEEN_KEY = 'gainmode-muscle-tap-hint-seen';
@@ -62,7 +62,7 @@ export default function WorkoutSessionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { workoutId } = useLocalSearchParams<{ workoutId?: string }>();
-  const { language, workouts, toggleExercise } = useFit();
+  const { language, profile, workouts, toggleExercise } = useFit();
   const workout = workouts.find((item) => item.id === workoutId);
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const label = (value: string) => translate(language, value as Parameters<typeof translate>[1]) || value;
@@ -87,6 +87,7 @@ export default function WorkoutSessionScreen() {
     ? workout.exercises.filter((exercise) => (exercise.muscleGroup ?? 'other') === selectedMuscle)
     : [];
   const completedCount = workout?.exercises.filter((exercise) => exercise.completed).length ?? 0;
+  const exerciseCalories = workout ? estimateExerciseCalories(workout, profile ?? undefined) : 0;
 
   React.useEffect(() => {
     listAnimation.setValue(0);
@@ -229,6 +230,7 @@ export default function WorkoutSessionScreen() {
               <View style={styles.exerciseMeta}>
                 <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}><Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.sets} {t('sets')}</Text></View>
                 <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}><Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.reps} {t('repetitions')}</Text></View>
+                 <View accessibilityLabel={`${label(exercise.name)}: ${exerciseCalories} ${t('caloriesShort')}`} style={[styles.metaPill, styles.calorieMetaPill, { backgroundColor: `${colors.orange}18` }]}><Ionicons name="flame-outline" size={11} color={colors.orange} /><Text style={[styles.metaText, { color: colors.orange }]}>{exerciseCalories} {t('caloriesShort')}</Text></View>
               </View>
               {hasExerciseFormGuide(exercise.name) ? <Pressable accessibilityRole="button" accessibilityLabel={t('exerciseFormShow')} onPress={() => setGuideExercise(exercise.name)} style={styles.formGuideButton}>
                 <Ionicons name="eye-outline" size={14} color={colors.primary} />
@@ -297,6 +299,7 @@ const styles = StyleSheet.create({
   completedText: { textDecorationLine: 'line-through', opacity: 0.7 },
   exerciseMeta: { flexDirection: 'row', gap: 6, marginTop: 8 },
   metaPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4 },
+  calorieMetaPill: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   metaText: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
   formGuideButton: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, alignSelf: 'flex-start' },
   formGuideButtonText: { fontFamily: 'Inter_700Bold', fontSize: 10 },

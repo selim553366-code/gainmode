@@ -14,6 +14,8 @@ import { Card, ForgeFitMark, Header, ProgressBar, Screen, SectionTitle } from '@
 import { DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { getAiClientId } from '@/lib/aiUsage';
+import { calculateCalorieProgress, calculateNetCalories, calculateRemainingCalories } from '@/lib/nutritionCalories';
+import { estimateWorkoutCalories, getWorkoutForDate } from '@/lib/workoutPlan';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const formatNutrition = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -141,7 +143,7 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
 
 export default function NutritionScreen() {
   const colors = useColors();
-  const { language, meals, savedMeals, calorieGoal, proteinGoal, carbsGoal, fatGoal, addMeal, removeMeal, addSavedMeal, removeSavedMeal, photoAnalysesUsed, incrementPhotoUsage } = useFit();
+  const { language, meals, savedMeals, calorieGoal, proteinGoal, carbsGoal, fatGoal, profile, workouts, addMeal, removeMeal, addSavedMeal, removeSavedMeal, photoAnalysesUsed, incrementPhotoUsage } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { openCamera } = useLocalSearchParams<{ openCamera?: string }>();
   const [search, setSearch] = React.useState('');
@@ -172,6 +174,11 @@ export default function NutritionScreen() {
     carbs: totals.carbs + meal.carbs,
     fat: totals.fat + meal.fat,
   }), { protein: 0, carbs: 0, fat: 0 });
+  const todaysWorkout = getWorkoutForDate(workouts);
+  const exerciseCalories = todaysWorkout ? estimateWorkoutCalories(todaysWorkout, profile ?? undefined) : 0;
+  const netCalories = calculateNetCalories(calories, exerciseCalories);
+  const calorieProgress = calculateCalorieProgress(calorieGoal, netCalories);
+  const remainingCalories = calculateRemainingCalories(calorieGoal, netCalories);
 
   React.useEffect(() => {
     const timeout = setTimeout(() => setDebouncedSearch(normalizedSearch), 350);
@@ -316,9 +323,18 @@ export default function NutritionScreen() {
   return <Screen>
     <Header eyebrow="Fuel / 01" title={t('nutritionTitle')} subtitle={t('nutritionSubtitle')} action="ellipsis-horizontal" onAction={() => Alert.alert(t('nutrition'), t('premiumDesc'))} />
     <Card style={styles.summaryCard}>
-      <View style={styles.summaryTop}><View><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('calories')}</Text><Text style={[styles.summaryNumber, { color: colors.foreground }]}>{calories.toLocaleString()} <Text style={styles.summaryUnit}>{t('caloriesShort')}</Text></Text></View><View style={[styles.summaryBadge, { backgroundColor: `${colors.success}22` }]}><Ionicons name="checkmark-circle" size={15} color={colors.success} /><Text style={[styles.badgeText, { color: colors.success }]}>{calorieGoal ? `${Math.round((calories / calorieGoal) * 100)}%` : '—'}</Text></View></View>
-      <ProgressBar value={calorieGoal ? calories / calorieGoal : 0} />
-      <View style={styles.summaryFooter}><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('remaining')}</Text><Text style={[styles.footerValue, { color: colors.foreground }]}>{calorieGoal ? `${Math.max(calorieGoal - calories, 0)} ${t('caloriesShort')}` : '—'}</Text></View>
+       <View style={styles.summaryTop}><View><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('calories')}</Text><Text style={[styles.summaryNumber, { color: colors.foreground }]}>{calories.toLocaleString()} <Text style={styles.summaryUnit}>{t('caloriesShort')}</Text></Text></View><View style={[styles.summaryBadge, { backgroundColor: `${colors.success}22` }]}><Ionicons name="checkmark-circle" size={15} color={colors.success} /><Text style={[styles.badgeText, { color: colors.success }]}>{calorieGoal ? `${Math.round((netCalories / calorieGoal) * 100)}%` : '—'}</Text></View></View>
+       <ProgressBar value={calorieProgress} />
+       <View style={[styles.exerciseCaloriesRow, { borderTopColor: colors.border }]}>
+         <View style={[styles.exerciseCaloriesIcon, { backgroundColor: `${colors.orange}20` }]}><Ionicons name="flame-outline" size={17} color={colors.orange} /></View>
+         <View style={styles.exerciseCaloriesCopy}>
+           <Text style={[styles.exerciseCaloriesTitle, { color: colors.foreground }]}>{t('exerciseCalories')}</Text>
+           <Text style={[styles.exerciseCaloriesHint, { color: colors.mutedForeground }]}>{todaysWorkout ? t('exerciseCaloriesEstimate') : t('noWorkoutToday')}</Text>
+         </View>
+         <Text style={[styles.exerciseCaloriesValue, { color: colors.orange }]}>−{exerciseCalories} {t('caloriesShort')}</Text>
+       </View>
+       <View style={[styles.summaryFooter, styles.netCaloriesFooter, { borderTopColor: colors.border }]}><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('netCalories')}</Text><Text style={[styles.footerValue, { color: colors.foreground }]}>{netCalories} {t('caloriesShort')}</Text></View>
+       <View style={styles.summaryFooter}><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('remaining')}</Text><Text style={[styles.footerValue, { color: colors.foreground }]}>{remainingCalories === null ? '—' : `${remainingCalories} ${t('caloriesShort')}`}</Text></View>
       <View style={[styles.macroTargets, { borderTopColor: colors.border }]}>
         <Text style={[styles.macroTargetsTitle, { color: colors.foreground }]}>{t('dailyTargets')}</Text>
         {[
@@ -482,6 +498,13 @@ const styles = StyleSheet.create({
   badgeText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   summaryFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 11 },
   footerValue: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  exerciseCaloriesRow: { borderTopWidth: 1, marginTop: 15, paddingTop: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  exerciseCaloriesIcon: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  exerciseCaloriesCopy: { flex: 1 },
+  exerciseCaloriesTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  exerciseCaloriesHint: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 3 },
+  exerciseCaloriesValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  netCaloriesFooter: { borderTopWidth: 1, paddingTop: 11, marginTop: 12 },
   scanText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   scannerScreen: { flex: 1, justifyContent: 'center', overflow: 'hidden' },
   camera: { flex: 1 },

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { addExerciseToPlan, buildWorkoutPlan, buildWorkoutPlanForCycle, dumbbellExerciseKeys, getWorkoutForDate, getWeekdayKey, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete } from '../lib/workoutPlan.ts';
+import { addExerciseToPlan, buildWorkoutPlan, buildWorkoutPlanForCycle, dumbbellExerciseKeys, estimateExerciseCalories, estimateWorkoutCalories, getWorkoutCompletionRatio, getWorkoutForDate, getWeekdayKey, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete } from '../lib/workoutPlan.ts';
 
 const profile = (overrides = {}) => ({
   equipment: 'bodyweight',
@@ -259,6 +259,27 @@ test('marks a workout cycle complete only when every workout is complete', () =>
     ...workout,
     exercises: workout.exercises.map((exercise) => ({ ...exercise, completed: true })),
   }))), true);
+});
+
+test('estimates workout calories from duration, equipment intensity, and completed exercises', () => {
+  const workout = buildWorkoutPlan(profile({ equipment: 'gym', trainingDays: 2, sessionDuration: 40 }))[0];
+  const completedCount = Math.ceil(workout.exercises.length / 2);
+  const partialWorkout = {
+    ...workout,
+    exercises: workout.exercises.map((exercise, index) => ({ ...exercise, completed: index < completedCount })),
+  };
+
+  assert.equal(getWorkoutCompletionRatio(partialWorkout), completedCount / workout.exercises.length);
+  assert.equal(estimateWorkoutCalories(partialWorkout, profile({ equipment: 'gym' })), Math.round(40 * 6.5 * (completedCount / workout.exercises.length)));
+  assert.equal(estimateWorkoutCalories({ ...workout, exercises: workout.exercises.map((exercise) => ({ ...exercise, completed: true })) }, profile({ equipment: 'bodyweight' })), 40 * 5);
+});
+
+test('allocates the planned workout burn across each exercise', () => {
+  const workout = buildWorkoutPlan(profile({ equipment: 'home', trainingDays: 2, sessionDuration: 40 }))[0];
+  const expected = Math.max(1, Math.round((40 * 5.5) / workout.exercises.length));
+
+  assert.equal(estimateExerciseCalories(workout, profile({ equipment: 'home' })), expected);
+  assert.equal(estimateExerciseCalories({ ...workout, exercises: [] }, profile({ equipment: 'home' })), 0);
 });
 
 test('restores individual exercise completion after a persisted round-trip', () => {

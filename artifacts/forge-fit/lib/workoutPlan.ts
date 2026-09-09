@@ -25,6 +25,30 @@ export function getWorkoutForDate(workouts: Workout[], date = new Date()) {
   return workouts.find((workout) => workout.day === day);
 }
 
+export function getWorkoutCompletionRatio(workout: Workout) {
+  if (workout.exercises.length === 0) return 0;
+  return workout.exercises.filter((exercise) => Boolean(exercise.completed)).length / workout.exercises.length;
+}
+
+export function getWorkoutIntensity(profile?: Pick<Profile, 'equipment'>) {
+  return profile?.equipment === 'gym' ? 6.5 : profile?.equipment === 'home' ? 5.5 : 5;
+}
+
+/**
+ * Estimate active workout calories from planned duration and completed exercises.
+ * The intensity values match the goal projection calculation.
+ */
+export function estimateWorkoutCalories(workout: Workout, profile?: Pick<Profile, 'equipment'>) {
+  const duration = Number.isFinite(workout.duration) ? Math.max(0, workout.duration) : 0;
+  return Math.round(duration * getWorkoutIntensity(profile) * getWorkoutCompletionRatio(workout));
+}
+
+export function estimateExerciseCalories(workout: Workout, profile?: Pick<Profile, 'equipment'>) {
+  if (workout.exercises.length === 0) return 0;
+  const duration = Number.isFinite(workout.duration) ? Math.max(0, workout.duration) : 0;
+  return Math.max(1, Math.round((duration * getWorkoutIntensity(profile)) / workout.exercises.length));
+}
+
 type ExerciseLibrary = Record<MuscleGroup, TranslationKey[]>;
 
 const bodyweightLibrary: ExerciseLibrary = {
