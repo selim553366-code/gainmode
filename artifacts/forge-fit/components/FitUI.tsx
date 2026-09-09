@@ -68,7 +68,7 @@ export function Header({ eyebrow, title, subtitle, action, actionLogo = false, o
       <Text style={[styles.title, { color: headingColor }]}>{title}</Text>
       {subtitle ? <Text style={[styles.subtitle, { color: supportingColor }]}>{subtitle}</Text> : null}
     </View> : null}
-    {brandMark ? <View accessibilityLabel="Forge Fit" style={styles.headerBrand}><ForgeFitMark size={38} /></View> : null}
+    {brandMark ? <View accessibilityLabel="GainMode" style={styles.headerBrand}><Text style={[styles.headerBrandWordmark, { color: colors.foreground }]}>GAINMODE<Text style={styles.headerBrandTrademark}>™</Text></Text></View> : null}
     <View style={[styles.headerActions, centered ? styles.headerActionsCentered : null]}>
       {streak !== undefined ? <View accessibilityLabel={`${streak} ${streakLabel ?? ''}`} style={[styles.streakPill, { backgroundColor: `${colors.orange}20`, borderColor: `${colors.orange}55` }]}><Ionicons name="flame" size={15} color={colors.orange} /><Text style={[styles.streakValue, { color: colors.orange }]}>{streak}</Text>{streakLabel ? <Text style={[styles.streakLabel, { color: colors.orange }]}>{streakLabel}</Text> : null}</View> : null}
       {featureLabel && featureAction ? <Pressable accessibilityRole="button" accessibilityLabel={featureLabel} onPress={() => { triggerHaptic(); featureAction(); }} style={({ pressed }) => [styles.featurePill, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="sparkles-outline" size={14} color={colors.primary} /><Text style={[styles.featurePillText, { color: colors.primary }]}>{featureLabel}</Text></Pressable> : null}
@@ -438,7 +438,9 @@ export const styles = StyleSheet.create({
   headerTextCentered: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 0 },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerActionsCentered: { position: 'absolute', right: 0, top: 0, zIndex: 2 },
-  headerBrand: { width: 44, height: 44, alignItems: 'flex-start', justifyContent: 'center', zIndex: 1 },
+  headerBrand: { width: 128, height: 44, alignItems: 'flex-start', justifyContent: 'center', zIndex: 1 },
+  headerBrandWordmark: { fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 2.5 },
+  headerBrandTrademark: { fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 10, position: 'relative', top: -3 },
   streakPill: { minHeight: 44, borderRadius: 15, borderWidth: 1, paddingHorizontal: 9, flexDirection: 'row', alignItems: 'center', gap: 4 },
   streakValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   streakLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
