@@ -449,7 +449,7 @@ export default function CoachScreen() {
          renderItem={({ item }) => <View
           style={[styles.messageRow, item.from === 'user' ? styles.userMessageRow : styles.coachMessageRow]}
          >
-            {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={styles.messageAvatar} /> : null}
+            {item.from === 'coach' ? <View style={styles.messageAvatarShell}><Image accessibilityLabel={t('coachTitle')} source={require('@/assets/images/coach-app-icon-final.png')} resizeMode="cover" style={styles.messageAvatar} /></View> : null}
            <View style={styles.messageContent}>
                   {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : <><View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text> : null}</View>{item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: colors.card }]}><Image accessibilityLabel={t('coachWelcomeGifLabel')} source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} /></View> : null}</>}
                  {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.actionTitle, { color: colors.foreground }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: colors.foreground }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: colors.border, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.foreground }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
@@ -498,15 +498,16 @@ const styles = StyleSheet.create({
   chatWrap: { flex: 1, minHeight: 0 },
   messagesList: { flex: 1, minHeight: 0 },
   messageList: { paddingVertical: 20, gap: 16 },
-  messageRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+   messageRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
   coachMessageRow: { alignSelf: 'flex-start', maxWidth: '90%' },
   userMessageRow: { alignSelf: 'flex-end', maxWidth: '90%' },
-  messageContent: { flex: 1, minWidth: 0 },
+   messageContent: { flex: 1, minWidth: 0, gap: 10 },
   weeklyMessageCard: { minWidth: 255, maxWidth: '100%', borderRadius: 24, borderWidth: 1, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
   weeklyMessageIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   weeklyMessageLabel: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   weeklyMessageHint: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 3 },
-  messageAvatar: { width: 30, height: 30, borderRadius: 15, marginTop: 2 },
+   messageAvatarShell: { width: 38, height: 38, borderRadius: 19, marginTop: 2, padding: 2, backgroundColor: '#173A73', overflow: 'hidden' },
+   messageAvatar: { width: '100%', height: '100%', borderRadius: 17 },
   bubble: { maxWidth: '92%', paddingHorizontal: 18, paddingVertical: 14, borderRadius: 24 },
   userBubble: { borderBottomRightRadius: 8 },
   coachBubble: { borderTopLeftRadius: 8, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
@@ -525,7 +526,7 @@ const styles = StyleSheet.create({
   ratingStatus: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 5 },
   ratingThanks: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 8 },
   messageImage: { width: 190, height: 145, borderRadius: 12, marginBottom: 7 },
-  welcomeGifCard: { width: 238, borderRadius: 19, overflow: 'hidden' },
+   welcomeGifCard: { width: 238, borderRadius: 19, overflow: 'hidden', marginTop: 2 },
   welcomeGif: { width: 238, height: 178, borderRadius: 19 },
   bubbleText: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22 },
   typingBubble: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 24, borderTopLeftRadius: 8, paddingHorizontal: 18, paddingVertical: 14, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
