@@ -1,9 +1,11 @@
 import type { Meal, Profile, Workout } from '@/context/FitContext';
 import { getWeeklySummary, type WeeklySummary } from '@/lib/weeklyAnalysis';
 import { getMealsForRange, localDateKey, mealDateKey } from '@/lib/nutritionDates';
+import { buildCoachBaseline } from '@/lib/coachPersonalization';
 
 type CoachContextInput = {
   message: string;
+  conversation?: { role: 'coach' | 'user'; content: string }[];
   username: string | null;
   profile: Profile | null;
   meals: Meal[];
@@ -75,9 +77,7 @@ export function buildCoachContext(input: CoachContextInput) {
   const includeProgress = wantsProgress || message.toLocaleLowerCase().includes('weekly') || message.includes('haftalık') || message.toLocaleLowerCase().includes('hebdo');
   const includeFullProfile = wantsProfile || wantsMutation;
   const includeTargets = includeFullProfile || includeNutrition || includeProgress;
-  const context: Record<string, unknown> = {
-    username: input.username,
-  };
+  const context = buildCoachBaseline(input);
 
   if (includeFullProfile) {
     context.profile = input.profile;

@@ -269,6 +269,10 @@ export default function CoachScreen() {
     }
     const context = buildCoachContext({
       message: prompt,
+      conversation: messages
+        .filter((item) => Boolean(item.text) && !item.media && !item.variant)
+        .slice(-6)
+        .map((item) => ({ role: item.from, content: item.text })),
       username,
       profile,
       meals,

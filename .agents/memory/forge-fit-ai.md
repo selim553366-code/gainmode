@@ -9,6 +9,12 @@ Forge Fit keeps onboarding profile, generated targets, workout plan, meal log, u
 
 **How to apply:** Keep new AI features behind the existing premium/usage checks and include the current profile plus app records in coach context.
 
+Every coach request must include a compact baseline user summary, whether a workout plan exists, its schedule-level overview, and the recent conversation; detailed nutrition, workout, and progress records remain intent-gated.
+
+**Why:** Greetings and vague follow-ups otherwise make FitBud appear to forget the user or invent a replacement program because only the current message is visible.
+
+**How to apply:** Treat greetings as conversation only, ask one clarifying question for ambiguous requests, and never create or replace a program unless the user explicitly asks.
+
 GPT-5 mini needs a generous completion budget for internal reasoning; keep short-answer behavior in the system prompt instead of using a very low token cap.
 
 **Why:** An overly small `max_completion_tokens` value can consume the model's reasoning budget and return an empty visible answer, which the client surfaces as a generic failure.
