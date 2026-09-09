@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
 import { useFit } from '@/context/FitContext';
@@ -97,7 +97,7 @@ export default function PlanScreen() {
   if (workouts.length === 0) return <Screen><Header eyebrow={t('planEyebrow')} title={t('planTitle')} subtitle={t('planSubtitle')} /><EmptyState icon="barbell-outline" title={t('noWorkout')} text={t('createPlan')} /></Screen>;
   return <View style={[styles.page, { backgroundColor: colors.background }]}>
     <Screen>
-      <Header eyebrow={t('planEyebrow')} title={t('planTitle')} subtitle={t('planSubtitle')} action="options-outline" onAction={() => Alert.alert(t('edit'), t('planSubtitle'))} />
+       <Header eyebrow={t('planEyebrow')} title={t('planTitle')} subtitle={t('planSubtitle')} />
        <View style={[styles.weekTable, { backgroundColor: colors.card, borderColor: colors.border }]}>
          <View style={styles.weekTableHeader}>
            <View>

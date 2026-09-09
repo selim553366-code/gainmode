@@ -406,9 +406,6 @@ export default function CoachScreen() {
          <Text style={[styles.referenceTitle, { color: colors.foreground }]}>{t('coachTitle')}</Text>
          <Text style={[styles.referenceSubtitle, { color: colors.mutedForeground }]}>{t('coachSubtitle')}</Text>
       </View>
-       <Pressable testID="header-action" accessibilityRole="button" accessibilityLabel={t('coachTitle')} onPress={() => undefined} style={({ pressed }) => [styles.referenceHeaderAction, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}>
-         <Ionicons name="chatbubble-ellipses-outline" size={25} color={colors.primaryForeground} />
-      </Pressable>
     </View>
     <View pointerEvents="none" style={styles.analysisFlightLayer}>
       <Animated.View style={[styles.analysisFlightCard, { backgroundColor: colors.primaryForeground, opacity: weeklyCardReveal.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.9, 0] }), transform: [{ translateX: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 20 - (screenSize.width / 2 - 130)] }) }, { translateY: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, chatOriginY + 42 - (screenSize.height - 220)] }) }, { scale: weeklyCardReveal.interpolate({ inputRange: [0, 0.75, 1], outputRange: [1, 0.84, 0.68] }) }] }]}><Ionicons name="sparkles" size={16} color={colors.primary} /><Text style={[styles.analysisFlightText, { color: colors.primary }]}>{t('weeklyAnalysisReading')}</Text></Animated.View>
@@ -481,7 +478,6 @@ const styles = StyleSheet.create({
   referenceEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 2.4, lineHeight: 16 },
   referenceTitle: { fontFamily: 'Inter_700Bold', fontSize: 34, lineHeight: 40, marginTop: 8, letterSpacing: -1 },
   referenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 17, lineHeight: 23, marginTop: 2, maxWidth: 310 },
-  referenceHeaderAction: { width: 52, height: 52, borderRadius: 19, alignItems: 'center', justifyContent: 'center', marginTop: 0 },
   caption: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
   limit: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   limitNumber: { fontFamily: 'Inter_700Bold', fontSize: 18 },
