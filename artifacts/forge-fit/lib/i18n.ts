@@ -1527,26 +1527,31 @@ const coachRatingTranslations = {
 const coachAtmosphereTranslations = {
   tr: {
     coachAtmospherePreview: 'Arka plan önizlemesi',
+    coachAtmosphereDay: 'Gündüz',
     coachAtmosphereNormal: 'Normal',
-    coachAtmosphereNight: 'Akşam',
+    coachAtmosphereNight: 'Gece',
   },
   en: {
     coachAtmospherePreview: 'Background preview',
+    coachAtmosphereDay: 'Day',
     coachAtmosphereNormal: 'Normal',
-    coachAtmosphereNight: 'Evening',
+    coachAtmosphereNight: 'Night',
   },
   de: {
     coachAtmospherePreview: 'Hintergrundvorschau',
+    coachAtmosphereDay: 'Tag',
     coachAtmosphereNormal: 'Normal',
-    coachAtmosphereNight: 'Abend',
+    coachAtmosphereNight: 'Nacht',
   },
   fr: {
     coachAtmospherePreview: 'Aperçu de l’arrière-plan',
+    coachAtmosphereDay: 'Jour',
     coachAtmosphereNormal: 'Normal',
-    coachAtmosphereNight: 'Soir',
+    coachAtmosphereNight: 'Nuit',
   },
   es: {
     coachAtmospherePreview: 'Vista previa del fondo',
+    coachAtmosphereDay: 'Día',
     coachAtmosphereNormal: 'Normal',
     coachAtmosphereNight: 'Noche',
   },

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert, Animated, Dimensions, Easing, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Dimensions, Easing, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Ionicons } from '@/components/AppIcon';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -190,7 +190,6 @@ export default function CoachScreen() {
   // Keep the restored first-reply rating flow separate from the previous
   // latest-message flow, so an old rating cannot hide the restored prompt.
   const ratingStorageKey = `forge-fit-coach-rating-v2-${ratingDateKey}`;
-  const tabBarBottomPadding = Math.max(insets.bottom, 10);
   React.useEffect(() => {
     const prompts = [t('coachPromptWeight'), t('coachPromptCalories')];
     let phraseIndex = 0;
@@ -239,29 +238,49 @@ export default function CoachScreen() {
   }, [ratingStorageKey]);
   React.useEffect(() => {
     let cancelled = false;
-    void AsyncStorage.getItem(COACH_MESSAGES_STORAGE_KEY).then((value) => {
+    void (async () => {
+      try {
+        const hasReset = await AsyncStorage.getItem(COACH_MESSAGES_RESET_KEY);
+        if (hasReset !== '1') {
+          await AsyncStorage.removeItem(COACH_MESSAGES_STORAGE_KEY);
+          await AsyncStorage.setItem(COACH_MESSAGES_RESET_KEY, '1');
+          if (!cancelled) setMessages([]);
+        } else {
+          const value = await AsyncStorage.getItem(COACH_MESSAGES_STORAGE_KEY);
+          const restoredMessages = parseStoredCoachMessages(value);
+          if (!cancelled) setMessages(restoredMessages ?? []);
+        }
+      } catch {
+        if (!cancelled) setMessages([]);
+      } finally {
+        if (!cancelled) setMessagesHydrated(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  React.useEffect(() => {
+    let cancelled = false;
+    void AsyncStorage.getItem(COACH_ATMOSPHERE_STORAGE_KEY).then((value) => {
       if (cancelled) return;
-      const restoredMessages = parseStoredCoachMessages(value);
-      if (restoredMessages && restoredMessages.length > 0) setMessages(restoredMessages);
-      setMessagesHydrated(true);
+      if (value === 'morning' || value === 'night') setAtmosphere(value);
+      setAtmosphereHydrated(true);
     }).catch(() => {
-      if (!cancelled) setMessagesHydrated(true);
+      if (!cancelled) setAtmosphereHydrated(true);
     });
     return () => {
       cancelled = true;
     };
   }, []);
   React.useEffect(() => {
+    if (!atmosphereHydrated) return;
+    void AsyncStorage.setItem(COACH_ATMOSPHERE_STORAGE_KEY, atmosphere).catch(() => undefined);
+  }, [atmosphere, atmosphereHydrated]);
+  React.useEffect(() => {
     if (!messagesHydrated) return;
     void AsyncStorage.setItem(COACH_MESSAGES_STORAGE_KEY, JSON.stringify(messages)).catch(() => undefined);
   }, [messages, messagesHydrated]);
-  React.useEffect(() => {
-    if (!messagesHydrated) return undefined;
-    const timeout = setTimeout(() => {
-      setMessages((current) => current.some((item) => item.id === 'welcome-gif') ? current : [...current, { id: 'welcome-gif', text: '', from: 'coach', media: 'welcomeGif' }]);
-    }, 1350);
-    return () => clearTimeout(timeout);
-  }, [messagesHydrated]);
   useFocusEffect(React.useCallback(() => {
     if (coachIntroPending) markCoachIntroSeen();
     coachReveal.setValue(0);
@@ -386,7 +405,7 @@ export default function CoachScreen() {
     };
   }, [analysisId, weeklyAnalysis, weeklyAnalysisUnlocked]);
   return <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
-     <CoachAtmosphereBackground colors={colors} reveal={coachReveal} />
+     <CoachAtmosphereBackground colors={colors} reveal={coachReveal} atmosphere={atmosphere} />
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.secondary, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
     <View style={styles.referenceHeader}>
       <View style={styles.referenceHeaderText}>
@@ -394,25 +413,29 @@ export default function CoachScreen() {
          <Text style={[styles.referenceTitle, { color: colors.foreground }]}>{t('coachTitle')}</Text>
          <Text style={[styles.referenceSubtitle, { color: colors.mutedForeground }]}>{t('coachSubtitle')}</Text>
       </View>
+       <View style={styles.atmospherePicker}>
+         <Pressable
+           accessibilityRole="button"
+           accessibilityLabel={t('coachAtmosphereDay')}
+           accessibilityState={{ selected: atmosphere === 'morning' }}
+           onPress={() => setAtmosphere('morning')}
+           style={({ pressed }) => [styles.atmosphereButton, { backgroundColor: atmosphere === 'morning' ? colors.primary : colors.card, borderColor: atmosphere === 'morning' ? colors.primary : colors.border, opacity: pressed ? 0.7 : 1 }]}
+         >
+           <Ionicons name="sunny-outline" size={17} color={atmosphere === 'morning' ? colors.primaryForeground : colors.foreground} />
+         </Pressable>
+         <Pressable
+           accessibilityRole="button"
+           accessibilityLabel={t('coachAtmosphereNight')}
+           accessibilityState={{ selected: atmosphere === 'night' }}
+           onPress={() => setAtmosphere('night')}
+           style={({ pressed }) => [styles.atmosphereButton, { backgroundColor: atmosphere === 'night' ? colors.primary : colors.card, borderColor: atmosphere === 'night' ? colors.primary : colors.border, opacity: pressed ? 0.7 : 1 }]}
+         >
+           <Ionicons name="moon-outline" size={17} color={atmosphere === 'night' ? colors.primaryForeground : colors.foreground} />
+         </Pressable>
+       </View>
     </View>
     <View pointerEvents="none" style={styles.analysisFlightLayer}>
       <Animated.View style={[styles.analysisFlightCard, { backgroundColor: colors.primaryForeground, opacity: weeklyCardReveal.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.9, 0] }), transform: [{ translateX: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 20 - (screenSize.width / 2 - 130)] }) }, { translateY: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, chatOriginY + 42 - (screenSize.height - 220)] }) }, { scale: weeklyCardReveal.interpolate({ inputRange: [0, 0.75, 1], outputRange: [1, 0.84, 0.68] }) }] }]}><Ionicons name="sparkles" size={16} color={colors.primary} /><Text style={[styles.analysisFlightText, { color: colors.primary }]}>{t('weeklyAnalysisReading')}</Text></Animated.View>
-    </View>
-    <View pointerEvents="none" style={styles.coachFlightLayer}>
-      <Animated.Image
-        source={require('@/assets/images/coach-tab-custom.jpeg')}
-        resizeMode="cover"
-        style={[styles.coachFlyingAvatar, {
-          left: flyingStartX,
-          top: flyingStartY,
-           opacity: coachReveal.interpolate({ inputRange: [0, 0.78, 0.96, 1], outputRange: [1, 1, 0.98, 0] }),
-          transform: [
-            { translateX: coachReveal.interpolate({ inputRange: [0, 1], outputRange: [0, flyingTargetX - flyingStartX] }) },
-            { translateY: coachReveal.interpolate({ inputRange: [0, 1], outputRange: [0, flyingTargetY - flyingStartY] }) },
-             { scale: coachReveal.interpolate({ inputRange: [0, 0.84, 1], outputRange: [1, 0.56, targetAvatarSize / flyingAvatarSize] }) },
-          ],
-        }]}
-      />
     </View>
     <KeyboardAvoidingView onLayout={({ nativeEvent }) => setChatOriginY(nativeEvent.layout.y)} style={styles.chatWrap} behavior="padding" keyboardVerticalOffset={0}>
       <FlatList
@@ -420,12 +443,11 @@ export default function CoachScreen() {
         data={messages}
         keyExtractor={(item) => item.id}
          renderItem={({ item }) => <View
-          onLayout={item.from === 'coach' && item.id === 'welcome' ? ({ nativeEvent }) => setCoachMessageOffsetY(nativeEvent.layout.y) : undefined}
           style={[styles.messageRow, item.from === 'user' ? styles.userMessageRow : styles.coachMessageRow]}
          >
-           {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.messageAvatar, { opacity: item.id === 'welcome' ? coachReveal.interpolate({ inputRange: [0, 0.84, 0.96, 1], outputRange: [0, 0, 0.42, 1] }) : 1 }]} /> : null}
+            {item.from === 'coach' ? <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={styles.messageAvatar} /> : null}
            <View style={styles.messageContent}>
-                {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : item.media === 'welcomeGif' ? <View style={styles.welcomeGifCard}><Image source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} accessibilityLabel={t('coachWelcomeGifLabel')} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text> : null}</View>}
+                 {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : <View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text> : null}</View>}
                  {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.actionTitle, { color: colors.foreground }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: colors.foreground }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: colors.border, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.foreground }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
                 {ratingLoaded && ratingTarget?.id === item.id && dailyRating === null ? <View style={[styles.ratingCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.ratingPrompt, { color: colors.foreground }]}>{t('coachRatingPrompt')}</Text><View style={styles.ratingStars}>{[1, 2, 3, 4, 5].map((value) => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} ${t('coachRatingStars')}`} disabled={ratingSending !== null} onPress={() => void rateCoachMessage(item, value)} style={({ pressed }) => [styles.ratingStar, { opacity: ratingSending !== null && ratingSending !== value ? 0.4 : pressed ? 0.65 : 1 }]}><Ionicons name="star" size={24} color={colors.orange} /></Pressable>)}</View>{ratingSending !== null ? <Text style={[styles.ratingStatus, { color: colors.mutedForeground }]}>{t('coachRatingSending')}</Text> : null}</View> : null}
                 {ratedMessageId === item.id ? <Text style={[styles.ratingThanks, { color: colors.success }]}>{t('coachRatingThanks')}</Text> : null}
@@ -456,13 +478,13 @@ const styles = StyleSheet.create({
   coachStarField: { ...StyleSheet.absoluteFill },
   coachStar: { position: 'absolute' },
   coachReveal: { position: 'absolute', width: 56, height: 56, borderRadius: 28, left: '50%', marginLeft: -28, bottom: 44, shadowColor: '#FFFFFF', shadowOpacity: 0.52, shadowRadius: 28, shadowOffset: { width: 0, height: 0 }, elevation: 14 },
-  coachFlightLayer: { ...StyleSheet.absoluteFill, zIndex: 4 },
   analysisFlightLayer: { ...StyleSheet.absoluteFill, zIndex: 5 },
   analysisFlightCard: { position: 'absolute', left: '50%', top: '100%', width: 260, marginLeft: -130, minHeight: 52, borderRadius: 17, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 9, shadowColor: '#000', shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
   analysisFlightText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
-  coachFlyingAvatar: { position: 'absolute', width: 72, height: 72, borderRadius: 36, shadowColor: '#FFFFFF', shadowOpacity: 0.28, shadowRadius: 18, shadowOffset: { width: 0, height: 0 }, elevation: 10 },
   referenceHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, paddingTop: 4, paddingBottom: 6 },
   referenceHeaderText: { flex: 1, minWidth: 0 },
+  atmospherePicker: { flexDirection: 'row', gap: 7, paddingTop: 2 },
+  atmosphereButton: { width: 36, height: 36, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   referenceEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 2.4, lineHeight: 16 },
   referenceTitle: { fontFamily: 'Inter_700Bold', fontSize: 34, lineHeight: 40, marginTop: 8, letterSpacing: -1 },
   referenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 17, lineHeight: 23, marginTop: 2, maxWidth: 310 },
