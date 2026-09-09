@@ -132,20 +132,29 @@ async function askOpenAiWithOptions(
   messages: unknown[],
   options: { maxCompletionTokens?: number; model: string },
 ) {
-  const response = await fetch(openAiUrl(), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? ""}`,
+  const lunaApiKey = process.env["LUNA_API_KEY"];
+  const lunaBaseUrl = process.env["LUNA_API_BASE_URL"];
+  const useLuna = Boolean(lunaApiKey && lunaBaseUrl);
+  const model = useLuna ? LUNA_MODEL : options.model;
+  const response = await fetch(
+    useLuna
+      ? `${lunaBaseUrl!.replace(/\/$/, "")}/chat/completions`
+      : openAiUrl(),
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${useLuna ? lunaApiKey : process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? ""}`,
+      },
+      body: JSON.stringify({ model, messages, max_completion_tokens: options.maxCompletionTokens ?? 1200 }),
     },
-    body: JSON.stringify({ model: options.model, messages, max_completion_tokens: options.maxCompletionTokens ?? 1200 }),
-  });
+  );
   if (!response.ok) throw new Error(`OpenAI request failed with ${response.status}.`);
   const payload = await response.json() as { choices?: { message?: { content?: string } }[]; usage?: OpenAiUsage };
   return {
     content: payload.choices?.[0]?.message?.content?.trim() ?? "",
     usage: payload.usage,
-    model: options.model,
+    model,
   };
 }
 
