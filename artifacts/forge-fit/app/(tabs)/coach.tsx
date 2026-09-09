@@ -24,6 +24,9 @@ type Message = CoachMessageRecord;
 type CoachApiResponse = { content?: string; actions?: unknown[] };
 type CoachAtmosphere = 'morning' | 'night';
 
+const COACH_ATMOSPHERE_STORAGE_KEY = 'forge-fit-coach-atmosphere-v1';
+const COACH_MESSAGES_RESET_KEY = 'forge-fit-coach-messages-reset-v2';
+
 const COACH_STARS = [
   { x: 9, y: 13, size: 2, delay: 0 },
   { x: 21, y: 27, size: 3, delay: 850 },
@@ -46,12 +49,6 @@ const COACH_STARS = [
   { x: 84, y: 80, size: 3, delay: 1060 },
   { x: 96, y: 66, size: 2, delay: 1980 },
 ] as const;
-
-function getCoachAtmosphere(date = new Date()): CoachAtmosphere {
-  const minutes = date.getHours() * 60 + date.getMinutes();
-  if (minutes >= 21 * 60 || minutes < 6 * 60) return 'night';
-  return 'morning';
-}
 
 function TwinklingStar({ star, color }: { star: (typeof COACH_STARS)[number]; color: string }) {
   const twinkle = React.useRef(new Animated.Value(0)).current;
@@ -79,10 +76,9 @@ function TwinklingStar({ star, color }: { star: (typeof COACH_STARS)[number]; co
   }]} />;
 }
 
-function CoachAtmosphereBackground({ colors, reveal }: { colors: ReturnType<typeof useColors>; reveal: Animated.Value }) {
-  const initialAtmosphere = React.useMemo(() => getCoachAtmosphere(), []);
-  const [atmosphere, setAtmosphere] = React.useState<CoachAtmosphere>(initialAtmosphere);
-  const [previousAtmosphere, setPreviousAtmosphere] = React.useState<CoachAtmosphere>(initialAtmosphere);
+function CoachAtmosphereBackground({ colors, reveal, atmosphere }: { colors: ReturnType<typeof useColors>; reveal: Animated.Value; atmosphere: CoachAtmosphere }) {
+  const [previousAtmosphere, setPreviousAtmosphere] = React.useState<CoachAtmosphere>(atmosphere);
+  const lastAtmosphere = React.useRef(atmosphere);
   const transition = React.useRef(new Animated.Value(1)).current;
   const ambientMotion = React.useRef(new Animated.Value(0)).current;
 
@@ -96,24 +92,21 @@ function CoachAtmosphereBackground({ colors, reveal }: { colors: ReturnType<type
   }, [ambientMotion]);
 
   React.useEffect(() => {
-    const transitionTo = (nextAtmosphere: CoachAtmosphere) => {
-      if (nextAtmosphere === atmosphere) return;
-      setPreviousAtmosphere(atmosphere);
-      setAtmosphere(nextAtmosphere);
-      transition.setValue(0);
-      Animated.timing(transition, {
-        toValue: 1,
-        duration: 90000,
-        easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) setPreviousAtmosphere(nextAtmosphere);
-      });
-    };
-    transitionTo(getCoachAtmosphere());
-    const checkAtmosphere = () => transitionTo(getCoachAtmosphere());
-    const interval = setInterval(checkAtmosphere, 60000);
-    return () => clearInterval(interval);
+    if (lastAtmosphere.current === atmosphere) return;
+    const previous = lastAtmosphere.current;
+    lastAtmosphere.current = atmosphere;
+    setPreviousAtmosphere(previous);
+    transition.setValue(0);
+    const animation = Animated.timing(transition, {
+      toValue: 1,
+      duration: 700,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: true,
+    });
+    animation.start(({ finished }) => {
+      if (finished) setPreviousAtmosphere(atmosphere);
+    });
+    return () => animation.stop();
   }, [atmosphere, transition]);
 
   const renderAtmosphere = (phase: CoachAtmosphere) => {
@@ -175,8 +168,10 @@ export default function CoachScreen() {
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { weeklyAnalysis, analysisId } = useLocalSearchParams<{ weeklyAnalysis?: string; analysisId?: string }>();
   const [text, setText] = useState('');
-  const [messages, setMessages] = useState<Message[]>(() => [{ id: 'welcome', text: t('coachWelcome'), from: 'coach' }]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [messagesHydrated, setMessagesHydrated] = useState(false);
+  const [atmosphere, setAtmosphere] = useState<CoachAtmosphere>('morning');
+  const [atmosphereHydrated, setAtmosphereHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [animatedPrompt, setAnimatedPrompt] = useState('');
   const [dailyRating, setDailyRating] = useState<number | null>(null);
@@ -184,25 +179,18 @@ export default function CoachScreen() {
   const [ratingSending, setRatingSending] = useState<number | null>(null);
   const [ratedMessageId, setRatedMessageId] = useState<string | null>(null);
   const [chatOriginY, setChatOriginY] = React.useState(0);
-  const [coachMessageOffsetY, setCoachMessageOffsetY] = React.useState(12);
   const inputRef = useRef<TextInput>(null);
   const coachReveal = useRef(new Animated.Value(0)).current;
   const weeklyCardReveal = useRef(new Animated.Value(0)).current;
   const lastAnalysisId = useRef<string | undefined>(undefined);
   const screenSize = Dimensions.get('window');
   const revealScale = Math.max(34, Math.ceil(Math.hypot(screenSize.width, screenSize.height) / 28));
-  const flyingAvatarSize = 72;
-  const targetAvatarSize = 30;
   const ratingDateKey = localDateKey();
   const weeklyAnalysisUnlocked = isWeeklyAnalysisUnlocked(registeredAt);
   // Keep the restored first-reply rating flow separate from the previous
   // latest-message flow, so an old rating cannot hide the restored prompt.
   const ratingStorageKey = `forge-fit-coach-rating-v2-${ratingDateKey}`;
   const tabBarBottomPadding = Math.max(insets.bottom, 10);
-  const flyingStartX = screenSize.width / 2 - flyingAvatarSize / 2;
-  const flyingStartY = screenSize.height - tabBarBottomPadding - 120;
-  const flyingTargetX = 20;
-  const flyingTargetY = chatOriginY + coachMessageOffsetY + 2;
   React.useEffect(() => {
     const prompts = [t('coachPromptWeight'), t('coachPromptCalories')];
     let phraseIndex = 0;
