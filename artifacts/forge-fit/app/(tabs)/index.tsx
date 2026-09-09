@@ -197,18 +197,18 @@ export default function TodayScreen() {
             style={({ pressed }) => [
               styles.heroPhotoAction,
               {
-                backgroundColor: `${colors.card}A8`,
-                borderColor: `${colors.primary}20`,
-                opacity: pressed ? 0.72 : 1,
+                backgroundColor: colors.primary,
+                borderColor: colors.primary,
+                opacity: pressed ? 0.82 : 1,
                 transform: [{ scale: pressed ? 0.985 : 1 }],
               },
             ]}
           >
-            <View style={[styles.heroPhotoActionIcon, { backgroundColor: `${colors.primary}16` }]}>
-              <Ionicons name="camera-outline" size={17} color={colors.primary} />
+            <View style={[styles.heroPhotoActionIcon, { backgroundColor: `${colors.primaryForeground}2B` }]}>
+              <Ionicons name="camera-outline" size={17} color={colors.primaryForeground} />
             </View>
-            <Text style={[styles.heroPhotoActionText, { color: colors.foreground }]}>{t('analyzeMealPhoto')}</Text>
-            <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+            <Text style={[styles.heroPhotoActionText, { color: colors.primaryForeground }]}>{t('analyzeMealPhoto')}</Text>
+            <Ionicons name="arrow-forward" size={16} color={colors.primaryForeground} />
           </Pressable>
         </LinearGradient>
 
