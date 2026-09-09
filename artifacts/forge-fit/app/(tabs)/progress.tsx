@@ -7,6 +7,7 @@ import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { getWeeklySummary, type WeightOutcome } from '@/lib/weeklyAnalysis';
+import { daysUntilWeeklyAnalysis, isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
 import { AnimatedNumber, Card, Header, Screen } from '@/components/FitUI';
 
 function formatChange(value: number | null) {
@@ -33,12 +34,14 @@ function StatTile({ icon, value, label, color }: { icon: React.ComponentProps<ty
 
 export default function ProgressScreen() {
   const colors = useColors();
-  const { language, weight, weightLogs, addWeight, profile, calorieGoal, meals, workouts } = useFit();
+  const { language, weight, weightLogs, addWeight, profile, calorieGoal, meals, workouts, registeredAt } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [draftWeight, setDraftWeight] = React.useState('');
   const [launching, setLaunching] = React.useState(false);
   const launchProgress = React.useRef(new Animated.Value(0)).current;
   const tracksWeight = Boolean(profile && profile.goal !== 'muscle');
+  const weeklyAnalysisUnlocked = isWeeklyAnalysisUnlocked(registeredAt);
+  const weeklyAnalysisDays = daysUntilWeeklyAnalysis(registeredAt);
   const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal, profile: profile ?? undefined });
   const points = weightLogs.filter((item) => item.date >= summary.weekStart).slice(-7);
   const maxPoint = Math.max(...points.map((item) => item.value), summary.currentWeightKg ?? 0, 1);
@@ -54,7 +57,7 @@ export default function ProgressScreen() {
   };
 
   const requestAnalysis = () => {
-    if (launching) return;
+    if (launching || !weeklyAnalysisUnlocked) return;
     setLaunching(true);
     Animated.timing(launchProgress, { toValue: 1, duration: 850, useNativeDriver: true }).start(({ finished }) => {
       if (finished) {
@@ -80,9 +83,9 @@ export default function ProgressScreen() {
           <View style={[styles.heroBadge, { backgroundColor: `${colors.primaryForeground}18`, borderColor: `${colors.primaryForeground}2C` }]}><Ionicons name={summary.weightOutcome === 'gained' ? 'trending-up-outline' : summary.weightOutcome === 'lost' ? 'trending-down' : 'analytics-outline'} size={28} color={colors.primaryForeground} /><Text style={[styles.heroBadgeText, { color: `${colors.primaryForeground}C2` }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View>
         </View> : <View style={styles.muscleFocus}><View style={[styles.muscleFocusIcon, { backgroundColor: `${colors.primaryForeground}18` }]}><Ionicons name="barbell-outline" size={26} color={colors.primaryForeground} /></View><View style={{ flex: 1 }}><Text style={[styles.heroLabel, { color: `${colors.primaryForeground}A8` }]}>{t('weeklyMuscleFocus')}</Text><Text style={[styles.muscleFocusText, { color: colors.primaryForeground }]}>{t('weeklyMuscleSubtitle')}</Text></View></View>}
         <Pressable testID="get-weekly-ai-analysis" accessibilityRole="button" accessibilityLabel={t('weeklyAnalysisCta')} onPress={requestAnalysis} style={({ pressed }) => [styles.analysisButton, { backgroundColor: colors.primaryForeground, opacity: pressed || launching ? 0.8 : 1 }]}>
-           <View style={[styles.analysisButtonIcon, { backgroundColor: `${colors.primary}24` }]}><Ionicons name={launching ? 'arrow-up' : 'trending-up-outline'} size={17} color={colors.primary} /></View>
-          <Text style={[styles.analysisButtonText, { color: colors.primary }]}>{launching ? t('weeklyAnalysisSending') : t('weeklyAnalysisCta')}</Text>
-          {!launching ? <Ionicons name="arrow-forward" size={17} color={colors.primary} /> : <Ionicons name="ellipsis-horizontal" size={17} color={colors.primary} />}
+           <View style={[styles.analysisButtonIcon, { backgroundColor: `${colors.primary}24` }]}><Ionicons name={launching ? 'arrow-up' : weeklyAnalysisUnlocked ? 'trending-up-outline' : 'badge-lock'} size={17} color={colors.primary} /></View>
+          <Text style={[styles.analysisButtonText, { color: colors.primary }]}>{launching ? t('weeklyAnalysisSending') : weeklyAnalysisUnlocked ? t('weeklyAnalysisCta') : t('weeklyAnalysisUnlockIn').replace('{days}', String(weeklyAnalysisDays))}</Text>
+          {!launching ? <Ionicons name={weeklyAnalysisUnlocked ? 'arrow-forward' : 'badge-lock'} size={17} color={colors.primary} /> : <Ionicons name="ellipsis-horizontal" size={17} color={colors.primary} />}
         </Pressable>
       </LinearGradient>
     </Animated.View>

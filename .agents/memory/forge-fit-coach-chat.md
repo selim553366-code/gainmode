@@ -20,3 +20,9 @@ The full coach conversation is device-local and append-only; reopening the coach
 **Why:** Users expect their coaching context and past answers to remain available on the phone even when the screen or app is reopened.
 
 **How to apply:** Persist the ordered message list in AsyncStorage after hydration and after every message/action update; treat the welcome animation as UI content, not a reason to reset history.
+
+Weekly AI analysis is unavailable until seven full days after onboarding registration, including progress-screen actions, direct coach routes, and weekly notifications.
+
+**Why:** A meaningful weekly review needs a complete first-week baseline and should not be sent as if partial data were a full week.
+
+**How to apply:** Keep the registration timestamp in local Fit state and use one shared eligibility helper for every weekly-analysis entry point.

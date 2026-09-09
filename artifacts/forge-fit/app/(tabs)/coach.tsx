@@ -16,6 +16,7 @@ import { getAiClientId } from '@/lib/aiUsage';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 import { getFirstCoachReply } from '@/lib/coachRating';
 import { COACH_MESSAGES_STORAGE_KEY, parseStoredCoachMessages, type CoachMessageRecord } from '@/lib/coachMessages';
+import { isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
 import { apiUrl } from '@/lib/api';
 import { localDateKey } from '@/lib/nutritionDates';
 
@@ -170,7 +171,7 @@ function TypingIndicator({ label, colors }: { label: string; colors: ReturnType<
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, coachMessagesUsed, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateWorkout, updateProfile, updateNutritionGoals } = useFit();
+  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, registeredAt, coachMessagesUsed, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateWorkout, updateProfile, updateNutritionGoals } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { weeklyAnalysis, analysisId } = useLocalSearchParams<{ weeklyAnalysis?: string; analysisId?: string }>();
   const [text, setText] = useState('');
@@ -193,6 +194,7 @@ export default function CoachScreen() {
   const flyingAvatarSize = 72;
   const targetAvatarSize = 30;
   const ratingDateKey = localDateKey();
+  const weeklyAnalysisUnlocked = isWeeklyAnalysisUnlocked(registeredAt);
   // Keep the restored first-reply rating flow separate from the previous
   // latest-message flow, so an old rating cannot hide the restored prompt.
   const ratingStorageKey = `forge-fit-coach-rating-v2-${ratingDateKey}`;
@@ -380,7 +382,7 @@ export default function CoachScreen() {
     }
   };
   React.useEffect(() => {
-    if (weeklyAnalysis !== '1' || !analysisId || lastAnalysisId.current === analysisId) return undefined;
+    if (weeklyAnalysis !== '1' || !analysisId || !weeklyAnalysisUnlocked || lastAnalysisId.current === analysisId) return undefined;
     lastAnalysisId.current = analysisId;
     weeklyCardReveal.setValue(0);
     const animation = Animated.timing(weeklyCardReveal, { toValue: 1, duration: 1050, easing: Easing.out(Easing.cubic), useNativeDriver: true });
@@ -394,7 +396,7 @@ export default function CoachScreen() {
       clearTimeout(timeout);
       animation.stop();
     };
-  }, [analysisId, weeklyAnalysis]);
+  }, [analysisId, weeklyAnalysis, weeklyAnalysisUnlocked]);
   return <View style={[styles.root, { backgroundColor: colors.white, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
      <CoachAtmosphereBackground colors={colors} reveal={coachReveal} />
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.secondary, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />

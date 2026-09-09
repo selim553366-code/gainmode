@@ -4,6 +4,7 @@ import type * as Notifications from 'expo-notifications';
 import { formatWorkoutReminder, Language, translate } from '@/lib/i18n';
 import type { Profile, Workout } from '@/context/FitContext';
 import { DAILY_MOOD_NOTIFICATION_HOUR, DAILY_MOOD_NOTIFICATION_MINUTE } from '@/lib/dailyMood';
+import { isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
 
 export type NotificationSettings = {
   workoutReminder: boolean;
@@ -193,12 +194,14 @@ async function syncFitnessNotificationsNow({
   workouts,
   language,
   weightLogs,
+  registeredAt,
 }: {
   settings: NotificationSettings;
   profile: Profile | null;
   workouts: Workout[];
   language: Language;
   weightLogs: { date: string }[];
+  registeredAt: string | null;
 }) {
   if (!notificationsSupported) return;
   const Notifications = await loadNotifications();
@@ -227,7 +230,7 @@ async function syncFitnessNotificationsNow({
     await scheduleDaily(language, 'notificationCoachTitle', 'notificationCoachBody', 20);
   }
   await scheduleDaily(language, 'notificationDailyMoodTitle', 'notificationDailyMoodBody', DAILY_MOOD_NOTIFICATION_HOUR, DAILY_MOOD_NOTIFICATION_MINUTE);
-  if (settings.weeklySummary) {
+  if (settings.weeklySummary && isWeeklyAnalysisUnlocked(registeredAt)) {
     await scheduleWeekly(language, 'notificationSummaryTitle', 'notificationSummaryBody', 1, 18);
   }
   if (profile && weightLogs.length > 0) {
@@ -241,6 +244,7 @@ export function syncFitnessNotifications(args: {
   workouts: Workout[];
   language: Language;
   weightLogs: { date: string }[];
+  registeredAt: string | null;
 }) {
   if (!notificationsSupported) return Promise.resolve();
   const nextSync = notificationSync.catch(() => undefined).then(() => syncFitnessNotificationsNow(args));
