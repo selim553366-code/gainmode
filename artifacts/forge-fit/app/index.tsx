@@ -648,7 +648,10 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[numericStep] ?? 'preferredDaysQuestion';
     return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
       <OnboardingAtmosphere />
-     <View style={styles.questionTop}><GainModeWordmark color={colors.foreground} /><LanguageSelector language={language} onSelect={setLanguage} /></View>
+      <View style={styles.welcomeHeader}>
+        <View style={styles.welcomeLogoDock}><GainModeWordmark color={colors.foreground} width={128} height={18} /></View>
+        <View style={styles.welcomeLanguageDock}><WelcomeLanguageSelector language={language} onSelect={setLanguage} /></View>
+      </View>
      <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
         <KeyboardAwareScrollViewCompat
           contentContainerStyle={styles.questionScrollContent}
@@ -1374,7 +1377,7 @@ const styles = StyleSheet.create({
   entryRecoveryBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, textAlign: 'center', maxWidth: 310, marginTop: 10 },
   entryRecoveryButton: { minHeight: 54, width: '100%', borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10, marginTop: 28 },
   entryRecoveryButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
-   questionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 0, paddingLeft: 14, paddingRight: 14, transform: [{ translateY: -8 }] },
+   questionTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingTop: 0, paddingLeft: 0, paddingRight: 0, zIndex: 3 },
   brandMark: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   brandWordmark: { flex: 1, textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 2.5, marginHorizontal: 14 },
   trademark: { fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 10, position: 'relative', top: -3 },
@@ -1401,7 +1404,7 @@ const styles = StyleSheet.create({
   profileEditInfoText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 17 },
    coachPhotoStage: { width: 350, height: 350, alignItems: 'center', justifyContent: 'center' },
   coachSmall: { width: 238, height: 238 },
-   coachOnboarding: { width: 350, height: 350 },
+    coachOnboarding: { width: 320, height: 320 },
   coachWaveQuestion: { transform: [{ translateX: 7 }] },
   coachLarge: { width: 220, height: 220 },
   homeEquipmentDetails: { gap: 8, marginTop: 16 },
