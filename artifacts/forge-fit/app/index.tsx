@@ -601,8 +601,9 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const optional = onboardingMode !== 'quick' && numericStep >= 6 && !hasTargetWeightStep;
     const isTargetStep = numericStep === targetStep && hasTargetWeightStep;
     const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[numericStep] ?? 'preferredDaysQuestion';
-   return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
-     <View style={styles.questionTop}><ForgeFitMark size={38} /><Text style={[styles.brandWordmark, { color: colors.foreground }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text><LanguageSelector language={language} onSelect={setLanguage} /></View>
+    return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
+      <OnboardingAtmosphere />
+      <View style={styles.questionTop}><ForgeFitMark size={38} /><Text style={[styles.brandWordmark, { color: colors.foreground }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text><LanguageSelector language={language} onSelect={setLanguage} /></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
        <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
           <View style={styles.coachQuestionVisual}><AnswerAnalysisStatus /><View style={styles.coachPhotoStage}><CoachMotion onboarding variant="write" /></View></View>
@@ -625,6 +626,7 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
 
   return (
     <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
+       <OnboardingAtmosphere />
        <View style={styles.questionTop}>
          <ForgeFitMark size={38} />
          <Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text>
@@ -673,6 +675,50 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
       </Pressable>
     </LinearGradient>
   );
+}
+
+function OnboardingAtmosphere() {
+  const colors = useColors();
+  const motion = React.useRef(new Animated.Value(0)).current;
+  const pulse = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const drift = Animated.loop(Animated.sequence([
+      Animated.timing(motion, { toValue: 1, duration: 11500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(motion, { toValue: 0, duration: 11500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    const breathe = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1, duration: 5200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    drift.start();
+    breathe.start();
+    return () => {
+      drift.stop();
+      breathe.stop();
+    };
+  }, [motion, pulse]);
+
+  const driftX = motion.interpolate({ inputRange: [0, 1], outputRange: [-22, 26] });
+  const driftY = motion.interpolate({ inputRange: [0, 1], outputRange: [18, -26] });
+  const blobScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.1] });
+  const blobOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.4] });
+
+  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <Animated.View style={[styles.onboardingBlob, styles.onboardingBlobBlue, { backgroundColor: colors.primary, opacity: blobOpacity, transform: [{ translateX: driftX }, { translateY: driftY }, { scale: blobScale }] }]} />
+    <Animated.View style={[styles.onboardingBlob, styles.onboardingBlobPurple, { backgroundColor: colors.blue, opacity: blobOpacity, transform: [{ translateX: driftY }, { translateY: driftX }, { scale: blobScale }] }]} />
+    <Animated.View style={[styles.onboardingBlob, styles.onboardingBlobCyan, { backgroundColor: colors.secondary, opacity: blobOpacity, transform: [{ translateX: Animated.multiply(driftX, -0.7) }, { translateY: Animated.multiply(driftY, -0.55) }, { scale: blobScale }] }]} />
+  </View>;
+}
+
+function WelcomeLanguageSelector({ language, onSelect }: { language: Language; onSelect: (language: Language) => void }) {
+  return <View style={styles.welcomeLanguagePill}>
+    {(Object.keys(languageLabels) as Language[]).map((item) => (
+      <Pressable key={item} onPress={() => { triggerHaptic(); onSelect(item); }} style={[styles.welcomeLanguageOption, language === item ? styles.welcomeLanguageSelected : null]}>
+        <MiniFlag language={item} />
+      </Pressable>
+    ))}
+  </View>;
 }
 
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
@@ -749,31 +795,27 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   const haloOpacity = haloPulse.interpolate({ inputRange: [0, 1], outputRange: [0.42, 0.78] });
 
   return <AnimatedLinearGradient colors={[colors.background, colors.secondary, colors.background]} style={[styles.full, { opacity: pageOpacity, transform: [{ translateX: pageTranslateX }] }]}>
-    <View style={[StyleSheet.absoluteFill, styles.welcomeBackdropDecorations]}>
-      <Animated.View style={[styles.welcomeAmbientGlow, { backgroundColor: `${colors.primary}20`, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
+    <OnboardingAtmosphere />
+    <View style={styles.welcomeHeader}>
+      <Text style={[styles.welcomeBrand, { color: colors.foreground }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text>
+      <WelcomeLanguageSelector language={language} onSelect={setLanguage} />
     </View>
-    <View style={styles.questionTop}><ForgeFitMark size={38} /><Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text><LanguageSelector language={language} onSelect={setLanguage} /></View>
-    <View style={styles.welcomeContent}>
-      <View style={styles.welcomeVisualStage}>
-        <Animated.View style={[styles.welcomeHaloRing, { borderColor: `${colors.primary}42`, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
-        <Animated.View style={[styles.welcomeHaloRingInner, { backgroundColor: `${colors.primary}12`, transform: [{ scale: haloScale }] }]} />
-        <Animated.View style={[styles.welcomeOrb, { backgroundColor: `${colors.primary}18`, transform: [{ translateY: coachTranslateY }, { scale: orbScale }, { rotate: orbRotateValue }] }]}>
-          <Image source={require('@/assets/images/coach-welcome.png')} resizeMode="cover" style={styles.welcomeCoachImage} />
-        </Animated.View>
-      </View>
-      <Animated.View style={{ opacity: copyOpacity, transform: [{ translateY: copyTranslateY }] }}>
-        <Text style={[styles.welcomeTitle, { color: colors.foreground }]}>{t('welcomeTitle')}</Text>
-        <Text style={[styles.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeSubtitle')}</Text>
+    <View style={styles.welcomeReferenceCard}>
+      <Animated.View style={[styles.welcomeCardGlow, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
+      <Animated.View style={[styles.welcomeCharacterStage, { transform: [{ translateY: coachTranslateY }, { scale: orbScale }, { rotate: orbRotateValue }] }]}>
+        <Image source={require('@/assets/images/coach-wave-static-v3.png')} resizeMode="contain" style={styles.welcomeReferenceCharacter} />
+      </Animated.View>
+      <Animated.View style={[styles.welcomeReferenceCopy, { transform: [{ translateY: copyTranslateY }] }]}>
+        <Text style={[styles.welcomeReferenceTitle, { color: colors.foreground }]}>{t('welcomeHeroTitle')}</Text>
+        <Text style={[styles.welcomeReferenceSubtitle, { color: colors.foreground }]}>{t('welcomeHeroSubtitle')}</Text>
       </Animated.View>
     </View>
-    <Animated.View style={[styles.welcomeActionPanel, { backgroundColor: colors.glass, borderColor: colors.glassBorder, shadowColor: colors.primary, opacity: buttonOpacity, transform: [{ translateY: buttonTranslateY }] }]}>
-      <View style={styles.welcomeActionHintRow}>
-        <View style={[styles.welcomeActionHintDot, { backgroundColor: colors.primary }]} />
-        <Text style={[styles.welcomeActionHint, { color: colors.mutedForeground }]}>{t('welcomeCtaHint')}</Text>
-      </View>
-      <Pressable onPress={startAdventure} disabled={leaving} style={({ pressed }) => [styles.nextButton, styles.welcomeStartButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
-        <Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('startAdventure')}</Text>
-        <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
+    <Animated.View style={[styles.welcomeReferenceActions, { transform: [{ translateY: buttonTranslateY }] }]}>
+      <Pressable accessibilityRole="button" onPress={startAdventure} disabled={leaving} style={({ pressed }) => [styles.welcomeReferenceStart, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}>
+        <Text style={[styles.welcomeReferenceStartText, { color: colors.primaryForeground }]}>{t('welcomeHeroStart')}</Text>
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={startAdventure} disabled={leaving} hitSlop={10}>
+        <Text style={[styles.welcomeReferenceAccount, { color: colors.foreground }]}>{t('welcomeHeroAccount')}</Text>
       </Pressable>
     </Animated.View>
   </AnimatedLinearGradient>;
@@ -820,6 +862,7 @@ function GrowthComparisonScreen({ onContinue }: { onContinue: () => void }) {
   const rightHeight = rightFill.interpolate({ inputRange: [0, 1], outputRange: [0, 238] });
 
   return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
+    <OnboardingAtmosphere />
     <View style={styles.questionTop}>
       <ForgeFitMark size={38} />
       <Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text>
@@ -897,6 +940,7 @@ function ProgressiveOverloadScreen({ onContinue }: { onContinue: () => void }) {
   }, [pulse]);
 
   return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
+    <OnboardingAtmosphere />
     <View style={styles.overloadTop}><ForgeFitMark size={38} /><View style={[styles.overloadBadge, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}55` }]}><Ionicons name="barbell-outline" size={13} color={colors.primary} /><Text style={[styles.overloadBadgeText, { color: colors.primary }]}>{t('overloadEyebrow')}</Text></View></View>
     <View style={styles.overloadContent}>
       <Animated.View style={[styles.overloadOrb, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}55`, transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.04] }) }] }]}>
@@ -946,6 +990,7 @@ function PlanBuildingScreen({ onComplete }: { onComplete: () => void }) {
   const widthValue = progress.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
   const phaseKeys: Array<'planBuildingStep1' | 'planBuildingStep2' | 'planBuildingStep3' | 'planBuildingStep4'> = ['planBuildingStep1', 'planBuildingStep2', 'planBuildingStep3', 'planBuildingStep4'];
   return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
+    <OnboardingAtmosphere />
     <View style={styles.planBuildingContent}>
       <Animated.View style={[styles.planBuildingOrb, { borderColor: `${colors.primary}50`, transform: [{ rotate: spinValue }] }]}>
         <View style={[styles.planBuildingOrbInner, { backgroundColor: `${colors.primary}18`, borderColor: colors.primary }]}>
@@ -1282,6 +1327,10 @@ const styles = StyleSheet.create({
   languageOption: { width: 20, alignItems: 'center', gap: 2 },
   language: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 12 },
   languageFlagImage: { width: 20, height: 12, borderRadius: 2, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.16)' },
+  onboardingBlob: { position: 'absolute', borderRadius: 999 },
+  onboardingBlobBlue: { width: 420, height: 300, top: 72, right: -140 },
+  onboardingBlobPurple: { width: 360, height: 520, top: 190, left: -150 },
+  onboardingBlobCyan: { width: 300, height: 360, bottom: -70, right: -90 },
   questionBody: { flex: 1, minHeight: 0, marginTop: 10 },
   questionScrollContent: { paddingTop: 2, paddingBottom: 12 },
   coachQuestionVisual: { width: '100%', height: 282, alignSelf: 'center', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 8 },
@@ -1375,6 +1424,22 @@ const styles = StyleSheet.create({
   skip: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 12 },
   welcomeAmbientGlow: { position: 'absolute', left: -60, right: -60, top: 140, height: 430, borderRadius: 220 },
   welcomeBackdropDecorations: { pointerEvents: 'none' },
+  welcomeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 18, paddingHorizontal: 24 },
+  welcomeBrand: { fontFamily: 'Inter_700Bold', fontSize: 25, letterSpacing: -1.2 },
+  welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.46)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.76)' },
+  welcomeLanguageOption: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  welcomeLanguageSelected: { backgroundColor: 'rgba(255,255,255,0.88)', shadowColor: '#2E63E6', shadowOpacity: 0.12, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  welcomeReferenceCard: { flex: 1, marginHorizontal: 39, marginTop: 54, marginBottom: 14, borderRadius: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.82)', backgroundColor: 'rgba(255,255,255,0.39)', overflow: 'hidden', alignItems: 'center', justifyContent: 'space-between', paddingTop: 20, paddingBottom: 28, shadowColor: '#2558D9', shadowOpacity: 0.12, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
+  welcomeCardGlow: { position: 'absolute', width: 260, height: 260, top: 28, borderRadius: 130 },
+  welcomeCharacterStage: { width: '100%', flex: 1, minHeight: 290, alignItems: 'center', justifyContent: 'center' },
+  welcomeReferenceCharacter: { width: '88%', height: '100%' },
+  welcomeReferenceCopy: { width: '100%', paddingHorizontal: 18, alignItems: 'center' },
+  welcomeReferenceTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, lineHeight: 34, letterSpacing: -1, textAlign: 'center' },
+  welcomeReferenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 12, maxWidth: 270 },
+  welcomeReferenceActions: { paddingHorizontal: 52, paddingBottom: 16, gap: 18, alignItems: 'center' },
+  welcomeReferenceStart: { width: '100%', minHeight: 58, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#1D55DF', shadowOpacity: 0.28, shadowRadius: 13, shadowOffset: { width: 0, height: 7 }, elevation: 7 },
+  welcomeReferenceStartText: { fontFamily: 'Inter_500Medium', fontSize: 22 },
+  welcomeReferenceAccount: { fontFamily: 'Inter_400Regular', fontSize: 15 },
   welcomeContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   welcomeVisualStage: { width: 292, height: 292, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
   welcomeHaloRing: { position: 'absolute', width: 286, height: 286, borderRadius: 143, borderWidth: 1.5 },
