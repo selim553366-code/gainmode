@@ -35,10 +35,10 @@ function blendColors(base: string, accent: string, amount: number) {
 
 function AmbientBackdrop({ children }: { children: ReactNode }) {
   const colors = useColors();
-  const softBlue = blendColors(colors.background, colors.blue, 0.12);
-  const blueMist = blendColors(colors.background, colors.blue, 0.2);
+  const edgeBlue = blendColors(colors.background, colors.colorScheme === 'dark' ? '#153E68' : colors.blue, colors.colorScheme === 'dark' ? 0.34 : 0.12);
+  const blueMist = blendColors(colors.background, colors.blue, colors.colorScheme === 'dark' ? 0.18 : 0.2);
   return <LinearGradient
-    colors={[colors.background, softBlue, blueMist, colors.background]}
+    colors={[edgeBlue, colors.background, blueMist, edgeBlue]}
     locations={[0, 0.3, 0.68, 1]}
     start={{ x: 0.05, y: 0 }}
     end={{ x: 0.95, y: 1 }}
