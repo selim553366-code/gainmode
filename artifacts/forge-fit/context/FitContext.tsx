@@ -8,7 +8,7 @@ import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey } from '@/lib/nutritionDates';
 import { addStreakActivity, getCurrentStreak, normalizeStreakDates } from '@/lib/streak';
 import { badges, type BadgeMetric } from '@/lib/badges';
-import { addExerciseToPlan, buildWorkoutPlan, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, type MuscleGroup } from '@/lib/workoutPlan';
+import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
 import { TEST_PREMIUM_PROMO_STORAGE_KEY } from '@/lib/testPremiumPromo';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
@@ -79,6 +79,8 @@ type FitState = {
   photoAnalysesUsed: number;
   usageDate: string;
   workouts: Workout[];
+  workoutCycle: number;
+  workoutCycleReady: boolean;
   streakDates: string[];
   friends: Friend[];
   challenges: Challenge[];
@@ -115,6 +117,7 @@ type FitContextValue = FitState & {
   incrementPhotoUsage: () => void;
   toggleWorkout: (id: string) => void;
   toggleExercise: (workoutId: string, exerciseId: string) => void;
+  refreshWorkoutCycleIfReady: (firstDay?: string) => void;
   addExercise: (workoutId: string, name: string, sets?: number, reps?: number) => void;
   removeExercise: (workoutId: string, exerciseId: string) => void;
   updateExercise: (workoutId: string, exerciseId: string, patch: { name?: string; sets?: number; reps?: number }) => void;
@@ -148,6 +151,8 @@ const initialState: FitState = {
   photoAnalysesUsed: 0,
   usageDate: '',
   workouts: [],
+  workoutCycle: 0,
+  workoutCycleReady: false,
   savedMeals: [],
   streakDates: [],
   friends: [],
@@ -289,12 +294,14 @@ export function FitProvider({ children }: { children: ReactNode }) {
             version: initialState.version,
           };
            const restoredWorkouts = sanitizeWorkoutSplits(normalizeWorkoutSets(restoreWorkoutProgress(merged.workouts)));
+           merged.workoutCycle = Number.isInteger(parsed.workoutCycle) ? Math.max(0, Number(parsed.workoutCycle)) : 0;
+           merged.workoutCycleReady = Boolean(parsed.workoutCycleReady) || workoutsAreComplete(restoredWorkouts);
           const needsWorkoutUpgrade = merged.profile && merged.workouts.length > 0 && merged.workouts.some((workout) => (
             !workout.focusAreas?.length || workout.exercises.some((exercise) => !exercise.muscleGroup)
           ));
           if (needsWorkoutUpgrade && merged.profile) {
             const previousWorkouts = new Map(restoredWorkouts.map((workout) => [workout.id, workout]));
-            merged.workouts = buildWorkoutPlan(merged.profile).map((workout) => {
+            merged.workouts = buildWorkoutPlanForCycle(merged.profile, merged.workoutCycle).map((workout) => {
               const previous = previousWorkouts.get(workout.id);
               if (!previous) return workout;
               const exercises = workout.exercises.map((exercise) => ({ ...exercise, completed: previous.completed }));
@@ -461,7 +468,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
        const fatRatio = profile.diet === 'vegan' ? 0.3 : profile.diet === 'vegetarian' ? 0.28 : isLossGoal ? (profile.goalRate === 'fast' ? 0.23 : 0.25) : isGainGoal ? 0.28 : 0.27;
       const fatGoal = Math.round((calorieGoal * fatRatio) / 9);
       const carbsGoal = Math.max(0, Math.round((calorieGoal - proteinGoal * 4 - fatGoal * 9) / 4));
-      const workouts = buildWorkoutPlan(profile);
+       const workouts = buildWorkoutPlanForCycle(profile, 0);
       const projection = createGoalProjection(profile, calorieGoal, workouts, targetWeight);
        return recordStreakActivity({
         ...current,
@@ -475,6 +482,8 @@ export function FitProvider({ children }: { children: ReactNode }) {
         goalWeight: targetWeight,
         goalProjection: projection,
         workouts,
+         workoutCycle: 0,
+         workoutCycleReady: false,
         onboardingComplete: true,
         coachIntroPending: options?.profileEdit ? current.coachIntroPending : true,
         profileEditUsedMonth: options?.profileEdit ? currentMonth : current.profileEditUsedMonth,
@@ -502,6 +511,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
        const nextState = {
          ...current,
          workouts,
+          workoutCycleReady: workoutsAreComplete(workouts),
          achievementStats: newlyCompleted && changedWorkout ? {
            ...current.achievementStats,
            workouts: current.achievementStats.workouts + 1,
@@ -525,6 +535,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
        const nextState = {
          ...current,
          workouts,
+          workoutCycleReady: workoutsAreComplete(workouts),
          achievementStats: {
            ...current.achievementStats,
            workouts: current.achievementStats.workouts + (newlyCompletedWorkout ? 1 : 0),
@@ -534,15 +545,29 @@ export function FitProvider({ children }: { children: ReactNode }) {
        };
        return changedWorkout?.completed ? recordStreakActivity(nextState) : nextState;
      }),
-     addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => ({
-       ...current,
-       workouts: addExerciseToPlan(current.workouts, workoutId, name, sets, reps),
-     })),
-    removeExercise: (workoutId, exerciseId) => setState((current) => ({ ...current, workouts: current.workouts.map((workout) => {
-      if (workout.id !== workoutId) return workout;
-      const exercises = workout.exercises.filter((exercise) => exercise.id !== exerciseId);
-      return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
-    }) })),
+      refreshWorkoutCycleIfReady: (firstDay) => setState((current) => {
+        if (!current.workoutCycleReady || !current.profile || !current.workouts.length) return current;
+        if (firstDay && current.workouts[0]?.day !== firstDay) return current;
+        const workoutCycle = current.workoutCycle + 1;
+        return {
+          ...current,
+          workouts: buildWorkoutPlanForCycle(current.profile, workoutCycle),
+          workoutCycle,
+          workoutCycleReady: false,
+        };
+      }),
+      addExercise: (workoutId, name, sets = 3, reps = 10) => setState((current) => {
+        const workouts = addExerciseToPlan(current.workouts, workoutId, name, sets, reps);
+        return { ...current, workouts, workoutCycleReady: workoutsAreComplete(workouts) };
+      }),
+     removeExercise: (workoutId, exerciseId) => setState((current) => {
+       const workouts = current.workouts.map((workout) => {
+         if (workout.id !== workoutId) return workout;
+         const exercises = workout.exercises.filter((exercise) => exercise.id !== exerciseId);
+         return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
+       });
+       return { ...current, workouts, workoutCycleReady: workoutsAreComplete(workouts) };
+     }),
       updateExercise: (workoutId, exerciseId, patch) => setState((current) => {
         const sharedSets = patch.sets === undefined ? getSharedWorkoutSets(current.workouts) : clampWorkoutSets(patch.sets);
         const workouts = normalizeWorkoutSets(current.workouts, sharedSets).map((workout) => ({
@@ -560,14 +585,14 @@ export function FitProvider({ children }: { children: ReactNode }) {
       updateProfile: (patch) => setState((current) => {
         if (!current.profile) return current;
         const profile = { ...current.profile, ...patch };
-        const nextWorkouts = buildWorkoutPlan(profile).map((workout) => {
+        const nextWorkouts = buildWorkoutPlanForCycle(profile, current.workoutCycle).map((workout) => {
           const previous = current.workouts.find((item) => item.id === workout.id);
           return previous
             ? { ...workout, exercises: workout.exercises.map((exercise) => ({ ...exercise, completed: previous.exercises.find((item) => item.id === exercise.id)?.completed ?? false })) }
             : workout;
         });
         const goals = calculateNutritionGoals(profile, nextWorkouts);
-        return { ...current, profile, weight: profile.weight, calorieGoal: goals.calories, proteinGoal: goals.protein, carbsGoal: goals.carbs, fatGoal: goals.fat, goalWeight: goals.targetWeight, goalProjection: goals.projection, workouts: nextWorkouts };
+        return { ...current, profile, weight: profile.weight, calorieGoal: goals.calories, proteinGoal: goals.protein, carbsGoal: goals.carbs, fatGoal: goals.fat, goalWeight: goals.targetWeight, goalProjection: goals.projection, workouts: nextWorkouts, workoutCycleReady: false };
       }),
      updateNutritionGoals: (patch) => setState((current) => {
        const nextGoals = {
