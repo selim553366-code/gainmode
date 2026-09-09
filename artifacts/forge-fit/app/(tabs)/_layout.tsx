@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
   coachTabImage: { width: 88, height: 88, borderRadius: 44 },
   coachThinkingImage: { width: 98, height: 98, transform: [{ translateY: 5 }] },
   coachThinkingOverlay: { position: 'absolute', left: -5, top: -5 },
-  coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, marginTop: 5, letterSpacing: 0.4 },
+  coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 5, letterSpacing: 0.4 },
   coachTabDot: { width: 4, height: 4, borderRadius: 2, marginTop: 2 },
   moodPromptOverlay: { position: 'absolute', left: 14, right: 14, zIndex: 20 },
   moodPrompt: { borderRadius: 20, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9, shadowOpacity: 0.28, shadowRadius: 15, shadowOffset: { width: 0, height: 7 }, elevation: 10 },
