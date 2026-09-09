@@ -21,7 +21,7 @@ import {
 } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { ForgeFitMark, PremiumSuccessCelebration, Screen, triggerHaptic } from '@/components/FitUI';
+import { ForgeFitMark, GainModeWordmark, PremiumSuccessCelebration, Screen, triggerHaptic } from '@/components/FitUI';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
@@ -603,7 +603,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const titleKey: Parameters<typeof translate>[1] = isTargetStep ? 'targetWeightQuestion' : titleKeys[numericStep] ?? 'preferredDaysQuestion';
     return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
       <OnboardingAtmosphere />
-      <View style={styles.questionTop}><ForgeFitMark size={38} /><Text style={[styles.brandWordmark, { color: colors.foreground }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text><LanguageSelector language={language} onSelect={setLanguage} /></View>
+     <View style={styles.questionTop}><GainModeWordmark color={colors.foreground} /><LanguageSelector language={language} onSelect={setLanguage} /></View>
     <Animated.View {...swipeResponder.panHandlers} style={[styles.questionBody, { opacity: slide, transform: [{ translateX: slide.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
        <KeyboardAwareScrollViewCompat contentContainerStyle={styles.questionScrollContent} showsVerticalScrollIndicator={false} bounces={false} bottomOffset={72}>
           <View style={styles.coachQuestionVisual}><AnswerAnalysisStatus /><View style={styles.coachPhotoStage}><CoachMotion onboarding variant="write" /></View></View>
@@ -628,8 +628,7 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
     <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
        <OnboardingAtmosphere />
        <View style={styles.questionTop}>
-         <ForgeFitMark size={38} />
-         <Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text>
+         <GainModeWordmark color={colors.foreground} />
         <LanguageSelector language={language} onSelect={setLanguage} />
       </View>
       <View style={styles.modeChoiceContent}>
@@ -797,7 +796,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return <AnimatedLinearGradient colors={[colors.background, colors.secondary, colors.background]} style={[styles.full, { opacity: pageOpacity, transform: [{ translateX: pageTranslateX }] }]}>
     <OnboardingAtmosphere />
     <View style={styles.welcomeHeader}>
-      <Text style={[styles.welcomeBrand, { color: colors.foreground }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text>
+       <GainModeWordmark color={colors.foreground} />
       <WelcomeLanguageSelector language={language} onSelect={setLanguage} />
     </View>
     <View style={styles.welcomeReferenceCard}>
@@ -1319,11 +1318,11 @@ const styles = StyleSheet.create({
   entryRecoveryBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, textAlign: 'center', maxWidth: 310, marginTop: 10 },
   entryRecoveryButton: { minHeight: 54, width: '100%', borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10, marginTop: 28 },
   entryRecoveryButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
-  questionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+   questionTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, paddingLeft: 10, paddingRight: 18 },
   brandMark: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   brandWordmark: { flex: 1, textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 2.5, marginHorizontal: 14 },
   trademark: { fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 10, position: 'relative', top: -3 },
-  languageRow: { flexDirection: 'row', gap: 8 },
+   languageRow: { flexDirection: 'row', gap: 8, transform: [{ translateX: -6 }, { translateY: -4 }] },
   languageOption: { width: 20, alignItems: 'center', gap: 2 },
   language: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 12 },
   languageFlagImage: { width: 20, height: 12, borderRadius: 2, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.16)' },
@@ -1424,9 +1423,9 @@ const styles = StyleSheet.create({
   skip: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 12 },
   welcomeAmbientGlow: { position: 'absolute', left: -60, right: -60, top: 140, height: 430, borderRadius: 220 },
   welcomeBackdropDecorations: { pointerEvents: 'none' },
-  welcomeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 18, paddingHorizontal: 24 },
+   welcomeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, paddingLeft: 18, paddingRight: 18 },
   welcomeBrand: { fontFamily: 'Inter_700Bold', fontSize: 25, letterSpacing: -1.2 },
-  welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.46)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.76)' },
+   welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.46)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.76)', transform: [{ translateX: -6 }, { translateY: -4 }] },
   welcomeLanguageOption: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   welcomeLanguageSelected: { backgroundColor: 'rgba(255,255,255,0.88)', shadowColor: '#2E63E6', shadowOpacity: 0.12, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
   welcomeReferenceCard: { flex: 1, marginHorizontal: 39, marginTop: 54, marginBottom: 14, borderRadius: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.82)', backgroundColor: 'rgba(255,255,255,0.39)', overflow: 'hidden', alignItems: 'center', justifyContent: 'space-between', paddingTop: 20, paddingBottom: 28, shadowColor: '#2558D9', shadowOpacity: 0.12, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
