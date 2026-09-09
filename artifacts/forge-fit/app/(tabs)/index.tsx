@@ -12,7 +12,6 @@ import { getCurrentStreak } from '@/lib/streak';
 import { getWorkoutForDate } from '@/lib/workoutPlan';
 import { badgeText, badgeUi } from '@/lib/badges';
 import { AnimatedNumber, Card, Header, Metric, PremiumAccessStatusModal, PremiumOfferModal, Screen, SectionTitle } from '@/components/FitUI';
-import { Button as GluestackButton, ButtonText as GluestackButtonText } from '@gluestack-ui/themed';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
   const level = React.useRef(new Animated.Value(0)).current;
@@ -174,12 +173,11 @@ export default function TodayScreen() {
             </View>
           </View>
 
-          <GluestackButton
+          <Pressable
             testID="analyze-meal-photo"
+            accessibilityRole="button"
             accessibilityLabel={t('analyzeMealPhoto')}
             onPress={() => router.push({ pathname: '/(tabs)/nutrition', params: { openCamera: 'meal' } })}
-            action="default"
-            variant="solid"
             style={({ pressed }) => [
               styles.heroPhotoAction,
               {
@@ -193,9 +191,9 @@ export default function TodayScreen() {
             <View style={[styles.heroPhotoActionIcon, { backgroundColor: '#74C9F033' }]}>
               <Ionicons name="camera-outline" size={17} color="#7FD4FA" />
             </View>
-            <GluestackButtonText style={[styles.heroPhotoActionText, { color: '#8EDBFA' }]}>{t('analyzeMealPhoto')}</GluestackButtonText>
+            <Text style={[styles.heroPhotoActionText, { color: '#8EDBFA' }]}>{t('analyzeMealPhoto')}</Text>
             <Ionicons name="arrow-forward" size={16} color="#8EDBFA" />
-          </GluestackButton>
+          </Pressable>
         </LinearGradient>
 
         <View style={styles.metricRow}>

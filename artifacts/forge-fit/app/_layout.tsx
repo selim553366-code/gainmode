@@ -27,8 +27,6 @@ import { CelebrationBurst, triggerHaptic } from '@/components/FitUI';
 import { Ionicons } from '@/components/AppIcon';
 import { badges, badgeText, badgeUi } from '@/lib/badges';
 import { clearNotificationResponse, subscribeToNotificationResponses } from '@/lib/notifications';
-import { GluestackUIProvider } from '@gluestack-ui/themed';
-import { config as gluestackConfig } from '@gluestack-ui/config';
 
 function BadgeUnlockCelebration() {
   const { hydrated, language, unlockedBadgeIds } = useFit();
@@ -207,23 +205,21 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <GluestackUIProvider config={gluestackConfig}>
-        <SafeAreaProvider style={{ flex: 1 }}>
-         <ErrorBoundary>
-          <QueryClientProvider client={queryClient}>
-            <SubscriptionProvider>
-              <GestureHandlerRootView style={{ flex: 1 }}>
-                <KeyboardProvider>
-                  <FitProvider>
-                    <RootLayoutNav />
-                  </FitProvider>
-                </KeyboardProvider>
-              </GestureHandlerRootView>
-            </SubscriptionProvider>
-          </QueryClientProvider>
-         </ErrorBoundary>
-        </SafeAreaProvider>
-      </GluestackUIProvider>
+      <SafeAreaProvider style={{ flex: 1 }}>
+       <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <SubscriptionProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <KeyboardProvider>
+                <FitProvider>
+                  <RootLayoutNav />
+                </FitProvider>
+              </KeyboardProvider>
+            </GestureHandlerRootView>
+          </SubscriptionProvider>
+        </QueryClientProvider>
+       </ErrorBoundary>
+      </SafeAreaProvider>
     </ThemeProvider>
   );
 }
