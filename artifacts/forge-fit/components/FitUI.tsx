@@ -21,13 +21,13 @@ export function ForgeFitMark({ size = 28, style }: { size?: number; style?: obje
   </View>;
 }
 
-export function GainModeWordmark({ color }: { color: string }) {
+export function GainModeWordmark({ color, width = 150, height = 20 }: { color: string; width?: number; height?: number }) {
   return <Image
     accessibilityLabel="GainMode"
     source={require('@/assets/images/gainmode-wordmark.png')}
     resizeMode="contain"
     tintColor={color}
-    style={styles.gainModeWordmark}
+    style={[styles.gainModeWordmark, { width, height }]}
   />;
 }
 

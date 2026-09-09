@@ -796,8 +796,10 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   return <AnimatedLinearGradient colors={[colors.background, colors.secondary, colors.background]} style={[styles.full, { opacity: pageOpacity, transform: [{ translateX: pageTranslateX }] }]}>
     <OnboardingAtmosphere />
     <View style={styles.welcomeHeader}>
-       <GainModeWordmark color={colors.foreground} />
-      <WelcomeLanguageSelector language={language} onSelect={setLanguage} />
+       <GainModeWordmark color={colors.foreground} width={128} height={18} />
+       <View style={styles.welcomeLanguageDock}>
+         <WelcomeLanguageSelector language={language} onSelect={setLanguage} />
+       </View>
     </View>
     <View style={styles.welcomeReferenceCard}>
       <Animated.View style={[styles.welcomeCardGlow, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
@@ -809,12 +811,9 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
         <Text style={[styles.welcomeReferenceSubtitle, { color: colors.foreground }]}>{t('welcomeHeroSubtitle')}</Text>
       </Animated.View>
     </View>
-    <Animated.View style={[styles.welcomeReferenceActions, { transform: [{ translateY: buttonTranslateY }] }]}>
+     <Animated.View style={[styles.welcomeReferenceActions, { transform: [{ translateY: buttonTranslateY }] }]}>
       <Pressable accessibilityRole="button" onPress={startAdventure} disabled={leaving} style={({ pressed }) => [styles.welcomeReferenceStart, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}>
         <Text style={[styles.welcomeReferenceStartText, { color: colors.primaryForeground }]}>{t('welcomeHeroStart')}</Text>
-      </Pressable>
-      <Pressable accessibilityRole="button" onPress={startAdventure} disabled={leaving} hitSlop={10}>
-        <Text style={[styles.welcomeReferenceAccount, { color: colors.foreground }]}>{t('welcomeHeroAccount')}</Text>
       </Pressable>
     </Animated.View>
   </AnimatedLinearGradient>;
@@ -863,8 +862,7 @@ function GrowthComparisonScreen({ onContinue }: { onContinue: () => void }) {
   return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}>
     <OnboardingAtmosphere />
     <View style={styles.questionTop}>
-      <ForgeFitMark size={38} />
-      <Text style={[styles.brandWordmark, { color: colors.white }]}>GAINMODE<Text style={styles.trademark}>™</Text></Text>
+       <GainModeWordmark color={colors.foreground} />
       <LanguageSelector language={language} onSelect={setLanguage} />
     </View>
     <Animated.View style={[styles.growthContent, { opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }]}>
@@ -1423,20 +1421,21 @@ const styles = StyleSheet.create({
   skip: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 12 },
   welcomeAmbientGlow: { position: 'absolute', left: -60, right: -60, top: 140, height: 430, borderRadius: 220 },
   welcomeBackdropDecorations: { pointerEvents: 'none' },
-   welcomeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, paddingLeft: 18, paddingRight: 18 },
+   welcomeHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingTop: 10, paddingLeft: 18, paddingRight: 18, zIndex: 3 },
+   welcomeLanguageDock: { transform: [{ translateY: -3 }, { translateX: -2 }] },
   welcomeBrand: { fontFamily: 'Inter_700Bold', fontSize: 25, letterSpacing: -1.2 },
-   welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.46)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.76)', transform: [{ translateX: -6 }, { translateY: -4 }] },
+   welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.46)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.76)' },
   welcomeLanguageOption: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   welcomeLanguageSelected: { backgroundColor: 'rgba(255,255,255,0.88)', shadowColor: '#2E63E6', shadowOpacity: 0.12, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
-  welcomeReferenceCard: { flex: 1, marginHorizontal: 39, marginTop: 54, marginBottom: 14, borderRadius: 32, borderWidth: 1, borderColor: 'rgba(255,255,255,0.82)', backgroundColor: 'rgba(255,255,255,0.39)', overflow: 'hidden', alignItems: 'center', justifyContent: 'space-between', paddingTop: 20, paddingBottom: 28, shadowColor: '#2558D9', shadowOpacity: 0.12, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
+   welcomeReferenceCard: { flex: 1, marginHorizontal: 25, marginTop: 38, marginBottom: 12, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.82)', backgroundColor: 'rgba(255,255,255,0.39)', overflow: 'hidden', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 22, shadowColor: '#2558D9', shadowOpacity: 0.12, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
   welcomeCardGlow: { position: 'absolute', width: 260, height: 260, top: 28, borderRadius: 130 },
-  welcomeCharacterStage: { width: '100%', flex: 1, minHeight: 290, alignItems: 'center', justifyContent: 'center' },
-  welcomeReferenceCharacter: { width: '88%', height: '100%' },
+   welcomeCharacterStage: { width: '100%', flex: 1, minHeight: 320, alignItems: 'center', justifyContent: 'center' },
+   welcomeReferenceCharacter: { width: '100%', height: '100%', transform: [{ scale: 1.08 }] },
   welcomeReferenceCopy: { width: '100%', paddingHorizontal: 18, alignItems: 'center' },
   welcomeReferenceTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, lineHeight: 34, letterSpacing: -1, textAlign: 'center' },
   welcomeReferenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 12, maxWidth: 270 },
-  welcomeReferenceActions: { paddingHorizontal: 52, paddingBottom: 16, gap: 18, alignItems: 'center' },
-  welcomeReferenceStart: { width: '100%', minHeight: 58, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#1D55DF', shadowOpacity: 0.28, shadowRadius: 13, shadowOffset: { width: 0, height: 7 }, elevation: 7 },
+   welcomeReferenceActions: { paddingHorizontal: 52, paddingBottom: 18, alignItems: 'center' },
+   welcomeReferenceStart: { width: '100%', minHeight: 58, borderRadius: 30, alignItems: 'center', justifyContent: 'center', shadowColor: '#1D55DF', shadowOpacity: 0.28, shadowRadius: 13, shadowOffset: { width: 0, height: 7 }, elevation: 7 },
   welcomeReferenceStartText: { fontFamily: 'Inter_500Medium', fontSize: 22 },
   welcomeReferenceAccount: { fontFamily: 'Inter_400Regular', fontSize: 15 },
   welcomeContent: { alignItems: 'center', justifyContent: 'center', flex: 1 },
