@@ -15,10 +15,11 @@ import { getWeeklySummary } from '@/lib/weeklyAnalysis';
 import { getAiClientId } from '@/lib/aiUsage';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 import { getFirstCoachReply } from '@/lib/coachRating';
+import { COACH_MESSAGES_STORAGE_KEY, parseStoredCoachMessages, type CoachMessageRecord } from '@/lib/coachMessages';
 import { apiUrl } from '@/lib/api';
 import { localDateKey } from '@/lib/nutritionDates';
 
-type Message = { id: string; text: string; from: 'coach' | 'user'; variant?: 'weeklyAnalysis'; media?: 'welcomeGif'; actions?: CoachAction[]; actionStatus?: 'pending' | 'applied' | 'rejected' };
+type Message = CoachMessageRecord;
 type CoachApiResponse = { content?: string; actions?: unknown[] };
 type CoachAtmosphere = 'morning' | 'night';
 
@@ -173,7 +174,8 @@ export default function CoachScreen() {
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { weeklyAnalysis, analysisId } = useLocalSearchParams<{ weeklyAnalysis?: string; analysisId?: string }>();
   const [text, setText] = useState('');
-  const [messages, setMessages] = useState<Message[]>([{ id: 'welcome', text: t('coachWelcome'), from: 'coach' }]);
+  const [messages, setMessages] = useState<Message[]>(() => [{ id: 'welcome', text: t('coachWelcome'), from: 'coach' }]);
+  const [messagesHydrated, setMessagesHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [animatedPrompt, setAnimatedPrompt] = useState('');
   const [dailyRating, setDailyRating] = useState<number | null>(null);
@@ -246,11 +248,30 @@ export default function CoachScreen() {
     };
   }, [ratingStorageKey]);
   React.useEffect(() => {
+    let cancelled = false;
+    void AsyncStorage.getItem(COACH_MESSAGES_STORAGE_KEY).then((value) => {
+      if (cancelled) return;
+      const restoredMessages = parseStoredCoachMessages(value);
+      if (restoredMessages && restoredMessages.length > 0) setMessages(restoredMessages);
+      setMessagesHydrated(true);
+    }).catch(() => {
+      if (!cancelled) setMessagesHydrated(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  React.useEffect(() => {
+    if (!messagesHydrated) return;
+    void AsyncStorage.setItem(COACH_MESSAGES_STORAGE_KEY, JSON.stringify(messages)).catch(() => undefined);
+  }, [messages, messagesHydrated]);
+  React.useEffect(() => {
+    if (!messagesHydrated) return undefined;
     const timeout = setTimeout(() => {
       setMessages((current) => current.some((item) => item.id === 'welcome-gif') ? current : [...current, { id: 'welcome-gif', text: '', from: 'coach', media: 'welcomeGif' }]);
     }, 1350);
     return () => clearTimeout(timeout);
-  }, []);
+  }, [messagesHydrated]);
   useFocusEffect(React.useCallback(() => {
     if (coachIntroPending) markCoachIntroSeen();
     coachReveal.setValue(0);

@@ -14,3 +14,9 @@ Message feedback belongs to the first real coach reply after the user's first no
 **Why:** Rating the welcome text is not feedback on coaching quality, while later replies should not move the pending rating target before the user has answered it.
 
 **How to apply:** Keep the rating target stable on that first user/coach exchange and hide it after the daily rating is submitted.
+
+The full coach conversation is device-local and append-only; reopening the coach screen restores every stored turn without applying a history cap or delete action.
+
+**Why:** Users expect their coaching context and past answers to remain available on the phone even when the screen or app is reopened.
+
+**How to apply:** Persist the ordered message list in AsyncStorage after hydration and after every message/action update; treat the welcome animation as UI content, not a reason to reset history.
