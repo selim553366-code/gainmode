@@ -87,7 +87,6 @@ export default function WorkoutSessionScreen() {
     ? workout.exercises.filter((exercise) => (exercise.muscleGroup ?? 'other') === selectedMuscle)
     : [];
   const completedCount = workout?.exercises.filter((exercise) => exercise.completed).length ?? 0;
-  const exerciseCalories = workout ? estimateExerciseCalories(workout, profile ?? undefined) : 0;
 
   React.useEffect(() => {
     listAnimation.setValue(0);
@@ -218,6 +217,7 @@ export default function WorkoutSessionScreen() {
         {selectedExercises.map((exercise, index) => {
           const revealStart = Math.min(0.65, index * 0.1);
           const revealEnd = Math.min(1, revealStart + 0.32);
+          const exerciseCalories = estimateExerciseCalories(workout, exercise, profile ?? undefined);
           return <Animated.View key={exercise.id} style={{
             opacity: listAnimation.interpolate({ inputRange: [revealStart, revealEnd], outputRange: [0, 1], extrapolate: 'clamp' }),
             transform: [{ translateY: listAnimation.interpolate({ inputRange: [revealStart, revealEnd], outputRange: [18, 0], extrapolate: 'clamp' }) }],

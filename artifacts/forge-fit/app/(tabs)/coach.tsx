@@ -357,7 +357,7 @@ export default function CoachScreen() {
     weeklyCardReveal.setValue(0);
     const animation = Animated.timing(weeklyCardReveal, { toValue: 1, duration: 1050, easing: Easing.out(Easing.cubic), useNativeDriver: true });
     animation.start();
-    const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
+     const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal, profile: profile ?? undefined });
      const weeklyPrompt = `Create a concise written weekly fitness analysis from the user's real data. Do not merely repeat metric values: interpret what they mean, assess progress, identify one strength and one weakness or uncertainty, and give 1-2 actionable recommendations. If the data is insufficient or no change is needed, say that clearly and explain what to monitor next. Never invent missing data. This is a weekly review, not medical advice. If the user's goal is muscle building, focus on training volume, consistency, and strength progress; do not mention weight change or weight logs. Reply entirely in the user's selected language. Weekly summary: ${JSON.stringify(summary)}`;
     const timeout = setTimeout(() => {
      void requestCoach(weeklyPrompt, { id: `weekly-${analysisId}`, text: t('weeklyAnalysisCard'), from: 'user', variant: 'weeklyAnalysis' });

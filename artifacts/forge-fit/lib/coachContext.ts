@@ -123,6 +123,7 @@ export function buildCoachContext(input: CoachContextInput) {
       workouts: input.workouts,
       calorieGoal: input.calorieGoal,
       goal: input.profile?.goal,
+      profile: input.profile ?? undefined,
     });
     context.progress = { currentWeight: input.weight, weightLogs: input.weightLogs.slice(-4), weeklySummary: summary };
   }

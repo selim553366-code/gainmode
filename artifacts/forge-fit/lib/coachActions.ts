@@ -10,7 +10,7 @@ export type CoachAction =
   | { type: 'update_profile'; patch: ProfilePatch }
   | { type: 'update_nutrition'; calories?: number; protein?: number; carbs?: number; fat?: number };
 
-export type ProfilePatch = Partial<Pick<Profile, 'equipment' | 'equipmentDetails' | 'gymLevel' | 'height' | 'weight' | 'age' | 'goal' | 'sex' | 'activity' | 'trainingDays' | 'sessionDuration' | 'goalRate' | 'diet' | 'proteinPreference' | 'experience' | 'preferredDays' | 'targetWeight'>>;
+export type ProfilePatch = Partial<Pick<Profile, 'equipment' | 'equipmentDetails' | 'gymLevel' | 'dumbbellWeightKg' | 'height' | 'weight' | 'age' | 'goal' | 'sex' | 'activity' | 'trainingDays' | 'sessionDuration' | 'goalRate' | 'diet' | 'proteinPreference' | 'experience' | 'preferredDays' | 'targetWeight'>>;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const isIntegerInRange = (value: unknown, min: number, max: number): value is number => typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max;
@@ -84,6 +84,7 @@ export function validateCoachActions(rawActions: unknown, workouts: Workout[]): 
       if (patch.equipmentDetails !== undefined && isString(patch.equipmentDetails)) accepted.equipmentDetails = patch.equipmentDetails.trim();
       if (patch.height !== undefined && isNumberInRange(patch.height, 120, 230)) accepted.height = patch.height;
       if (patch.weight !== undefined && isNumberInRange(patch.weight, 35, 250)) accepted.weight = patch.weight;
+      if (patch.dumbbellWeightKg !== undefined && isNumberInRange(patch.dumbbellWeightKg, 1, 100)) accepted.dumbbellWeightKg = patch.dumbbellWeightKg;
       if (patch.age !== undefined && isIntegerInRange(patch.age, 13, 100)) accepted.age = patch.age;
       if (patch.trainingDays !== undefined && isIntegerInRange(patch.trainingDays, 2, 6)) accepted.trainingDays = patch.trainingDays;
       if (patch.sessionDuration !== undefined && isIntegerInRange(patch.sessionDuration, 15, 180)) accepted.sessionDuration = patch.sessionDuration;

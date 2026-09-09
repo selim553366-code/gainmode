@@ -26,6 +26,7 @@ export type Profile = {
   equipment: Equipment;
   equipmentDetails?: string;
   gymLevel?: GymLevel;
+  dumbbellWeightKg?: number;
   height: number;
   weight: number;
   age: number;

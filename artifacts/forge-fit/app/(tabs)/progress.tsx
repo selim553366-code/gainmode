@@ -39,7 +39,7 @@ export default function ProgressScreen() {
   const [launching, setLaunching] = React.useState(false);
   const launchProgress = React.useRef(new Animated.Value(0)).current;
   const tracksWeight = Boolean(profile && profile.goal !== 'muscle');
-  const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
+  const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal, profile: profile ?? undefined });
   const points = weightLogs.filter((item) => item.date >= summary.weekStart).slice(-7);
   const maxPoint = Math.max(...points.map((item) => item.value), summary.currentWeightKg ?? 0, 1);
   const minPoint = Math.min(...points.map((item) => item.value), summary.currentWeightKg ?? maxPoint, maxPoint);
@@ -94,6 +94,11 @@ export default function ProgressScreen() {
       <StatTile icon="activity" value={<AnimatedNumber value={summary.totalExercises} />} label={t('weeklyTotalExercises')} color={colors.blue} />
       <StatTile icon="flame-outline" value={summary.calorieConsistency === null ? '—' : `${summary.calorieConsistency}%`} label={t('weeklyCalorieConsistency')} color={colors.success} />
     </View>
+     <Card style={styles.loadCard}>
+       <View style={[styles.loadIcon, { backgroundColor: `${colors.orange}18` }]}><Ionicons name="barbell-outline" size={20} color={colors.orange} /></View>
+       <View style={styles.loadCopy}><Text style={[styles.loadTitle, { color: colors.foreground }]}>{summary.dumbbellWeightKg ? `${summary.dumbbellWeightKg} kg · ${t('weeklyDumbbellLoad')}` : t('weeklyWorkoutCalories')}</Text><Text style={[styles.loadHint, { color: colors.mutedForeground }]}>{summary.dumbbellWeightKg ? t('weeklyDumbbellLoadHint') : t('weeklyWorkoutCaloriesHint')}</Text></View>
+       <Text style={[styles.loadValue, { color: colors.orange }]}>{summary.dumbbellWeightKg ? `${summary.dumbbellWeightKg} kg` : `${summary.workoutCalories} ${t('caloriesShort')}`}</Text>
+     </Card>
 
     <Card style={styles.consistencyCard}>
       <View style={styles.consistencyHeader}><View style={[styles.consistencyIcon, { backgroundColor: `${colors.success}18` }]}><Ionicons name="checkmark-circle-outline" size={19} color={colors.success} /></View><View style={{ flex: 1 }}><Text style={[styles.consistencyTitle, { color: colors.foreground }]}>{t('weeklyCalorieTitle')}</Text><Text style={[styles.consistencySubtitle, { color: colors.mutedForeground }]}>{summary.trackedCalorieDays > 0 ? `${summary.onTargetCalorieDays}/${summary.trackedCalorieDays} ${t('weeklyCalorieDays')}` : t('weeklyCalorieNoData')}</Text></View><Text style={[styles.consistencyValue, { color: colors.success }]}>{summary.calorieConsistency === null ? '—' : `${summary.calorieConsistency}%`}</Text></View>
@@ -143,6 +148,12 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: 'Inter_700Bold', fontSize: 22, marginTop: 12 },
   statLabel: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 4 },
   inlineUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  loadCard: { padding: 15, flexDirection: 'row', alignItems: 'center', gap: 11, marginBottom: 16 },
+  loadIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  loadCopy: { flex: 1 },
+  loadTitle: { fontFamily: 'Inter_700Bold', fontSize: 13 },
+  loadHint: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 15, marginTop: 3 },
+  loadValue: { fontFamily: 'Inter_700Bold', fontSize: 14 },
   consistencyCard: { padding: 16, marginBottom: 16 },
   consistencyHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   consistencyIcon: { width: 39, height: 39, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },

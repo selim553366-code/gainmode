@@ -9,14 +9,14 @@ Each generated workout must keep a 2–3 exercise range per focused muscle group
 
 **How to apply:** When changing plan generation or completion behavior, preserve exercise-level completion through local storage and test bodyweight, home-equipment, explicit gym equipment, generic gym, and partial-completion cases. Keep cycle refresh deferred until the first training day so the completed cycle remains visible and achievement totals remain intact.
 
-Nutrition burn estimates use the same equipment intensity factors as goal projections and scale planned duration by the completed exercise ratio.
+Nutrition burn estimates use the same equipment intensity factors as goal projections and sum movement-specific exercise estimates for completed exercises.
 
 **Why:** The nutrition screen must reflect the workout progress the user actually completed without introducing a second calorie model.
 
-**How to apply:** Reuse the shared workout intensity and completion helpers when changing workout calorie display, net calories, or remaining nutrition targets.
+**How to apply:** Reuse the shared workout intensity, movement-effort, dumbbell-load, and completion helpers when changing workout calorie display, net calories, or remaining nutrition targets. Preserve the stored profile dumbbell weight as the source of truth rather than copying it into workout records.
 
-For per-exercise calorie labels, allocate the full planned workout burn evenly across the workout’s exercises; the label describes the estimated burn if that exercise is completed.
+Per-exercise calorie labels now weight each movement by its type, muscle group, set/rep volume, user body weight, and dumbbell load, then distribute the planned workout burn by relative effort. Completed movement estimates sum into the workout burn.
 
-**Why:** Users need an actionable calorie estimate beside each movement while the sum of the individual estimates remains aligned with the workout-level model.
+**Why:** Users need movement-specific estimates instead of a misleading equal split, while nutrition totals must remain aligned with the same duration and equipment intensity model.
 
-**How to apply:** Use the shared equipment intensity and planned duration, divide by the total exercise count, and keep the value independent of the exercise’s current completion state.
+**How to apply:** Keep body weight and dumbbell weight in the profile, use recognized movement/muscle fallbacks for the exercise effort, and calculate a label from the exercise’s position in the complete workout rather than its completion flag.

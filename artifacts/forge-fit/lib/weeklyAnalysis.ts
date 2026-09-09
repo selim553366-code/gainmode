@@ -1,5 +1,6 @@
-import type { FitnessGoal, Meal, Workout } from '@/context/FitContext';
+import type { FitnessGoal, Meal, Profile, Workout } from '@/context/FitContext';
 import { localDateKey, mealDateKey } from '@/lib/nutritionDates';
+import { estimateWorkoutCalories } from '@/lib/workoutPlan';
 
 export type WeightOutcome = 'lost' | 'gained' | 'steady' | 'missing';
 
@@ -11,6 +12,8 @@ export type WeeklySummary = {
   workoutMinutes: number;
   totalSets: number;
   totalExercises: number;
+  workoutCalories: number;
+  dumbbellWeightKg: number | null;
   trackedCalorieDays: number;
   onTargetCalorieDays: number;
   calorieConsistency: number | null;
@@ -42,6 +45,7 @@ export function getWeeklySummary({
   workouts,
   calorieGoal,
   goal,
+  profile,
 }: {
   weight: number | null;
   weightLogs: { value: number; date: string }[];
@@ -49,12 +53,13 @@ export function getWeeklySummary({
   workouts: Workout[];
   calorieGoal: number | null;
   goal?: FitnessGoal;
+  profile?: Pick<Profile, 'goal' | 'equipment' | 'weight' | 'dumbbellWeightKg'>;
 }): WeeklySummary {
   const { start, end } = getWeekRange();
   const weekWeights = weightLogs
     .filter((item) => inCurrentWeek(item.date, start, end))
     .sort((a, b) => mealDateKey(a.date).localeCompare(mealDateKey(b.date)));
-  const tracksWeight = goal !== 'muscle';
+  const tracksWeight = (profile?.goal ?? goal) !== 'muscle';
   const firstWeight = tracksWeight ? weekWeights[0]?.value : undefined;
   const lastWeight = tracksWeight ? weekWeights.at(-1)?.value ?? weight : null;
   const weightChangeKg = firstWeight !== undefined && lastWeight !== null && lastWeight !== undefined
@@ -74,6 +79,9 @@ export function getWeeklySummary({
   const workoutMinutes = completedWorkouts.reduce((sum, item) => sum + item.duration, 0);
   const totalSets = completedWorkouts.reduce((sum, item) => sum + item.exercises.reduce((exerciseSum, exercise) => exerciseSum + exercise.sets, 0), 0);
   const totalExercises = completedWorkouts.reduce((sum, item) => sum + item.exercises.length, 0);
+  const workoutCalories = profile
+    ? completedWorkouts.reduce((sum, workout) => sum + estimateWorkoutCalories(workout, profile), 0)
+    : 0;
 
   const caloriesByDay = new Map<string, number>();
   meals.forEach((meal) => {
@@ -93,6 +101,8 @@ export function getWeeklySummary({
     workoutMinutes,
     totalSets,
     totalExercises,
+    workoutCalories,
+    dumbbellWeightKg: profile?.dumbbellWeightKg ?? null,
     trackedCalorieDays,
     onTargetCalorieDays,
     calorieConsistency: calorieGoal && trackedCalorieDays > 0 ? Math.round((onTargetCalorieDays / trackedCalorieDays) * 100) : null,

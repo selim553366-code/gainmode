@@ -2067,7 +2067,65 @@ const themeTranslations = {
   es: { appearance: 'Apariencia', appearanceDescription: 'Elige la apariencia de GainMode o sigue automáticamente tu teléfono.', themeSystem: 'Sistema', themeLight: 'Claro', themeDark: 'Oscuro' },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof coachRatingTranslations.tr | keyof typeof coachAtmosphereTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr;
+const trainingLoadTranslations = {
+  tr: {
+    dumbbellOptionLabel: 'Dumbbell kullanıyorum',
+    dumbbellWeightLabel: 'Her bir dumbbell kaç kg?',
+    dumbbellWeightHint: 'Bu değer hareket bazlı yakım ve haftalık analiz için kullanılır.',
+    dumbbellWeightPlaceholder: 'Örn. 10',
+    dumbbellWeightError: '1 ile 100 kg arasında bir dumbbell ağırlığı gir.',
+    weeklyDumbbellLoad: 'Dumbbell yükü',
+    weeklyDumbbellLoadHint: 'Hareket bazlı hesaplarda kullanılan ağırlık',
+    weeklyWorkoutCalories: 'Egzersiz yakımı',
+    weeklyWorkoutCaloriesHint: 'Tamamlanan antrenmanlardan',
+  },
+  en: {
+    dumbbellOptionLabel: 'I use dumbbells',
+    dumbbellWeightLabel: 'How heavy is each dumbbell?',
+    dumbbellWeightHint: 'Used for movement-level burn and your weekly analysis.',
+    dumbbellWeightPlaceholder: 'e.g. 10',
+    dumbbellWeightError: 'Enter a dumbbell weight between 1 and 100 kg.',
+    weeklyDumbbellLoad: 'Dumbbell load',
+    weeklyDumbbellLoadHint: 'Weight used in movement-level estimates',
+    weeklyWorkoutCalories: 'Exercise burn',
+    weeklyWorkoutCaloriesHint: 'From completed workouts',
+  },
+  de: {
+    dumbbellOptionLabel: 'Ich trainiere mit Kurzhanteln',
+    dumbbellWeightLabel: 'Wie schwer ist jede Kurzhantel?',
+    dumbbellWeightHint: 'Wird für bewegungsbezogene Berechnungen und deine Wochenanalyse verwendet.',
+    dumbbellWeightPlaceholder: 'z. B. 10',
+    dumbbellWeightError: 'Gib ein Kurzhantelgewicht zwischen 1 und 100 kg ein.',
+    weeklyDumbbellLoad: 'Kurzhantelgewicht',
+    weeklyDumbbellLoadHint: 'Gewicht für bewegungsbezogene Schätzungen',
+    weeklyWorkoutCalories: 'Kalorienverbrauch',
+    weeklyWorkoutCaloriesHint: 'Aus abgeschlossenen Trainings',
+  },
+  fr: {
+    dumbbellOptionLabel: 'J’utilise des haltères',
+    dumbbellWeightLabel: 'Quel est le poids de chaque haltère ?',
+    dumbbellWeightHint: 'Utilisé pour les estimations par mouvement et ton analyse hebdomadaire.',
+    dumbbellWeightPlaceholder: 'ex. 10',
+    dumbbellWeightError: 'Saisis un poids d’haltère entre 1 et 100 kg.',
+    weeklyDumbbellLoad: 'Charge des haltères',
+    weeklyDumbbellLoadHint: 'Poids utilisé pour les estimations par mouvement',
+    weeklyWorkoutCalories: 'Calories brûlées',
+    weeklyWorkoutCaloriesHint: 'Pour les entraînements terminés',
+  },
+  es: {
+    dumbbellOptionLabel: 'Uso mancuernas',
+    dumbbellWeightLabel: '¿Cuánto pesa cada mancuerna?',
+    dumbbellWeightHint: 'Se usa para calcular cada ejercicio y tu análisis semanal.',
+    dumbbellWeightPlaceholder: 'p. ej. 10',
+    dumbbellWeightError: 'Introduce un peso de mancuerna entre 1 y 100 kg.',
+    weeklyDumbbellLoad: 'Carga de mancuernas',
+    weeklyDumbbellLoadHint: 'Peso usado en las estimaciones por ejercicio',
+    weeklyWorkoutCalories: 'Calorías quemadas',
+    weeklyWorkoutCaloriesHint: 'De los entrenamientos completados',
+  },
+} as const;
+
+export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof coachRatingTranslations.tr | keyof typeof coachAtmosphereTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr | keyof typeof trainingLoadTranslations.tr;
 
 const workoutReminderDescriptions: Record<Language, string> = {
   tr: 'Antrenman günlerinde saat 09:00’da o günün antrenmanını ve süresini hatırlat.',
@@ -2097,6 +2155,7 @@ export function translate(language: Language, key: TranslationKey): string {
   if (key === 'premiumShort' || key === 'premiumModalEyebrow') return subscriptionAccessLabel[language];
   if (key === 'photoAiBox') return photoAnalysisStatusCopy[language];
   if (key in themeTranslations.tr) return themeTranslations[language][key as keyof typeof themeTranslations.tr];
+  if (key in trainingLoadTranslations.tr) return trainingLoadTranslations[language][key as keyof typeof trainingLoadTranslations.tr];
   if (key === 'workoutReminderDescription') return workoutReminderDescriptions[language];
   if (key === 'premiumPriceOptions') return applyCurrentBrand(getPremiumPreviewPriceOptions(language));
   if (key in featuresTranslations.tr) {

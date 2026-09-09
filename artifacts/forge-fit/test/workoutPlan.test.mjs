@@ -270,16 +270,26 @@ test('estimates workout calories from duration, equipment intensity, and complet
   };
 
   assert.equal(getWorkoutCompletionRatio(partialWorkout), completedCount / workout.exercises.length);
-  assert.equal(estimateWorkoutCalories(partialWorkout, profile({ equipment: 'gym' })), Math.round(40 * 6.5 * (completedCount / workout.exercises.length)));
-  assert.equal(estimateWorkoutCalories({ ...workout, exercises: workout.exercises.map((exercise) => ({ ...exercise, completed: true })) }, profile({ equipment: 'bodyweight' })), 40 * 5);
+  const expectedPartial = partialWorkout.exercises.reduce((sum, exercise) => sum + (exercise.completed ? estimateExerciseCalories(partialWorkout, exercise, profile({ equipment: 'gym' })) : 0), 0);
+  const fullWorkout = { ...workout, exercises: workout.exercises.map((exercise) => ({ ...exercise, completed: true })) };
+
+  assert.equal(estimateWorkoutCalories(partialWorkout, profile({ equipment: 'gym' })), expectedPartial);
+  assert.ok(estimateWorkoutCalories(fullWorkout, profile({ equipment: 'gym' })) > estimateWorkoutCalories(partialWorkout, profile({ equipment: 'gym' })));
 });
 
-test('allocates the planned workout burn across each exercise', () => {
+test('calculates a distinct movement burn and applies dumbbell load', () => {
   const workout = buildWorkoutPlan(profile({ equipment: 'home', trainingDays: 2, sessionDuration: 40 }))[0];
-  const expected = Math.max(1, Math.round((40 * 5.5) / workout.exercises.length));
+  const squat = { ...workout.exercises.find((exercise) => exercise.name === 'exerciseGobletSquat') ?? workout.exercises[0], name: 'exerciseGobletSquat' };
+  const curl = { ...workout.exercises.find((exercise) => exercise.name === 'exerciseDumbbellCurl') ?? workout.exercises[1], name: 'exerciseDumbbellCurl' };
+  const lightProfile = profile({ equipment: 'home', dumbbellWeightKg: 5 });
+  const heavyProfile = profile({ equipment: 'home', dumbbellWeightKg: 20 });
+  const heavierUserProfile = profile({ equipment: 'home', weight: 110, dumbbellWeightKg: 5 });
+  const isolatedCurlWorkout = { ...workout, duration: 120, exercises: [curl] };
 
-  assert.equal(estimateExerciseCalories(workout, profile({ equipment: 'home' })), expected);
-  assert.equal(estimateExerciseCalories({ ...workout, exercises: [] }, profile({ equipment: 'home' })), 0);
+  assert.notEqual(estimateExerciseCalories(workout, squat, lightProfile), estimateExerciseCalories(workout, curl, lightProfile));
+  assert.ok(estimateExerciseCalories(workout, curl, heavyProfile) > estimateExerciseCalories(workout, curl, lightProfile));
+  assert.ok(estimateExerciseCalories(isolatedCurlWorkout, curl, heavierUserProfile) > estimateExerciseCalories(isolatedCurlWorkout, curl, lightProfile));
+  assert.equal(estimateExerciseCalories({ ...workout, exercises: [] }, squat, lightProfile), 0);
 });
 
 test('restores individual exercise completion after a persisted round-trip', () => {

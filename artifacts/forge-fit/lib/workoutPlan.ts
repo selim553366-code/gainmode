@@ -34,19 +34,57 @@ export function getWorkoutIntensity(profile?: Pick<Profile, 'equipment'>) {
   return profile?.equipment === 'gym' ? 6.5 : profile?.equipment === 'home' ? 5.5 : 5;
 }
 
-/**
- * Estimate active workout calories from planned duration and completed exercises.
- * The intensity values match the goal projection calculation.
- */
-export function estimateWorkoutCalories(workout: Workout, profile?: Pick<Profile, 'equipment'>) {
-  const duration = Number.isFinite(workout.duration) ? Math.max(0, workout.duration) : 0;
-  return Math.round(duration * getWorkoutIntensity(profile) * getWorkoutCompletionRatio(workout));
+type WorkoutExercise = Workout['exercises'][number];
+
+function exerciseMovementFactor(exercise: WorkoutExercise) {
+  const name = exercise.name.toLocaleLowerCase();
+  if (/burpee|mountain|thruster|squat|lunge|split|step.?up|donkey|calf|jump/.test(name)) return 1.2;
+  if (/deadlift|rdl|good.?morning|hinge|bridge|hip.?thrust|superman|snow.?angel/.test(name)) return 1.12;
+  if (/push|press|dip|row|pull|bench|fly|renegade|shoulder.?tap/.test(name)) return 1.05;
+  if (/plank|dead.?bug|core|russian|side.?bend/.test(name)) return 0.86;
+  if (/curl|raise|kickback|concentration|lateral|front|reverse.?fly/.test(name)) return 0.8;
+  if (exercise.muscleGroup === 'core') return 0.86;
+  if (exercise.muscleGroup === 'quadriceps' || exercise.muscleGroup === 'hamstrings' || exercise.muscleGroup === 'glutes') return 1.12;
+  return 1;
 }
 
-export function estimateExerciseCalories(workout: Workout, profile?: Pick<Profile, 'equipment'>) {
+function usesDumbbell(exercise: WorkoutExercise) {
+  return /dumbbell|dumbell|dambıl|dambil|halter|mancuerna|hantel|haltère/.test(exercise.name.toLocaleLowerCase());
+}
+
+function bodyWeightFactor(profile?: Pick<Profile, 'weight'>) {
+  return profile?.weight ? Math.min(1.35, Math.max(0.75, profile.weight / 70)) : 1;
+}
+
+function exerciseCalorieWeight(exercise: WorkoutExercise, profile?: Pick<Profile, 'weight' | 'dumbbellWeightKg'>) {
+  const volume = Math.max(1, Number(exercise.sets) || 1) * Math.max(1, Number(exercise.reps) || 1);
+  const dumbbellLoadFactor = usesDumbbell(exercise) && profile?.dumbbellWeightKg
+    ? 1 + Math.min(0.35, Math.max(0, profile.dumbbellWeightKg) / 40)
+    : 1;
+  return exerciseMovementFactor(exercise) * Math.sqrt(volume / 24) * dumbbellLoadFactor;
+}
+
+/**
+ * Estimate calories for one movement from its volume, movement pattern and dumbbell load.
+ * The workout duration is distributed by each movement's relative effort so the
+ * completed movement total remains aligned with the workout-level intensity model.
+ */
+export function estimateExerciseCalories(workout: Workout, exercise: WorkoutExercise, profile?: Pick<Profile, 'equipment' | 'weight' | 'dumbbellWeightKg'>) {
   if (workout.exercises.length === 0) return 0;
   const duration = Number.isFinite(workout.duration) ? Math.max(0, workout.duration) : 0;
-  return Math.max(1, Math.round((duration * getWorkoutIntensity(profile)) / workout.exercises.length));
+  const totalEffort = workout.exercises.reduce((sum, item) => sum + exerciseCalorieWeight(item, profile), 0);
+  if (totalEffort <= 0) return 0;
+  const dumbbellExerciseRatio = workout.exercises.filter(usesDumbbell).length / workout.exercises.length;
+  const dumbbellLoadFactor = profile?.dumbbellWeightKg && dumbbellExerciseRatio > 0
+    ? 1 + Math.min(0.2, Math.max(0, profile.dumbbellWeightKg) / 60) * dumbbellExerciseRatio
+    : 1;
+  return Math.max(1, Math.round(duration * getWorkoutIntensity(profile) * bodyWeightFactor(profile) * dumbbellLoadFactor * (exerciseCalorieWeight(exercise, profile) / totalEffort)));
+}
+
+export function estimateWorkoutCalories(workout: Workout, profile?: Pick<Profile, 'equipment' | 'weight' | 'dumbbellWeightKg'>) {
+  return workout.exercises.reduce((total, exercise) => (
+    total + (exercise.completed ? estimateExerciseCalories(workout, exercise, profile) : 0)
+  ), 0);
 }
 
 type ExerciseLibrary = Record<MuscleGroup, TranslationKey[]>;
@@ -173,7 +211,7 @@ function inferWorkoutName(areas: MuscleGroup[], fallback: Workout['name']): Work
 }
 
 function equipmentText(profile: Profile) {
-  return (profile.equipmentDetails ?? '').toLocaleLowerCase();
+  return `${profile.equipmentDetails ?? ''} ${profile.dumbbellWeightKg ? 'dumbbell' : ''}`.toLocaleLowerCase();
 }
 
 function prioritizeDumbbellLibrary(preferred: TranslationKey[]): ExerciseLibrary {
@@ -207,7 +245,7 @@ function chooseDumbbellLibrary(profile: Profile) {
 function chooseLibrary(profile: Profile): ExerciseLibrary {
   if (profile.equipment === 'bodyweight') return bodyweightLibrary;
   const details = equipmentText(profile);
-  if (/dumbbell|dumbell|dambıl|dambil|halter|mancuerna|hantel|haltère/.test(details)) return chooseDumbbellLibrary(profile);
+  if (profile.dumbbellWeightKg || /dumbbell|dumbell|dambıl|dambil|halter|mancuerna|hantel|haltère/.test(details)) return chooseDumbbellLibrary(profile);
   if (profile.equipment === 'gym' && profile.gymLevel !== 'basic') return gymLibrary;
   if (/band|bant|direnç|resistance|elastique|gummiband|banda/.test(details)) return bandLibrary;
   if (/kettlebell|girya/.test(details)) return kettlebellLibrary;
