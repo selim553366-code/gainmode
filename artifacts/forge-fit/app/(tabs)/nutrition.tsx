@@ -13,6 +13,7 @@ import { useColors } from '@/hooks/useColors';
 import { Card, ForgeFitMark, Header, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 import { DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getMealsForRange } from '@/lib/nutritionDates';
+import { getAiClientId } from '@/lib/aiUsage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const formatNutrition = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -140,7 +141,7 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
 
 export default function NutritionScreen() {
   const colors = useColors();
-  const { language, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, addMeal, removeMeal, photoAnalysesUsed, incrementPhotoUsage } = useFit();
+  const { language, meals, savedMeals, calorieGoal, proteinGoal, carbsGoal, fatGoal, addMeal, removeMeal, addSavedMeal, removeSavedMeal, photoAnalysesUsed, incrementPhotoUsage } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { openCamera } = useLocalSearchParams<{ openCamera?: string }>();
   const [search, setSearch] = React.useState('');
@@ -155,6 +156,7 @@ export default function NutritionScreen() {
   const [barcodeResult, setBarcodeResult] = React.useState<FoodSearchItem | null>(null);
   const [barcodeLoading, setBarcodeLoading] = React.useState(false);
   const [barcodeError, setBarcodeError] = React.useState<string | null>(null);
+  const [mealSection, setMealSection] = React.useState<'daily' | 'saved'>('daily');
   const [foodSearchItems, setFoodSearchItems] = React.useState<FoodSearchItem[]>([]);
   const [foodSearchLoading, setFoodSearchLoading] = React.useState(false);
   const [foodSearchError, setFoodSearchError] = React.useState(false);
@@ -211,7 +213,8 @@ export default function NutritionScreen() {
     try {
       await new Promise<void>((resolve) => setTimeout(resolve, 1050));
       setAnalysisPhase('analyzing');
-      const response = await fetch(apiUrl('/api/ai/food-analysis'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageData: base64, language }) });
+       const clientId = await getAiClientId();
+       const response = await fetch(apiUrl('/api/ai/food-analysis'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageData: base64, language, clientId }) });
       if (!response.ok) throw new Error('analysis failed');
       const analyzed = await response.json() as Meal;
       addMeal({ name: analyzed.name, type: 'snack', calories: analyzed.calories, protein: analyzed.protein, carbs: analyzed.carbs, fat: analyzed.fat, imageUri: uri });
@@ -293,6 +296,22 @@ export default function NutritionScreen() {
   }, [openCamera]);
 
   const loggedMeals = [...visibleMeals].reverse();
+  const isAnalysisSaved = Boolean(analysisResult && savedMeals.some((meal) => (
+    meal.name === analysisResult.name
+    && meal.calories === analysisResult.calories
+    && meal.protein === analysisResult.protein
+    && meal.carbs === analysisResult.carbs
+    && meal.fat === analysisResult.fat
+  )));
+  const saveAnalysisMeal = () => {
+    if (!analysisResult || isAnalysisSaved) return;
+    addSavedMeal({ name: analysisResult.name, type: 'snack', calories: analysisResult.calories, protein: analysisResult.protein, carbs: analysisResult.carbs, fat: analysisResult.fat, imageUri: photoUri ?? undefined });
+    Alert.alert(t('saveMeal'), t('saveMealSuccess'));
+  };
+  const addSavedFood = (meal: typeof savedMeals[number]) => {
+    addMeal({ name: meal.name, type: meal.type, calories: meal.calories, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, imageUri: meal.imageUri });
+    Alert.alert(t('addSavedMeal'), t('foodAdded'));
+  };
 
   return <Screen>
     <Header eyebrow="Fuel / 01" title={t('nutritionTitle')} subtitle={t('nutritionSubtitle')} action="ellipsis-horizontal" onAction={() => Alert.alert(t('nutrition'), t('premiumDesc'))} />
@@ -325,10 +344,14 @@ export default function NutritionScreen() {
       </View>
       {photoUri ? <PhotoAnalysisTransfer uri={photoUri} phase={analysisPhase} sendingLabel={t('photoSendingToAi')} aiBoxLabel={t('photoAiBox')} analyzingLabel={t('photoAnalyzingStep')} /> : null}
       {photoUri ? <View style={styles.captureStatus}><Text style={[styles.mealName, { color: colors.foreground }]}>{analyzing ? t('analyzing') : t('analyzePhoto')}</Text></View> : null}
-       {analysisResult && !analyzing ? <Pressable accessibilityRole="button" accessibilityLabel={t('viewMacroDetails')} onPress={() => setAnalysisDetailsVisible(true)} style={({ pressed }) => [styles.analysisResultCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45`, opacity: pressed ? 0.72 : 1 }]}>
+        {analysisResult && !analyzing ? <Pressable accessibilityRole="button" accessibilityLabel={t('viewMacroDetails')} onPress={() => setAnalysisDetailsVisible(true)} style={({ pressed }) => [styles.analysisResultCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45`, opacity: pressed ? 0.72 : 1 }]}>
          <View style={[styles.analysisResultIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={18} color={colors.primary} /></View>
          <View style={styles.analysisResultCopy}><Text style={[styles.analysisResultName, { color: colors.foreground }]} numberOfLines={1}>{analysisResult.name}</Text><Text style={[styles.analysisResultHint, { color: colors.primary }]}>{t('photoAnalysisReady')} · {t('viewMacroDetails')}</Text></View>
          <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+       </Pressable> : null}
+       {analysisResult && !analyzing ? <Pressable testID="save-analyzed-meal" accessibilityRole="button" accessibilityLabel={isAnalysisSaved ? t('mealSaved') : t('saveMeal')} onPress={saveAnalysisMeal} disabled={isAnalysisSaved} style={({ pressed }) => [styles.saveMealButton, { borderColor: `${colors.primary}55`, backgroundColor: isAnalysisSaved ? `${colors.success}16` : `${colors.primary}0D`, opacity: isAnalysisSaved ? 0.8 : pressed ? 0.7 : 1 }]}>
+         <Ionicons name={isAnalysisSaved ? 'checkmark-circle' : 'add-circle-outline'} size={17} color={isAnalysisSaved ? colors.success : colors.primary} />
+         <Text style={[styles.saveMealButtonText, { color: isAnalysisSaved ? colors.success : colors.primary }]}>{isAnalysisSaved ? t('mealSaved') : t('saveMeal')}</Text>
        </Pressable> : null}
       <View style={styles.captureOptions}>
         <Pressable testID="camera-scan" onPress={openMealCamera} style={({ pressed }) => [styles.captureOptionPrimary, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="camera-outline" size={18} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('scanMeal')}</Text></Pressable>
@@ -363,10 +386,19 @@ export default function NutritionScreen() {
       {searchEnabled && !foodSearchLoading && !foodSearchError && foodSearchItems.length === 0 ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('noFoodResults')}</Text> : null}
       {searchEnabled && !foodSearchLoading && !foodSearchError ? foodSearchItems.map((food) => <Pressable key={`${food.id}-${food.name}`} onPress={() => addFood(food)} style={({ pressed }) => [styles.resultRow, { borderTopColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><View style={styles.resultContent}><Text style={[styles.mealName, { color: colors.foreground }]}>{food.name}</Text><Text style={[styles.resultServing, { color: colors.mutedForeground }]}>{food.serving}</Text><View style={styles.nutritionLine}><Text style={[styles.nutritionValue, { color: colors.foreground }]}>{food.calories} {t('caloriesShort')}</Text><Text style={[styles.nutritionValue, { color: colors.blue }]}>{formatNutrition(food.protein)}g {t('protein')}</Text><Text style={[styles.nutritionValue, { color: colors.orange }]}>{formatNutrition(food.carbs)}g {t('carbs')}</Text><Text style={[styles.nutritionValue, { color: colors.plum }]}>{formatNutrition(food.fat)}g {t('fat')}</Text></View></View><Ionicons name="add-circle-outline" size={22} color={colors.primary} /></Pressable>) : null}
     </Card>
-    <SectionTitle title={t('loggedFoods')} />
-    <Card style={styles.mealCard}>
+     <SectionTitle title={t('loggedFoods')} />
+     <View style={[styles.mealTabs, { backgroundColor: `${colors.secondary}A8`, borderColor: colors.border }]}>
+       <Pressable testID="daily-meals-tab" accessibilityRole="tab" accessibilityState={{ selected: mealSection === 'daily' }} onPress={() => setMealSection('daily')} style={[styles.mealTab, mealSection === 'daily' && { backgroundColor: colors.white, shadowColor: colors.black }]}><Text style={[styles.mealTabText, { color: mealSection === 'daily' ? colors.black : colors.mutedForeground }]}>{t('loggedFoods')}</Text></Pressable>
+       <Pressable testID="saved-meals-tab" accessibilityRole="tab" accessibilityState={{ selected: mealSection === 'saved' }} onPress={() => setMealSection('saved')} style={[styles.mealTab, mealSection === 'saved' && { backgroundColor: colors.white, shadowColor: colors.black }]}><Text style={[styles.mealTabText, { color: mealSection === 'saved' ? colors.black : colors.mutedForeground }]}>{t('savedMealsTab')}</Text></Pressable>
+     </View>
+     <Card style={styles.mealCard}>
+       {mealSection === 'daily' ? <>
       <View style={styles.mealHeader}><View style={[styles.mealIcon, { backgroundColor: `${colors.orange}20` }]}><Ionicons name="restaurant-outline" size={19} color={colors.orange} /></View><View style={{ flex: 1 }}><Text style={[styles.mealTitle, { color: colors.foreground }]}>{t('loggedFoods')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{loggedMeals.length} · {calories} {t('caloriesShort')}</Text></View></View>
       {loggedMeals.length > 0 ? loggedMeals.map((meal) => <View key={meal.id} style={[styles.mealLine, { borderTopColor: colors.border }]}>{meal.imageUri ? <Image source={{ uri: meal.imageUri }} style={styles.mealThumb} /> : null}<View style={{ flex: 1 }}><Text style={[styles.mealName, { color: colors.foreground }]}>{meal.name}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{meal.protein}g {t('protein')}  ·  {meal.carbs}g {t('carbs')}  ·  {meal.fat}g {t('fat')}</Text></View><View style={styles.mealActions}><Text style={[styles.mealKcal, { color: colors.foreground }]}>{meal.calories}</Text><Pressable onPress={() => removeMeal(meal.id)} hitSlop={8}><Ionicons name="close-circle-outline" size={18} color={colors.mutedForeground} /></Pressable></View></View>) : <Text style={[styles.emptyMeal, { color: colors.mutedForeground }]}>{t('noMeals')}</Text>}
+       </> : <>
+        <View style={styles.mealHeader}><View style={[styles.mealIcon, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="restaurant-outline" size={19} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.mealTitle, { color: colors.foreground }]}>{t('savedMealsTab')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{savedMeals.length}</Text></View></View>
+        {savedMeals.length > 0 ? [...savedMeals].reverse().map((meal) => <View key={meal.id} style={[styles.mealLine, { borderTopColor: colors.border }]}>{meal.imageUri ? <Image source={{ uri: meal.imageUri }} style={styles.mealThumb} /> : null}<View style={{ flex: 1 }}><Text style={[styles.mealName, { color: colors.foreground }]}>{meal.name}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{meal.protein}g {t('protein')}  ·  {meal.carbs}g {t('carbs')}  ·  {meal.fat}g {t('fat')}</Text></View><View style={styles.savedMealActions}><Text style={[styles.mealKcal, { color: colors.foreground }]}>{meal.calories}</Text><Pressable accessibilityRole="button" accessibilityLabel={t('addSavedMeal')} onPress={() => addSavedFood(meal)} hitSlop={8}><Ionicons name="add-circle-outline" size={21} color={colors.primary} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={t('removeSavedMeal')} onPress={() => removeSavedMeal(meal.id)} hitSlop={8}><Ionicons name="trash-outline" size={18} color={colors.mutedForeground} /></Pressable></View></View>) : <Text style={[styles.emptyMeal, { color: colors.mutedForeground }]}>{t('noSavedMeals')}</Text>}
+       </>}
     </Card>
       <NeonCaptureCamera visible={mealCameraVisible} onClose={() => setMealCameraVisible(false)} onPhoto={(photo) => { setMealCameraVisible(false); void analyzeFoodPhoto(photo.uri, photo.base64); }} mode="meal" title={t('scanMeal')} hint={t('mealCameraHint')} healthySlogan={t('healthySlogan')} permissionText={t('cameraPermission')} unavailableText={t('cameraUnavailable')} allowCameraLabel={t('allowCamera')} closeLabel={t('close')} captureLabel={t('cameraCapture')} flipLabel={t('cameraFlip')} sendPhotoLabel={t('photoSendButton')} retakeLabel={t('photoRetake')} photoGuidance={t('photoFrameGuidance')} />
       <NeonCaptureCamera visible={barcodeScannerVisible} onClose={() => setBarcodeScannerVisible(false)} onScanned={handleBarcode} mode="barcode" title={t('barcodeScannerTitle')} hint={t('barcodeScannerHint')} healthySlogan={t('healthySlogan')} permissionText={t('barcodePermission')} unavailableText={t('barcodeUnavailable')} allowCameraLabel={t('allowCamera')} closeLabel={t('close')} captureLabel={t('cameraCapture')} flipLabel={t('cameraFlip')} sendPhotoLabel={t('photoSendButton')} retakeLabel={t('photoRetake')} photoGuidance={t('photoFrameGuidance')} />
@@ -393,6 +425,8 @@ const styles = StyleSheet.create({
   analysisResultCopy: { flex: 1, minWidth: 0 },
   analysisResultName: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   analysisResultHint: { fontFamily: 'Inter_600SemiBold', fontSize: 10, marginTop: 4 },
+  saveMealButton: { minHeight: 43, borderRadius: 14, borderWidth: 1, marginTop: 9, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
+  saveMealButtonText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   captureOptions: { flexDirection: 'row', gap: 8, marginTop: 13 },
   captureOptionPrimary: { flex: 1.15, minHeight: 45, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   captureOption: { flex: 1, minHeight: 45, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
@@ -491,6 +525,9 @@ const styles = StyleSheet.create({
   cameraPermission: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 35, gap: 14 },
   scannerPermissionButton: { minHeight: 48, borderRadius: 15, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
   mealCard: { padding: 16 },
+  mealTabs: { flexDirection: 'row', borderWidth: 1, borderRadius: 16, padding: 3, marginBottom: 10 },
+  mealTab: { flex: 1, minHeight: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  mealTabText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   mealHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   mealIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   mealTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
@@ -498,6 +535,7 @@ const styles = StyleSheet.create({
   mealThumb: { width: 42, height: 42, borderRadius: 12, marginRight: 10 },
   mealName: { fontFamily: 'Inter_500Medium', fontSize: 13 },
   mealActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  savedMealActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   mealKcal: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   emptyMeal: { fontFamily: 'Inter_400Regular', fontSize: 12, paddingTop: 15 },
 });

@@ -1,7 +1,13 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 
 const router: IRouter = Router();
-const model = "gpt-5-mini";
+const COACH_MODEL = "gpt-5-mini";
+const SIMPLE_COACH_MODEL = "gpt-5-nano";
+const FOOD_ANALYSIS_MODEL = "gpt-5-mini";
+const MODEL_PRICING_USD_PER_MILLION: Record<string, { input: number; output: number }> = {
+  "gpt-5-mini": { input: 0.25, output: 2 },
+  "gpt-5-nano": { input: 0.05, output: 0.4 },
+};
 const supportedLanguages = new Set(["tr", "en", "de", "fr", "es"]);
 const AI_WINDOW_MS = 60 * 60 * 1000;
 const COACH_REQUESTS_PER_WINDOW = 30;
@@ -21,6 +27,14 @@ const languageNames: Record<string, string> = {
 type RateLimitBucket = {
   count: number;
   resetAt: number;
+};
+
+type OpenAiUsage = {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  prompt_tokens_details?: { cached_tokens?: number };
+  completion_tokens_details?: { reasoning_tokens?: number };
 };
 
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
@@ -103,23 +117,63 @@ function openAiUrl() {
 }
 
 async function askOpenAi(messages: unknown[], maxCompletionTokens = 1200) {
+  return askOpenAiWithOptions(messages, { maxCompletionTokens, model: COACH_MODEL });
+}
+
+function isSimpleCoachRequest(message: string) {
+  const normalized = message.toLocaleLowerCase();
+  if (normalized.length > 180) return false;
+  if (/(ekle|çıkar|sil|değiştir|güncelle|taşı|kaldır|add|remove|delete|change|update|ersetze|lösche|ajoute|supprime|cambia|elimina)/i.test(normalized)) return false;
+  return /(kaç|kaldı|hedef|kalori|protein|karbonhidrat|yağ|öğün|yemek|bugün|motivasyon|merhaba|selam|how many|calorie|protein|carb|fat|meal|today|motivat|\bhello\b|\bhi\b|wie viel|kalorien|repas|calories|combien|comida|calorías|cuánto)/i.test(normalized);
+}
+
+async function askOpenAiWithOptions(
+  messages: unknown[],
+  options: { maxCompletionTokens?: number; model: string },
+) {
   const response = await fetch(openAiUrl(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? ""}`,
     },
-    body: JSON.stringify({ model, messages, max_completion_tokens: maxCompletionTokens }),
+    body: JSON.stringify({ model: options.model, messages, max_completion_tokens: options.maxCompletionTokens ?? 1200 }),
   });
   if (!response.ok) throw new Error(`OpenAI request failed with ${response.status}.`);
-  const payload = await response.json() as { choices?: { message?: { content?: string } }[] };
-  return payload.choices?.[0]?.message?.content?.trim() ?? "";
+  const payload = await response.json() as { choices?: { message?: { content?: string } }[]; usage?: OpenAiUsage };
+  return {
+    content: payload.choices?.[0]?.message?.content?.trim() ?? "",
+    usage: payload.usage,
+    model: options.model,
+  };
+}
+
+function logAiUsage(req: Request, operation: string, clientId: string | null, result: { model: string; usage?: OpenAiUsage }) {
+  const inputTokens = Math.max(0, Math.round(result.usage?.prompt_tokens ?? 0));
+  const outputTokens = Math.max(0, Math.round(result.usage?.completion_tokens ?? 0));
+  const cachedInputTokens = Math.max(0, Math.round(result.usage?.prompt_tokens_details?.cached_tokens ?? 0));
+  const reasoningTokens = Math.max(0, Math.round(result.usage?.completion_tokens_details?.reasoning_tokens ?? 0));
+  const pricing = MODEL_PRICING_USD_PER_MILLION[result.model] ?? MODEL_PRICING_USD_PER_MILLION[COACH_MODEL];
+  const estimatedCostUsd = (inputTokens * pricing.input + outputTokens * pricing.output) / 1_000_000;
+  req.log?.info?.({
+    aiUsage: {
+      operation,
+      clientId: clientId ?? "unknown",
+      model: result.model,
+      inputTokens,
+      outputTokens,
+      totalTokens: Math.max(0, Math.round(result.usage?.total_tokens ?? inputTokens + outputTokens)),
+      cachedInputTokens,
+      reasoningTokens,
+      estimatedCostUsd: Number(estimatedCostUsd.toFixed(8)),
+    },
+  }, "AI usage measured");
 }
 
 router.post("/ai/coach", async (req, res) => {
   if (!enforceRateLimit(req, res, "coach", COACH_REQUESTS_PER_WINDOW)) return;
   try {
-    const { message, context, language, imageData } = req.body as { message?: string; context?: string; language?: string; imageData?: string };
+    const { message, context, language, imageData, clientId } = req.body as { message?: string; context?: string; language?: string; imageData?: string; clientId?: string };
     const selectedLanguage = normalizeLanguage(language) ?? "en";
     const normalizedImageData = normalizeImageData(imageData);
     const trimmedMessage = typeof message === "string" ? message.trim() : "";
@@ -129,11 +183,12 @@ router.post("/ai/coach", async (req, res) => {
     if (normalizedContext.length > MAX_CONTEXT_LENGTH) return res.status(413).json({ error: "Context is too large." });
     if (imageData && !normalizedImageData) return res.status(413).json({ error: "Image is too large or invalid." });
     const prompt = trimmedMessage || "Please assess this photo and give useful fitness and nutrition guidance.";
+    const selectedModel = isSimpleCoachRequest(prompt) ? SIMPLE_COACH_MODEL : COACH_MODEL;
     const userContent = normalizedImageData
       ? [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${normalizedImageData}` } }]
       : prompt;
-    const rawContent = await askOpenAi([
-      { role: "system", content: `You are Forge Coach, a warm fitness and nutrition coach who feels like a trusted gym friend. Speak naturally, casually, and supportively rather than sounding clinical, formal, or scripted. Briefly acknowledge the user's feeling or effort before giving advice. Celebrate real progress without exaggerated hype. If the user's preferred name exists in the app data, use it occasionally when it feels natural, never in every reply. Use the friendly informal form of "you" appropriate to ${languageNames[selectedLanguage]}. Never use pet names, shame, guilt, forced slang, or more than one emoji; an emoji is optional and should appear only when it genuinely fits. Read every field in the user's app data: profile, goals, meals, workouts, exercises, weight logs, and weekly summary. Never invent logged data. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[selectedLanguage]}; do not switch languages. Keep every reply short: 2-3 clear sentences, one compact paragraph, and no more than 55 words. Do not repeat the user's data, add long explanations, or use long bullet lists. Give only the most useful interpretation and one practical next step. Return ONLY valid JSON with this exact shape: {"content":"your localized reply","actions":[]}.
+    const response = await askOpenAiWithOptions([
+      { role: "system", content: `You are Forge Coach, a warm fitness and nutrition coach who feels like a trusted gym friend. Speak naturally, casually, and supportively rather than sounding clinical, formal, or scripted. Briefly acknowledge the user's feeling or effort before giving advice. Celebrate real progress without exaggerated hype. If the user's preferred name exists in the app data, use it occasionally when it feels natural, never in every reply. Use the friendly informal form of "you" appropriate to ${languageNames[selectedLanguage]}. Never use pet names, shame, guilt, forced slang, or more than one emoji; an emoji is optional and should appear only when it genuinely fits. Use only the relevant app data included below. If a category is not included, do not claim to have checked it and do not invent it. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[selectedLanguage]}; do not switch languages. Keep every reply short: 2-3 clear sentences, one compact paragraph, and no more than 55 words. Do not repeat the user's data, add long explanations, or use long bullet lists. Give only the most useful interpretation and one practical next step. Return ONLY valid JSON with this exact shape: {"content":"your localized reply","actions":[]}.
 
 Detect when the user explicitly wants to add, update, change, move, or remove information in the app. In that case, propose the corresponding action and tell the user briefly that the change is ready for their confirmation; never say it has already been applied. Questions that only ask for advice or whether a change is sensible must return actions=[].
 
@@ -147,9 +202,10 @@ Allowed actions:
 
 Supported profile fields are equipment, equipmentDetails, gymLevel, height, weight, age, goal, sex, activity, trainingDays, sessionDuration, goalRate, diet, proteinPreference, experience, preferredDays, and targetWeight. Use exact IDs and current values from the request context. Never invent IDs, fields, or values. Do not propose removing required profile facts; explain briefly that the required fact can be changed but not deleted. User app data: ${normalizedContext || "No profile data yet."}` },
       { role: "user", content: userContent },
-    ], COACH_MAX_COMPLETION_TOKENS);
-    if (!rawContent) return res.status(502).json({ error: "AI coach returned an empty response." });
-    const result = parseCoachPayload(rawContent);
+    ], { model: selectedModel, maxCompletionTokens: COACH_MAX_COMPLETION_TOKENS });
+    logAiUsage(req, "coach", typeof clientId === "string" ? clientId.slice(0, 80) : null, response);
+    if (!response.content) return res.status(502).json({ error: "AI coach returned an empty response." });
+    const result = parseCoachPayload(response.content);
     if (!result.content) return res.status(502).json({ error: "AI coach returned an empty response." });
     return res.json(result);
   } catch (error) {
@@ -161,15 +217,16 @@ Supported profile fields are equipment, equipmentDetails, gymLevel, height, weig
 router.post("/ai/food-analysis", async (req, res) => {
   if (!enforceRateLimit(req, res, "food-analysis", FOOD_ANALYSIS_REQUESTS_PER_WINDOW)) return;
   try {
-    const { imageData, language } = req.body as { imageData?: string; language?: string };
+    const { imageData, language, clientId } = req.body as { imageData?: string; language?: string; clientId?: string };
     const selectedLanguage = normalizeLanguage(language) ?? "en";
     const normalizedImageData = normalizeImageData(imageData);
     if (!normalizedImageData) return res.status(400).json({ error: "Valid image data is required." });
-    const content = await askOpenAi([
+    const response = await askOpenAiWithOptions([
       { role: "system", content: `You analyze a food photo. Reply only valid JSON with keys name, calories, protein, carbs, fat. Use realistic estimates, numbers only for nutrition values, and use language ${selectedLanguage} for name. If uncertain, make the estimate explicit in the name.` },
       { role: "user", content: [{ type: "text", text: "Identify this meal and estimate its nutrition." }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${normalizedImageData}` } }] },
-    ]);
-    const normalized = content.replace(/^```json\s*/i, "").replace(/\s*```$/i, "");
+    ], { model: FOOD_ANALYSIS_MODEL, maxCompletionTokens: 1200 });
+    logAiUsage(req, "food-analysis", typeof clientId === "string" ? clientId.slice(0, 80) : null, response);
+    const normalized = response.content.replace(/^```json\s*/i, "").replace(/\s*```$/i, "");
     const result = JSON.parse(normalized) as { name?: string; calories?: number; protein?: number; carbs?: number; fat?: number };
     if (
       typeof result.name !== "string"

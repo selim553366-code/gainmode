@@ -10,7 +10,9 @@ import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { DAILY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
+import { buildCoachContext } from '@/lib/coachContext';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
+import { getAiClientId } from '@/lib/aiUsage';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 import { apiUrl } from '@/lib/api';
 import { localDateKey } from '@/lib/nutritionDates';
@@ -267,14 +269,26 @@ export default function CoachScreen() {
       setMessages((current) => [...current, { id: `${Date.now()}-limit`, text: t('coachLimitReached'), from: 'coach' }]);
       return;
     }
-    const weeklySummary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal });
-    const isMuscleGoal = profile?.goal === 'muscle';
-    const context = JSON.stringify({ username, profile, weight, weightLogs, calorieGoal, macroGoals: { protein: proteinGoal, carbs: carbsGoal, fat: fatGoal }, meals, workouts: workouts.map((item) => ({ id: item.id, day: item.day, name: item.name, completed: item.completed, duration: item.duration, exercises: item.exercises.map((exercise) => ({ id: exercise.id, name: translate(language, exercise.name as Parameters<typeof translate>[1]) || exercise.name, sets: exercise.sets, reps: exercise.reps, completed: exercise.completed })) })), weeklySummary });
+    const context = buildCoachContext({
+      message: prompt,
+      username,
+      profile,
+      meals,
+      workouts,
+      weight,
+      weightLogs,
+      calorieGoal,
+      proteinGoal,
+      carbsGoal,
+      fatGoal,
+      language,
+    });
     setMessages((current) => [...current, displayMessage]);
     setLoading(true);
     setCoachThinking(true);
     try {
-      const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context }) });
+      const clientId = await getAiClientId();
+      const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, clientId }) });
       if (!response.ok) throw new Error('coach unavailable');
        const result = await response.json() as CoachApiResponse;
       incrementCoachUsage();

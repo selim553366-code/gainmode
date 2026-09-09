@@ -12,6 +12,7 @@ import { addExerciseToPlan, buildWorkoutPlan, clampWorkoutSets, getSharedWorkout
 import { TEST_PREMIUM_PROMO_STORAGE_KEY } from '@/lib/testPremiumPromo';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
+export type SavedMeal = Omit<Meal, 'date'> & { savedAt: string };
 export type Equipment = 'bodyweight' | 'home' | 'gym';
 export type GymLevel = 'basic' | 'intermediate' | 'full';
 export type FitnessGoal = 'muscle' | 'weightGain' | 'weightLoss' | 'fatLoss' | 'maintain';
@@ -60,6 +61,7 @@ type FitState = {
   version: number;
   language: Language;
   meals: Meal[];
+  savedMeals: SavedMeal[];
   weight: number | null;
   calorieGoal: number | null;
   proteinGoal: number | null;
@@ -104,6 +106,8 @@ type FitContextValue = FitState & {
   restartOnboarding: () => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
   removeMeal: (id: string) => void;
+  addSavedMeal: (meal: Omit<SavedMeal, 'id' | 'savedAt'>) => void;
+  removeSavedMeal: (id: string) => void;
   completeOnboarding: (profile: Profile, username: string, options?: { profileEdit?: boolean }) => void;
   markCoachIntroSeen: () => void;
   setIntroSeen: () => void;
@@ -144,6 +148,7 @@ const initialState: FitState = {
   photoAnalysesUsed: 0,
   usageDate: '',
   workouts: [],
+  savedMeals: [],
   streakDates: [],
   friends: [],
   challenges: [],
@@ -270,7 +275,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
     AsyncStorage.getItem('forge-fit-state').then((stored) => {
       if (stored) {
         const parsed = JSON.parse(stored) as Partial<FitState> & { water?: unknown; hydrationGoal?: unknown };
-        if (parsed.version === initialState.version || parsed.version === 4 || parsed.version === 3) {
+        if (parsed.version === initialState.version || parsed.version === 5 || parsed.version === 4 || parsed.version === 3) {
           const { water: _legacyWater, hydrationGoal: _legacyHydrationGoal, ...storedState } = parsed;
           const merged = {
             ...initialState,
@@ -278,6 +283,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
              // Premium access must come from RevenueCat, never from a locally persisted test flag.
              isPremium: false,
             notificationSettings: initialState.notificationSettings,
+             savedMeals: Array.isArray(parsed.savedMeals) ? parsed.savedMeals : [],
              streakDates: normalizeStreakDates(Array.isArray(parsed.streakDates) ? parsed.streakDates : []),
              unlockedBadgeIds: Array.isArray(parsed.unlockedBadgeIds) ? parsed.unlockedBadgeIds : [],
             version: initialState.version,
@@ -410,6 +416,25 @@ export function FitProvider({ children }: { children: ReactNode }) {
     removeMeal: (id) => setState((current) => {
       return { ...current, meals: current.meals.filter((item) => item.id !== id) };
     }),
+     addSavedMeal: (meal) => setState((current) => {
+       const duplicate = current.savedMeals.some((item) => (
+         item.name === meal.name
+         && item.calories === meal.calories
+         && item.protein === meal.protein
+         && item.carbs === meal.carbs
+         && item.fat === meal.fat
+       ));
+       if (duplicate) return current;
+       return {
+         ...current,
+         savedMeals: [...current.savedMeals, {
+           ...meal,
+           id: `${Date.now()}-${Math.random()}`,
+           savedAt: new Date().toISOString(),
+         }],
+       };
+     }),
+     removeSavedMeal: (id) => setState((current) => ({ ...current, savedMeals: current.savedMeals.filter((item) => item.id !== id) })),
     completeOnboarding: (profile, username, options) => setState((current) => {
       const currentMonth = getCurrentMonthKey();
       if (options?.profileEdit && current.profileEditUsedMonth === currentMonth) return current;
