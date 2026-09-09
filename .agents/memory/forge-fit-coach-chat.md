@@ -8,3 +8,9 @@ The FitBud conversation should feel spacious, calm, and personal, with generous 
 **Why:** The user explicitly preferred a more open chat layout while requiring that none of the established animations be broken.
 
 **How to apply:** Treat future chat changes as visual refinements around the existing animation and interaction behavior; do not replace the supplied reference with a static image or trade motion behavior for layout changes.
+
+Message feedback belongs to the first real coach reply after the user's first non-system message, never to the welcome bubble or automated weekly-analysis exchange.
+
+**Why:** Rating the welcome text is not feedback on coaching quality, while later replies should not move the pending rating target before the user has answered it.
+
+**How to apply:** Keep the rating target stable on that first user/coach exchange and hide it after the daily rating is submitted.

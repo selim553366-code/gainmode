@@ -14,6 +14,7 @@ import { buildCoachContext } from '@/lib/coachContext';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
 import { getAiClientId } from '@/lib/aiUsage';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
+import { getFirstCoachReply } from '@/lib/coachRating';
 import { apiUrl } from '@/lib/api';
 import { localDateKey } from '@/lib/nutritionDates';
 
@@ -335,7 +336,7 @@ export default function CoachScreen() {
   const rejectActions = (messageId: string) => {
     setMessages((current) => current.map((item) => item.id === messageId ? { ...item, actionStatus: 'rejected' } : item));
   };
-  const ratingTarget = [...messages].reverse().find((item) => item.from === 'coach' && Boolean(item.text) && !item.media && !item.variant);
+  const ratingTarget = getFirstCoachReply(messages);
   const rateCoachMessage = async (message: Message, rating: number) => {
     if (ratingSending !== null || dailyRating !== null) return;
     setRatingSending(rating);
