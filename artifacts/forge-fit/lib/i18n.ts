@@ -8,6 +8,14 @@ export const languageLabels: Record<Language, string> = {
   es: 'Español',
 };
 
+const photoAnalysisStatusCopy: Record<Language, string> = {
+  tr: 'Analiz ediliyor',
+  en: 'Analyzing',
+  de: 'Analyse läuft',
+  fr: 'Analyse en cours',
+  es: 'Analizando',
+};
+
 const subscriptionAccessLabel: Record<Language, string> = {
   tr: 'GainMode Access',
   en: 'GainMode Access',
@@ -2087,6 +2095,7 @@ function applyCurrentBrand(value: string): string {
 
 export function translate(language: Language, key: TranslationKey): string {
   if (key === 'premiumShort' || key === 'premiumModalEyebrow') return subscriptionAccessLabel[language];
+  if (key === 'photoAiBox') return photoAnalysisStatusCopy[language];
   if (key in themeTranslations.tr) return themeTranslations[language][key as keyof typeof themeTranslations.tr];
   if (key === 'workoutReminderDescription') return workoutReminderDescriptions[language];
   if (key === 'premiumPriceOptions') return applyCurrentBrand(getPremiumPreviewPriceOptions(language));
