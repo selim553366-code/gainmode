@@ -1491,7 +1491,7 @@ const styles = StyleSheet.create({
    welcomeReferenceCard: { flex: 1, marginHorizontal: 25, marginTop: 38, marginBottom: 12, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.82)', backgroundColor: 'rgba(255,255,255,0.39)', overflow: 'hidden', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 22, shadowColor: '#2558D9', shadowOpacity: 0.12, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
   welcomeCardGlow: { position: 'absolute', width: 260, height: 260, top: 64, borderRadius: 130, alignSelf: 'center' },
    welcomeCharacterStage: { width: 260, height: 260, marginTop: 52, borderRadius: 130, overflow: 'visible', alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },
-    welcomeReferenceCharacter: { width: 350, height: 350 },
+    welcomeReferenceCharacter: { width: 300, height: 300 },
   welcomeReferenceCopy: { width: '100%', paddingHorizontal: 18, alignItems: 'center' },
   welcomeReferenceTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, lineHeight: 34, letterSpacing: -1, textAlign: 'center' },
   welcomeReferenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 12, maxWidth: 270 },
