@@ -280,3 +280,17 @@ mtime_ms = 1789059233849
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/86fde7cf-5c63-41c5-82d2-0f29bec4f7ba/62e74221-e463-4bb4-8f30-58443699c1ce"
 storage_version_token = "1789059252645179"
 content_type = "image/png"
+
+[[outputs]]
+id = "ER6gajQrLdNhdha7yvJ5y"
+uri = "file://attached_assets/generated_images/gainmode-access-fitbud-hero.png"
+type = "image"
+title = "GainMode Access — FitBud hero"
+description = "Aynı FitBud karakteriyle, Access portalı ve yeni poz kompozisyonu kullanılarak hazırlanmış 1024×1024 App Store görseli."
+logical_id = "5f644601-b485-4e9e-9a57-cc727cf3be18"
+content_hash = "sha256:74d6a5a2ee77a5d20f9abc6df49c368bcadf54dff4f71c7841113fac321fca74"
+size = 1452154
+mtime_ms = 1789059326625
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/5f644601-b485-4e9e-9a57-cc727cf3be18/7be1734d-d421-43b6-b00c-11dbe737d631"
+storage_version_token = "1789059371804044"
+content_type = "image/png"
