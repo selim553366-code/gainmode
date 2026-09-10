@@ -180,7 +180,10 @@ export default function WorkoutSessionScreen() {
             onSelect={selectMuscle}
             activeColor={colors.primary}
             selectedColor={colors.blue}
-             isDark={colors.colorScheme === 'dark'}
+            labelBackgroundColor={colors.card}
+            labelTextColor={colors.foreground}
+            muscleLabels={Object.fromEntries(Object.entries(muscleLabels).map(([muscle, translationKey]) => [muscle, t(translationKey)]))}
+            isDark={colors.colorScheme === 'dark'}
           />
           {showTapHint ? <Animated.View pointerEvents="none" style={[styles.tapHint, {
             backgroundColor: colors.card,
@@ -197,6 +200,21 @@ export default function WorkoutSessionScreen() {
             <Text style={[styles.tapHintText, { color: colors.foreground }]}>{t('tapMuscleHint')}</Text>
           </Animated.View> : null}
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('clickToViewWorkouts')}
+          onPress={() => {
+            const frontMuscles: MuscleGroup[] = ['chest', 'shoulders', 'biceps', 'core', 'quadriceps', 'calves'];
+            const backMuscles: MuscleGroup[] = ['shoulders', 'back', 'triceps', 'glutes', 'hamstrings', 'calves'];
+            const visibleMuscles = side === 'front' ? frontMuscles : backMuscles;
+            const firstVisibleMuscle = activeMuscles.find((muscle) => visibleMuscles.includes(muscle));
+            if (firstVisibleMuscle) selectMuscle(firstVisibleMuscle);
+          }}
+          style={[styles.mapCta, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}
+        >
+          <Ionicons name="hand-pointer" size={15} color={colors.primary} />
+          <Text style={[styles.mapCtaText, { color: colors.primary }]}>{t('clickToViewWorkouts')}</Text>
+        </Pressable>
         <View style={styles.legend}>
           <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
           <Text style={[styles.legendText, { color: colors.mutedForeground }]}>{t('todayTargetMuscles')}</Text>
@@ -279,6 +297,8 @@ const styles = StyleSheet.create({
   sideButton: { minWidth: 48, height: 31, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   sideText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
   anatomyStage: { height: 440, borderRadius: 22, paddingHorizontal: 28, paddingVertical: 8, overflow: 'hidden' },
+  mapCta: { minHeight: 36, borderRadius: 13, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 10, paddingHorizontal: 12 },
+  mapCtaText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
   tapHint: { position: 'absolute', right: 10, top: 118, maxWidth: 126, borderRadius: 16, borderWidth: 1, padding: 8, alignItems: 'center', shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
   tapHintIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   tapHintText: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 14, textAlign: 'center', marginTop: 6 },

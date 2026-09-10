@@ -1,6 +1,6 @@
 import React from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
-import Svg, { G, Path } from 'react-native-svg';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { G, Line, Path, Polygon } from 'react-native-svg';
 import type { MuscleGroup } from '@/lib/workoutPlan';
 
 type BodySide = 'front' | 'back';
@@ -14,6 +14,9 @@ type MuscleAnatomyProps = {
   onSelect: (muscle: MuscleGroup) => void;
   activeColor: string;
   selectedColor: string;
+  labelBackgroundColor: string;
+  labelTextColor: string;
+  muscleLabels: Partial<Record<MuscleGroup, string>>;
   isDark?: boolean;
 };
 
@@ -24,6 +27,32 @@ type Hotspot = {
   width: `${number}%`;
   height: `${number}%`;
   radius: number;
+};
+
+type CalloutLayout = {
+  side: 'left' | 'right';
+  labelTop: number;
+  targetLeft: number;
+  targetTop: number;
+};
+
+const calloutLayouts: Record<BodySide, Partial<Record<MuscleGroup, CalloutLayout>>> = {
+  front: {
+    shoulders: { side: 'left', labelTop: 10, targetLeft: 29, targetTop: 21 },
+    chest: { side: 'right', labelTop: 20, targetLeft: 63, targetTop: 29 },
+    biceps: { side: 'left', labelTop: 31, targetLeft: 24, targetTop: 35 },
+    core: { side: 'right', labelTop: 40, targetLeft: 63, targetTop: 44 },
+    quadriceps: { side: 'left', labelTop: 59, targetLeft: 38, targetTop: 64 },
+    calves: { side: 'right', labelTop: 79, targetLeft: 65, targetTop: 84 },
+  },
+  back: {
+    shoulders: { side: 'left', labelTop: 10, targetLeft: 29, targetTop: 22 },
+    back: { side: 'right', labelTop: 23, targetLeft: 63, targetTop: 34 },
+    triceps: { side: 'left', labelTop: 34, targetLeft: 24, targetTop: 36 },
+    glutes: { side: 'right', labelTop: 47, targetLeft: 63, targetTop: 53 },
+    hamstrings: { side: 'left', labelTop: 61, targetLeft: 38, targetTop: 68 },
+    calves: { side: 'right', labelTop: 80, targetLeft: 65, targetTop: 84 },
+  },
 };
 
 const frontHotspots: Hotspot[] = [
@@ -142,7 +171,68 @@ const lightWorkoutMaps: Record<WorkoutMapKey, { front: number; back: number }> =
   full: { front: require('@/assets/images/workout-day-visuals/crops/light/full-front-light.png'), back: require('@/assets/images/workout-day-visuals/crops/light/full-back-light.png') },
 };
 
-export function MuscleAnatomy({ side, activeMuscles, mapKey, selectedMuscle, onSelect, isDark = false }: MuscleAnatomyProps) {
+function MuscleCallouts({
+  side,
+  activeMuscles,
+  onSelect,
+  activeColor,
+  labelBackgroundColor,
+  labelTextColor,
+  muscleLabels,
+}: Pick<MuscleAnatomyProps, 'side' | 'activeMuscles' | 'onSelect' | 'activeColor' | 'labelBackgroundColor' | 'labelTextColor' | 'muscleLabels'>) {
+  const layouts = calloutLayouts[side];
+  const callouts = activeMuscles
+    .map((muscle) => {
+      const layout = layouts[muscle];
+      return layout ? { muscle, ...layout } : null;
+    })
+    .filter((callout): callout is { muscle: MuscleGroup } & CalloutLayout => Boolean(callout));
+
+  return <>
+    <Svg pointerEvents="none" viewBox="0 0 100 100" preserveAspectRatio="none" style={styles.calloutLines}>
+      {callouts.map((callout) => {
+        const startX = callout.side === 'left' ? 28 : 72;
+        const arrowHead = callout.side === 'left'
+          ? `${callout.targetLeft},${callout.targetTop} ${callout.targetLeft - 2.8},${callout.targetTop - 1.7} ${callout.targetLeft - 2.8},${callout.targetTop + 1.7}`
+          : `${callout.targetLeft},${callout.targetTop} ${callout.targetLeft + 2.8},${callout.targetTop - 1.7} ${callout.targetLeft + 2.8},${callout.targetTop + 1.7}`;
+        return <G key={`callout-line-${callout.muscle}`}>
+          <Line
+            x1={startX}
+            y1={callout.labelTop + 5}
+            x2={callout.targetLeft}
+            y2={callout.targetTop}
+            stroke={activeColor}
+            strokeWidth={0.7}
+            strokeLinecap="round"
+          />
+          <Polygon points={arrowHead} fill={activeColor} />
+        </G>;
+      })}
+    </Svg>
+    {callouts.map((callout) => <Pressable
+      key={`callout-label-${callout.muscle}`}
+      accessibilityRole="button"
+      accessibilityLabel={muscleLabels[callout.muscle] ?? callout.muscle}
+      onPress={() => onSelect(callout.muscle)}
+      style={[
+        styles.calloutLabel,
+        callout.side === 'left' ? styles.calloutLabelLeft : styles.calloutLabelRight,
+        { top: `${callout.labelTop}%`, backgroundColor: labelBackgroundColor, borderColor: activeColor },
+      ]}
+    >
+      <Text
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        numberOfLines={2}
+        style={[styles.calloutLabelText, { color: labelTextColor }]}
+      >
+        {muscleLabels[callout.muscle] ?? callout.muscle}
+      </Text>
+    </Pressable>)}
+  </>;
+}
+
+export function MuscleAnatomy({ side, activeMuscles, mapKey, selectedMuscle, onSelect, activeColor, selectedColor, labelBackgroundColor, labelTextColor, muscleLabels, isDark = false }: MuscleAnatomyProps) {
   const hotspots = side === 'front' ? frontHotspots : backHotspots;
   const workoutMap = (isDark ? darkWorkoutMaps : lightWorkoutMaps)[mapKey];
   return <View style={styles.crop}>
@@ -151,6 +241,15 @@ export function MuscleAnatomy({ side, activeMuscles, mapKey, selectedMuscle, onS
       resizeMode="contain"
       style={styles.referenceImage}
       accessibilityLabel={side === 'front' ? 'Front muscle anatomy' : 'Back muscle anatomy'}
+    />
+    <MuscleCallouts
+      side={side}
+      activeMuscles={activeMuscles}
+      onSelect={onSelect}
+      activeColor={activeColor}
+      labelBackgroundColor={labelBackgroundColor}
+      labelTextColor={labelTextColor}
+      muscleLabels={muscleLabels}
     />
     {hotspots.map((hotspot, index) => {
       const isActive = activeMuscles.includes(hotspot.muscle);
@@ -181,6 +280,11 @@ export function MuscleAnatomy({ side, activeMuscles, mapKey, selectedMuscle, onS
 const styles = StyleSheet.create({
   crop: { width: '100%', height: '100%', position: 'relative', overflow: 'hidden' },
   referenceImage: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  calloutLines: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 3 },
+  calloutLabel: { position: 'absolute', width: '28%', minHeight: 26, borderWidth: 1, borderRadius: 10, paddingHorizontal: 4, paddingVertical: 3, alignItems: 'center', justifyContent: 'center', zIndex: 4, elevation: 3 },
+  calloutLabelLeft: { left: '0.5%' },
+  calloutLabelRight: { right: '0.5%' },
+  calloutLabelText: { fontFamily: 'Inter_700Bold', fontSize: 9, lineHeight: 11, textAlign: 'center' },
   maskImage: { zIndex: 1 },
   highlightLayer: { position: 'absolute', top: 0, left: 0, zIndex: 1 },
   hotspot: { position: 'absolute', zIndex: 2 },
