@@ -322,3 +322,17 @@ mtime_ms = 1789079772871
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/36f2f692-f3b7-43f0-854a-c4e6d160cb70/82c00c2d-4cc9-4fe0-9427-ff19c0f907a2"
 storage_version_token = "1789080002601642"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "5mXA70QRzAQv374LDTaIx"
+uri = "file://attached_assets/generated_images/fitbud-meal-hard-test.jpg"
+type = "image"
+title = "FitBud zor yemek fotoğrafı testi"
+description = "Üst üste binmiş porsiyonlar, soslar ve belirsiz miktarlar içeren zorlu anonim test görseli."
+logical_id = "9cf36461-ac24-4e1b-afb0-a7d700bf1c8e"
+content_hash = "sha256:16b587981f163c85672577e4791173ee09415c859739603f34f291bc6eeb464c"
+size = 175972
+mtime_ms = 1789080198339
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/9cf36461-ac24-4e1b-afb0-a7d700bf1c8e/5b9adb09-52cf-4ca6-8a77-f1ce3f263ec0"
+storage_version_token = "1789080230713268"
+content_type = "image/jpeg"
