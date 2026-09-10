@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@/components/AppIcon';
@@ -9,6 +9,7 @@ import { useColors } from '@/hooks/useColors';
 import { getWeeklySummary, type WeightOutcome } from '@/lib/weeklyAnalysis';
 import { daysUntilWeeklyAnalysis, isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
 import { AnimatedNumber, Card, Header, Screen } from '@/components/FitUI';
+import { TodayWeightBar } from '@/components/TodayWeightBar';
 
 function formatChange(value: number | null) {
   if (value === null) return '—';
@@ -36,7 +37,6 @@ export default function ProgressScreen() {
   const colors = useColors();
   const { language, weight, weightLogs, addWeight, profile, calorieGoal, meals, workouts, dumbbellWeightHistory, registeredAt } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [draftWeight, setDraftWeight] = React.useState('');
   const [launching, setLaunching] = React.useState(false);
   const launchProgress = React.useRef(new Animated.Value(0)).current;
   const tracksWeight = Boolean(profile && profile.goal !== 'muscle');
@@ -47,14 +47,6 @@ export default function ProgressScreen() {
   const maxPoint = Math.max(...points.map((item) => item.value), summary.currentWeightKg ?? 0, 1);
   const minPoint = Math.min(...points.map((item) => item.value), summary.currentWeightKg ?? maxPoint, maxPoint);
   const pointRange = Math.max(maxPoint - minPoint, 1);
-
-  const saveWeight = () => {
-    const value = Number(draftWeight.replace(',', '.'));
-    if (value > 0) {
-      addWeight(value);
-      setDraftWeight('');
-    }
-  };
 
   const requestAnalysis = () => {
     if (launching || !weeklyAnalysisUnlocked) return;
@@ -112,8 +104,7 @@ export default function ProgressScreen() {
       <View style={styles.chart}>{points.length > 0 ? points.map((point) => <View key={point.id} style={styles.chartColumn}><View style={[styles.bar, { height: 20 + ((point.value - minPoint) / pointRange) * 78, backgroundColor: point.id === points.at(-1)?.id ? colors.primary : `${colors.primary}42` }]} /></View>) : <Text style={[styles.chartEmpty, { color: colors.mutedForeground }]}>{t('weeklyWeightNoData')}</Text>}</View>
     </Card> : null}
 
-    {tracksWeight ? <><View style={styles.logHeader}><Text style={[styles.logTitle, { color: colors.foreground }]}>{t('weeklyAddWeight')}</Text><Text style={[styles.logHint, { color: colors.mutedForeground }]}>{t('weeklyWeightLogHint')}</Text></View>
-    <Card style={styles.addCard}><TextInput value={draftWeight} onChangeText={setDraftWeight} keyboardType="decimal-pad" placeholder={t('currentWeight')} placeholderTextColor={colors.mutedForeground} style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground }]} /><Pressable accessibilityLabel={t('add')} onPress={saveWeight} style={({ pressed }) => [styles.addButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Ionicons name="add" size={19} color={colors.primaryForeground} /></Pressable></Card></> : null}
+     <TodayWeightBar language={language} tracksWeight={tracksWeight} onSave={addWeight} testID="progress-add-today-weight" />
   </Screen>;
 }
 
@@ -176,10 +167,4 @@ const styles = StyleSheet.create({
   chartColumn: { height: 106, width: 20, justifyContent: 'flex-end', alignItems: 'center' },
   bar: { width: 13, borderRadius: 7 },
   chartEmpty: { fontFamily: 'Inter_400Regular', fontSize: 11, marginBottom: 45 },
-  logHeader: { marginBottom: 9 },
-  logTitle: { fontFamily: 'Inter_700Bold', fontSize: 15 },
-  logHint: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 3 },
-  addCard: { padding: 10, flexDirection: 'row', gap: 8, alignItems: 'center' },
-  input: { flex: 1, height: 44, borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, fontFamily: 'Inter_400Regular', fontSize: 12 },
-  addButton: { width: 44, height: 44, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
 });

@@ -12,6 +12,7 @@ import { getCurrentStreak } from '@/lib/streak';
 import { getWorkoutForDate } from '@/lib/workoutPlan';
 import { badgeText, badgeUi } from '@/lib/badges';
 import { AnimatedNumber, Card, Header, Metric, PremiumAccessStatusModal, Screen, SectionTitle, triggerHaptic } from '@/components/FitUI';
+import { TodayWeightBar } from '@/components/TodayWeightBar';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
   const level = React.useRef(new Animated.Value(0)).current;
@@ -78,6 +79,8 @@ export default function TodayScreen() {
     carbsGoal,
     fatGoal,
     workouts,
+    addWeight,
+    profile,
     streakDates,
     isPremium,
   } = useFit();
@@ -287,6 +290,12 @@ export default function TodayScreen() {
             <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
           </View>
         </Card>
+        <TodayWeightBar
+          language={language}
+          tracksWeight={Boolean(profile && profile.goal !== 'muscle')}
+          onSave={addWeight}
+          testID="home-add-today-weight"
+        />
       </View>
 
       <PremiumAccessStatusModal visible={premiumStatusVisible} onClose={() => setPremiumStatusVisible(false)} />
