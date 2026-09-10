@@ -11,7 +11,7 @@ import { getMealsForRange } from '@/lib/nutritionDates';
 import { getCurrentStreak } from '@/lib/streak';
 import { getWorkoutForDate } from '@/lib/workoutPlan';
 import { badgeText, badgeUi } from '@/lib/badges';
-import { AnimatedNumber, Card, Header, Metric, PremiumAccessStatusModal, PremiumOfferModal, Screen, SectionTitle, triggerHaptic } from '@/components/FitUI';
+import { AnimatedNumber, Card, Header, Metric, PremiumAccessStatusModal, Screen, SectionTitle, triggerHaptic } from '@/components/FitUI';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
   const level = React.useRef(new Animated.Value(0)).current;
@@ -82,7 +82,6 @@ export default function TodayScreen() {
     isPremium,
   } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [premiumVisible, setPremiumVisible] = React.useState(false);
   const [premiumStatusVisible, setPremiumStatusVisible] = React.useState(false);
   const todayMeals = getMealsForRange(meals, 'daily');
   const calories = todayMeals.reduce((sum, meal) => sum + meal.calories, 0);
@@ -115,7 +114,7 @@ export default function TodayScreen() {
           SUBSCRIPTION_PURCHASE_ENABLED
             ? () => {
                 if (isPremium) setPremiumStatusVisible(true);
-                else setPremiumVisible(true);
+                else router.push('/');
               }
             : undefined
         }
@@ -290,7 +289,6 @@ export default function TodayScreen() {
         </Card>
       </View>
 
-      <PremiumOfferModal visible={premiumVisible} onClose={() => setPremiumVisible(false)} />
       <PremiumAccessStatusModal visible={premiumStatusVisible} onClose={() => setPremiumStatusVisible(false)} />
     </Screen>
   );
