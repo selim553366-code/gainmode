@@ -6,14 +6,17 @@ import { hasActivePremiumEntitlement, PREMIUM_ENTITLEMENT_IDENTIFIER } from '@/l
 
 export const REVENUECAT_ENTITLEMENT_IDENTIFIER = PREMIUM_ENTITLEMENT_IDENTIFIER;
 export const SUBSCRIPTION_PURCHASE_ENABLED = true;
+const REVENUECAT_IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
 const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
 
 let configured = false;
 
 export function initializeRevenueCat() {
-  if (configured || Platform.OS !== 'android' || !REVENUECAT_ANDROID_API_KEY) return;
+  if (configured || Platform.OS === 'web') return;
+  const apiKey = Platform.OS === 'ios' ? REVENUECAT_IOS_API_KEY : REVENUECAT_ANDROID_API_KEY;
+  if (!apiKey) return;
   Purchases.setLogLevel(__DEV__ ? Purchases.LOG_LEVEL.DEBUG : Purchases.LOG_LEVEL.INFO);
-  Purchases.configure({ apiKey: REVENUECAT_ANDROID_API_KEY });
+  Purchases.configure({ apiKey });
   configured = true;
 }
 
