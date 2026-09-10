@@ -3,7 +3,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 const router: IRouter = Router();
 const COACH_MODEL = "gpt-5-mini";
 const SIMPLE_COACH_MODEL = "gpt-5-nano";
-const FOOD_ANALYSIS_MODEL = "gpt-5-mini";
+const FOOD_ANALYSIS_MODEL = "gpt-5-nano";
 const LUNA_MODEL = "gpt-5.6-luna";
 const MODEL_PRICING_USD_PER_MILLION: Record<string, { input: number; output: number }> = {
   "gpt-5-mini": { input: 0.25, output: 2 },
@@ -267,7 +267,7 @@ router.post("/ai/food-analysis", async (req, res) => {
     const response = await askOpenAiWithOptions([
       { role: "system", content: `You analyze a food photo. Reply only valid JSON with keys name, calories, protein, carbs, fat. Use realistic estimates, numbers only for nutrition values, and use language ${selectedLanguage} for name. If uncertain, make the estimate explicit in the name.` },
       { role: "user", content: [{ type: "text", text: "Identify this meal and estimate its nutrition." }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${normalizedImageData}` } }] },
-    ], { model: FOOD_ANALYSIS_MODEL, maxCompletionTokens: 1200 });
+    ], { model: FOOD_ANALYSIS_MODEL, maxCompletionTokens: 8192 });
     logAiUsage(req, "food-analysis", typeof clientId === "string" ? clientId.slice(0, 80) : null, response);
     const normalized = response.content.replace(/^```json\s*/i, "").replace(/\s*```$/i, "");
     const result = JSON.parse(normalized) as { name?: string; calories?: number; protein?: number; carbs?: number; fat?: number };
