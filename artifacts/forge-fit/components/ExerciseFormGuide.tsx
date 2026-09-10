@@ -91,6 +91,60 @@ const guideByExercise: Record<string, { kind: FormKind; tip: TranslationKey; ima
   exerciseCableCrunch: { kind: 'core', tip: 'formTipCore' },
 };
 
+const missingExerciseImages: Record<string, ImageSourcePropType> = {
+  exerciseBodyweightDip: require('@/assets/images/form-coach-bodyweight-dip.png'),
+  exerciseTriceps: require('@/assets/images/form-coach-triceps.png'),
+  exerciseOverheadTriceps: require('@/assets/images/form-coach-overhead-triceps.png'),
+  exerciseCloseGripBench: require('@/assets/images/form-coach-close-grip-bench.png'),
+  exerciseSquat: require('@/assets/images/form-coach-squat.png'),
+  exerciseLegPress: require('@/assets/images/form-coach-leg-press.png'),
+  exerciseReverseLunge: require('@/assets/images/form-coach-reverse-lunge.png'),
+  exerciseSplitSquat: require('@/assets/images/form-coach-split-squat.png'),
+  exerciseGoodMorning: require('@/assets/images/form-coach-good-morning.png'),
+  exerciseNordicCurl: require('@/assets/images/form-coach-nordic-curl.png'),
+  exerciseSingleLegRdl: require('@/assets/images/form-coach-single-leg-rdl.png'),
+  exerciseRdl: require('@/assets/images/form-coach-rdl.png'),
+  exerciseKettlebellSwing: require('@/assets/images/form-coach-kettlebell-swing.png'),
+  exercisePlank: require('@/assets/images/form-coach-plank_2.png'),
+  exerciseBodyweightRow: require('@/assets/images/form-coach-bodyweight-row.png'),
+  exerciseInvertedRow: require('@/assets/images/form-coach-inverted-row.png'),
+  exerciseBandRow: require('@/assets/images/form-coach-band-row.png'),
+  exerciseKettlebellRow: require('@/assets/images/form-coach-kettlebell-row.png'),
+  exerciseRow: require('@/assets/images/form-coach-row_2.png'),
+  exerciseLatPulldown: require('@/assets/images/form-coach-lat-pulldown.png'),
+  exercisePullup: require('@/assets/images/form-coach-pullup_2.png'),
+  exerciseProneYRaise: require('@/assets/images/form-coach-prone-yraise.png'),
+  exerciseShoulderPress: require('@/assets/images/form-coach-shoulder-press.png'),
+  exerciseBandShoulderPress: require('@/assets/images/form-coach-band-shoulder-press.png'),
+  exerciseKettlebellPress: require('@/assets/images/form-coach-kettlebell-press.png'),
+  exerciseBench: require('@/assets/images/form-coach-bench.png'),
+  exerciseInclineBench: require('@/assets/images/form-coach-incline-bench.png'),
+  exerciseCableFly: require('@/assets/images/form-coach-cable-fly.png'),
+  exerciseLateralRaise: require('@/assets/images/form-coach-lateral-raise.png'),
+  exerciseFacePull: require('@/assets/images/form-coach-face-pull.png'),
+  exerciseCurl: require('@/assets/images/form-coach-curl_2.png'),
+  exerciseHammerCurl: require('@/assets/images/form-coach-hammer-curl.png'),
+  exerciseCableCurl: require('@/assets/images/form-coach-cable-curl.png'),
+  exerciseBandCurl: require('@/assets/images/form-coach-band-curl.png'),
+  exerciseSelfResistedCurl: require('@/assets/images/form-coach-self-resisted-curl.png'),
+  exerciseTowelCurl: require('@/assets/images/form-coach-towel-curl.png'),
+  exerciseGluteBridge: require('@/assets/images/form-coach-glute-bridge.png'),
+  exerciseSingleLegGluteBridge: require('@/assets/images/form-coach-single-leg-glute-bridge.png'),
+  exerciseDonkeyKick: require('@/assets/images/form-coach-donkey-kick.png'),
+  exerciseHipThrust: require('@/assets/images/form-coach-hip-thrust.png'),
+  exerciseCalfRaise: require('@/assets/images/form-coach-calf-raise.png'),
+  exerciseSingleLegCalfRaise: require('@/assets/images/form-coach-single-leg-calf-raise.png'),
+  exerciseCalfPulse: require('@/assets/images/form-coach-calf-pulse.png'),
+  exerciseSeatedCalfRaise: require('@/assets/images/form-coach-seated-calf-raise.png'),
+  exerciseDeadBug: require('@/assets/images/form-coach-dead-bug.png'),
+  exerciseMountain: require('@/assets/images/form-coach-mountain.png'),
+  exerciseCableCrunch: require('@/assets/images/form-coach-cable-crunch.png'),
+};
+
+Object.entries(missingExerciseImages).forEach(([exercise, image]) => {
+  if (guideByExercise[exercise]) guideByExercise[exercise].image = image;
+});
+
 export function exerciseFormGuideFor(name: string) {
   return guideByExercise[name] ?? { kind: 'core' as FormKind, tip: 'formTipCore' as TranslationKey };
 }
