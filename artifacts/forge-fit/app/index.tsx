@@ -1350,13 +1350,6 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
    </>;
 }
 
-function OfferScreen({ onUnlock, onSkip }: { onUnlock: () => void; onSkip: () => void }) {
-  const colors = useColors();
-  const { language } = useFit();
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}><View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><ForgeFitMark size={74} /></View><Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('premiumSubtitle')}</Text><View style={styles.features}>{(['premiumFeature1', 'premiumFeature2', 'premiumFeature3', 'premiumFeature4', 'premiumFeature5'] as const).map((key) => <View key={key} style={styles.feature}><Ionicons name="checkmark-circle" size={20} color={colors.primary} /><Text style={[styles.featureText, { color: colors.foreground }]}>{t(key)}</Text></View>)}</View><Pressable onPress={() => { triggerHaptic(); onUnlock(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('unlockPremium')}</Text></Pressable><Pressable onPress={() => { triggerHaptic(); onSkip(); }}><Text style={[styles.skip, { color: colors.mutedForeground }]}>{t('cancel')}</Text></Pressable></LinearGradient>;
-}
-
 const styles = StyleSheet.create({
   full: { flex: 1, paddingHorizontal: 24, paddingTop: 58, paddingBottom: 30, justifyContent: 'space-between' },
   onboardingShell: { flex: 1 },
@@ -1470,7 +1463,6 @@ const styles = StyleSheet.create({
   buttonArea: { gap: 13 },
   nextButton: { minHeight: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10, shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 7 }, elevation: 5 },
   nextText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
-  skip: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 12 },
   welcomeAmbientGlow: { position: 'absolute', left: -60, right: -60, top: 140, height: 430, borderRadius: 220 },
   welcomeBackdropDecorations: { pointerEvents: 'none' },
    welcomeHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingTop: 0, paddingLeft: 0, paddingRight: 0, zIndex: 3 },
@@ -1590,8 +1582,6 @@ const styles = StyleSheet.create({
   offerSavingsValue: { fontFamily: 'Inter_700Bold', fontSize: 14, lineHeight: 16, letterSpacing: -0.2 },
   offerSavingsLabel: { fontFamily: 'Inter_700Bold', fontSize: 7, lineHeight: 9, letterSpacing: 0.3, textTransform: 'uppercase' },
   features: { gap: 17, paddingVertical: 20 },
-  feature: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  featureText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 14 },
   offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
   offerPromoSection: { width: '100%', marginTop: 2, marginBottom: 8 },
   offerPromoToggle: { minHeight: 32, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 10 },

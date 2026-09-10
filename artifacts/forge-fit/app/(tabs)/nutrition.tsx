@@ -369,10 +369,10 @@ export default function NutritionScreen() {
          <Ionicons name={isAnalysisSaved ? 'checkmark-circle' : 'add-circle-outline'} size={17} color={isAnalysisSaved ? colors.success : colors.primary} />
          <Text style={[styles.saveMealButtonText, { color: isAnalysisSaved ? colors.success : colors.primary }]}>{isAnalysisSaved ? t('mealSaved') : t('saveMeal')}</Text>
        </Pressable> : null}
-      <View style={styles.captureOptions}>
-        <Pressable testID="camera-scan" onPress={openMealCamera} style={({ pressed }) => [styles.captureOptionPrimary, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="camera-outline" size={18} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('scanMeal')}</Text></Pressable>
-         <Pressable testID="barcode-scan" onPress={openBarcodeScanner} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="scan-outline" size={18} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('scanBarcode')}</Text></Pressable>
-        <Pressable testID="gallery-scan" onPress={pickPhoto} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="images-outline" size={18} color={colors.foreground} /><Text style={[styles.scanText, { color: colors.foreground }]}>{t('add')}</Text></Pressable>
+       <View style={styles.captureOptions}>
+         <Pressable testID="camera-scan" onPress={openMealCamera} style={({ pressed }) => [styles.captureOptionPrimary, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="camera-outline" size={18} color={colors.primaryForeground} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={[styles.scanText, { color: colors.primaryForeground }]}>{t('scanMeal')}</Text></Pressable>
+          <Pressable testID="barcode-scan" onPress={openBarcodeScanner} style={({ pressed }) => [styles.captureOption, styles.captureOptionBarcode, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="scan-outline" size={18} color={colors.foreground} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={[styles.scanText, { color: colors.foreground }]}>{t('scanBarcode')}</Text></Pressable>
+         <Pressable testID="gallery-scan" onPress={pickPhoto} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="images-outline" size={18} color={colors.foreground} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={[styles.scanText, { color: colors.foreground }]}>{t('add')}</Text></Pressable>
       </View>
     </Card>
      <Modal visible={analysisDetailsVisible} transparent animationType="fade" onRequestClose={() => setAnalysisDetailsVisible(false)}>
@@ -444,8 +444,9 @@ const styles = StyleSheet.create({
   saveMealButton: { minHeight: 43, borderRadius: 14, borderWidth: 1, marginTop: 9, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
   saveMealButtonText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   captureOptions: { flexDirection: 'row', gap: 8, marginTop: 13 },
-  captureOptionPrimary: { flex: 1.15, minHeight: 45, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
-  captureOption: { flex: 1, minHeight: 45, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
+  captureOptionPrimary: { flex: 1, minWidth: 0, minHeight: 45, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5, paddingHorizontal: 4 },
+  captureOption: { flex: 1, minWidth: 0, minHeight: 45, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 5, paddingHorizontal: 4 },
+  captureOptionBarcode: { flex: 1.1 },
   barcodeResultCard: { padding: 16, marginTop: 10 },
   barcodeResultHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   barcodeResultTitle: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18 },
@@ -506,7 +507,7 @@ const styles = StyleSheet.create({
   exerciseCaloriesHint: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 3 },
   exerciseCaloriesValue: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   netCaloriesFooter: { borderTopWidth: 1, paddingTop: 11, marginTop: 12 },
-  scanText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  scanText: { flexShrink: 1, minWidth: 0, fontFamily: 'Inter_600SemiBold', fontSize: 12, letterSpacing: -0.15, textAlign: 'center' },
   scannerScreen: { flex: 1, justifyContent: 'center', overflow: 'hidden' },
   camera: { flex: 1 },
   scannerHeader: { position: 'absolute', left: 22, right: 22, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', zIndex: 3 },
