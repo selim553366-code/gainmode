@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -62,7 +62,7 @@ export default function WorkoutSessionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { workoutId } = useLocalSearchParams<{ workoutId?: string }>();
-  const { language, profile, workouts, toggleExercise } = useFit();
+  const { language, profile, workouts, dumbbellWeightHistory, toggleExercise, updateExercise } = useFit();
   const workout = workouts.find((item) => item.id === workoutId);
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const label = (value: string) => translate(language, value as Parameters<typeof translate>[1]) || value;
@@ -137,6 +137,18 @@ export default function WorkoutSessionScreen() {
     triggerHaptic();
     toggleExercise(workout.id, exerciseId);
     if (willComplete) setCelebrating(true);
+  };
+
+  const updateDumbbellWeight = (exerciseId: string, text: string) => {
+    const normalized = text.replace(',', '.').trim();
+    if (!normalized) {
+      updateExercise(workout.id, exerciseId, { dumbbellWeightKg: null });
+      return;
+    }
+    const parsed = Number(normalized);
+    if (Number.isFinite(parsed) && parsed > 0 && parsed <= 100) {
+      updateExercise(workout.id, exerciseId, { dumbbellWeightKg: Math.round(parsed * 10) / 10 });
+    }
   };
 
   return <View style={[styles.page, { backgroundColor: colors.background }]}>
@@ -229,6 +241,15 @@ export default function WorkoutSessionScreen() {
           const revealStart = Math.min(0.65, index * 0.1);
           const revealEnd = Math.min(1, revealStart + 0.32);
           const exerciseCalories = estimateExerciseCalories(workout, exercise, profile ?? undefined);
+           const exerciseWeightHistory = dumbbellWeightHistory
+             .filter((item) => item.workoutId === workout.id && item.exerciseId === exercise.id)
+             .sort((a, b) => a.date.localeCompare(b.date));
+           const previousDumbbellWeight = exerciseWeightHistory.length > 1
+             ? exerciseWeightHistory[exerciseWeightHistory.length - 2].weightKg
+             : null;
+           const dumbbellWeightIncrease = previousDumbbellWeight !== null && exercise.dumbbellWeightKg !== undefined
+             ? Math.round((exercise.dumbbellWeightKg - previousDumbbellWeight) * 10) / 10
+             : null;
           return <Animated.View key={exercise.id} style={{
             opacity: listAnimation.interpolate({ inputRange: [revealStart, revealEnd], outputRange: [0, 1], extrapolate: 'clamp' }),
             transform: [{ translateY: listAnimation.interpolate({ inputRange: [revealStart, revealEnd], outputRange: [18, 0], extrapolate: 'clamp' }) }],
@@ -247,6 +268,25 @@ export default function WorkoutSessionScreen() {
                 <Ionicons name="eye-outline" size={14} color={colors.primary} />
                 <Text style={[styles.formGuideButtonText, { color: colors.primary }]}>{t('exerciseFormShow')}</Text>
               </Pressable> : null}
+               {profile?.equipment !== 'bodyweight' ? <View style={[styles.dumbbellWeightRow, { borderTopColor: colors.border }]}>
+                 <View style={styles.dumbbellWeightCopy}>
+                   <Text style={[styles.dumbbellWeightTitle, { color: colors.foreground }]}>{t('exerciseDumbbellWeight')}</Text>
+                   <Text style={[styles.dumbbellWeightHint, { color: colors.mutedForeground }]}>{t('exerciseDumbbellWeightHint')}</Text>
+                 </View>
+                 <View style={[styles.dumbbellWeightInputShell, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                   <TextInput
+                     accessibilityLabel={t('exerciseDumbbellWeight')}
+                     value={exercise.dumbbellWeightKg ? String(exercise.dumbbellWeightKg) : ''}
+                     onChangeText={(text) => updateDumbbellWeight(exercise.id, text)}
+                     keyboardType="decimal-pad"
+                     placeholder="—"
+                     placeholderTextColor={colors.mutedForeground}
+                     style={[styles.dumbbellWeightInput, { color: colors.foreground }]}
+                   />
+                   <Text style={[styles.dumbbellWeightUnit, { color: colors.primary }]}>kg</Text>
+                 </View>
+               </View> : null}
+               {profile?.equipment !== 'bodyweight' && dumbbellWeightIncrease !== null ? <Text style={[styles.dumbbellWeightIncrease, { color: dumbbellWeightIncrease >= 0 ? colors.success : colors.orange }]}>{t('exerciseDumbbellIncrease')}: {dumbbellWeightIncrease >= 0 ? '+' : ''}{dumbbellWeightIncrease} kg</Text> : null}
             </View>
             <Pressable
               accessibilityRole="checkbox"
@@ -316,6 +356,14 @@ const styles = StyleSheet.create({
   metaText: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
   formGuideButton: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, alignSelf: 'flex-start' },
   formGuideButtonText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
+  dumbbellWeightRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderTopWidth: 1, marginTop: 10, paddingTop: 9 },
+  dumbbellWeightCopy: { flex: 1 },
+  dumbbellWeightTitle: { fontFamily: 'Inter_700Bold', fontSize: 10 },
+  dumbbellWeightHint: { fontFamily: 'Inter_400Regular', fontSize: 9, marginTop: 2 },
+  dumbbellWeightInputShell: { minWidth: 72, height: 34, borderRadius: 10, borderWidth: 1, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 7 },
+  dumbbellWeightInput: { flex: 1, minWidth: 34, paddingVertical: 0, paddingHorizontal: 0, fontFamily: 'Inter_700Bold', fontSize: 12, textAlign: 'right' },
+  dumbbellWeightUnit: { fontFamily: 'Inter_700Bold', fontSize: 10, marginLeft: 3 },
+  dumbbellWeightIncrease: { fontFamily: 'Inter_700Bold', fontSize: 9, marginTop: 5 },
   checkButton: { width: 39, height: 39, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   emptyPrompt: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 20, alignItems: 'center', padding: 24, marginBottom: 20 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, marginTop: 10 },

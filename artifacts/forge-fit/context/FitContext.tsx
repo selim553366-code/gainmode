@@ -43,7 +43,30 @@ export type Profile = {
   preferredDays?: string[];
   targetWeight?: number;
 };
-export type Workout = { id: string; day: string; name: string; duration: number; focusAreas?: MuscleGroup[]; exercises: { id: string; name: string; sets: number; reps: number; muscleGroup?: MuscleGroup; completed?: boolean }[]; completed: boolean };
+export type DumbbellWeightLog = {
+  id: string;
+  workoutId: string;
+  exerciseId: string;
+  weightKg: number;
+  date: string;
+};
+export type Workout = {
+  id: string;
+  day: string;
+  name: string;
+  duration: number;
+  focusAreas?: MuscleGroup[];
+  exercises: {
+    id: string;
+    name: string;
+    sets: number;
+    reps: number;
+    muscleGroup?: MuscleGroup;
+    completed?: boolean;
+    dumbbellWeightKg?: number;
+  }[];
+  completed: boolean;
+};
 export type { MuscleGroup } from '@/lib/workoutPlan';
 export type GoalProjection = {
   goal: FitnessGoal;
@@ -88,6 +111,7 @@ type FitState = {
   friends: Friend[];
   challenges: Challenge[];
   weightLogs: { id: string; value: number; date: string }[];
+  dumbbellWeightHistory: DumbbellWeightLog[];
   notificationSettings: NotificationSettings;
   profileEditUsedMonth: string | null;
   dailyMoodCompletedDate: string | null;
@@ -127,7 +151,7 @@ type FitContextValue = FitState & {
   refreshWorkoutCycleIfReady: (firstDay?: string) => void;
   addExercise: (workoutId: string, name: string, sets?: number, reps?: number) => void;
   removeExercise: (workoutId: string, exerciseId: string) => void;
-  updateExercise: (workoutId: string, exerciseId: string, patch: { name?: string; sets?: number; reps?: number }) => void;
+  updateExercise: (workoutId: string, exerciseId: string, patch: { name?: string; sets?: number; reps?: number; dumbbellWeightKg?: number | null }) => void;
   updateWorkout: (workoutId: string, patch: { day?: string; name?: string; duration?: number }) => void;
   updateProfile: (patch: Partial<Profile>) => void;
   updateNutritionGoals: (patch: { calories?: number; protein?: number; carbs?: number; fat?: number }) => void;
@@ -167,6 +191,7 @@ const initialState: FitState = {
   friends: [],
   challenges: [],
   weightLogs: [],
+  dumbbellWeightHistory: [],
   meals: [],
   notificationSettings: {
     workoutReminder: true,
@@ -306,6 +331,16 @@ export function FitProvider({ children }: { children: ReactNode }) {
              savedMeals: Array.isArray(parsed.savedMeals) ? parsed.savedMeals : [],
              streakDates: normalizeStreakDates(Array.isArray(parsed.streakDates) ? parsed.streakDates : []),
              unlockedBadgeIds: Array.isArray(parsed.unlockedBadgeIds) ? parsed.unlockedBadgeIds : [],
+             dumbbellWeightHistory: Array.isArray(parsed.dumbbellWeightHistory)
+               ? parsed.dumbbellWeightHistory.filter((item): item is DumbbellWeightLog => (
+                 Boolean(item)
+                 && typeof item === 'object'
+                 && typeof (item as DumbbellWeightLog).workoutId === 'string'
+                 && typeof (item as DumbbellWeightLog).exerciseId === 'string'
+                 && Number.isFinite((item as DumbbellWeightLog).weightKg)
+                 && typeof (item as DumbbellWeightLog).date === 'string'
+               ))
+               : [],
             version: initialState.version,
           };
            const restoredWorkouts = sanitizeWorkoutSplits(normalizeWorkoutSets(restoreWorkoutProgress(merged.workouts)));
@@ -483,7 +518,23 @@ export function FitProvider({ children }: { children: ReactNode }) {
        const fatRatio = profile.diet === 'vegan' ? 0.3 : profile.diet === 'vegetarian' ? 0.28 : isLossGoal ? (profile.goalRate === 'fast' ? 0.23 : 0.25) : isGainGoal ? 0.28 : 0.27;
       const fatGoal = Math.round((calorieGoal * fatRatio) / 9);
       const carbsGoal = Math.max(0, Math.round((calorieGoal - proteinGoal * 4 - fatGoal * 9) / 4));
-       const workouts = buildWorkoutPlanForCycle(profile, 0);
+       const generatedWorkouts = buildWorkoutPlanForCycle(profile, 0);
+       const workouts = options?.profileEdit
+         ? generatedWorkouts.map((workout) => {
+           const previous = current.workouts.find((item) => item.id === workout.id);
+           if (!previous) return workout;
+           const exercises = workout.exercises.map((exercise) => {
+             const previousExercise = previous.exercises.find((item) => item.id === exercise.id)
+               ?? previous.exercises.find((item) => item.name === exercise.name && item.muscleGroup === exercise.muscleGroup);
+             return {
+               ...exercise,
+               completed: previousExercise?.completed ?? false,
+               dumbbellWeightKg: previousExercise?.dumbbellWeightKg ?? exercise.dumbbellWeightKg,
+             };
+           });
+           return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
+         })
+         : generatedWorkouts;
       const projection = createGoalProjection(profile, calorieGoal, workouts, targetWeight);
        return recordStreakActivity({
         ...current,
@@ -565,9 +616,22 @@ export function FitProvider({ children }: { children: ReactNode }) {
         if (!current.workoutCycleReady || !current.profile || !current.workouts.length) return current;
         if (firstDay && current.workouts[0]?.day !== firstDay) return current;
         const workoutCycle = current.workoutCycle + 1;
+         const previousWeights = new Map(
+           current.workouts
+             .flatMap((workout) => workout.exercises)
+             .filter((exercise) => exercise.dumbbellWeightKg !== undefined)
+             .map((exercise) => [`${exercise.name}:${exercise.muscleGroup ?? 'other'}`, exercise.dumbbellWeightKg]),
+         );
+         const workouts = buildWorkoutPlanForCycle(current.profile, workoutCycle).map((workout) => ({
+           ...workout,
+           exercises: workout.exercises.map((exercise) => ({
+             ...exercise,
+             dumbbellWeightKg: previousWeights.get(`${exercise.name}:${exercise.muscleGroup ?? 'other'}`) ?? exercise.dumbbellWeightKg,
+           })),
+         }));
         return {
           ...current,
-          workouts: buildWorkoutPlanForCycle(current.profile, workoutCycle),
+           workouts,
           workoutCycle,
           workoutCycleReady: false,
         };
@@ -584,15 +648,40 @@ export function FitProvider({ children }: { children: ReactNode }) {
        });
        return { ...current, workouts, workoutCycleReady: workoutsAreComplete(workouts) };
      }),
-      updateExercise: (workoutId, exerciseId, patch) => setState((current) => {
+       updateExercise: (workoutId, exerciseId, patch) => setState((current) => {
         const sharedSets = patch.sets === undefined ? getSharedWorkoutSets(current.workouts) : clampWorkoutSets(patch.sets);
-        const workouts = normalizeWorkoutSets(current.workouts, sharedSets).map((workout) => ({
-          ...workout,
-          exercises: workout.exercises.map((exercise) => exercise.id === exerciseId && workout.id === workoutId
-            ? { ...exercise, ...patch, sets: sharedSets }
-            : exercise),
-        }));
-        return { ...current, workouts };
+         const previousExercise = current.workouts.find((workout) => workout.id === workoutId)?.exercises.find((exercise) => exercise.id === exerciseId);
+         const workouts = normalizeWorkoutSets(current.workouts, sharedSets).map((workout) => ({
+           ...workout,
+           exercises: workout.exercises.map((exercise) => {
+             if (exercise.id !== exerciseId || workout.id !== workoutId) return exercise;
+             const nextExercise = {
+               ...exercise,
+               name: patch.name ?? exercise.name,
+               sets: sharedSets,
+               reps: patch.reps ?? exercise.reps,
+             };
+             if (Object.prototype.hasOwnProperty.call(patch, 'dumbbellWeightKg')) {
+               nextExercise.dumbbellWeightKg = patch.dumbbellWeightKg ?? undefined;
+             }
+             return nextExercise;
+           }),
+         }));
+         const hasWeightPatch = Object.prototype.hasOwnProperty.call(patch, 'dumbbellWeightKg');
+         const nextWeight = patch.dumbbellWeightKg === null || patch.dumbbellWeightKg === undefined
+           ? undefined
+           : patch.dumbbellWeightKg;
+         const previousWeight = previousExercise?.dumbbellWeightKg;
+         const dumbbellWeightHistory = hasWeightPatch && nextWeight !== previousWeight && nextWeight !== undefined
+           ? [...current.dumbbellWeightHistory, {
+             id: `${Date.now()}-${Math.random()}`,
+             workoutId,
+             exerciseId,
+             weightKg: nextWeight,
+             date: new Date().toISOString(),
+           }]
+           : current.dumbbellWeightHistory;
+         return { ...current, workouts, dumbbellWeightHistory };
       }),
       updateWorkout: (workoutId, patch) => setState((current) => ({
         ...current,
@@ -604,7 +693,18 @@ export function FitProvider({ children }: { children: ReactNode }) {
         const nextWorkouts = buildWorkoutPlanForCycle(profile, current.workoutCycle).map((workout) => {
           const previous = current.workouts.find((item) => item.id === workout.id);
           return previous
-            ? { ...workout, exercises: workout.exercises.map((exercise) => ({ ...exercise, completed: previous.exercises.find((item) => item.id === exercise.id)?.completed ?? false })) }
+             ? {
+               ...workout,
+               exercises: workout.exercises.map((exercise) => {
+                 const previousExercise = previous.exercises.find((item) => item.id === exercise.id)
+                   ?? previous.exercises.find((item) => item.name === exercise.name && item.muscleGroup === exercise.muscleGroup);
+                 return {
+                   ...exercise,
+                   completed: previousExercise?.completed ?? false,
+                   dumbbellWeightKg: previousExercise?.dumbbellWeightKg ?? exercise.dumbbellWeightKg,
+                 };
+               }),
+             }
             : workout;
         });
         const goals = calculateNutritionGoals(profile, nextWorkouts);

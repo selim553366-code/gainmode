@@ -320,8 +320,6 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const [equipment, setEquipment] = React.useState<Equipment>('bodyweight');
   const [equipmentDetails, setEquipmentDetails] = React.useState('');
   const [gymLevel, setGymLevel] = React.useState<GymLevel>('full');
-  const [dumbbellWeightKg, setDumbbellWeightKg] = React.useState<number | null>(null);
-  const [dumbbellWeightText, setDumbbellWeightText] = React.useState('');
   const [goal, setGoal] = React.useState<FitnessGoal>('maintain');
   const [measurementUnit, setMeasurementUnit] = React.useState<MeasurementUnit>('metric');
   const [height, setHeight] = React.useState(170);
@@ -371,8 +369,6 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     setEquipment(savedProfile.equipment);
     setEquipmentDetails(savedProfile.equipmentDetails ?? '');
     setGymLevel(savedProfile.gymLevel ?? 'full');
-    setDumbbellWeightKg(savedProfile.dumbbellWeightKg ?? null);
-    setDumbbellWeightText(savedProfile.dumbbellWeightKg ? String(savedProfile.dumbbellWeightKg) : '');
     setGoal(savedProfile.goal);
     setHeight(savedProfile.height);
     setWeight(savedProfile.weight);
@@ -473,12 +469,6 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const parsed = Number(text);
     if (Number.isInteger(parsed) && parsed >= 13 && parsed <= 90) setAge(parsed);
   };
-  const updateDumbbellWeightText = (text: string) => {
-    setDumbbellWeightText(text);
-    const parsed = Number(text.replace(',', '.'));
-    if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 100) setDumbbellWeightKg(Math.round(parsed * 10) / 10);
-  };
-
   const advance = () => {
     Animated.sequence([Animated.timing(slide, { toValue: 0, duration: 120, useNativeDriver: true }), Animated.timing(slide, { toValue: 1, duration: 220, useNativeDriver: true })]).start();
     setStep((current) => current + 1);
@@ -489,7 +479,9 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       equipment,
       equipmentDetails: equipment === 'home' ? equipmentDetails.trim() : undefined,
       gymLevel: equipment === 'gym' ? gymLevel : undefined,
-      dumbbellWeightKg: equipment !== 'bodyweight' && dumbbellWeightKg !== null ? dumbbellWeightKg : undefined,
+      // Keep the legacy profile value for existing users, but no longer ask
+      // for it during onboarding. New values are entered per exercise.
+      dumbbellWeightKg: editMode ? savedProfile?.dumbbellWeightKg : undefined,
       height,
       weight,
       age,
@@ -523,11 +515,6 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     }
     if (activeStep === 'mode') return;
     if (activeStep === 1 && equipment === 'gym' && !gymLevel) return setError(t('gymLevelQuestion'));
-    if (activeStep === 1 && equipment !== 'bodyweight' && dumbbellWeightKg !== null) {
-      const parsed = Number(dumbbellWeightText.replace(',', '.'));
-      if (!Number.isFinite(parsed) || parsed < 1 || parsed > 100) return setError(t('dumbbellWeightError'));
-      setDumbbellWeightKg(Math.round(parsed * 10) / 10);
-    }
     if (activeStep === 2) {
       if (measurementUnit === 'metric') {
         const parsed = Number(heightText.replace(',', '.'));
@@ -583,7 +570,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       if (gesture.dx < -55) next();
       if (gesture.dx > 55) goBack();
     },
-  }), [language, step, activeStep, username, equipment, gymLevel, dumbbellWeightKg, dumbbellWeightText, age, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, ageText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
+  }), [language, step, activeStep, username, equipment, gymLevel, age, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, ageText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
    React.useEffect(() => {
      setQuestionScrollOffset(0);
      setQuestionAnswerBottom(0);
@@ -597,7 +584,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   });
   const renderBody = () => {
     if (activeStep === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></>;
-     if (activeStep === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View> : null}{equipment !== 'bodyweight' ? <View style={styles.dumbbellSection}><ChoiceButton label={t('dumbbellOptionLabel')} selected={dumbbellWeightKg !== null} onPress={() => { if (dumbbellWeightKg === null) { setDumbbellWeightKg(10); setDumbbellWeightText('10'); } else { setDumbbellWeightKg(null); setDumbbellWeightText(''); } }} icon="barbell-outline" />{dumbbellWeightKg !== null ? <View style={styles.dumbbellWeightFields}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('dumbbellWeightLabel')}</Text><View style={styles.dumbbellWeightInputRow}><TextInput value={dumbbellWeightText} onChangeText={updateDumbbellWeightText} keyboardType="decimal-pad" selectTextOnFocus style={[styles.dumbbellWeightInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} placeholder={t('dumbbellWeightPlaceholder')} placeholderTextColor={colors.mutedForeground} /><Text style={[styles.dumbbellWeightUnit, { color: colors.primary }]}>kg</Text></View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('dumbbellWeightHint')}</Text></View> : null}</View> : null}</>;
+       if (activeStep === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View> : null}</>;
       if (activeStep === 2) return <View style={styles.measurementSection}>
        <UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} />
        <RulerPicker value={height} min={130} max={220} onChange={updateHeightFromCm} valueLabel={measurementUnit === 'metric' ? `${height} cm` : formatImperialHeightLabel(height)} minLabel={measurementUnit === 'metric' ? '130 cm' : formatImperialHeightLabel(130)} maxLabel={measurementUnit === 'metric' ? '220 cm' : formatImperialHeightLabel(220)} />

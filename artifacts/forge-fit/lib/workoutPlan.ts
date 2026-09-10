@@ -48,8 +48,13 @@ function exerciseMovementFactor(exercise: WorkoutExercise) {
   return 1;
 }
 
+export function isDumbbellExercise(exercise: Pick<WorkoutExercise, 'name'> | string) {
+  const name = typeof exercise === 'string' ? exercise : exercise.name;
+  return knownDumbbellExerciseNames.has(name) || /dumbbell|dumbell|dambıl|dambil|halter|mancuerna|hantel|haltère/.test(name.toLocaleLowerCase());
+}
+
 function usesDumbbell(exercise: WorkoutExercise) {
-  return /dumbbell|dumbell|dambıl|dambil|halter|mancuerna|hantel|haltère/.test(exercise.name.toLocaleLowerCase());
+  return isDumbbellExercise(exercise);
 }
 
 function bodyWeightFactor(profile?: Pick<Profile, 'weight'>) {
@@ -58,8 +63,9 @@ function bodyWeightFactor(profile?: Pick<Profile, 'weight'>) {
 
 function exerciseCalorieWeight(exercise: WorkoutExercise, profile?: Pick<Profile, 'weight' | 'dumbbellWeightKg'>) {
   const volume = Math.max(1, Number(exercise.sets) || 1) * Math.max(1, Number(exercise.reps) || 1);
-  const dumbbellLoadFactor = usesDumbbell(exercise) && profile?.dumbbellWeightKg
-    ? 1 + Math.min(0.35, Math.max(0, profile.dumbbellWeightKg) / 40)
+  const dumbbellWeightKg = exercise.dumbbellWeightKg ?? profile?.dumbbellWeightKg;
+  const dumbbellLoadFactor = usesDumbbell(exercise) && dumbbellWeightKg
+    ? 1 + Math.min(0.35, Math.max(0, dumbbellWeightKg) / 40)
     : 1;
   return exerciseMovementFactor(exercise) * Math.sqrt(volume / 24) * dumbbellLoadFactor;
 }
@@ -75,8 +81,12 @@ export function estimateExerciseCalories(workout: Workout, exercise: WorkoutExer
   const totalEffort = workout.exercises.reduce((sum, item) => sum + exerciseCalorieWeight(item, profile), 0);
   if (totalEffort <= 0) return 0;
   const dumbbellExerciseRatio = workout.exercises.filter(usesDumbbell).length / workout.exercises.length;
-  const dumbbellLoadFactor = profile?.dumbbellWeightKg && dumbbellExerciseRatio > 0
-    ? 1 + Math.min(0.2, Math.max(0, profile.dumbbellWeightKg) / 60) * dumbbellExerciseRatio
+  const weightedDumbbellExercises = workout.exercises.filter((item) => usesDumbbell(item) && (item.dumbbellWeightKg ?? profile?.dumbbellWeightKg));
+  const averageDumbbellWeight = weightedDumbbellExercises.length > 0
+    ? weightedDumbbellExercises.reduce((sum, item) => sum + (item.dumbbellWeightKg ?? profile?.dumbbellWeightKg ?? 0), 0) / weightedDumbbellExercises.length
+    : profile?.dumbbellWeightKg;
+  const dumbbellLoadFactor = averageDumbbellWeight && dumbbellExerciseRatio > 0
+    ? 1 + Math.min(0.2, Math.max(0, averageDumbbellWeight) / 60) * dumbbellExerciseRatio
     : 1;
   return Math.max(1, Math.round(duration * getWorkoutIntensity(profile) * bodyWeightFactor(profile) * dumbbellLoadFactor * (exerciseCalorieWeight(exercise, profile) / totalEffort)));
 }
@@ -118,6 +128,7 @@ const dumbbellLibrary: ExerciseLibrary = {
 };
 
 export const dumbbellExerciseKeys = Array.from(new Set(Object.values(dumbbellLibrary).flat()));
+const knownDumbbellExerciseNames: Set<string> = new Set(dumbbellExerciseKeys);
 
 const bandLibrary: ExerciseLibrary = {
   ...bodyweightLibrary,
@@ -322,6 +333,7 @@ export function addExerciseToPlan(workouts: Workout[], workoutId: string, name: 
           reps: Math.max(1, Math.round(reps)),
           muscleGroup: 'other' as MuscleGroup,
           completed: false,
+           dumbbellWeightKg: undefined,
         },
       ],
     }
@@ -361,6 +373,7 @@ export function buildWorkoutPlanForCycle(profile: Profile, cycle: number): Worko
       muscleGroup,
       sets,
       reps: profile.equipment === 'bodyweight' ? reps + 2 : reps,
+       dumbbellWeightKg: isDumbbellExercise(name) ? profile.dumbbellWeightKg : undefined,
       completed: false,
     })));
     return {

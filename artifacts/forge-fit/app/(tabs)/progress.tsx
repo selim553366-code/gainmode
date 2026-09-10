@@ -34,7 +34,7 @@ function StatTile({ icon, value, label, color }: { icon: React.ComponentProps<ty
 
 export default function ProgressScreen() {
   const colors = useColors();
-  const { language, weight, weightLogs, addWeight, profile, calorieGoal, meals, workouts, registeredAt } = useFit();
+  const { language, weight, weightLogs, addWeight, profile, calorieGoal, meals, workouts, dumbbellWeightHistory, registeredAt } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [draftWeight, setDraftWeight] = React.useState('');
   const [launching, setLaunching] = React.useState(false);
@@ -42,7 +42,7 @@ export default function ProgressScreen() {
   const tracksWeight = Boolean(profile && profile.goal !== 'muscle');
   const weeklyAnalysisUnlocked = isWeeklyAnalysisUnlocked(registeredAt);
   const weeklyAnalysisDays = daysUntilWeeklyAnalysis(registeredAt);
-  const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal, profile: profile ?? undefined });
+  const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal, profile: profile ?? undefined, dumbbellWeightHistory });
   const points = weightLogs.filter((item) => item.date >= summary.weekStart).slice(-7);
   const maxPoint = Math.max(...points.map((item) => item.value), summary.currentWeightKg ?? 0, 1);
   const minPoint = Math.min(...points.map((item) => item.value), summary.currentWeightKg ?? maxPoint, maxPoint);
@@ -102,8 +102,8 @@ export default function ProgressScreen() {
       <View style={[styles.track, { backgroundColor: colors.secondary }]}><View style={[styles.fill, { width: `${summary.calorieConsistency ?? 0}%`, backgroundColor: colors.success }]} /></View>
        <View style={[styles.loadRow, { borderTopColor: colors.border }]}>
          <View style={[styles.loadIcon, { backgroundColor: `${colors.orange}18` }]}><Ionicons name="barbell-outline" size={18} color={colors.orange} /></View>
-         <View style={styles.loadCopy}><Text style={[styles.loadTitle, { color: colors.foreground }]}>{summary.dumbbellWeightKg ? `${summary.dumbbellWeightKg} kg · ${t('weeklyDumbbellLoad')}` : t('weeklyWorkoutCalories')}</Text><Text style={[styles.loadHint, { color: colors.mutedForeground }]}>{summary.dumbbellWeightKg ? t('weeklyDumbbellLoadHint') : t('weeklyWorkoutCaloriesHint')}</Text></View>
-         <Text style={[styles.loadValue, { color: colors.orange }]}>{summary.dumbbellWeightKg ? `${summary.dumbbellWeightKg} kg` : `${summary.workoutCalories} ${t('caloriesShort')}`}</Text>
+          <View style={styles.loadCopy}><Text style={[styles.loadTitle, { color: colors.foreground }]}>{summary.dumbbellWeightKg !== null ? t('weeklyDumbbellLoad') : t('weeklyWorkoutCalories')}</Text><Text style={[styles.loadHint, { color: colors.mutedForeground }]}>{summary.dumbbellWeightKg !== null ? t('weeklyDumbbellLoadHint') : t('weeklyWorkoutCaloriesHint')}</Text></View>
+          {summary.dumbbellWeightKg !== null ? <View style={styles.loadValueColumn}><Text style={[styles.loadValue, { color: colors.orange }]}>{summary.dumbbellWeightKg} kg</Text><Text style={[styles.loadIncrease, { color: colors.success }]}>{t('dumbbellProgressIncrease')}: {summary.dumbbellWeightIncreaseKg === null ? '—' : `+${summary.dumbbellWeightIncreaseKg} kg`}</Text></View> : <Text style={[styles.loadValue, { color: colors.orange }]}>{summary.workoutCalories} {t('caloriesShort')}</Text>}
        </View>
     </Card>
 
@@ -155,7 +155,9 @@ const styles = StyleSheet.create({
   loadCopy: { flex: 1 },
   loadTitle: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   loadHint: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 15, marginTop: 3 },
-  loadValue: { fontFamily: 'Inter_700Bold', fontSize: 14 },
+   loadValueColumn: { alignItems: 'flex-end', gap: 2 },
+   loadValue: { fontFamily: 'Inter_700Bold', fontSize: 14 },
+   loadIncrease: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
   consistencyCard: { padding: 16, marginBottom: 16 },
   consistencyHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   consistencyIcon: { width: 39, height: 39, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },

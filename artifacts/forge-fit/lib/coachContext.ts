@@ -1,4 +1,4 @@
-import type { Meal, Profile, Workout } from '@/context/FitContext';
+import type { DumbbellWeightLog, Meal, Profile, Workout } from '@/context/FitContext';
 import { getWeeklySummary, type WeeklySummary } from '@/lib/weeklyAnalysis';
 import { getMealsForRange, localDateKey, mealDateKey } from '@/lib/nutritionDates';
 import { buildCoachBaseline } from '@/lib/coachPersonalization';
@@ -12,6 +12,7 @@ type CoachContextInput = {
   workouts: Workout[];
   weight: number | null;
   weightLogs: { id: string; value: number; date: string }[];
+  dumbbellWeightHistory: DumbbellWeightLog[];
   calorieGoal: number | null;
   proteinGoal: number | null;
   carbsGoal: number | null;
@@ -52,6 +53,7 @@ function compactWorkout(workout: Workout) {
       sets: exercise.sets,
       reps: exercise.reps,
       completed: Boolean(exercise.completed),
+       dumbbellWeightKg: exercise.dumbbellWeightKg ?? null,
     })),
   };
 }
@@ -124,6 +126,7 @@ export function buildCoachContext(input: CoachContextInput) {
       calorieGoal: input.calorieGoal,
       goal: input.profile?.goal,
       profile: input.profile ?? undefined,
+      dumbbellWeightHistory: input.dumbbellWeightHistory,
     });
     context.progress = { currentWeight: input.weight, weightLogs: input.weightLogs.slice(-4), weeklySummary: summary };
   }

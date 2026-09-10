@@ -1,6 +1,6 @@
-import type { FitnessGoal, Meal, Profile, Workout } from '@/context/FitContext';
+import type { DumbbellWeightLog, FitnessGoal, Meal, Profile, Workout } from '@/context/FitContext';
 import { localDateKey, mealDateKey } from '@/lib/nutritionDates';
-import { estimateWorkoutCalories } from '@/lib/workoutPlan';
+import { estimateWorkoutCalories, isDumbbellExercise } from '@/lib/workoutPlan';
 
 export type WeightOutcome = 'lost' | 'gained' | 'steady' | 'missing';
 
@@ -14,6 +14,17 @@ export type WeeklySummary = {
   totalExercises: number;
   workoutCalories: number;
   dumbbellWeightKg: number | null;
+  dumbbellWeightIncreaseKg: number | null;
+  dumbbellProgress: {
+    workoutId: string;
+    exerciseId: string;
+    exerciseName: string;
+    currentWeightKg: number;
+    previousWeightKg: number | null;
+    increaseKg: number;
+    previousWeekWeightKg: number | null;
+    weekIncreaseKg: number;
+  }[];
   trackedCalorieDays: number;
   onTargetCalorieDays: number;
   calorieConsistency: number | null;
@@ -38,6 +49,33 @@ function inCurrentWeek(date: string | undefined, start: string, end: string) {
   return normalized >= start && normalized <= end;
 }
 
+function getDumbbellProgress(workouts: Workout[], history: DumbbellWeightLog[], weekStart: string, weekEnd: string) {
+  return workouts.flatMap((workout) => workout.exercises
+    .filter((exercise) => isDumbbellExercise(exercise) && Number.isFinite(exercise.dumbbellWeightKg) && (exercise.dumbbellWeightKg ?? 0) > 0)
+    .map((exercise) => {
+      const logs = history
+        .filter((item) => item.workoutId === workout.id && item.exerciseId === exercise.id)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      const previousWeightKg = logs.length > 1 ? logs[logs.length - 2].weightKg : null;
+      const currentWeightKg = exercise.dumbbellWeightKg ?? 0;
+      const previousWeekWeightKg = logs.filter((item) => mealDateKey(item.date) < weekStart).at(-1)?.weightKg ?? null;
+      const currentWeekWeight = logs.filter((item) => {
+        const date = mealDateKey(item.date);
+        return date >= weekStart && date <= weekEnd;
+      }).at(-1)?.weightKg ?? currentWeightKg;
+      return {
+        workoutId: workout.id,
+        exerciseId: exercise.id,
+        exerciseName: exercise.name,
+        currentWeightKg,
+        previousWeightKg,
+        increaseKg: previousWeightKg === null ? 0 : roundKg(currentWeightKg - previousWeightKg),
+        previousWeekWeightKg,
+        weekIncreaseKg: previousWeekWeightKg === null ? 0 : roundKg(currentWeekWeight - previousWeekWeightKg),
+      };
+    }));
+}
+
 export function getWeeklySummary({
   weight,
   weightLogs,
@@ -46,6 +84,7 @@ export function getWeeklySummary({
   calorieGoal,
   goal,
   profile,
+  dumbbellWeightHistory,
 }: {
   weight: number | null;
   weightLogs: { value: number; date: string }[];
@@ -54,6 +93,7 @@ export function getWeeklySummary({
   calorieGoal: number | null;
   goal?: FitnessGoal;
   profile?: Pick<Profile, 'goal' | 'equipment' | 'weight' | 'dumbbellWeightKg'>;
+  dumbbellWeightHistory?: DumbbellWeightLog[];
 }): WeeklySummary {
   const { start, end } = getWeekRange();
   const weekWeights = weightLogs
@@ -82,6 +122,12 @@ export function getWeeklySummary({
   const workoutCalories = profile
     ? completedWorkouts.reduce((sum, workout) => sum + estimateWorkoutCalories(workout, profile), 0)
     : 0;
+  const dumbbellProgress = getDumbbellProgress(workouts, dumbbellWeightHistory ?? [], start, end);
+  const dumbbellWeights = dumbbellProgress.map((item) => item.currentWeightKg);
+  const dumbbellWeightKg = dumbbellWeights.length > 0
+    ? Math.max(...dumbbellWeights)
+    : profile?.equipment !== 'bodyweight' ? profile?.dumbbellWeightKg ?? null : null;
+  const dumbbellIncreases = dumbbellProgress.map((item) => item.weekIncreaseKg).filter((value) => value > 0);
 
   const caloriesByDay = new Map<string, number>();
   meals.forEach((meal) => {
@@ -102,7 +148,9 @@ export function getWeeklySummary({
     totalSets,
     totalExercises,
     workoutCalories,
-    dumbbellWeightKg: profile?.dumbbellWeightKg ?? null,
+    dumbbellWeightKg,
+    dumbbellWeightIncreaseKg: dumbbellIncreases.length > 0 ? Math.max(...dumbbellIncreases) : null,
+    dumbbellProgress,
     trackedCalorieDays,
     onTargetCalorieDays,
     calorieConsistency: calorieGoal && trackedCalorieDays > 0 ? Math.round((onTargetCalorieDays / trackedCalorieDays) * 100) : null,
