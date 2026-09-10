@@ -851,7 +851,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
          <WelcomeLanguageSelector language={language} onSelect={setLanguage} />
        </View>
     </View>
-     <View style={[styles.welcomeReferenceCard, { backgroundColor: colors.colorScheme === 'dark' ? colors.glass : 'rgba(255,255,255,0.39)', borderColor: colors.colorScheme === 'dark' ? colors.glassBorder : 'rgba(255,255,255,0.82)' }]}>
+     <View style={[styles.welcomeReferenceCard, { backgroundColor: colors.colorScheme === 'dark' ? colors.glass : 'transparent', borderColor: colors.colorScheme === 'dark' ? colors.glassBorder : 'rgba(255,255,255,0.82)' }]}>
       <Animated.View style={[styles.welcomeCardGlow, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
       <Animated.View style={[styles.welcomeCharacterStage, { transform: [{ translateY: coachTranslateY }, { scale: orbScale }, { rotate: orbRotateValue }] }]}>
          <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={styles.welcomeReferenceCharacter} />
