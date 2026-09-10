@@ -252,3 +252,17 @@ mtime_ms = 1789051878677
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/069f0fc6-908e-4f8d-ae20-85686fb704f8/241cee16-c634-421a-bbec-a41fd1f9a330"
 storage_version_token = "1789051912299276"
 content_type = "image/png"
+
+[[outputs]]
+id = "xkWDaxwoHCyonBaaycVHL"
+uri = "file://attached_assets/generated_images/gainmode-access-appstore.png"
+type = "image"
+title = "GainMode Access App Store görseli"
+description = "App Store subscription localization için hazırlanmış 1024×1024 GainMode Access artwork."
+logical_id = "dba009ea-222a-4039-9a92-24ad08dd31a8"
+content_hash = "sha256:38867b18535acd0f6039a2b6263b31ecf30bb3729523bbafcc9432f8432bcb60"
+size = 1141900
+mtime_ms = 1789059139258
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/dba009ea-222a-4039-9a92-24ad08dd31a8/5b94e44a-1dd3-4bdf-9867-06d7756dbbca"
+storage_version_token = "1789059153090639"
+content_type = "image/png"
