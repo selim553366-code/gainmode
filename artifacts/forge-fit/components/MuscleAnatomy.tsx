@@ -38,20 +38,20 @@ type CalloutLayout = {
 
 const calloutLayouts: Record<BodySide, Partial<Record<MuscleGroup, CalloutLayout>>> = {
   front: {
-    shoulders: { side: 'left', labelTop: 10, targetLeft: 29, targetTop: 21 },
-    chest: { side: 'right', labelTop: 20, targetLeft: 63, targetTop: 29 },
-    biceps: { side: 'left', labelTop: 31, targetLeft: 24, targetTop: 35 },
-    core: { side: 'right', labelTop: 40, targetLeft: 63, targetTop: 44 },
-    quadriceps: { side: 'left', labelTop: 59, targetLeft: 38, targetTop: 64 },
-    calves: { side: 'right', labelTop: 79, targetLeft: 65, targetTop: 84 },
+    shoulders: { side: 'left', labelTop: 10, targetLeft: 34, targetTop: 20 },
+    chest: { side: 'right', labelTop: 20, targetLeft: 58, targetTop: 29 },
+    biceps: { side: 'left', labelTop: 31, targetLeft: 25, targetTop: 36 },
+    core: { side: 'right', labelTop: 40, targetLeft: 50, targetTop: 44 },
+    quadriceps: { side: 'left', labelTop: 59, targetLeft: 42, targetTop: 64 },
+    calves: { side: 'right', labelTop: 79, targetLeft: 57, targetTop: 84 },
   },
   back: {
-    shoulders: { side: 'left', labelTop: 10, targetLeft: 29, targetTop: 22 },
-    back: { side: 'right', labelTop: 23, targetLeft: 63, targetTop: 34 },
-    triceps: { side: 'left', labelTop: 34, targetLeft: 24, targetTop: 36 },
-    glutes: { side: 'right', labelTop: 47, targetLeft: 63, targetTop: 53 },
-    hamstrings: { side: 'left', labelTop: 61, targetLeft: 38, targetTop: 68 },
-    calves: { side: 'right', labelTop: 80, targetLeft: 65, targetTop: 84 },
+    shoulders: { side: 'left', labelTop: 10, targetLeft: 34, targetTop: 22 },
+    back: { side: 'right', labelTop: 23, targetLeft: 50, targetTop: 34 },
+    triceps: { side: 'left', labelTop: 34, targetLeft: 25, targetTop: 36 },
+    glutes: { side: 'right', labelTop: 47, targetLeft: 58, targetTop: 53 },
+    hamstrings: { side: 'left', labelTop: 61, targetLeft: 42, targetTop: 68 },
+    calves: { side: 'right', labelTop: 80, targetLeft: 57, targetTop: 84 },
   },
 };
 
