@@ -266,3 +266,17 @@ mtime_ms = 1789059139258
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/dba009ea-222a-4039-9a92-24ad08dd31a8/5b94e44a-1dd3-4bdf-9867-06d7756dbbca"
 storage_version_token = "1789059153090639"
 content_type = "image/png"
+
+[[outputs]]
+id = "VUdGeCp5vXhQp1OGeD2Ov"
+uri = "file://attached_assets/generated_images/gainmode-access-fitbud-authentic.png"
+type = "image"
+title = "GainMode Access — gerçek FitBud"
+description = "Gönderdiğin gerçek FitBud karakteri korunarak hazırlanmış 1024×1024 App Store subscription görseli."
+logical_id = "86fde7cf-5c63-41c5-82d2-0f29bec4f7ba"
+content_hash = "sha256:a3666c2d725896105b0a84613c1312031c70db356ddeef0c1734466b9bab1be0"
+size = 868715
+mtime_ms = 1789059233849
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/86fde7cf-5c63-41c5-82d2-0f29bec4f7ba/62e74221-e463-4bb4-8f30-58443699c1ce"
+storage_version_token = "1789059252645179"
+content_type = "image/png"
