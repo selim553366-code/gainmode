@@ -6,7 +6,6 @@ import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { Feather, Ionicons } from '@/components/AppIcon';
 import { router, Tabs } from 'expo-router';
-import { PremiumLock } from '@/components/FitUI';
 import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { isDailyMoodDue } from '@/lib/dailyMood';
@@ -156,7 +155,10 @@ export default function TabLayout() {
   const { isPremium } = useFit();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  if (!isPremium && SUBSCRIPTION_PURCHASE_ENABLED) return <PremiumLock />;
+  React.useEffect(() => {
+    if (!isPremium && SUBSCRIPTION_PURCHASE_ENABLED) router.replace('/');
+  }, [isPremium]);
+  if (!isPremium && SUBSCRIPTION_PURCHASE_ENABLED) return null;
   return (
     <View style={{ flex: 1 }}>
       <Tabs tabBar={(props) => <FloatingTabBar {...props} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.background } }}>

@@ -1275,7 +1275,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
       keyboardShouldPersistTaps="handled"
     >
     <View style={styles.offerHero}>
-        <View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><ForgeFitMark size={74} /></View>
+        <View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><Ionicons name="trending-up-outline" size={44} color={colors.primaryForeground} /></View>
       <Text style={[styles.offerEyebrow, { color: colors.primary }]}>{t('premiumWelcomeEyebrow')}</Text>
       <Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumWelcomeTitle')}</Text>
       <Text style={[styles.offerBody, { color: colors.mutedForeground }]}>{t('premiumWelcomeBody')}</Text>
