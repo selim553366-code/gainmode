@@ -56,3 +56,199 @@ mtime_ms = 1789045464838
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/2280f3c1-0314-4771-a7ce-2921d7f44d11/badf98f2-4edc-4f13-84c7-5339a3c3788a"
 storage_version_token = "1789045473229495"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "Dp5XumK607O1cQIa4Emfo"
+uri = "file://deliverables/gainmode-body-images/push-front-light.png"
+type = "image"
+title = "Push — ön vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "36815624-49e3-40e6-8a80-0f96b3d55565"
+content_hash = "sha256:828a81cc4eff394f99d84701dfe96b881575dd5bab967924b69ea23371deb89c"
+size = 258232
+mtime_ms = 1789051878645
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/36815624-49e3-40e6-8a80-0f96b3d55565/f58e4ca2-f0b4-4e8f-aae5-484715767ae6"
+storage_version_token = "1789051895565102"
+content_type = "image/png"
+
+[[outputs]]
+id = "k0xy1ygl4XQrNCwjdLi2z"
+uri = "file://deliverables/gainmode-body-images/push-back-light.png"
+type = "image"
+title = "Push — arka vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "a0a8140b-fd41-43a7-8cdc-30c98cd9cabb"
+content_hash = "sha256:ce584a8c1674c099a3007b598eb2ae31ae71ac21e28f79933424cdd06a2a55ec"
+size = 251081
+mtime_ms = 1789051878649
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/a0a8140b-fd41-43a7-8cdc-30c98cd9cabb/a0d0876d-8c3e-4f1f-a991-9c4d732dd8d5"
+storage_version_token = "1789051896916002"
+content_type = "image/png"
+
+[[outputs]]
+id = "HIzh7k3BOayBaPARGcAjh"
+uri = "file://deliverables/gainmode-body-images/push-core-front-light.png"
+type = "image"
+title = "Push + Core — ön vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "81b1fa76-9f04-49a8-b54b-9bc8fc955939"
+content_hash = "sha256:8a88b751331e09b2d11ff145398331a6b34b1cc210569297e3dbe2007f153219"
+size = 255611
+mtime_ms = 1789051878649
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/81b1fa76-9f04-49a8-b54b-9bc8fc955939/fc630c93-b88f-403b-8d69-af38ef6f2de4"
+storage_version_token = "1789051898318653"
+content_type = "image/png"
+
+[[outputs]]
+id = "VMnXXXKTL1ynXMPmnN-1m"
+uri = "file://deliverables/gainmode-body-images/push-core-back-light.png"
+type = "image"
+title = "Push + Core — arka vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "82d7cdb4-6e31-4dd8-83df-c5dfb8aed8c5"
+content_hash = "sha256:1172b45f35fadda24537c86b1c6bcd9bd29a855a7c0a1d238f7e6d228b5f1236"
+size = 242987
+mtime_ms = 1789051878653
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/82d7cdb4-6e31-4dd8-83df-c5dfb8aed8c5/62de4561-861d-4a7a-8d54-b3b4be633428"
+storage_version_token = "1789051899586795"
+content_type = "image/png"
+
+[[outputs]]
+id = "l82oBEMbcjhejW3LPXfKl"
+uri = "file://deliverables/gainmode-body-images/pull-triceps-front-light.png"
+type = "image"
+title = "Pull + Triceps — ön vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "3d9f72e9-7575-4b26-a3e6-efa0737edd56"
+content_hash = "sha256:9527bdbc93154e7a916e360d8c5d07f498d7506f4ebc3caf6157393db5ea1749"
+size = 249534
+mtime_ms = 1789051878653
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/3d9f72e9-7575-4b26-a3e6-efa0737edd56/58d97933-c047-44f8-90a1-0d3ce4b260ac"
+storage_version_token = "1789051900840340"
+content_type = "image/png"
+
+[[outputs]]
+id = "9PBOACPxyJkmoq0Y7-Ajo"
+uri = "file://deliverables/gainmode-body-images/pull-triceps-back-light.png"
+type = "image"
+title = "Pull + Triceps — arka vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "a790347e-6ae2-4f16-8695-2b45636c3b02"
+content_hash = "sha256:94bdb537a6e8242f3453197303aa54db104f21df2ad3fdc97e2f959c50918ed9"
+size = 252525
+mtime_ms = 1789051878657
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/a790347e-6ae2-4f16-8695-2b45636c3b02/97acb448-8190-4588-82d0-64d4ddec2f09"
+storage_version_token = "1789051902114688"
+content_type = "image/png"
+
+[[outputs]]
+id = "_l8gsGRHtVqwHxY-tsUeT"
+uri = "file://deliverables/gainmode-body-images/leg-front-light.png"
+type = "image"
+title = "Leg — ön vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "9b6d577a-27c7-424c-a91a-237b42ffbd98"
+content_hash = "sha256:33ef0c4b8b7faa40d3c0a5830c164c131ead6f46c54975c5dc1b0cb6b91e29b0"
+size = 258020
+mtime_ms = 1789051878657
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/9b6d577a-27c7-424c-a91a-237b42ffbd98/eb436097-e6c5-42a4-b3d5-e37412543067"
+storage_version_token = "1789051903413221"
+content_type = "image/png"
+
+[[outputs]]
+id = "WeJ9V-o0tba6Rv8eQDpgN"
+uri = "file://deliverables/gainmode-body-images/leg-back-light.png"
+type = "image"
+title = "Leg — arka vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "3b319838-915c-4da7-8c34-e0faf6e4bbb4"
+content_hash = "sha256:dd83767f3d93b258b054e64ed6a13d5bfd244e54b7855f71792afc7d09180b22"
+size = 250546
+mtime_ms = 1789051878661
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/3b319838-915c-4da7-8c34-e0faf6e4bbb4/de398a37-8678-4997-a764-cada67603514"
+storage_version_token = "1789051904660199"
+content_type = "image/png"
+
+[[outputs]]
+id = "V2jYLSt0lMvj7f0ZwhhVW"
+uri = "file://deliverables/gainmode-body-images/upper-front-light.png"
+type = "image"
+title = "Upper Body — ön vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "9f01b851-c034-45c0-9c21-ee5252729007"
+content_hash = "sha256:e1a0687de5bee121e3c53bc3c360655d93d4002817d085c306e31ebb00aef022"
+size = 258600
+mtime_ms = 1789051878665
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/9f01b851-c034-45c0-9c21-ee5252729007/3fcd6638-1a5a-4d0a-9137-af9e5ddc1739"
+storage_version_token = "1789051905939714"
+content_type = "image/png"
+
+[[outputs]]
+id = "Tv9IhmvIXwuZS4Ir-IeWp"
+uri = "file://deliverables/gainmode-body-images/upper-back-light.png"
+type = "image"
+title = "Upper Body — arka vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "8cc4a02d-5722-4292-af00-925b8c88cef8"
+content_hash = "sha256:c3b106d6175b52c217cb1d0745586e90a54fa61429e4ecdf65794f5c4e512eaf"
+size = 251629
+mtime_ms = 1789051878665
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/8cc4a02d-5722-4292-af00-925b8c88cef8/67fe4efa-e143-4d7a-bf12-28b5053bf529"
+storage_version_token = "1789051907222737"
+content_type = "image/png"
+
+[[outputs]]
+id = "wSAv8ba51lau49x0XWbhh"
+uri = "file://deliverables/gainmode-body-images/lower-front-light.png"
+type = "image"
+title = "Lower Body — ön vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "94253d00-6b25-4513-b273-802093921345"
+content_hash = "sha256:3273df48573711f19d9407c08c5633e6626b5a1ad2f7d33596b769a6fef2f6ea"
+size = 256653
+mtime_ms = 1789051878669
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/94253d00-6b25-4513-b273-802093921345/04d36eb3-941b-414b-9309-ab2fe70f76d6"
+storage_version_token = "1789051908482440"
+content_type = "image/png"
+
+[[outputs]]
+id = "aEESm6ujOilr8pw7D8JZE"
+uri = "file://deliverables/gainmode-body-images/lower-back-light.png"
+type = "image"
+title = "Lower Body — arka vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "b7285d02-5f92-459f-b2e9-7bd195456644"
+content_hash = "sha256:0b45ed51cd6d0804468a3bb30922daa4ecb45855b9289041b280f7bb66b34a83"
+size = 244774
+mtime_ms = 1789051878673
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/b7285d02-5f92-459f-b2e9-7bd195456644/17c76cc6-cad7-4593-a084-6b44c19c53c6"
+storage_version_token = "1789051909758474"
+content_type = "image/png"
+
+[[outputs]]
+id = "fWEYKanAlBGCCyr8UwjOF"
+uri = "file://deliverables/gainmode-body-images/full-front-light.png"
+type = "image"
+title = "Full Body — ön vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "39d3acca-d21d-461c-8fbf-d7fe634deee6"
+content_hash = "sha256:1eaaace427d1e25e197f73c647f1176f2617ed4de7ad39d847606907a6edbd92"
+size = 229947
+mtime_ms = 1789051878677
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/39d3acca-d21d-461c-8fbf-d7fe634deee6/616ea6c4-4903-4259-aa4a-ca5e8d940a41"
+storage_version_token = "1789051911039739"
+content_type = "image/png"
+
+[[outputs]]
+id = "34Cu0VN6fg_q-2ovYLmbY"
+uri = "file://deliverables/gainmode-body-images/full-back-light.png"
+type = "image"
+title = "Full Body — arka vücut"
+description = "Arka planı kaldırman için açık tema vücut görseli."
+logical_id = "069f0fc6-908e-4f8d-ae20-85686fb704f8"
+content_hash = "sha256:e1830455ca37470d8bc1b9192f3b3700d8a65f8fa0e982ed9177d16fbf6cf3bc"
+size = 228382
+mtime_ms = 1789051878677
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/069f0fc6-908e-4f8d-ae20-85686fb704f8/241cee16-c634-421a-bbec-a41fd1f9a330"
+storage_version_token = "1789051912299276"
+content_type = "image/png"
