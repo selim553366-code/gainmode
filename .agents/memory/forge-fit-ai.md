@@ -15,9 +15,9 @@ Every coach request must include a compact baseline user summary, whether a work
 
 **How to apply:** Treat greetings as conversation only, ask one clarifying question for ambiguous requests, and never create or replace a program unless the user explicitly asks.
 
-GPT-5 mini needs a generous completion budget for internal reasoning; keep short-answer behavior in the system prompt instead of using a very low token cap.
+GPT-5 reasoning models need a generous completion budget for internal reasoning; keep short-answer behavior in the system prompt instead of using a very low token cap. This also applies to nano when it must return structured JSON.
 
-**Why:** An overly small `max_completion_tokens` value can consume the model's reasoning budget and return an empty visible answer, which the client surfaces as a generic failure.
+**Why:** An overly small `max_completion_tokens` value can consume the model's reasoning budget and return an empty visible answer or truncated JSON, which the client surfaces as a generic failure.
 
 **How to apply:** Use the provider-recommended completion budget for coach calls, then constrain user-facing length with explicit sentence, paragraph, and word guidance.
 

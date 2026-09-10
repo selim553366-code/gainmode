@@ -308,3 +308,17 @@ mtime_ms = 1789060125701
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/de17999f-f4f1-461c-b602-defb0d2138de/bf11ee18-5918-4d3d-95e0-75a8e55fccdb"
 storage_version_token = "1789060144807632"
 content_type = "image/png"
+
+[[outputs]]
+id = "HDTZ6OJMZcL447t9Ds0MN"
+uri = "file://attached_assets/generated_images/fitbud-meal-test.jpg"
+type = "image"
+title = "FitBud test yemek fotoğrafı"
+description = "gpt-5-nano yemek fotoğrafı analizi için kullanılan anonim test görseli."
+logical_id = "36f2f692-f3b7-43f0-854a-c4e6d160cb70"
+content_hash = "sha256:dc6a1f959bc7f508eff82e36e94b774cec166f4e402c0eb93f54452504c5c3aa"
+size = 258808
+mtime_ms = 1789079772871
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/36f2f692-f3b7-43f0-854a-c4e6d160cb70/82c00c2d-4cc9-4fe0-9427-ff19c0f907a2"
+storage_version_token = "1789080002601642"
+content_type = "image/jpeg"
