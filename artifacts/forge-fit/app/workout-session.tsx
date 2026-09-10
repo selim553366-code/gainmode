@@ -200,21 +200,13 @@ export default function WorkoutSessionScreen() {
             <Text style={[styles.tapHintText, { color: colors.foreground }]}>{t('tapMuscleHint')}</Text>
           </Animated.View> : null}
         </View>
-        <Pressable
-          accessibilityRole="button"
+        <View
           accessibilityLabel={t('clickToViewWorkouts')}
-          onPress={() => {
-            const frontMuscles: MuscleGroup[] = ['chest', 'shoulders', 'biceps', 'core', 'quadriceps', 'calves'];
-            const backMuscles: MuscleGroup[] = ['shoulders', 'back', 'triceps', 'glutes', 'hamstrings', 'calves'];
-            const visibleMuscles = side === 'front' ? frontMuscles : backMuscles;
-            const firstVisibleMuscle = activeMuscles.find((muscle) => visibleMuscles.includes(muscle));
-            if (firstVisibleMuscle) selectMuscle(firstVisibleMuscle);
-          }}
           style={[styles.mapCta, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}
         >
           <Ionicons name="hand-pointer" size={15} color={colors.primary} />
           <Text style={[styles.mapCtaText, { color: colors.primary }]}>{t('clickToViewWorkouts')}</Text>
-        </Pressable>
+        </View>
         <View style={styles.legend}>
           <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
           <Text style={[styles.legendText, { color: colors.mutedForeground }]}>{t('todayTargetMuscles')}</Text>
