@@ -294,3 +294,17 @@ mtime_ms = 1789059326625
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/5f644601-b485-4e9e-9a57-cc727cf3be18/7be1734d-d421-43b6-b00c-11dbe737d631"
 storage_version_token = "1789059371804044"
 content_type = "image/png"
+
+[[outputs]]
+id = "qwByIdyaeoMMdn4pRxOSB"
+uri = "file://attached_assets/generated_images/gainmode-access-review-1290x2796.png"
+type = "image"
+title = "GainMode Access review screenshot"
+description = "Gerçek GainMode Access satın alma ekranının Apple App Store incelemesi için 1290×2796 dikey PNG formatı."
+logical_id = "de17999f-f4f1-461c-b602-defb0d2138de"
+content_hash = "sha256:c16c12daff75b744d1554971b684eddc1081948af1f9e4aeaa30a5234d5312f0"
+size = 1554870
+mtime_ms = 1789060125701
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/de17999f-f4f1-461c-b602-defb0d2138de/bf11ee18-5918-4d3d-95e0-75a8e55fccdb"
+storage_version_token = "1789060144807632"
+content_type = "image/png"
