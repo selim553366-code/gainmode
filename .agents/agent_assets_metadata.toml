@@ -42,3 +42,17 @@ mtime_ms = 1788264219842
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/5f2d3cd6-3929-4dcd-bc59-3b94c899b37a/0a9b602e-c71b-4b0d-856a-cd86b6813dd5"
 storage_version_token = "1788264285473389"
 content_type = "audio/mpeg"
+
+[[outputs]]
+id = "lWdCNRpfIKTFIjAFwh7TL"
+uri = "file://attached_assets/gainmode_welcome_without_white_rectangle.jpeg"
+type = "image"
+title = "GainMode — beyaz dikdörtgen kaldırıldı"
+description = "Çerçevenin içindeki beyaz dikdörtgen kaldırıldı; diğer görsel öğeleri korunmuştur."
+logical_id = "2280f3c1-0314-4771-a7ce-2921d7f44d11"
+content_hash = "sha256:c1eb1a32555ea615d1971d098b1ae5acd06fe37a55b72aa120b86adb28ecd681"
+size = 85562
+mtime_ms = 1789045464838
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/2280f3c1-0314-4771-a7ce-2921d7f44d11/badf98f2-4edc-4f13-84c7-5339a3c3788a"
+storage_version_token = "1789045473229495"
+content_type = "image/jpeg"
