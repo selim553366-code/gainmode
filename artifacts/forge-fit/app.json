@@ -11,7 +11,7 @@
     },
     "name": "GainMode",
     "slug": "forge-fit",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/coach-app-icon-final.png",
     "scheme": "forge-fit",
