@@ -15,7 +15,7 @@ import { getWeeklySummary } from '@/lib/weeklyAnalysis';
 import { getAiClientId } from '@/lib/aiUsage';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 import { getFirstCoachReply } from '@/lib/coachRating';
-import { COACH_MESSAGES_STORAGE_KEY, parseStoredCoachMessages, type CoachMessageRecord } from '@/lib/coachMessages';
+import { COACH_MESSAGES_STORAGE_KEY, getCoachMessagesStorageKey, parseStoredCoachMessages, type CoachMessageRecord } from '@/lib/coachMessages';
 import { isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
 import { apiUrl } from '@/lib/api';
 import { localDateKey } from '@/lib/nutritionDates';
@@ -144,7 +144,7 @@ function TypingIndicator({ label, colors }: { label: string; colors: ReturnType<
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, registeredAt, coachMessagesUsed, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateWorkout, updateProfile, updateNutritionGoals } = useFit();
+  const { accountId, language, profile, username, meals, calorieGoal, proteinGoal, carbsGoal, fatGoal, workouts, weight, weightLogs, registeredAt, coachMessagesUsed, incrementCoachUsage, setCoachThinking, coachIntroPending, markCoachIntroSeen, addExercise, removeExercise, updateExercise, updateWorkout, updateProfile, updateNutritionGoals } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { weeklyAnalysis, analysisId } = useLocalSearchParams<{ weeklyAnalysis?: string; analysisId?: string }>();
   const [text, setText] = useState('');
@@ -162,6 +162,7 @@ export default function CoachScreen() {
   const coachReveal = useRef(new Animated.Value(0)).current;
   const weeklyCardReveal = useRef(new Animated.Value(0)).current;
   const lastAnalysisId = useRef<string | undefined>(undefined);
+  const hydratedMessagesStorageKey = useRef<string | null>(null);
   const screenSize = Dimensions.get('window');
   const revealScale = Math.max(34, Math.ceil(Math.hypot(screenSize.width, screenSize.height) / 28));
   const ratingDateKey = localDateKey();
@@ -174,7 +175,8 @@ export default function CoachScreen() {
   }, []);
   // Keep the restored first-reply rating flow separate from the previous
   // latest-message flow, so an old rating cannot hide the restored prompt.
-  const ratingStorageKey = `forge-fit-coach-rating-v2-${ratingDateKey}`;
+  const coachMessagesStorageKey = getCoachMessagesStorageKey(accountId);
+  const ratingStorageKey = `forge-fit-coach-rating-v2-${accountId}-${ratingDateKey}`;
   React.useEffect(() => {
     const prompts = [t('coachPromptWeight'), t('coachPromptCalories')];
     let phraseIndex = 0;
@@ -223,9 +225,21 @@ export default function CoachScreen() {
   }, [ratingStorageKey]);
   React.useEffect(() => {
     let cancelled = false;
+    hydratedMessagesStorageKey.current = null;
+    setMessagesHydrated(false);
     void (async () => {
       try {
-        const value = await AsyncStorage.getItem(COACH_MESSAGES_STORAGE_KEY);
+        let value = await AsyncStorage.getItem(coachMessagesStorageKey);
+        // Migrate the pre-account storage only once, into this device's local
+        // account. The account id is never sent to the coach or used as a name.
+        if (!value && coachMessagesStorageKey !== COACH_MESSAGES_STORAGE_KEY) {
+          const legacyValue = await AsyncStorage.getItem(COACH_MESSAGES_STORAGE_KEY);
+          if (legacyValue) {
+            value = legacyValue;
+            await AsyncStorage.setItem(coachMessagesStorageKey, legacyValue);
+            await AsyncStorage.removeItem(COACH_MESSAGES_STORAGE_KEY);
+          }
+        }
         const restoredMessages = parseStoredCoachMessages(value);
         if (!cancelled) {
           const initialMessages: Message[] = restoredMessages?.length ? restoredMessages : [{
@@ -243,17 +257,20 @@ export default function CoachScreen() {
       } catch {
         if (!cancelled) setMessages([{ id: 'coach-welcome', text: t('coachWelcome'), from: 'coach', media: 'welcomeGif' }]);
       } finally {
-        if (!cancelled) setMessagesHydrated(true);
+        if (!cancelled) {
+          hydratedMessagesStorageKey.current = coachMessagesStorageKey;
+          setMessagesHydrated(true);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [language]);
+  }, [coachMessagesStorageKey, language]);
   React.useEffect(() => {
-    if (!messagesHydrated) return;
-    void AsyncStorage.setItem(COACH_MESSAGES_STORAGE_KEY, JSON.stringify(messages)).catch(() => undefined);
-  }, [messages, messagesHydrated]);
+    if (!messagesHydrated || hydratedMessagesStorageKey.current !== coachMessagesStorageKey) return;
+    void AsyncStorage.setItem(coachMessagesStorageKey, JSON.stringify(messages)).catch(() => undefined);
+  }, [coachMessagesStorageKey, messages, messagesHydrated]);
   useFocusEffect(React.useCallback(() => {
     if (coachIntroPending) markCoachIntroSeen();
     coachReveal.setValue(0);

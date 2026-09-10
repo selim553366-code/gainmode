@@ -2,6 +2,10 @@ import type { CoachAction } from '@/lib/coachActions';
 
 export const COACH_MESSAGES_STORAGE_KEY = 'forge-fit-coach-messages-v1';
 
+export function getCoachMessagesStorageKey(accountId: string | null | undefined) {
+  return accountId ? `${COACH_MESSAGES_STORAGE_KEY}:${accountId}` : COACH_MESSAGES_STORAGE_KEY;
+}
+
 export type CoachMessageRecord = {
   id: string;
   text: string;

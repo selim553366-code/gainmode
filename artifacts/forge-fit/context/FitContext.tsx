@@ -60,6 +60,7 @@ export type Friend = { id: string; username: string };
 export type Challenge = { id: string; name: string; target: number; progress: number };
 type FitState = {
   version: number;
+  accountId: string;
   language: Language;
   meals: Meal[];
   savedMeals: SavedMeal[];
@@ -100,6 +101,10 @@ type FitState = {
   unlockedBadgeIds: string[];
 };
 
+function createLocalAccountId() {
+  return `account-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 type FitContextValue = FitState & {
   hydrated: boolean;
   coachThinking: boolean;
@@ -135,6 +140,7 @@ type FitContextValue = FitState & {
 
 const initialState: FitState = {
   version: 5,
+  accountId: createLocalAccountId(),
   language: 'tr',
   weight: null,
   calorieGoal: null,
@@ -288,6 +294,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
           const merged = {
             ...initialState,
             ...storedState,
+            accountId: typeof parsed.accountId === 'string' && parsed.accountId.trim() ? parsed.accountId : initialState.accountId,
             registeredAt: typeof parsed.registeredAt === 'string'
               ? parsed.registeredAt
               : parsed.onboardingComplete

@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { parseStoredCoachMessages } from '../lib/coachMessages.ts';
+import { COACH_MESSAGES_STORAGE_KEY, getCoachMessagesStorageKey, parseStoredCoachMessages } from '../lib/coachMessages.ts';
+
+test('keeps coach storage separate from the display name', () => {
+  assert.notEqual(getCoachMessagesStorageKey('account-a'), getCoachMessagesStorageKey('account-b'));
+  assert.equal(getCoachMessagesStorageKey('account-a'), `${COACH_MESSAGES_STORAGE_KEY}:account-a`);
+  assert.equal(getCoachMessagesStorageKey(null), COACH_MESSAGES_STORAGE_KEY);
+});
 
 test('restores the complete coach conversation in its stored order', () => {
   const stored = JSON.stringify([

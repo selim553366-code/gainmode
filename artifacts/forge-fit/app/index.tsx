@@ -2,7 +2,6 @@ import React from 'react';
 import { Animated, Easing, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@/components/AppIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -349,7 +348,6 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const [buildingPlan, setBuildingPlan] = React.useState(false);
   const [overloadSeen, setOverloadSeen] = React.useState(false);
   const [onboardingMode, setOnboardingMode] = React.useState<OnboardingMode | null>(editMode ? 'detailed' : null);
-  const [taken, setTaken] = React.useState<string[]>([]);
   const [error, setError] = React.useState('');
     const [questionViewportHeight, setQuestionViewportHeight] = React.useState(0);
     const [questionAnswerBottom, setQuestionAnswerBottom] = React.useState(0);
@@ -481,10 +479,6 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 100) setDumbbellWeightKg(Math.round(parsed * 10) / 10);
   };
 
-  React.useEffect(() => {
-    AsyncStorage.getItem('forge-fit-usernames').then((value) => setTaken(value ? JSON.parse(value) as string[] : [])).catch(() => undefined);
-  }, []);
-
   const advance = () => {
     Animated.sequence([Animated.timing(slide, { toValue: 0, duration: 120, useNativeDriver: true }), Animated.timing(slide, { toValue: 1, duration: 220, useNativeDriver: true })]).start();
     setStep((current) => current + 1);
@@ -512,9 +506,6 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       targetWeight: hasTargetWeightStep ? (targetWeight ?? recommendedTargetWeight) : recommendTargetWeight({ height, weight, age, goal, sex, activity, goalRate }),
     };
     completeOnboarding(profile, cleanUsername, { profileEdit: editMode });
-    const previousUsername = savedUsername?.trim().replace(/\s+/g, '').toLowerCase();
-    const nextTaken = Array.from(new Set([...taken.filter((item) => item !== previousUsername), cleanUsername]));
-    AsyncStorage.setItem('forge-fit-usernames', JSON.stringify(nextTaken)).catch(() => undefined);
     if (editMode) {
       router.replace('/(tabs)');
       return;
@@ -526,8 +517,6 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     if (activeStep === 0) {
       const clean = username.trim().replace(/\s+/g, '').toLowerCase();
       if (!clean) return setError(t('usernameRequired'));
-      const previousUsername = savedUsername?.trim().replace(/\s+/g, '').toLowerCase();
-      if (taken.includes(clean) && clean !== previousUsername) return setError(t('usernameTaken'));
       if (!editMode && !onboardingMode) {
         return advance();
       }
@@ -594,7 +583,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       if (gesture.dx < -55) next();
       if (gesture.dx > 55) goBack();
     },
-  }), [language, step, activeStep, username, equipment, gymLevel, dumbbellWeightKg, dumbbellWeightText, age, taken, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, ageText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
+  }), [language, step, activeStep, username, equipment, gymLevel, dumbbellWeightKg, dumbbellWeightText, age, measurementUnit, heightText, heightFeetText, heightInchesText, weightText, ageText, targetWeightText, targetWeightUnit, hasTargetWeightStep, goal]);
    React.useEffect(() => {
      setQuestionScrollOffset(0);
      setQuestionAnswerBottom(0);
