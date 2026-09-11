@@ -32,3 +32,9 @@ Test-only Premium access must remain a separate local flag and must never alter 
 **Why:** Android QA needs a deterministic local unlock without creating or faking a real store subscription.
 
 **How to apply:** Keep the test code and storage key isolated, preserve the real entitlement check, and treat the local unlock as temporary QA functionality.
+
+Production AI access is issued by the API only after RevenueCat verifies the `forge_fit_pro` entitlement; the mobile app presents a short-lived signed access token on coach and food-analysis requests.
+
+**Why:** A client-provided ID or local premium flag is spoofable and can expose paid AI calls or create uncontrolled provider costs.
+
+**How to apply:** Keep RevenueCat's server API key in Replit Secrets, use the server token gate in production, and allow local bypasses only in development/test environments.
