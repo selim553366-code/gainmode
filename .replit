@@ -29,6 +29,7 @@ packages = ["eas-cli"]
 
 [userenv.production]
 EXPO_PUBLIC_DOMAIN = "unfolded-superior-webpages.replit.app"
+REVENUECAT_SERVER_VERIFICATION = "true"
 
 [[ports]]
 localPort = 8080
