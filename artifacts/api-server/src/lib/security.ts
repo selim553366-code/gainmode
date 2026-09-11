@@ -122,6 +122,20 @@ export function requireAiAccess(req: Request, res: Response, next: NextFunction)
   return next();
 }
 
+export function getAiRateLimitKey(req: Request) {
+  const authorization = req.header("authorization") ?? "";
+  const token = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+  const verifiedToken = token ? verifyToken(token) : null;
+  if (verifiedToken?.sub) return `user:${verifiedToken.sub}`;
+
+  if (!accessVerificationEnabled()) {
+    const developmentClientId = normalizedAppUserId(req.body?.clientId);
+    if (developmentClientId) return `user:${developmentClientId}`;
+  }
+
+  return `ip:${clientKey(req)}`;
+}
+
 export function clientKey(req: Request) {
   return req.ip || req.socket.remoteAddress || "unknown";
 }

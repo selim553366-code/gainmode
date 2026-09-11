@@ -9,7 +9,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { DAILY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
+import { HOURLY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
 import { buildCoachContext } from '@/lib/coachContext';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
 import { getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
@@ -286,7 +286,7 @@ export default function CoachScreen() {
   const requestCoach = async (message: string, displayMessage: Message) => {
     const prompt = message.trim();
     if (!prompt || loading) return;
-    if (coachMessagesUsed >= DAILY_COACH_MESSAGE_LIMIT) {
+    if (coachMessagesUsed >= HOURLY_COACH_MESSAGE_LIMIT) {
       setMessages((current) => [...current, { id: `${Date.now()}-limit`, text: t('coachLimitReached'), from: 'coach' }]);
       return;
     }
@@ -331,7 +331,7 @@ export default function CoachScreen() {
   const send = () => {
     const trimmed = text.trim();
     if (!trimmed || loading) return;
-    if (coachMessagesUsed >= DAILY_COACH_MESSAGE_LIMIT) {
+    if (coachMessagesUsed >= HOURLY_COACH_MESSAGE_LIMIT) {
       setMessages((current) => [...current, { id: `${Date.now()}-limit`, text: t('coachLimitReached'), from: 'coach' }]);
       return;
     }

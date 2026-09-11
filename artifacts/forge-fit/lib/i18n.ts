@@ -161,11 +161,11 @@ const premiumPlanTranslations: Record<Language, {
 };
 
 const usageLimitCopy: Record<Language, { coach: string; photo: string }> = {
-  tr: { coach: 'Bugünkü koç mesajı hakkın doldu.', photo: 'Bugünkü fotoğraf analizi hakkın doldu.' },
-  en: { coach: 'You have used today’s coach messages.', photo: 'You have used today’s photo analyses.' },
-  de: { coach: 'Deine Coach-Nachrichten für heute sind aufgebraucht.', photo: 'Deine Fotoanalysen für heute sind aufgebraucht.' },
-  fr: { coach: 'Tes messages au coach du jour sont épuisés.', photo: 'Tes analyses photo du jour sont épuisées.' },
-  es: { coach: 'Has usado tus mensajes al coach de hoy.', photo: 'Has usado tus análisis de fotos de hoy.' },
+  tr: { coach: 'Bu saatlik 30 koç mesajı hakkın doldu.', photo: 'Bu saatlik 30 fotoğraf analizi hakkın doldu.' },
+  en: { coach: 'You have used this hour’s 30 coach messages.', photo: 'You have used this hour’s 30 photo analyses.' },
+  de: { coach: 'Deine 30 Coach-Nachrichten für diese Stunde sind aufgebraucht.', photo: 'Deine 30 Fotoanalysen für diese Stunde sind aufgebraucht.' },
+  fr: { coach: 'Tes 30 messages au coach pour cette heure sont épuisés.', photo: 'Tes 30 analyses photo pour cette heure sont épuisées.' },
+  es: { coach: 'Has usado tus 30 mensajes al coach de esta hora.', photo: 'Has usado tus 30 análisis de fotos de esta hora.' },
 };
 
 const streakUiTranslations: Record<Language, {

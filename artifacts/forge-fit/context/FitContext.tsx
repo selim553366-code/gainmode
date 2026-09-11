@@ -129,6 +129,11 @@ function createLocalAccountId() {
   return `account-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
+function localUsageHourKey(date = new Date()) {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}`;
+}
+
 type FitContextValue = FitState & {
   hydrated: boolean;
   coachThinking: boolean;
@@ -372,8 +377,8 @@ export function FitProvider({ children }: { children: ReactNode }) {
           if (!merged.goalProjection && merged.profile && merged.calorieGoal) {
             merged.goalProjection = createGoalProjection(merged.profile, merged.calorieGoal, merged.workouts, merged.goalWeight ?? undefined);
           }
-          const today = localDateKey();
-          setState(merged.usageDate === today ? merged : { ...merged, usageDate: today, coachMessagesUsed: 0, photoAnalysesUsed: 0 });
+           const usageHour = localUsageHourKey();
+           setState(merged.usageDate === usageHour ? merged : { ...merged, usageDate: usageHour, coachMessagesUsed: 0, photoAnalysesUsed: 0 });
         }
       }
       setHydrated(true);
@@ -559,12 +564,12 @@ export function FitProvider({ children }: { children: ReactNode }) {
     markCoachIntroSeen: () => setState((current) => current.coachIntroPending ? { ...current, coachIntroPending: false } : current),
     setIntroSeen: () => setState((current) => ({ ...current, introSeen: true })),
     incrementCoachUsage: () => setState((current) => {
-      const today = new Date().toISOString().slice(0, 10);
-      return current.usageDate === today ? { ...current, coachMessagesUsed: current.coachMessagesUsed + 1 } : { ...current, usageDate: today, coachMessagesUsed: 1, photoAnalysesUsed: 0 };
+       const usageHour = localUsageHourKey();
+       return current.usageDate === usageHour ? { ...current, coachMessagesUsed: current.coachMessagesUsed + 1 } : { ...current, usageDate: usageHour, coachMessagesUsed: 1, photoAnalysesUsed: 0 };
     }),
     incrementPhotoUsage: () => setState((current) => {
-      const today = new Date().toISOString().slice(0, 10);
-      return current.usageDate === today ? { ...current, photoAnalysesUsed: current.photoAnalysesUsed + 1 } : { ...current, usageDate: today, coachMessagesUsed: 0, photoAnalysesUsed: 1 };
+       const usageHour = localUsageHourKey();
+       return current.usageDate === usageHour ? { ...current, photoAnalysesUsed: current.photoAnalysesUsed + 1 } : { ...current, usageDate: usageHour, coachMessagesUsed: 0, photoAnalysesUsed: 1 };
     }),
      toggleWorkout: (id) => setState((current) => {
         const previousWorkout = current.workouts.find((workout) => workout.id === id);

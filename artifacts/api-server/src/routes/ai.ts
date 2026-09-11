@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { createAiAccessToken, requireAiAccess } from "../lib/security";
+import { clientKey, createAiAccessToken, getAiRateLimitKey, requireAiAccess } from "../lib/security";
 
 const router: IRouter = Router();
 const COACH_MODEL = "gpt-5-mini";
@@ -13,7 +13,7 @@ const MODEL_PRICING_USD_PER_MILLION: Record<string, { input: number; output: num
 const supportedLanguages = new Set(["tr", "en", "de", "fr", "es"]);
 const AI_WINDOW_MS = 60 * 60 * 1000;
 const COACH_REQUESTS_PER_WINDOW = 30;
-const FOOD_ANALYSIS_REQUESTS_PER_WINDOW = 10;
+const FOOD_ANALYSIS_REQUESTS_PER_WINDOW = 30;
 const MAX_IMAGE_DATA_LENGTH = 8_000_000;
 const MAX_MESSAGE_LENGTH = 2_000;
 const MAX_CONTEXT_LENGTH = 12_000;
@@ -50,16 +50,17 @@ function enforceRateLimit(
   res: Response,
   scope: string,
   limit: number,
+  key = getAiRateLimitKey(req),
 ) {
   const now = Date.now();
-  const clientKey = `${scope}:${getClientKey(req)}`;
-  const current = rateLimitBuckets.get(clientKey);
+  const bucketKey = `${scope}:${key}`;
+  const current = rateLimitBuckets.get(bucketKey);
   const bucket = !current || current.resetAt <= now
     ? { count: 0, resetAt: now + AI_WINDOW_MS }
     : current;
 
   bucket.count += 1;
-  rateLimitBuckets.set(clientKey, bucket);
+   rateLimitBuckets.set(bucketKey, bucket);
 
   if (rateLimitBuckets.size > 10_000) {
     for (const [key, value] of rateLimitBuckets) {
@@ -208,7 +209,7 @@ function logAiUsage(req: Request, operation: string, clientId: string | null, re
 }
 
 router.post("/ai/access", async (req, res) => {
-  if (!enforceRateLimit(req, res, "access", 10)) return;
+  if (!enforceRateLimit(req, res, "access", 10, `ip:${clientKey(req)}`)) return;
   const result = await createAiAccessToken(req.body?.appUserId);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json({ accessToken: result.token, expiresIn: result.expiresIn });

@@ -11,7 +11,7 @@ import { translate } from '@/lib/i18n';
 import { apiUrl } from '@/lib/api';
 import { useColors } from '@/hooks/useColors';
 import { Card, ForgeFitMark, Header, InlineStatus, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
-import { DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
+import { HOURLY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
 import { calculateCalorieProgress, calculateNetCalories, calculateRemainingCalories } from '@/lib/nutritionCalories';
@@ -238,7 +238,7 @@ export default function NutritionScreen() {
   };
 
   const pickPhoto = async () => {
-    if (photoAnalysesUsed >= DAILY_PHOTO_ANALYSIS_LIMIT) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
+    if (photoAnalysesUsed >= HOURLY_PHOTO_ANALYSIS_LIMIT) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
     const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.65, base64: true });
     const asset = result.canceled ? undefined : result.assets?.[0];
     if (!asset) return;
@@ -285,7 +285,7 @@ export default function NutritionScreen() {
     setBarcodeResult(null);
   };
   const openMealCamera = () => {
-    if (photoAnalysesUsed >= DAILY_PHOTO_ANALYSIS_LIMIT) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
+    if (photoAnalysesUsed >= HOURLY_PHOTO_ANALYSIS_LIMIT) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
     setMealCameraVisible(true);
   };
   const openBarcodeScanner = () => {
