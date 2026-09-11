@@ -1,13 +1,13 @@
 import React, { useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert, Animated, Dimensions, Easing, FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Dimensions, Easing, FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { Ionicons } from '@/components/AppIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useFit } from '@/context/FitContext';
-import { translate } from '@/lib/i18n';
+import { translate, type TranslationKey } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { HOURLY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
 import { buildCoachContext } from '@/lib/coachContext';
@@ -141,6 +141,114 @@ function TypingIndicator({ label, colors }: { label: string; colors: ReturnType<
   </View>;
 }
 
+const APP_TOUR_SLIDES: Array<{
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  title: TranslationKey;
+  summary: TranslationKey;
+  detail: TranslationKey;
+}> = [
+  { icon: 'home-outline', title: 'featuresHomeTitle', summary: 'featuresHomeSummary', detail: 'featuresHomeDetail' },
+  { icon: 'restaurant-outline', title: 'featuresMacroTitle', summary: 'featuresMacroSummary', detail: 'featuresMacroDetail' },
+  { icon: 'barbell-outline', title: 'featuresWorkoutTitle', summary: 'featuresWorkoutSummary', detail: 'featuresWorkoutDetail' },
+  { icon: 'trending-up-outline', title: 'featuresRestTitle', summary: 'featuresRestSummary', detail: 'featuresRestDetail' },
+  { icon: 'chatbubble-ellipses-outline', title: 'featuresAiCoachTitle', summary: 'featuresAiCoachSummary', detail: 'featuresAiCoachDetail' },
+  { icon: 'body-outline', title: 'featuresLiveFormTitle', summary: 'featuresLiveFormSummary', detail: 'featuresLiveFormDetail' },
+];
+
+function AppTourModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { language } = useFit();
+  const t = (key: TranslationKey) => translate(language, key);
+  const [slideIndex, setSlideIndex] = React.useState(0);
+  const slideReveal = React.useRef(new Animated.Value(1)).current;
+  const slide = APP_TOUR_SLIDES[slideIndex];
+  const isLastSlide = slideIndex === APP_TOUR_SLIDES.length - 1;
+
+  React.useEffect(() => {
+    if (visible) {
+      setSlideIndex(0);
+      slideReveal.setValue(1);
+    }
+  }, [slideReveal, visible]);
+
+  const moveTo = (nextIndex: number) => {
+    if (nextIndex < 0 || nextIndex >= APP_TOUR_SLIDES.length) return;
+    Animated.timing(slideReveal, {
+      toValue: 0,
+      duration: 150,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      if (!finished) return;
+      setSlideIndex(nextIndex);
+      Animated.timing(slideReveal, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent statusBarTranslucent onRequestClose={onClose}>
+      <View style={[styles.tourBackdrop, { backgroundColor: colors.background }]}>
+        <LinearGradient colors={[`${colors.primary}20`, colors.background, `${colors.plum}12`]} style={StyleSheet.absoluteFill} />
+        <View style={[styles.tourHeader, { paddingTop: insets.top + 10 }]}>
+          <View style={[styles.tourBrandPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="sparkles" size={15} color={colors.primary} />
+            <Text style={[styles.tourBrandText, { color: colors.foreground }]}>{t('appTourTitle')}</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('appTourClose')}
+            onPress={onClose}
+            hitSlop={10}
+            style={({ pressed }) => [styles.tourCloseButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}
+          >
+            <Ionicons name="close" size={20} color={colors.foreground} />
+          </Pressable>
+        </View>
+        <Animated.View style={[styles.tourContent, { opacity: slideReveal, transform: [{ translateX: slideReveal.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }]}>
+          <View style={styles.tourCounterRow}>
+            <Text style={[styles.tourEyebrow, { color: colors.primary }]}>{`${slideIndex + 1} / ${APP_TOUR_SLIDES.length}`}</Text>
+            <Text style={[styles.tourSubtitle, { color: colors.mutedForeground }]}>{t('appTourSubtitle')}</Text>
+          </View>
+          <View style={[styles.tourVisual, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}32` }]}>
+            <View style={[styles.tourVisualGlow, { backgroundColor: `${colors.primary}24` }]} />
+            <View style={[styles.tourIconCircle, { backgroundColor: colors.primary }]}>
+              <Ionicons name={slide.icon} size={42} color={colors.primaryForeground} />
+            </View>
+            <View style={[styles.tourVisualLine, { backgroundColor: `${colors.primary}40` }]} />
+            <View style={[styles.tourVisualDot, { backgroundColor: colors.primary }]} />
+          </View>
+          <Text style={[styles.tourSlideTitle, { color: colors.foreground }]}>{t(slide.title)}</Text>
+          <Text style={[styles.tourSlideSummary, { color: colors.primary }]}>{t(slide.summary)}</Text>
+          <Text style={[styles.tourSlideDetail, { color: colors.mutedForeground }]}>{t(slide.detail)}</Text>
+        </Animated.View>
+        <View style={[styles.tourFooter, { paddingBottom: insets.bottom + 14 }]}>
+          <View style={styles.tourDots}>
+            {APP_TOUR_SLIDES.map((item, index) => <View key={item.title} style={[styles.tourDot, { backgroundColor: index === slideIndex ? colors.primary : `${colors.primary}32`, width: index === slideIndex ? 24 : 7 }]} />)}
+          </View>
+          <View style={styles.tourActions}>
+            {slideIndex > 0 ? (
+              <Pressable accessibilityRole="button" onPress={() => moveTo(slideIndex - 1)} style={({ pressed }) => [styles.tourBackButton, { borderColor: colors.border, opacity: pressed ? 0.65 : 1 }]}>
+                <Ionicons name="arrow-back" size={17} color={colors.foreground} />
+                <Text style={[styles.tourBackText, { color: colors.foreground }]}>{t('appTourBack')}</Text>
+              </Pressable>
+            ) : <View style={styles.tourBackPlaceholder} />}
+            <Pressable accessibilityRole="button" onPress={() => isLastSlide ? onClose() : moveTo(slideIndex + 1)} style={({ pressed }) => [styles.tourNextButton, { backgroundColor: colors.primary, opacity: pressed ? 0.76 : 1 }]}>
+              <Text style={[styles.tourNextText, { color: colors.primaryForeground }]}>{t(isLastSlide ? 'appTourDone' : 'appTourNext')}</Text>
+              <Ionicons name={isLastSlide ? 'checkmark' : 'arrow-forward'} size={18} color={colors.primaryForeground} />
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function CoachScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -157,6 +265,7 @@ export default function CoachScreen() {
   const [ratingLoaded, setRatingLoaded] = useState(false);
   const [ratingSending, setRatingSending] = useState<number | null>(null);
   const [ratedMessageId, setRatedMessageId] = useState<string | null>(null);
+  const [appTourVisible, setAppTourVisible] = useState(false);
   const [chatOriginY, setChatOriginY] = React.useState(0);
   const inputRef = useRef<TextInput>(null);
   const coachReveal = useRef(new Animated.Value(0)).current;
@@ -419,7 +528,7 @@ export default function CoachScreen() {
          >
             {item.from === 'coach' ? <View style={styles.messageAvatarShell}><Image accessibilityLabel={t('coachTitle')} source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={styles.messageAvatar} /></View> : null}
            <View style={styles.messageContent}>
-                  {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : <><View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text> : null}</View>{item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: colors.card }]}><Image accessibilityLabel={t('coachWelcomeGifLabel')} source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} /></View> : null}</>}
+                  {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : <><View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text> : null}</View>{item.id === 'coach-welcome' || item.media === 'welcomeGif' ? <Pressable accessibilityRole="button" onPress={() => setAppTourVisible(true)} style={({ pressed }) => [styles.appTourButton, { backgroundColor: `${colors.primary}14`, borderColor: `${colors.primary}48`, opacity: pressed ? 0.68 : 1 }]}><Ionicons name="sparkles-outline" size={16} color={colors.primary} /><Text style={[styles.appTourButtonText, { color: colors.primary }]}>{t('appTourButton')}</Text><Ionicons name="arrow-forward" size={15} color={colors.primary} /></Pressable> : null}{item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: colors.card }]}><Image accessibilityLabel={t('coachWelcomeGifLabel')} source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} /></View> : null}</>}
                  {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.actionTitle, { color: colors.foreground }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: colors.foreground }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: colors.border, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.foreground }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
                 {ratingLoaded && ratingTarget?.id === item.id && dailyRating === null ? <View style={[styles.ratingCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.ratingPrompt, { color: colors.foreground }]}>{t('coachRatingPrompt')}</Text><View style={styles.ratingStars}>{[1, 2, 3, 4, 5].map((value) => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} ${t('coachRatingStars')}`} disabled={ratingSending !== null} onPress={() => void rateCoachMessage(item, value)} style={({ pressed }) => [styles.ratingStar, { opacity: ratingSending !== null && ratingSending !== value ? 0.4 : pressed ? 0.65 : 1 }]}><Ionicons name="star" size={24} color={colors.orange} /></Pressable>)}</View>{ratingSending !== null ? <Text style={[styles.ratingStatus, { color: colors.mutedForeground }]}>{t('coachRatingSending')}</Text> : null}</View> : null}
                 {ratedMessageId === item.id ? <Text style={[styles.ratingThanks, { color: colors.success }]}>{t('coachRatingThanks')}</Text> : null}
@@ -436,7 +545,8 @@ export default function CoachScreen() {
               <Pressable testID="send-coach-message" onPress={send} style={({ pressed }) => [styles.send, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}><Ionicons name="arrow-up" size={19} color={colors.primaryForeground} /></Pressable>
           </View>
       </View>
-    </KeyboardAvoidingView>
+     </KeyboardAvoidingView>
+     <AppTourModal visible={appTourVisible} onClose={() => setAppTourVisible(false)} />
   </View>;
 }
 
@@ -477,6 +587,8 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: '92%', paddingHorizontal: 18, paddingVertical: 14, borderRadius: 24 },
   userBubble: { borderBottomRightRadius: 8 },
   coachBubble: { borderTopLeftRadius: 8, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  appTourButton: { minHeight: 42, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 15, paddingHorizontal: 13, marginTop: -2 },
+  appTourButtonText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   actionCard: { marginTop: 8, borderRadius: 20, borderWidth: 1, padding: 16, width: '100%' },
   actionTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, marginBottom: 7 },
   actionLine: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 17, marginBottom: 3 },
@@ -509,4 +621,30 @@ const styles = StyleSheet.create({
   photoPreviewCopy: { flex: 1, minWidth: 0 },
   photoPreviewTitle: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   photoPreviewHint: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 2 },
+  tourBackdrop: { flex: 1, paddingHorizontal: 22 },
+  tourHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  tourBrandPill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 18, paddingHorizontal: 13, paddingVertical: 9 },
+  tourBrandText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  tourCloseButton: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  tourContent: { flex: 1, justifyContent: 'center', paddingBottom: 12 },
+  tourCounterRow: { alignItems: 'center', gap: 8, marginBottom: 18 },
+  tourEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 1.8 },
+  tourSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center' },
+  tourVisual: { width: '100%', height: 208, borderRadius: 30, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginBottom: 26 },
+  tourVisualGlow: { position: 'absolute', width: 170, height: 170, borderRadius: 85 },
+  tourIconCircle: { width: 94, height: 94, borderRadius: 32, alignItems: 'center', justifyContent: 'center', shadowColor: '#0A6CFF', shadowOpacity: 0.26, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 9 },
+  tourVisualLine: { position: 'absolute', width: 104, height: 1, bottom: 44, left: '50%', marginLeft: -52 },
+  tourVisualDot: { position: 'absolute', width: 7, height: 7, borderRadius: 4, bottom: 41 },
+  tourSlideTitle: { fontFamily: 'Inter_700Bold', fontSize: 28, lineHeight: 34, textAlign: 'center', letterSpacing: -0.5 },
+  tourSlideSummary: { fontFamily: 'Inter_700Bold', fontSize: 15, lineHeight: 21, textAlign: 'center', marginTop: 12 },
+  tourSlideDetail: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 22, textAlign: 'center', marginTop: 12, paddingHorizontal: 5 },
+  tourFooter: { gap: 22 },
+  tourDots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, minHeight: 8 },
+  tourDot: { height: 7, borderRadius: 4 },
+  tourActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  tourBackPlaceholder: { width: 92 },
+  tourBackButton: { minHeight: 52, minWidth: 92, borderWidth: 1, borderRadius: 17, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  tourBackText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
+  tourNextButton: { flex: 1, minHeight: 52, borderRadius: 17, paddingHorizontal: 17, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  tourNextText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
 });
