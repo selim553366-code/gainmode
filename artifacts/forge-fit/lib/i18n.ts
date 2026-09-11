@@ -232,7 +232,9 @@ const profileEditTranslations = {
     editPreferencesNutritionDescription: 'Beslenme ve protein tercihlerini güncelle.',
     profileEditLimitBar: 'Bu akışta ayda 1 profil güncelleme hakkın var. Kaydetmeden çıkarsan hakkın kullanılmaz.',
     profileEditLimitBarUsed: 'Bu ay profil güncelleme hakkını kullandın. Yeni hak gelecek ay açılır.',
-    profileEditSaved: 'Profilin ve planın güncellendi.',
+     profileEditSaved: 'Profilin ve planın güncellendi.',
+     coachProfileCorrectionTitle: 'Bilgilerini FitBud ile düzelt',
+     coachProfileCorrectionDescription: 'Kendin hakkında yanlış bir bilgi girdiysen, değiştirmek istediğin bilgiyi FitBud’a yaz. O senin için güncellesin.',
   },
   en: {
     editPreferences: 'Refresh account preferences',
@@ -261,6 +263,8 @@ const profileEditTranslations = {
     profileEditLimitBar: 'You have 1 profile update per month. Leaving before saving does not use it.',
     profileEditLimitBarUsed: 'You used this month’s profile update. A new one opens next month.',
     profileEditSaved: 'Your profile and plan were updated.',
+    coachProfileCorrectionTitle: 'Correct your details with FitBud',
+    coachProfileCorrectionDescription: 'If you entered something about yourself incorrectly, write what you want to change to FitBud and it will update it for you.',
   },
   de: {
     editPreferences: 'Kontoeinstellungen aktualisieren',
@@ -289,6 +293,8 @@ const profileEditTranslations = {
     profileEditLimitBar: 'Du hast 1 Profilaktualisierung pro Monat. Beim Verlassen ohne Speichern wird sie nicht genutzt.',
     profileEditLimitBarUsed: 'Du hast die Profilaktualisierung dieses Monats genutzt. Nächsten Monat gibt es eine neue.',
     profileEditSaved: 'Dein Profil und dein Plan wurden aktualisiert.',
+    coachProfileCorrectionTitle: 'Korrigiere deine Angaben mit FitBud',
+    coachProfileCorrectionDescription: 'Wenn du etwas über dich falsch eingegeben hast, schreibe FitBud, was du ändern möchtest. FitBud aktualisiert es für dich.',
   },
   fr: {
     editPreferences: 'Actualiser les préférences du compte',
@@ -317,6 +323,8 @@ const profileEditTranslations = {
     profileEditLimitBar: 'Tu as 1 mise à jour de profil par mois. Quitter sans enregistrer ne la consomme pas.',
     profileEditLimitBarUsed: 'Tu as utilisé la mise à jour de profil de ce mois. La prochaine sera disponible le mois prochain.',
     profileEditSaved: 'Ton profil et ton plan ont été mis à jour.',
+    coachProfileCorrectionTitle: 'Corrige tes informations avec FitBud',
+    coachProfileCorrectionDescription: 'Si tu as mal indiqué une information sur toi, écris à FitBud ce que tu veux changer et il le mettra à jour pour toi.',
   },
   es: {
     editPreferences: 'Actualizar preferencias de la cuenta',
@@ -345,6 +353,8 @@ const profileEditTranslations = {
     profileEditLimitBar: 'Tienes 1 actualización de perfil al mes. Salir sin guardar no la consume.',
     profileEditLimitBarUsed: 'Has usado la actualización de perfil de este mes. Habrá una nueva el próximo mes.',
     profileEditSaved: 'Tu perfil y tu plan se actualizaron.',
+    coachProfileCorrectionTitle: 'Corrige tus datos con FitBud',
+    coachProfileCorrectionDescription: 'Si introdujiste mal algún dato sobre ti, escribe a FitBud qué quieres cambiar y lo actualizará por ti.',
   },
 } as const;
 

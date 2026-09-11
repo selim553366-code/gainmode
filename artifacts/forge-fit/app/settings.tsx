@@ -6,7 +6,6 @@ import { useFit } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
-import { isProfileEditAvailable } from '@/lib/profileEdit';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 import { apiUrl } from '@/lib/api';
 
@@ -29,10 +28,8 @@ export default function SettingsScreen() {
     language,
     setLanguage,
     restartOnboarding,
-    profileEditUsedMonth,
   } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const profileEditAvailable = isProfileEditAvailable(profileEditUsedMonth);
   const [expanded, setExpanded] = useState<LegalSection>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('suggestion');
@@ -143,24 +140,21 @@ export default function SettingsScreen() {
         </View>
       </Card>
 
-      <SectionTitle title={t('editPreferences')} />
+      <SectionTitle title={t('coachProfileCorrectionTitle')} />
       <Card>
         <Pressable
           accessibilityRole="button"
-          disabled={!profileEditAvailable}
-          onPress={() => router.push('/update-preferences')}
-          style={({ pressed }) => [styles.restartRow, { opacity: !profileEditAvailable ? 0.5 : pressed ? 0.7 : 1 }]}
+          onPress={() => router.push('/(tabs)/coach')}
+          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <View style={[styles.iconBox, { backgroundColor: `${colors.blue}20` }]}>
-            <Ionicons name="options-outline" size={21} color={colors.blue} />
+          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.primary} />
           </View>
           <View style={styles.rowCopy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('editPreferences')}</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>
-              {!profileEditAvailable ? t('editPreferencesLimitUsed') : t('editPreferencesDescription')}
-            </Text>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('coachProfileCorrectionTitle')}</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('coachProfileCorrectionDescription')}</Text>
           </View>
-          {profileEditAvailable ? <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} /> : null}
+          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
         </Pressable>
       </Card>
 
