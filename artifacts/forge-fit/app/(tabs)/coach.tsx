@@ -425,13 +425,26 @@ export default function CoachScreen() {
       const clientId = await getAiClientId();
       const accessToken = await getAiAccessToken();
       const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, body: JSON.stringify({ message: prompt, language, context, clientId }) });
-      if (!response.ok) throw new Error('coach unavailable');
+      if (!response.ok) {
+        let serverMessage = '';
+        try {
+          const errorPayload = await response.json() as { error?: unknown };
+          serverMessage = typeof errorPayload.error === 'string' ? errorPayload.error : '';
+        } catch {
+          // Keep the localized fallback when the server does not return JSON.
+        }
+        const error = new Error(serverMessage || 'Coach request failed');
+        (error as Error & { status?: number }).status = response.status;
+        throw error;
+      }
        const result = await response.json() as CoachApiResponse;
       incrementCoachUsage();
        const actions = validateCoachActions(result.actions, workouts);
         setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach', ...(actions.length > 0 ? { actions, actionStatus: 'pending' as const } : {}) }]);
-    } catch {
-      setMessages((current) => [...current, { id: `${Date.now()}-error`, text: t('weeklyAnalysisFailed'), from: 'coach' }]);
+    } catch (error) {
+      const status = (error as Error & { status?: number }).status;
+      console.warn('Coach request failed.', error);
+      setMessages((current) => [...current, { id: `${Date.now()}-error`, text: status === 401 || status === 403 ? t('coachAccessFailed') : t('coachRequestFailed'), from: 'coach' }]);
     } finally {
       setLoading(false);
       setCoachThinking(false);
