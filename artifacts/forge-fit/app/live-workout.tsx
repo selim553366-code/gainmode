@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@/components/AppIcon';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
+import { apiUrl } from '@/lib/api';
 import { PoseCamera, useCameraPermission } from 'react-native-pose-detection';
 import type { PoseFrame } from 'react-native-pose-detection';
 import { liveTranslate, type LiveWorkoutCopyKey } from '@/lib/liveWorkoutCopy';
@@ -51,9 +52,9 @@ function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmar
 }
 
 function guideImageForKind(kind: ExerciseKind) {
-  if (kind === 'squat') return require('@/assets/images/live-guide-coach-squat-oblique-skeleton.png');
-  if (kind === 'lunge') return require('@/assets/images/live-guide-coach-lunge-oblique-skeleton.png');
-  return require('@/assets/images/live-guide-coach-pushup-oblique-skeleton.png');
+  if (kind === 'squat') return { uri: apiUrl('/app-assets/form-guides/live-guide-coach-squat-oblique-skeleton.png') };
+  if (kind === 'lunge') return { uri: apiUrl('/app-assets/form-guides/live-guide-coach-lunge-oblique-skeleton.png') };
+  return { uri: apiUrl('/app-assets/form-guides/live-guide-coach-pushup-oblique-skeleton.png') };
 }
 
 function ActionButton({ label, icon, onPress, disabled = false }: { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void; disabled?: boolean }) {

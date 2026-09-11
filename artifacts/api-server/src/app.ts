@@ -1,6 +1,7 @@
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import path from "node:path";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -51,6 +52,13 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+const publicGuideAssets = path.resolve(process.cwd(), "public/app-assets/form-guides");
+app.use("/app-assets/form-guides", express.static(publicGuideAssets, {
+  maxAge: "7d",
+  immutable: true,
+  fallthrough: false,
+}));
 
 app.use("/api", router);
 
