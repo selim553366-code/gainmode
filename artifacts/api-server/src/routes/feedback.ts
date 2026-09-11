@@ -3,7 +3,7 @@ import { ReplitConnectors } from "@replit/connectors-sdk";
 import { enforcePublicRateLimit } from "../lib/security";
 
 const router: IRouter = Router();
-const feedbackRecipient = "selim553366@gmail.com";
+const feedbackRecipient = "globestudiosdev@gmail.com";
 const maxFeedbackLength = 4_000;
 const supportedCategories = new Set(["bug", "suggestion", "subscription", "payment", "notifications", "other"]);
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

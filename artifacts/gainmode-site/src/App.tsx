@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from 'react';
+import { type FormEvent, type ReactNode, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { Toaster } from '@/components/ui/toaster';
@@ -101,6 +101,13 @@ type Copy = (typeof translations)[Lang];
 const featureImages = [aiCoach, liveForm, foodPhoto, workoutPlan, nutritionTargets, weeklyAi, profileChanges];
 const featureIconComponents = [Sparkles, HeartPulse, Flame, Dumbbell, Target, TrendingUp, Zap];
 const displayCopy = (value: string) => value.replace(/\\n/g, '\n');
+const joinErrorCopy: Record<Lang, string> = {
+  en: 'We could not save your email right now. Please try again.',
+  tr: 'E-postanı şu anda kaydedemedik. Lütfen tekrar dene.',
+  de: 'Deine E-Mail konnte gerade nicht gespeichert werden. Bitte versuche es erneut.',
+  fr: 'Nous ne pouvons pas enregistrer ton e-mail pour le moment. Réessaie.',
+  es: 'No hemos podido guardar tu correo ahora. Inténtalo de nuevo.',
+};
 const microcopy = {
   en: { form: 'Live form check', squat: 'Squat · 86% aligned', fitbud: 'Ready for one strong set? I am with you.', methodNote: 'Designed around the next useful action', weekly: 'Weekly signal', strength: 'strength trend', rhythm: 'session rhythm', chart: 'A week you can read', faqTitle: ['Clear answers.', 'No fine print.'] },
   tr: { form: 'Canlı form kontrolü', squat: 'Squat · %86 uyumlu', fitbud: 'Bir güçlü set için hazır mısın? Yanındayım.', methodNote: 'Bir sonraki faydalı adıma göre tasarlandı', weekly: 'Haftalık sinyal', strength: 'güç trendi', rhythm: 'seans ritmi', chart: 'Okuyabileceğin bir hafta', faqTitle: ['Net yanıtlar.', 'Gizli koşul yok.'] },
@@ -119,10 +126,32 @@ function Home() {
   const [langOpen, setLangOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [joined, setJoined] = useState(false);
+  const [joinSending, setJoinSending] = useState(false);
+  const [joinError, setJoinError] = useState(false);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
   const t: Copy = translations[lang];
   const micro = microcopy[lang];
   const setLanguage = (next: Lang) => { setLang(next); setLangOpen(false); setMenuOpen(false); document.documentElement.lang = next; };
+  const submitEarlyList = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail || joined || joinSending) return;
+    setJoinError(false);
+    setJoinSending(true);
+    try {
+      const response = await fetch('/api/early-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail, language: lang }),
+      });
+      if (!response.ok) throw new Error('early list request failed');
+      setJoined(true);
+    } catch {
+      setJoinError(true);
+    } finally {
+      setJoinSending(false);
+    }
+  };
 
   return (
     <div className="min-h-[100dvh] overflow-x-hidden bg-[#f1f5f9] text-[#17263c]">
@@ -202,7 +231,7 @@ function Home() {
 
         <section id="faq" className="bg-[#f1f5f9] py-24 sm:py-32"><div className="container-wide grid gap-12 lg:grid-cols-[.7fr_1.3fr]"><Reveal><span className="eyebrow text-cyan-700">{t.faq}</span><h2 className="display mt-5 text-5xl font-extrabold leading-[.95] text-[#17263c]">{micro.faqTitle[0]}<br />{micro.faqTitle[1]}</h2></Reveal><div>{t.faqItems.map(([question, answer], index) => <Reveal key={question} delay={index * .08}><div className="border-b border-slate-300"><button type="button" className="flex w-full items-center justify-between gap-5 py-6 text-left font-bold text-[#17263c]" onClick={() => setFaqOpen(faqOpen === index ? null : index)} data-testid={`button-faq-${index}`}><span>{question}</span><span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white transition-transform ${faqOpen === index ? 'rotate-45' : ''}`}><span className="text-xl font-normal">+</span></span></button>{faqOpen === index && <p className="max-w-2xl pb-6 text-sm leading-6 text-slate-500">{answer}</p>}</div></Reveal>)}</div></div></section>
 
-        <section id="join" className="relative overflow-hidden bg-[#cdeff7] py-24 sm:py-32"><div className="absolute -right-24 -top-40 h-[420px] w-[420px] rounded-full border-[70px] border-white/40" /><div className="container-wide relative grid items-end gap-10 lg:grid-cols-[1fr_.8fr]"><Reveal><span className="eyebrow text-cyan-800">GainMode / 01</span><h2 className="display mt-5 max-w-3xl text-5xl font-extrabold leading-[.94] text-[#17263c] sm:text-7xl">{t.proofTitle}</h2><p className="mt-6 max-w-xl text-base leading-7 text-slate-600">{t.proofBody}</p></Reveal><Reveal delay={.1}><form className="rounded-3xl border border-white/80 bg-white/70 p-3 shadow-xl backdrop-blur" onSubmit={(event) => { event.preventDefault(); if (email.trim()) setJoined(true); }}><div className="flex flex-col gap-2 sm:flex-row"><input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t.emailPlaceholder} className="min-h-[52px] flex-1 rounded-2xl bg-transparent px-4 text-sm font-semibold outline-none placeholder:text-slate-400" data-testid="input-email" /><button type="submit" className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-[#17263c] px-5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5" data-testid="button-join">{joined ? <><Check size={17} />{t.joined}</> : <>{t.join}<ArrowRight size={17} /></>}</button></div><p className="px-4 pb-1 pt-3 text-xs text-slate-500">{t.privacy}</p></form></Reveal></div></section>
+         <section id="join" className="relative overflow-hidden bg-[#cdeff7] py-24 sm:py-32"><div className="absolute -right-24 -top-40 h-[420px] w-[420px] rounded-full border-[70px] border-white/40" /><div className="container-wide relative grid items-end gap-10 lg:grid-cols-[1fr_.8fr]"><Reveal><span className="eyebrow text-cyan-800">GainMode / 01</span><h2 className="display mt-5 max-w-3xl text-5xl font-extrabold leading-[.94] text-[#17263c] sm:text-7xl">{t.proofTitle}</h2><p className="mt-6 max-w-xl text-base leading-7 text-slate-600">{t.proofBody}</p></Reveal><Reveal delay={.1}><form className="rounded-3xl border border-white/80 bg-white/70 p-3 shadow-xl backdrop-blur" onSubmit={submitEarlyList}><div className="flex flex-col gap-2 sm:flex-row"><input type="email" required value={email} onChange={(event) => { setEmail(event.target.value); setJoinError(false); }} placeholder={t.emailPlaceholder} className="min-h-[52px] flex-1 rounded-2xl bg-transparent px-4 text-sm font-semibold outline-none placeholder:text-slate-400" data-testid="input-email" /><button type="submit" disabled={joinSending || joined} aria-busy={joinSending} className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-[#17263c] px-5 text-sm font-bold text-white transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70" data-testid="button-join">{joined ? <><Check size={17} />{t.joined}</> : <>{t.join}<ArrowRight size={17} /></>}</button></div><p className={`px-4 pb-1 pt-3 text-xs ${joinError ? 'text-red-600' : 'text-slate-500'}`} data-testid={joinError ? 'status-join-error' : 'text-join-privacy'}>{joinError ? joinErrorCopy[lang] : t.privacy}</p></form></Reveal></div></section>
       </main>
       <footer className="bg-[#17263c] py-10 text-white"><div className="container-wide flex flex-col justify-between gap-8 sm:flex-row sm:items-end"><div><a href="#top" data-testid="link-footer-logo"><img src={wordmark} alt="GainMode" className="wordmark brightness-0 invert" width="142" height="22" /></a><p className="mt-5 text-sm font-semibold text-slate-300">{t.footerLine}</p></div><div className="flex flex-col gap-5 text-sm sm:items-end"><nav className="flex flex-wrap gap-5">{t.footerLinks.map((label, index) => <a key={label} href={['#method', '#inside', '#fitbud'][index]} className="text-slate-300 hover:text-cyan-300" data-testid={`link-footer-${index}`}>{label}</a>)}</nav><p className="text-xs text-slate-500">{t.footerLegal}</p></div></div></footer>
     </div>

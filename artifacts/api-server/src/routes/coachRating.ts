@@ -3,7 +3,7 @@ import { ReplitConnectors } from "@replit/connectors-sdk";
 import { enforcePublicRateLimit } from "../lib/security";
 
 const router: IRouter = Router();
-const ratingRecipient = "selim553366@gmail.com";
+const ratingRecipient = "globestudiosdev@gmail.com";
 const maxMessageLength = 4_000;
 
 function escapeHtml(value: string) {
