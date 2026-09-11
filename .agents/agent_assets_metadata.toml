@@ -350,3 +350,59 @@ mtime_ms = 1789170323925
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/1dd94c28-7b63-490e-b196-365b6df5e561/c2f9bce1-508e-45d3-bf44-ff838f931f6c"
 storage_version_token = "1789170474628225"
 content_type = "image/png"
+
+[[outputs]]
+id = "wruSupN6tVWJfgfdsOvDT"
+uri = "file://attached_assets/generated_images/fitbud_coach_wave.png"
+type = "image"
+title = "FitBud karşılama pozu"
+description = "Kullanıcının verdiği karakter korunarak hazırlanmış karşılama ve el sallama pozu."
+logical_id = "e0eee85b-f8e5-4414-8eab-278c8fe1baf9"
+content_hash = "sha256:47681c1b4c7ebac8219eeb031ee5cf8b5e5b45435d548284866abc141c286160"
+size = 1257414
+mtime_ms = 1789170694188
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/e0eee85b-f8e5-4414-8eab-278c8fe1baf9/ede4c26d-0893-42dd-b48b-f74790d90202"
+storage_version_token = "1789171072266867"
+content_type = "image/png"
+
+[[outputs]]
+id = "MKUy3y4yhsLsTEhpXMEKq"
+uri = "file://attached_assets/generated_images/fitbud_coach_thinking.png"
+type = "image"
+title = "FitBud düşünme pozu"
+description = "Aynı yüz, vücut ve kıyafetle hazırlanmış düşünme pozu."
+logical_id = "2483f07a-4ae6-45c9-990d-25182f96689a"
+content_hash = "sha256:7c2c5f5fac327a3076eaa15661d5652471e4b950d011309a3e890099f8b599d4"
+size = 1165123
+mtime_ms = 1789170695189
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/2483f07a-4ae6-45c9-990d-25182f96689a/9ede4957-0037-46e7-9e71-04637dabdd5c"
+storage_version_token = "1789171073637491"
+content_type = "image/png"
+
+[[outputs]]
+id = "diL9RktBokgYGHDZwKm_F"
+uri = "file://attached_assets/generated_images/fitbud_coach_thumbsup.png"
+type = "image"
+title = "FitBud güven pozu"
+description = "Aynı karakterle hazırlanmış başparmak yukarı pozu."
+logical_id = "ef042a9a-fe5a-40cc-8b01-c62c4f193d3e"
+content_hash = "sha256:96376c581335f112bce43eccb59f50ae7ac4a32455b670b7f6e831e7cacad364"
+size = 1223946
+mtime_ms = 1789170692896
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/ef042a9a-fe5a-40cc-8b01-c62c4f193d3e/c35a2079-315d-4993-b473-5f658ab4cf14"
+storage_version_token = "1789171074998722"
+content_type = "image/png"
+
+[[outputs]]
+id = "-pnKwKt5sU6h7llrY030-"
+uri = "file://attached_assets/generated_images/fitbud_coach_guiding.png"
+type = "image"
+title = "FitBud yönlendirme pozu"
+description = "Aynı karakterle hazırlanmış antrenman yönlendirme pozu."
+logical_id = "e5526772-3423-4c6b-88b7-460d14db7548"
+content_hash = "sha256:6d23503b536bfb00b886227377d3c69009638857b7808166baff39428da1695e"
+size = 1202465
+mtime_ms = 1789170694520
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/e5526772-3423-4c6b-88b7-460d14db7548/46e445a6-5ebe-4d9b-a5c6-20546e962084"
+storage_version_token = "1789171076345872"
+content_type = "image/png"

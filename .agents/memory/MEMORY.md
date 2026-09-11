@@ -8,6 +8,7 @@
 - [Forge Fit responsive feature cards](forge-fit-responsive-cards.md) — recreate reference feature cards in code so they scale cleanly and keep real hit targets instead of shipping fixed screenshots.
 - [Forge Fit coach form guides](forge-fit-coach-form-guides.md) — use the blue coach character in consistent movement-stage visuals, with localized form tips below.
 - [Forge Fit coach chat](forge-fit-coach-chat.md) — keep the FitBud conversation spacious and calm while preserving its existing motion language.
+- [FitBud coach identity](forge-fit-coach-identity.md) — use the user-provided blue mascot as the canonical coach; vary poses without changing face or body identity.
 - [Forge Fit Android release builds](forge-fit-android-build.md) — native checks work locally; Android cloud builds must resolve Expo config from the Forge Fit artifact, not the workspace root.
 - [OpenAPI and Zod codegen](openapi-zod-codegen.md) — this workspace’s Zod 3 generator mishandles OpenAPI integer response fields; verify generated schemas after API changes.
 - [Forge Fit local notifications](forge-fit-notifications.md) — reminder scheduling is native-device behavior; web previews only validate the settings UI.
