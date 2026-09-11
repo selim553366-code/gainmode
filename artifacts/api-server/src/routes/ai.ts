@@ -41,10 +41,6 @@ type OpenAiUsage = {
 
 const rateLimitBuckets = new Map<string, RateLimitBucket>();
 
-function getClientKey(req: Request) {
-  return req.ip || req.socket.remoteAddress || "unknown";
-}
-
 function enforceRateLimit(
   req: Request,
   res: Response,
@@ -60,7 +56,7 @@ function enforceRateLimit(
     : current;
 
   bucket.count += 1;
-   rateLimitBuckets.set(bucketKey, bucket);
+  rateLimitBuckets.set(bucketKey, bucket);
 
   if (rateLimitBuckets.size > 10_000) {
     for (const [key, value] of rateLimitBuckets) {

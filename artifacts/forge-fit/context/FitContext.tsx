@@ -392,6 +392,17 @@ export function FitProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const resetExpiredUsageWindow = () => {
+      const usageHour = localUsageHourKey();
+      setState((current) => current.usageDate === usageHour
+        ? current
+        : { ...current, usageDate: usageHour, coachMessagesUsed: 0, photoAnalysesUsed: 0 });
+    };
+    const interval = setInterval(resetExpiredUsageWindow, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
     if (testPromoUnlocked) AsyncStorage.setItem(TEST_PREMIUM_PROMO_STORAGE_KEY, 'true').catch(() => undefined);
   }, [testPromoUnlocked]);
 
