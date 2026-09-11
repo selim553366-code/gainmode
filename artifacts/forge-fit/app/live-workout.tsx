@@ -52,9 +52,9 @@ function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmar
 }
 
 function guideImageForKind(kind: ExerciseKind) {
-  if (kind === 'squat') return { uri: apiUrl('/app-assets/form-guides/live-guide-coach-squat-oblique-skeleton.png') };
-  if (kind === 'lunge') return { uri: apiUrl('/app-assets/form-guides/live-guide-coach-lunge-oblique-skeleton.png') };
-  return { uri: apiUrl('/app-assets/form-guides/live-guide-coach-pushup-oblique-skeleton.png') };
+  if (kind === 'squat') return { uri: apiUrl('/api/app-assets/form-guides/live-guide-coach-squat-oblique-skeleton.png') };
+  if (kind === 'lunge') return { uri: apiUrl('/api/app-assets/form-guides/live-guide-coach-lunge-oblique-skeleton.png') };
+  return { uri: apiUrl('/api/app-assets/form-guides/live-guide-coach-pushup-oblique-skeleton.png') };
 }
 
 function ActionButton({ label, icon, onPress, disabled = false }: { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void; disabled?: boolean }) {

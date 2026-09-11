@@ -54,7 +54,7 @@ app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 const publicGuideAssets = path.resolve(process.cwd(), "public/app-assets/form-guides");
-app.use("/app-assets/form-guides", express.static(publicGuideAssets, {
+app.use("/api/app-assets/form-guides", express.static(publicGuideAssets, {
   maxAge: "7d",
   immutable: true,
   fallthrough: false,
