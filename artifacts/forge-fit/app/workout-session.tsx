@@ -168,7 +168,7 @@ export default function WorkoutSessionScreen() {
 
       <Card style={styles.anatomyCard}>
         <View style={styles.anatomyTop}>
-          <View>
+          <View style={styles.anatomyTopCopy}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('muscleMap')}</Text>
             <Text style={[styles.sectionHint, { color: colors.mutedForeground }]}>{t('tapHighlightedMuscle')}</Text>
           </View>
@@ -323,10 +323,11 @@ const styles = StyleSheet.create({
   counterText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   anatomyCard: { padding: 16, marginBottom: 22 },
   anatomyTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 13 },
+  anatomyTopCopy: { flex: 1, minWidth: 0 },
   sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, letterSpacing: -0.3 },
   sectionHint: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: 3 },
-  sideSwitch: { flexDirection: 'row', padding: 3, borderRadius: 12 },
-  sideButton: { minWidth: 48, height: 31, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  sideSwitch: { flexDirection: 'row', flexShrink: 0, padding: 3, borderRadius: 12 },
+  sideButton: { width: 48, height: 31, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   sideText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
   anatomyStage: { height: 440, borderRadius: 22, paddingHorizontal: 28, paddingVertical: 8, overflow: 'hidden' },
   mapCta: { minHeight: 36, borderRadius: 13, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 10, paddingHorizontal: 12 },
