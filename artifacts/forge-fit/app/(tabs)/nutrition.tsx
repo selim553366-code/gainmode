@@ -214,7 +214,7 @@ export default function NutritionScreen() {
     setPhotoUri(uri);
     setAnalysisResult(null);
     setAnalysisDetailsVisible(false);
-    if (!base64) { Alert.alert(t('scanMeal'), t('photoComing')); return; }
+    if (!base64) { Alert.alert(t('analyzePhoto'), t('photoAnalysisError')); return; }
     setAnalysisPhase('flying');
     setAnalyzing(true);
     try {
@@ -229,7 +229,7 @@ export default function NutritionScreen() {
       setAnalysisResult(analyzed);
       incrementPhotoUsage();
     } catch {
-      Alert.alert(t('analyzePhoto'), t('photoComing'));
+      Alert.alert(t('analyzePhoto'), t('photoAnalysisError'));
     } finally {
       setAnalyzing(false);
       await new Promise<void>((resolve) => setTimeout(resolve, 650));
