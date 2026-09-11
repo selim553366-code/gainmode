@@ -102,20 +102,59 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const permission = useCameraPermission();
   const [analysis, setAnalysis] = React.useState(() => ({ state: initialRepState, warning: 'liveLookingForBody' as LiveWarningKey, confidence: 0, metric: null as number | null, depthPercent: 0 }));
   const [cameraError, setCameraError] = React.useState(false);
-  const [showRepsPanel, setShowRepsPanel] = React.useState(true);
   const [skeletonOnly, setSkeletonOnly] = React.useState(false);
   const [showFormGuide, setShowFormGuide] = React.useState(true);
+  const [isStarted, setIsStarted] = React.useState(false);
+  const [startOptionsVisible, setStartOptionsVisible] = React.useState(false);
+  const [countdown, setCountdown] = React.useState<number | null>(null);
   const [skeletonPose, setSkeletonPose] = React.useState<PoseLandmarks>({});
   const poseTrackRef = React.useRef(initialPoseTrackState);
   const stateRef = React.useRef<RepState>(initialRepState);
+  const isStartedRef = React.useRef(false);
+  const countdownTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
   const repTone = useAudioPlayer(require('@/assets/sounds/rep-confirmation.wav'));
   const repPulse = React.useRef(new Animated.Value(0)).current;
+  const countdownPulse = React.useRef(new Animated.Value(0)).current;
   const { width, height } = useWindowDimensions();
 
   React.useEffect(() => {
     repTone.volume = 0.55;
     void setAudioModeAsync({ playsInSilentMode: true }).catch(() => undefined);
   }, [repTone]);
+
+  React.useEffect(() => () => {
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+  }, []);
+
+  React.useEffect(() => {
+    if (countdown === null) return;
+    countdownPulse.setValue(0);
+    Animated.sequence([
+      Animated.timing(countdownPulse, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(countdownPulse, { toValue: 0, duration: 740, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+    ]).start();
+  }, [countdown, countdownPulse]);
+
+  const beginCountdown = (seconds: 5 | 10) => {
+    if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    isStartedRef.current = false;
+    setIsStarted(false);
+    setStartOptionsVisible(false);
+    setCountdown(seconds);
+    let remaining = seconds;
+    countdownTimerRef.current = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+        setCountdown(null);
+        isStartedRef.current = true;
+        setIsStarted(true);
+        return;
+      }
+      setCountdown(remaining);
+    }, 1000);
+  };
 
   if (cameraError) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} />;
   if (permission.error) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} />;
@@ -129,6 +168,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
     const trackedPose = stabilizePose(currentPose, poseTrackRef.current, frame.timestamp);
     poseTrackRef.current = trackedPose.state;
     setSkeletonPose(trackedPose.pose);
+    if (!isStartedRef.current) return;
     const result = analyzePose(kind, currentPose, previousState, frame.timestamp);
     stateRef.current = result.state;
     if (result.state.reps > previousState.reps) {
@@ -169,13 +209,19 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
        <Pressable testID="toggle-skeleton-mode" accessibilityRole="button" accessibilityLabel={skeletonOnly ? t('cameraMode') : t('skeletonOnlyMode')} onPress={() => setSkeletonOnly((value) => !value)} style={({ pressed }) => [styles.modeToggle, { backgroundColor: `${colors.background}D9`, borderColor: colors.border, opacity: pressed ? 0.72 : 1 }]}><Ionicons name={skeletonOnly ? 'camera-outline' : 'body-outline'} size={18} color={colors.primary} /></Pressable>
       <Pressable accessibilityLabel={t('stopLiveWorkout')} onPress={() => router.back()} style={[styles.closeButton, { backgroundColor: `${colors.background}D9`, borderColor: colors.border }]}><Ionicons name="close" size={20} color={colors.foreground} /></Pressable>
     </View>
-       {!skeletonOnly && !showFormGuide ? <View pointerEvents="none" style={[styles.directionHint, { top: insets.top + 62, backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}55` }]}>
-       <Ionicons name="information-circle-outline" size={15} color={colors.primary} />
-       <Text style={[styles.directionHintText, { color: colors.foreground }]}>{directionHint}</Text>
-      </View> : null}
+       <View style={[styles.topStatusRow, { top: insets.top + 62 }]}>
+         <View testID="live-workout-reps-panel" style={[styles.topRepsCard, { backgroundColor: `${colors.background}E8`, borderColor: `${colors.primary}65` }]}>
+           <Text style={[styles.metricCaption, { color: colors.mutedForeground }]}>{t('reps').toUpperCase()}</Text>
+           <Animated.Text style={[styles.topRepNumber, { color: colors.foreground, transform: [{ scale: repPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2] }) }] }]}>{analysis.state.reps}</Animated.Text>
+         </View>
+         <View style={[styles.feedback, styles.topFeedback, { backgroundColor: analysis.warning === 'liveGoodForm' ? `${colors.success}E8` : `${colors.background}E8`, borderColor: analysis.warning === 'liveGoodForm' ? `${colors.success}55` : `${colors.orange}65` }]}>
+           <Ionicons name={analysis.warning === 'liveGoodForm' ? 'checkmark-circle' : 'alert-circle'} size={18} color={analysis.warning === 'liveGoodForm' ? colors.success : colors.orange} />
+           <Text numberOfLines={2} style={[styles.feedbackText, { color: colors.foreground }]}>{t(analysis.warning)}</Text>
+         </View>
+        </View>
        <View
          accessibilityLabel={`${t('liveDepth')} ${analysis.depthPercent}%`}
-         style={[styles.depthSideRail, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.foreground}28` }]}
+          style={[styles.depthSideRail, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.foreground}28` }]}
        >
          <Text style={[styles.depthSideCaption, { color: colors.mutedForeground }]}>{t('liveDepth').toUpperCase()}</Text>
          <Text style={[styles.depthSidePercent, { color: analysis.depthPercent >= 100 ? colors.success : colors.foreground }]}>{analysis.depthPercent}%</Text>
@@ -185,27 +231,30 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
          </View>
          <Text style={[styles.depthSideTarget, { color: colors.success }]}>100%</Text>
        </View>
-      {showRepsPanel ? <View testID="live-workout-reps-panel" style={[styles.cameraBottom, { paddingBottom: insets.bottom + 8, backgroundColor: `${colors.background}EC`, borderColor: colors.border }]}>
-         <View style={styles.metricRow}>
-          <View>
-            <Text style={[styles.metricCaption, { color: colors.mutedForeground }]}>{t('reps').toUpperCase()}</Text>
-            <Animated.Text style={[styles.repNumber, { color: colors.foreground, transform: [{ scale: repPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.24] }) }] }]}>{analysis.state.reps}</Animated.Text>
-          </View>
-          <View style={styles.panelControls}>
-            <View style={[styles.confidencePill, { backgroundColor: `${analysis.confidence > 0.65 ? colors.success : colors.orange}20` }]}><View style={[styles.confidenceDot, { backgroundColor: analysis.confidence > 0.65 ? colors.success : colors.orange }]} /><Text style={[styles.confidenceText, { color: analysis.confidence > 0.65 ? colors.success : colors.orange }]}>{Math.round(analysis.confidence * 100)}%</Text></View>
-            <Pressable testID="hide-live-reps-panel" accessibilityRole="button" accessibilityLabel={t('hideRepsPanel')} onPress={() => setShowRepsPanel(false)} hitSlop={8} style={({ pressed }) => [styles.panelToggleButton, { backgroundColor: colors.secondary, opacity: pressed ? 0.65 : 1 }]}>
-              <Ionicons name="eye-off-outline" size={16} color={colors.foreground} />
-            </Pressable>
-          </View>
-        </View>
-        <View style={[styles.cameraPlacementHint, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}><Ionicons name="camera-outline" size={15} color={colors.primary} /><Text style={[styles.cameraPlacementText, { color: colors.mutedForeground }]}>{t('liveCameraPlacement')}</Text></View>
-         <View style={[styles.countingRule, { backgroundColor: `${colors.success}12`, borderColor: `${colors.success}35` }]}><Ionicons name="analytics-outline" size={15} color={colors.success} /><Text style={[styles.countingRuleText, { color: colors.mutedForeground }]}>{t('liveCountingRule')}</Text></View>
-        <View style={[styles.feedback, { backgroundColor: analysis.warning === 'liveGoodForm' ? `${colors.success}18` : `${colors.orange}18`, borderColor: analysis.warning === 'liveGoodForm' ? `${colors.success}45` : `${colors.orange}45` }]}><Ionicons name={analysis.warning === 'liveGoodForm' ? 'checkmark-circle' : 'alert-circle'} size={19} color={analysis.warning === 'liveGoodForm' ? colors.success : colors.orange} /><Text style={[styles.feedbackText, { color: colors.foreground }]}>{t(analysis.warning)}</Text></View>
-        <Text style={[styles.privacyText, { color: colors.mutedForeground }]}>{t('livePrivacyNote')}</Text>
-       </View> : <Pressable testID="show-live-reps-panel" accessibilityRole="button" accessibilityLabel={t('showRepsPanel')} onPress={() => setShowRepsPanel(true)} style={({ pressed }) => [styles.showRepsButton, { bottom: insets.bottom + 22, backgroundColor: `${colors.background}EC`, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
-        <Ionicons name="eye-outline" size={16} color={colors.primary} />
-        <Text style={[styles.showRepsButtonText, { color: colors.foreground }]}>{t('showRepsPanel')}</Text>
-      </Pressable>}
+       {!showFormGuide && !isStarted && countdown === null ? <View style={[styles.startControls, { bottom: insets.bottom + 18 }]}>
+         {startOptionsVisible ? <View style={[styles.startOptionsCard, { backgroundColor: `${colors.background}F2`, borderColor: colors.border }]}>
+           <Text style={[styles.startOptionsTitle, { color: colors.foreground }]}>{t('liveStartDelayTitle')}</Text>
+           <View style={styles.startOptionsRow}>
+             <Pressable testID="start-live-5-seconds" accessibilityRole="button" onPress={() => beginCountdown(5)} style={({ pressed }) => [styles.startOption, { backgroundColor: `${colors.primary}20`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}>
+               <Text style={[styles.startOptionText, { color: colors.primary }]}>{t('liveStartFiveSeconds')}</Text>
+             </Pressable>
+             <Pressable testID="start-live-10-seconds" accessibilityRole="button" onPress={() => beginCountdown(10)} style={({ pressed }) => [styles.startOption, { backgroundColor: `${colors.primary}20`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}>
+               <Text style={[styles.startOptionText, { color: colors.primary }]}>{t('liveStartTenSeconds')}</Text>
+             </Pressable>
+           </View>
+           <Pressable accessibilityRole="button" onPress={() => setStartOptionsVisible(false)} style={styles.startCancelButton}>
+             <Text style={[styles.startCancelText, { color: colors.mutedForeground }]}>{t('liveStartCancel')}</Text>
+           </Pressable>
+         </View> : null}
+         {!startOptionsVisible ? <Pressable testID="start-live-countdown" accessibilityRole="button" onPress={() => setStartOptionsVisible(true)} style={({ pressed }) => [styles.startLiveButton, { backgroundColor: colors.primary, opacity: pressed ? 0.76 : 1 }]}>
+           <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
+           <Text style={[styles.startLiveButtonText, { color: colors.primaryForeground }]}>{t('liveStart')}</Text>
+         </Pressable> : null}
+       </View> : null}
+       {countdown !== null ? <View pointerEvents="none" style={styles.countdownOverlay}>
+         <Animated.Text style={[styles.countdownNumber, { color: colors.primaryForeground, opacity: countdownPulse.interpolate({ inputRange: [0, 1], outputRange: [0.68, 1] }), transform: [{ scale: countdownPulse.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1.08] }) }] }]}>{countdown}</Animated.Text>
+         <Text style={[styles.countdownLabel, { color: colors.primaryForeground }]}>{t('liveStarting')}</Text>
+       </View> : null}
        {showFormGuide ? <View style={styles.guideBackdrop}>
          <View style={[styles.guideCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
            <View style={styles.guideHeader}>
@@ -262,12 +311,16 @@ const styles = StyleSheet.create({
   directionHintText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 15 },
   closeButton: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   modeToggle: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  cameraBottom: { position: 'absolute', left: 18, right: 18, bottom: 18, borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingTop: 10 },
-  metricRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-   depthSideRail: { position: 'absolute', right: 12, top: '22%', bottom: '22%', width: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center', paddingVertical: 12, zIndex: 6 },
+   cameraBottom: { position: 'absolute', left: 18, right: 18, bottom: 18, borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingTop: 10 },
+   metricRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+   topStatusRow: { position: 'absolute', left: 20, right: 58, flexDirection: 'row', alignItems: 'stretch', gap: 8, zIndex: 8 },
+   topRepsCard: { width: 70, minHeight: 68, borderRadius: 17, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 8, justifyContent: 'center' },
+   topRepNumber: { fontFamily: 'Inter_700Bold', fontSize: 31, lineHeight: 34, letterSpacing: -1.2, marginTop: 1 },
+   topFeedback: { flex: 1, minHeight: 68, marginTop: 0, paddingHorizontal: 10 },
+    depthSideRail: { position: 'absolute', right: 10, top: '22%', bottom: '22%', width: 38, borderRadius: 20, borderWidth: 1, alignItems: 'center', paddingVertical: 10, zIndex: 6 },
    depthSideCaption: { fontFamily: 'Inter_700Bold', fontSize: 8, letterSpacing: 1.1, transform: [{ rotate: '-90deg' }], marginBottom: 8 },
    depthSidePercent: { fontFamily: 'Inter_700Bold', fontSize: 16, lineHeight: 19, marginBottom: 8 },
-   depthTrack: { width: 10, flex: 1, minHeight: 180, maxHeight: 520, borderRadius: 6, borderWidth: 1, overflow: 'hidden', justifyContent: 'flex-end' },
+    depthTrack: { width: 6, flex: 1, minHeight: 180, maxHeight: 520, borderRadius: 4, borderWidth: 1, overflow: 'hidden', justifyContent: 'flex-end' },
   depthFill: { width: '100%', borderRadius: 4 },
   depthTargetLine: { position: 'absolute', top: 0, left: -2, right: -2, height: 2, zIndex: 2 },
    depthSideTarget: { fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 11, marginTop: 8 },
@@ -284,9 +337,22 @@ const styles = StyleSheet.create({
   confidencePill: { borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 5 },
   confidenceDot: { width: 7, height: 7, borderRadius: 4 },
   confidenceText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
-  feedback: { minHeight: 40, borderRadius: 12, borderWidth: 1, marginTop: 7, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
+   feedback: { minHeight: 40, borderRadius: 12, borderWidth: 1, marginTop: 0, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
   feedbackText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 15 },
   privacyText: { fontFamily: 'Inter_400Regular', fontSize: 9, lineHeight: 12, marginTop: 7 },
+   startControls: { position: 'absolute', left: 20, right: 20, alignItems: 'center', zIndex: 12 },
+   startLiveButton: { width: 190, minHeight: 50, borderRadius: 17, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, shadowColor: '#000', shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
+   startLiveButtonText: { fontFamily: 'Inter_700Bold', fontSize: 14 },
+   startOptionsCard: { width: '100%', maxWidth: 320, borderRadius: 18, borderWidth: 1, padding: 12, marginBottom: 10, shadowColor: '#000', shadowOpacity: 0.24, shadowRadius: 15, shadowOffset: { width: 0, height: 6 }, elevation: 9 },
+   startOptionsTitle: { fontFamily: 'Inter_700Bold', fontSize: 13, textAlign: 'center', marginBottom: 10 },
+   startOptionsRow: { flexDirection: 'row', gap: 8 },
+   startOption: { flex: 1, minHeight: 44, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+   startOptionText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+   startCancelButton: { alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 7, marginTop: 3 },
+   startCancelText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+   countdownOverlay: { ...StyleSheet.absoluteFill, zIndex: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#020B1838' },
+   countdownNumber: { fontFamily: 'Inter_700Bold', fontSize: 112, lineHeight: 124, letterSpacing: -5 },
+   countdownLabel: { fontFamily: 'Inter_700Bold', fontSize: 14, letterSpacing: 1.5, textTransform: 'uppercase', marginTop: 2 },
   guideBackdrop: { ...StyleSheet.absoluteFill, zIndex: 20, backgroundColor: '#020B18B8', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
   guideCard: { width: '100%', maxWidth: 420, borderRadius: 24, borderWidth: 1, padding: 12, shadowColor: '#000000', shadowOpacity: 0.28, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 10 },
   guideHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
