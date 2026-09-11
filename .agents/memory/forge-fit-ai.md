@@ -44,3 +44,9 @@ AI usage is limited to 30 coach messages and 30 food-photo analyses per customer
 **Why:** The intended product limit is per person, and multiple devices or shared networks should not incorrectly combine or bypass a customer's allowance.
 
 **How to apply:** Keep the server limit and the mobile UI limit aligned at 30 per hour, and reset the local display window on the device's local hour boundary.
+
+RevenueCat anonymous customer IDs can use the `$RCAnonymousID:...` format, so server-side customer-ID validation must allow `$` as well as the usual identifier punctuation.
+
+**Why:** Rejecting the leading `$` returns a misleading 400 before RevenueCat entitlement verification, blocking both FitBud and food-photo analysis even when the client flow is correct.
+
+**How to apply:** Preserve strict length and character validation, but include the documented RevenueCat anonymous-ID prefix in the accepted character set.

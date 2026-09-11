@@ -52,7 +52,7 @@ function verifyToken(token: string) {
 function normalizedAppUserId(value: unknown) {
   if (typeof value !== "string") return null;
   const appUserId = value.trim();
-  if (!appUserId || appUserId.length > 200 || !/^[A-Za-z0-9._:@-]+$/.test(appUserId)) return null;
+  if (!appUserId || appUserId.length > 200 || !/^[A-Za-z0-9._:@$-]+$/.test(appUserId)) return null;
   return appUserId;
 }
 
