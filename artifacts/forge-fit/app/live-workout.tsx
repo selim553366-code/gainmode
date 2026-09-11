@@ -147,13 +147,13 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
     <PoseCamera
        style={[StyleSheet.absoluteFill, skeletonOnly ? styles.hiddenCamera : null]}
       facing="front"
-       profile="quality"
+       profile="balanced"
       resolution="720p"
-       analysisResolution="720p"
+       analysisResolution="480p"
       targetFps={30}
        minConfidence={0.45}
-      smoothing
-      data={{ mode: 'throttled', throttleMs: 90, landmarks: true }}
+       smoothing={{ minCutoff: 1, beta: 4 }}
+       data={{ mode: 'live', landmarks: true }}
        overlay={{ landmarks: false, connections: false, color: colors.primary, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
       onPose={handlePose}
        onReady={({ facing }) => { if (facing !== 'front') setCameraError(true); }}

@@ -176,8 +176,8 @@ function blendPoint(previous: Point | undefined, current: Point | undefined): Po
   if (!current) return previous;
   if (!previous) return current;
   return {
-    x: previous.x * 0.35 + current.x * 0.65,
-    y: previous.y * 0.35 + current.y * 0.65,
+    x: previous.x * 0.15 + current.x * 0.85,
+    y: previous.y * 0.15 + current.y * 0.85,
     visibility: Math.max(previous.visibility, current.visibility),
   };
 }
@@ -251,7 +251,7 @@ function sideConfidence(pose: PoseLandmarks, side: 'left' | 'right') {
 }
 
 function squatConfidence(pose: PoseLandmarks) {
-  const frontView = visibilityFor(pose, [
+  return visibilityFor(pose, [
     'nose',
     'leftShoulder',
     'rightShoulder',
@@ -262,7 +262,6 @@ function squatConfidence(pose: PoseLandmarks) {
     'leftAnkle',
     'rightAnkle',
   ]);
-  return Math.max(sideConfidence(pose, 'left'), sideConfidence(pose, 'right'), frontView);
 }
 
 function pushupConfidence(pose: PoseLandmarks) {
@@ -289,6 +288,7 @@ function baseWarning(kind: ExerciseKind, pose: PoseLandmarks, confidence: number
   const hips = centerPoint(pose, 'leftHip', 'rightHip');
   const ankles = centerPoint(pose, 'leftAnkle', 'rightAnkle');
   if (!shoulders || !hips || !ankles) return 'liveLookingForBody';
+  if (kind === 'squat' && squatConfidence(pose) < 0.42) return 'liveLookingForBody';
 
   const length = bodyLength(pose);
   if (length !== null && length < 0.34) return 'liveStepBack';
@@ -331,19 +331,24 @@ function kneeIsAligned(pose: PoseLandmarks, side: 'left' | 'right') {
 
 function formIsCountable(kind: ExerciseKind, pose: PoseLandmarks, side: 'left' | 'right') {
   if (kind === 'squat') {
-    const availableSides = (['left', 'right'] as const).filter((candidate) => kneeIsAligned(pose, candidate));
-    return availableSides.length > 0;
+    const frontView = squatConfidence(pose) >= 0.42;
+    return frontView && kneeIsAligned(pose, 'left') && kneeIsAligned(pose, 'right');
   }
 
   if (kind === 'lunge') {
-    if (!kneeIsAligned(pose, side)) return false;
+    const otherSide = side === 'left' ? 'right' : 'left';
+    const activeKnee = kneeMetric(pose, side);
+    const otherKnee = kneeMetric(pose, otherSide);
+    if (activeKnee === null || otherKnee === null || !kneeIsAligned(pose, side) || !kneeIsAligned(pose, otherSide)) return false;
     const prefix = side === 'left' ? 'left' : 'right';
     const backAngle = angle(
       point(pose, `${prefix}Shoulder` as PoseJoint),
       point(pose, `${prefix}Hip` as PoseJoint),
       point(pose, `${prefix}Ankle` as PoseJoint),
     );
-    return backAngle === null || backAngle >= 112;
+    const lowerKnee = Math.min(activeKnee, otherKnee);
+    const higherKnee = Math.max(activeKnee, otherKnee);
+    return (backAngle === null || backAngle >= 112) && higherKnee <= 180 && (lowerKnee > 125 || higherKnee <= 168);
   }
 
   const shoulders = centerPoint(pose, 'leftShoulder', 'rightShoulder');
@@ -391,13 +396,17 @@ function pushupHeadDrop(pose: PoseLandmarks) {
 }
 
 function lungeMetric(pose: PoseLandmarks, side: 'left' | 'right') {
-  return kneeMetric(pose, side) ?? kneeMetric(pose, side === 'left' ? 'right' : 'left');
+  const active = kneeMetric(pose, side);
+  const other = kneeMetric(pose, side === 'left' ? 'right' : 'left');
+  if (active === null) return other;
+  if (other === null) return active;
+  return Math.min(active, other);
 }
 
 const depthThresholds: Record<ExerciseKind, { standing: number; fullDepth: number }> = {
-  squat: { standing: 165, fullDepth: 115 },
-  pushup: { standing: 160, fullDepth: 105 },
-  lunge: { standing: 160, fullDepth: 112 },
+  squat: { standing: 165, fullDepth: 120 },
+  pushup: { standing: 160, fullDepth: 125 },
+  lunge: { standing: 160, fullDepth: 120 },
 };
 
 export function depthPercentForMetric(kind: ExerciseKind, metric: number | null) {
@@ -443,8 +452,8 @@ export function analyzePose(kind: ExerciseKind, pose: PoseLandmarks, previous: R
 
   const { fullDepth: downThreshold, standing: startThreshold } = depthThresholds[kind];
   const upThreshold = kind === 'pushup' ? 155 : 160;
-  const ascentThreshold = downThreshold + (kind === 'squat' ? 12 : 18);
-  const pushupDepthReady = kind !== 'pushup' || (pushupHeadDrop(pose) ?? 0) >= -0.06;
+  const ascentThreshold = downThreshold + (kind === 'squat' ? 12 : kind === 'lunge' ? 10 : 18);
+  const pushupDepthReady = kind !== 'pushup' || (pushupHeadDrop(pose) ?? 0) >= -0.08;
   const fullDepthReached = depthPercent >= 100;
 
   const previousPhase = next.phase;

@@ -19,9 +19,9 @@ test('mirrors front-camera skeleton movement for selfie alignment', () => {
 
 test('maps movement depth to a capped 0-to-100 progress scale', () => {
   assert.equal(depthPercentForMetric('squat', 165), 0);
-  assert.equal(depthPercentForMetric('squat', 140), 50);
-  assert.equal(depthPercentForMetric('squat', 120), 90);
-  assert.equal(depthPercentForMetric('squat', 115), 100);
+  assert.equal(depthPercentForMetric('squat', 142), 51);
+  assert.equal(depthPercentForMetric('squat', 125), 89);
+  assert.equal(depthPercentForMetric('squat', 120), 100);
   assert.equal(depthPercentForMetric('squat', 95), 100);
 });
 
@@ -60,6 +60,13 @@ function pushupPose(elbowAngle, includeRightArm = true) {
   return pose;
 }
 
+function lungePose(kneeAngle, side = 'right') {
+  return {
+    ...sidePose(kneeAngle, side),
+    ...sidePose(kneeAngle >= 160 ? 170 : 145, side === 'left' ? 'right' : 'left'),
+  };
+}
+
 function runCycle(kind, poses) {
   let state = initialRepState;
   let timestamp = 1000;
@@ -70,7 +77,7 @@ function runCycle(kind, poses) {
   return state;
 }
 
-test('counts a side-view squat using the clearest single body side', () => {
+test('does not count a side-view squat when front knee tracking is unavailable', () => {
   const state = runCycle('squat', [
     sidePose(170),
     sidePose(95),
@@ -79,7 +86,7 @@ test('counts a side-view squat using the clearest single body side', () => {
   ]);
 
   assert.equal(state.activeSide, 'left');
-  assert.equal(state.reps, 1);
+  assert.equal(state.reps, 0);
 });
 
 test('counts a front-view squat from both bent knees', () => {
@@ -117,15 +124,15 @@ test('counts a front-view squat from both bent knees', () => {
   assert.equal(state.reps, 1);
 });
 
-test('counts a side-view lunge without requiring both overlapping legs', () => {
+test('counts a side-view lunge when both knees form the split stance', () => {
   const state = runCycle('lunge', [
-    sidePose(170, 'right'),
-    sidePose(95, 'right'),
-    sidePose(130, 'right'),
-    sidePose(170, 'right'),
+    lungePose(170),
+    lungePose(95),
+    lungePose(130),
+    lungePose(170),
   ]);
 
-  assert.equal(state.activeSide, 'right');
+  assert.equal(state.activeSide, 'left');
   assert.equal(state.reps, 1);
 });
 
