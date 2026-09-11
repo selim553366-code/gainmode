@@ -336,3 +336,17 @@ mtime_ms = 1789080198339
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/9cf36461-ac24-4e1b-afb0-a7d700bf1c8e/5b9adb09-52cf-4ca6-8a77-f1ce3f263ec0"
 storage_version_token = "1789080230713268"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "fIKXTv9c9UHWObDB6gVzY"
+uri = "file://attached_assets/generated_images/gainmode_feature_graphic_1024x500.png"
+type = "image"
+title = "GainMode özellik grafiği"
+description = "Google Play özellik grafiği için hazırlanmış 1024×500 px PNG görseli."
+logical_id = "1dd94c28-7b63-490e-b196-365b6df5e561"
+content_hash = "sha256:cb82be78f3814eee66a0dff6e5c52b880da655381eccb9305fc254bb28cbc5b7"
+size = 564314
+mtime_ms = 1789170323925
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/1dd94c28-7b63-490e-b196-365b6df5e561/c2f9bce1-508e-45d3-bf44-ff838f931f6c"
+storage_version_token = "1789170474628225"
+content_type = "image/png"
