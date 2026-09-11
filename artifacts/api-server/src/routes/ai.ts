@@ -280,6 +280,7 @@ async function streamCoachResponse(
   res.status(200);
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
   res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("X-Accel-Buffering", "no");
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders?.();
 

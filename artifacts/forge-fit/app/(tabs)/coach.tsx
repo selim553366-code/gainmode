@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Animated, Dimensions, Easing, FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { fetch as expoFetch } from 'expo/fetch';
 import { Ionicons } from '@/components/AppIcon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -470,7 +471,7 @@ export default function CoachScreen() {
     try {
       const clientId = await getAiClientId();
       const accessToken = await getAiAccessToken();
-      const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, body: JSON.stringify({ message: prompt, language, context, clientId, stream: true }) });
+      const response = await expoFetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, body: JSON.stringify({ message: prompt, language, context, clientId, stream: true }) });
       if (!response.ok) {
         let serverMessage = '';
         try {
