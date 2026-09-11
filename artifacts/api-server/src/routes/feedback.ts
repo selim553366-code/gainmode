@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { ReplitConnectors } from "@replit/connectors-sdk";
+import { enforcePublicRateLimit } from "../lib/security";
 
 const router: IRouter = Router();
 const feedbackRecipient = "selim553366@gmail.com";
@@ -21,6 +22,7 @@ function normalizeValue(value: unknown, fallback: string) {
 }
 
 router.post("/feedback", async (req: Request, res: Response) => {
+  if (!enforcePublicRateLimit(req, res, "feedback", 3, 60 * 60 * 1000)) return;
   const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
   const category = normalizeValue(req.body?.category, "other").toLowerCase();
   const language = normalizeValue(req.body?.language, "en");

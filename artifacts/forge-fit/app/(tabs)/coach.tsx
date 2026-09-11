@@ -12,7 +12,7 @@ import { useColors } from '@/hooks/useColors';
 import { DAILY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
 import { buildCoachContext } from '@/lib/coachContext';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
-import { getAiClientId } from '@/lib/aiUsage';
+import { getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 import { getFirstCoachReply } from '@/lib/coachRating';
 import { COACH_MESSAGES_STORAGE_KEY, getCoachMessagesStorageKey, parseStoredCoachMessages, type CoachMessageRecord } from '@/lib/coachMessages';
@@ -314,7 +314,8 @@ export default function CoachScreen() {
     setCoachThinking(true);
     try {
       const clientId = await getAiClientId();
-      const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: prompt, language, context, clientId }) });
+      const accessToken = await getAiAccessToken();
+      const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, body: JSON.stringify({ message: prompt, language, context, clientId }) });
       if (!response.ok) throw new Error('coach unavailable');
        const result = await response.json() as CoachApiResponse;
       incrementCoachUsage();

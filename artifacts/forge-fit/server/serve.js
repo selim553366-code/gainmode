@@ -103,10 +103,19 @@ function serveLandingPage(req, res, landingPageTemplate, appName) {
 }
 
 function serveStaticFile(urlPath, res) {
-  const safePath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, '');
-  const filePath = path.join(STATIC_ROOT, safePath);
+  let decodedPath;
+  try {
+    decodedPath = decodeURIComponent(urlPath);
+  } catch {
+    res.writeHead(400);
+    res.end('Bad Request');
+    return;
+  }
+  const relativePath = decodedPath.replace(/^[/\\]+/, '');
+  const filePath = path.resolve(STATIC_ROOT, relativePath);
+  const relativeToRoot = path.relative(STATIC_ROOT, filePath);
 
-  if (!filePath.startsWith(STATIC_ROOT)) {
+  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
     res.writeHead(403);
     res.end('Forbidden');
     return;

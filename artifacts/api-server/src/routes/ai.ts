@@ -1,4 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import { createAiAccessToken, requireAiAccess } from "../lib/security";
 
 const router: IRouter = Router();
 const COACH_MODEL = "gpt-5-mini";
@@ -206,7 +207,14 @@ function logAiUsage(req: Request, operation: string, clientId: string | null, re
   }, "AI usage measured");
 }
 
-router.post("/ai/coach", async (req, res) => {
+router.post("/ai/access", async (req, res) => {
+  if (!enforceRateLimit(req, res, "access", 10)) return;
+  const result = await createAiAccessToken(req.body?.appUserId);
+  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  return res.json({ accessToken: result.token, expiresIn: result.expiresIn });
+});
+
+router.post("/ai/coach", requireAiAccess, async (req, res) => {
   if (!enforceRateLimit(req, res, "coach", COACH_REQUESTS_PER_WINDOW)) return;
   try {
     const { message, context, language, imageData, clientId } = req.body as { message?: string; context?: string; language?: string; imageData?: string; clientId?: string };
@@ -257,7 +265,7 @@ Supported profile fields are equipment, equipmentDetails, gymLevel, height, weig
   }
 });
 
-router.post("/ai/food-analysis", async (req, res) => {
+router.post("/ai/food-analysis", requireAiAccess, async (req, res) => {
   if (!enforceRateLimit(req, res, "food-analysis", FOOD_ANALYSIS_REQUESTS_PER_WINDOW)) return;
   try {
     const { imageData, language, clientId } = req.body as { imageData?: string; language?: string; clientId?: string };

@@ -13,7 +13,7 @@ import { useColors } from '@/hooks/useColors';
 import { Card, ForgeFitMark, Header, InlineStatus, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 import { DAILY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getMealsForRange } from '@/lib/nutritionDates';
-import { getAiClientId } from '@/lib/aiUsage';
+import { getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
 import { calculateCalorieProgress, calculateNetCalories, calculateRemainingCalories } from '@/lib/nutritionCalories';
 import { estimateWorkoutCalories, getWorkoutForDate } from '@/lib/workoutPlan';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -221,7 +221,8 @@ export default function NutritionScreen() {
       await new Promise<void>((resolve) => setTimeout(resolve, 1050));
       setAnalysisPhase('analyzing');
        const clientId = await getAiClientId();
-       const response = await fetch(apiUrl('/api/ai/food-analysis'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imageData: base64, language, clientId }) });
+       const accessToken = await getAiAccessToken();
+       const response = await fetch(apiUrl('/api/ai/food-analysis'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, body: JSON.stringify({ imageData: base64, language, clientId }) });
       if (!response.ok) throw new Error('analysis failed');
       const analyzed = await response.json() as Meal;
       addMeal({ name: analyzed.name, type: 'snack', calories: analyzed.calories, protein: analyzed.protein, carbs: analyzed.carbs, fat: analyzed.fat, imageUri: uri });
