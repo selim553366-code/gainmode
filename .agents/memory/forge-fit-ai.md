@@ -38,3 +38,9 @@ Production AI access is issued by the API only after RevenueCat verifies the `fo
 **Why:** A client-provided ID or local premium flag is spoofable and can expose paid AI calls or create uncontrolled provider costs.
 
 **How to apply:** Keep RevenueCat's server API key in Replit Secrets, use the server token gate in production, and allow local bypasses only in development/test environments.
+
+AI usage is limited to 30 coach messages and 30 food-photo analyses per customer per rolling hourly window; production buckets use the verified RevenueCat customer ID rather than only the IP address.
+
+**Why:** The intended product limit is per person, and multiple devices or shared networks should not incorrectly combine or bypass a customer's allowance.
+
+**How to apply:** Keep the server limit and the mobile UI limit aligned at 30 per hour, and reset the local display window on the device's local hour boundary.
