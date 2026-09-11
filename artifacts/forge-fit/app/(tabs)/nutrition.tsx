@@ -103,7 +103,7 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
     if (!cameraRef.current || capturing || !onPhoto) return;
     setCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7, base64: true });
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.45, base64: true });
       if (photo?.uri) setCapturedPhoto({ uri: photo.uri, base64: photo.base64 });
     } catch {
       // Keep the camera open so the user can try again.
@@ -222,7 +222,8 @@ export default function NutritionScreen() {
       setAnalysisPhase('analyzing');
        const clientId = await getAiClientId();
        const accessToken = await getAiAccessToken();
-       const response = await fetch(apiUrl('/api/ai/food-analysis'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, body: JSON.stringify({ imageData: base64, language, clientId }) });
+      const imageData = base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
+      const response = await fetch(apiUrl('/api/ai/food-analysis'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, body: JSON.stringify({ imageData, language, clientId }) });
       if (!response.ok) throw new Error('analysis failed');
       const analyzed = await response.json() as Meal;
       addMeal({ name: analyzed.name, type: 'snack', calories: analyzed.calories, protein: analyzed.protein, carbs: analyzed.carbs, fat: analyzed.fat, imageUri: uri });
@@ -239,7 +240,7 @@ export default function NutritionScreen() {
 
   const pickPhoto = async () => {
     if (photoAnalysesUsed >= HOURLY_PHOTO_ANALYSIS_LIMIT) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.65, base64: true });
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.45, base64: true });
     const asset = result.canceled ? undefined : result.assets?.[0];
     if (!asset) return;
     await analyzeFoodPhoto(asset.uri, asset.base64 ?? undefined);

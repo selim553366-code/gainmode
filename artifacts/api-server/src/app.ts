@@ -51,7 +51,7 @@ app.use(cors({
     return callback(null, allowedOrigins.has(origin));
   },
 }));
-app.use(express.json({ limit: "15mb" }));
+app.use(express.json({ limit: "18mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 const publicGuideAssets = path.resolve(
