@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/gainmode-site/"
+title = "GainMode Website"
+description = "A modern marketing website for the GainMode fitness app, explaining its AI coach, personalized training plans, live form analysis, nutrition tracking, and premium mobile experience."
+version = "1.0.0"
+id = "artifacts/gainmode-site"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/gainmode-site/" ]
+localPort = 19055
+
+[services.development]
+run = "pnpm --filter @workspace/gainmode-site run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/gainmode-site", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/gainmode-site/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19055"
+BASE_PATH = "/gainmode-site/"
