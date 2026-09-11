@@ -22,7 +22,41 @@ import { localDateKey } from '@/lib/nutritionDates';
 
 type Message = CoachMessageRecord;
 type CoachApiResponse = { content?: string; actions?: unknown[] };
+type CoachStreamEvent =
+  | { type: 'delta'; text?: string }
+  | { type: 'done'; actions?: unknown[] }
+  | { type: 'error'; error?: string };
 type CoachAtmosphere = 'morning' | 'night';
+
+async function consumeCoachStream(response: Response, onEvent: (event: CoachStreamEvent) => void) {
+  const reader = response.body?.getReader();
+  if (!reader) return false;
+  const decoder = new TextDecoder();
+  let pending = '';
+  const processLine = (line: string) => {
+    const data = line.trim();
+    if (!data.startsWith('data:')) return;
+    const payload = data.slice(5).trim();
+    if (!payload) return;
+    const event = JSON.parse(payload) as CoachStreamEvent;
+    onEvent(event);
+    if (event.type === 'error') throw new Error(event.error || 'Coach stream failed');
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    pending += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+    let newlineIndex = pending.indexOf('\n');
+    while (newlineIndex >= 0) {
+      processLine(pending.slice(0, newlineIndex));
+      pending = pending.slice(newlineIndex + 1);
+      newlineIndex = pending.indexOf('\n');
+    }
+    if (done) break;
+  }
+  if (pending.trim()) processLine(pending);
+  return true;
+}
 
 const COACH_STARS = [
   { x: 9, y: 13, size: 2, delay: 0 },
@@ -260,6 +294,7 @@ export default function CoachScreen() {
   const [messagesHydrated, setMessagesHydrated] = useState(false);
   const [atmosphere, setAtmosphere] = useState<CoachAtmosphere>(() => getCoachAtmosphere());
   const [loading, setLoading] = useState(false);
+  const [isStreamingReply, setIsStreamingReply] = useState(false);
   const [animatedPrompt, setAnimatedPrompt] = useState('');
   const [dailyRating, setDailyRating] = useState<number | null>(null);
   const [ratingLoaded, setRatingLoaded] = useState(false);
@@ -377,9 +412,9 @@ export default function CoachScreen() {
     };
   }, [coachMessagesStorageKey, language]);
   React.useEffect(() => {
-    if (!messagesHydrated || hydratedMessagesStorageKey.current !== coachMessagesStorageKey) return;
+    if (!messagesHydrated || hydratedMessagesStorageKey.current !== coachMessagesStorageKey || isStreamingReply) return;
     void AsyncStorage.setItem(coachMessagesStorageKey, JSON.stringify(messages)).catch(() => undefined);
-  }, [coachMessagesStorageKey, messages, messagesHydrated]);
+  }, [coachMessagesStorageKey, isStreamingReply, messages, messagesHydrated]);
   useFocusEffect(React.useCallback(() => {
     if (coachIntroPending) markCoachIntroSeen();
     coachReveal.setValue(0);
@@ -392,6 +427,16 @@ export default function CoachScreen() {
     animation.start();
     return () => animation.stop();
   }, [coachIntroPending, coachReveal, markCoachIntroSeen]));
+  const applyCoachActions = (actions: CoachAction[]) => {
+    actions.forEach((action) => {
+      if (action.type === 'add_exercise') addExercise(action.workoutId, action.name, action.sets, action.reps);
+      if (action.type === 'remove_exercise') removeExercise(action.workoutId, action.exerciseId);
+      if (action.type === 'update_exercise') updateExercise(action.workoutId, action.exerciseId, { ...(action.name !== undefined ? { name: action.name } : {}), ...(action.sets !== undefined ? { sets: action.sets } : {}), ...(action.reps !== undefined ? { reps: action.reps } : {}) });
+      if (action.type === 'update_workout') updateWorkout(action.workoutId, { ...(action.day !== undefined ? { day: action.day } : {}), ...(action.name !== undefined ? { name: action.name } : {}), ...(action.duration !== undefined ? { duration: action.duration } : {}) });
+      if (action.type === 'update_profile') updateProfile(action.patch);
+      if (action.type === 'update_nutrition') updateNutritionGoals(action);
+    });
+  };
   const requestCoach = async (message: string, displayMessage: Message) => {
     const prompt = message.trim();
     if (!prompt || loading) return;
@@ -420,11 +465,12 @@ export default function CoachScreen() {
     });
     setMessages((current) => [...current, displayMessage]);
     setLoading(true);
+    setIsStreamingReply(false);
     setCoachThinking(true);
     try {
       const clientId = await getAiClientId();
       const accessToken = await getAiAccessToken();
-      const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, body: JSON.stringify({ message: prompt, language, context, clientId }) });
+      const response = await fetch(apiUrl('/api/ai/coach'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, body: JSON.stringify({ message: prompt, language, context, clientId, stream: true }) });
       if (!response.ok) {
         let serverMessage = '';
         try {
@@ -437,16 +483,45 @@ export default function CoachScreen() {
         (error as Error & { status?: number }).status = response.status;
         throw error;
       }
-       const result = await response.json() as CoachApiResponse;
+      const replyId = `${Date.now()}-reply`;
+      let streamedText = '';
+      let streamedActions: unknown[] = [];
+      let streamStarted = false;
+      const contentType = response.headers.get('content-type') ?? '';
+      if (contentType.includes('text/event-stream')) {
+        const streamed = await consumeCoachStream(response, (event) => {
+          if (event.type === 'delta' && typeof event.text === 'string' && event.text) {
+            streamedText += event.text;
+            if (!streamStarted) {
+              streamStarted = true;
+              setIsStreamingReply(true);
+              setCoachThinking(false);
+              setMessages((current) => [...current, { id: replyId, text: streamedText, from: 'coach' }]);
+            } else {
+              setMessages((current) => current.map((item) => item.id === replyId ? { ...item, text: streamedText } : item));
+            }
+          }
+          if (event.type === 'done' && Array.isArray(event.actions)) streamedActions = event.actions;
+        });
+        if (!streamed) throw new Error('Coach streaming is unavailable.');
+      } else {
+        const result = await response.json() as CoachApiResponse;
+        streamedText = result.content ?? '';
+        streamedActions = Array.isArray(result.actions) ? result.actions : [];
+      }
+      const actions = validateCoachActions(streamedActions, workouts);
+      if (actions.length > 0) applyCoachActions(actions);
       incrementCoachUsage();
-       const actions = validateCoachActions(result.actions, workouts);
-        setMessages((current) => [...current, { id: `${Date.now()}-reply`, text: result.content ?? t('coachWelcome'), from: 'coach', ...(actions.length > 0 ? { actions, actionStatus: 'pending' as const } : {}) }]);
+      if (!streamStarted) {
+        setMessages((current) => [...current, { id: replyId, text: streamedText || t('coachWelcome'), from: 'coach' }]);
+      }
     } catch (error) {
       const status = (error as Error & { status?: number }).status;
       console.warn('Coach request failed.', error);
       setMessages((current) => [...current, { id: `${Date.now()}-error`, text: status === 401 || status === 403 ? t('coachAccessFailed') : t('coachRequestFailed'), from: 'coach' }]);
     } finally {
       setLoading(false);
+      setIsStreamingReply(false);
       setCoachThinking(false);
     }
   };
@@ -469,14 +544,7 @@ export default function CoachScreen() {
     return t('coachChangeNutrition');
   };
   const applyActions = (messageId: string, actions: CoachAction[]) => {
-    actions.forEach((action) => {
-      if (action.type === 'add_exercise') addExercise(action.workoutId, action.name, action.sets, action.reps);
-      if (action.type === 'remove_exercise') removeExercise(action.workoutId, action.exerciseId);
-      if (action.type === 'update_exercise') updateExercise(action.workoutId, action.exerciseId, { ...(action.name !== undefined ? { name: action.name } : {}), ...(action.sets !== undefined ? { sets: action.sets } : {}), ...(action.reps !== undefined ? { reps: action.reps } : {}) });
-      if (action.type === 'update_workout') updateWorkout(action.workoutId, { ...(action.day !== undefined ? { day: action.day } : {}), ...(action.name !== undefined ? { name: action.name } : {}), ...(action.duration !== undefined ? { duration: action.duration } : {}) });
-      if (action.type === 'update_profile') updateProfile(action.patch);
-      if (action.type === 'update_nutrition') updateNutritionGoals(action);
-    });
+    applyCoachActions(actions);
     setMessages((current) => current.map((item) => item.id === messageId ? { ...item, actionStatus: 'applied' } : item));
   };
   const rejectActions = (messageId: string) => {
@@ -547,7 +615,7 @@ export default function CoachScreen() {
                 {ratedMessageId === item.id ? <Text style={[styles.ratingThanks, { color: colors.success }]}>{t('coachRatingThanks')}</Text> : null}
            </View>
         </View>}
-        ListFooterComponent={loading ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : null}
+         ListFooterComponent={loading && !isStreamingReply ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : null}
         contentContainerStyle={styles.messageList}
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"

@@ -180,6 +180,180 @@ async function askOpenAiWithOptions(
   return requestChatCompletion(openAiUrl(), openAiApiKey, options.model, messages, maxCompletionTokens);
 }
 
+async function requestChatCompletionStream(
+  url: string,
+  apiKey: string,
+  model: string,
+  messages: unknown[],
+  maxCompletionTokens: number,
+) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      max_completion_tokens: maxCompletionTokens,
+      stream: true,
+      stream_options: { include_usage: true },
+    }),
+  });
+  if (!response.ok) {
+    const providerError = (await response.text()).slice(0, 1000);
+    throw new Error(`AI provider stream failed with ${response.status}: ${providerError}`);
+  }
+  if (!response.body) throw new Error("AI provider returned no stream.");
+  return { response, model };
+}
+
+async function askOpenAiStreamWithOptions(
+  messages: unknown[],
+  options: { maxCompletionTokens?: number; model: string },
+) {
+  const lunaApiKey = process.env["LUNA_API_KEY"];
+  const lunaBaseUrl = process.env["LUNA_API_BASE_URL"];
+  const openAiApiKey = process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? "";
+  const maxCompletionTokens = options.maxCompletionTokens ?? 1200;
+
+  if (lunaApiKey && lunaBaseUrl) {
+    try {
+      return await requestChatCompletionStream(
+        `${lunaBaseUrl.replace(/\/$/, "")}/chat/completions`,
+        lunaApiKey,
+        LUNA_MODEL,
+        messages,
+        maxCompletionTokens,
+      );
+    } catch (error) {
+      if (!openAiApiKey) throw error;
+      console.warn("Luna stream unavailable; using the configured OpenAI fallback.");
+    }
+  }
+
+  return requestChatCompletionStream(openAiUrl(), openAiApiKey, options.model, messages, maxCompletionTokens);
+}
+
+function streamedJsonContent(rawContent: string) {
+  const field = /"content"\s*:\s*"/.exec(rawContent);
+  if (!field || field.index === undefined) return "";
+  const valueStart = field.index + field[0].length;
+  let escaped = false;
+  for (let index = valueStart; index < rawContent.length; index += 1) {
+    const character = rawContent[index];
+    if (character === '"' && !escaped) {
+      const value = rawContent.slice(valueStart, index);
+      try {
+        return JSON.parse(`"${value}"`) as string;
+      } catch {
+        return "";
+      }
+    }
+    if (character === "\\" && !escaped) escaped = true;
+    else escaped = false;
+  }
+
+  const partial = rawContent.slice(valueStart);
+  for (let end = partial.length; end >= 0; end -= 1) {
+    try {
+      return JSON.parse(`"${partial.slice(0, end)}"`) as string;
+    } catch {
+      // The provider may have split an escape sequence across chunks.
+    }
+  }
+  return "";
+}
+
+function sendCoachStreamEvent(res: Response, event: unknown) {
+  res.write(`data: ${JSON.stringify(event)}\n\n`);
+}
+
+async function streamCoachResponse(
+  req: Request,
+  res: Response,
+  messages: unknown[],
+  selectedModel: string,
+  clientId: unknown,
+) {
+  res.status(200);
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+
+  try {
+    const provider = await askOpenAiStreamWithOptions(messages, {
+      model: selectedModel,
+      maxCompletionTokens: COACH_MAX_COMPLETION_TOKENS,
+    });
+    const reader = provider.response.body!.getReader();
+    const decoder = new TextDecoder();
+    let pending = "";
+    let providerContent = "";
+    let sentContent = "";
+    let usage: OpenAiUsage | undefined;
+
+    const processLine = (line: string) => {
+      const data = line.trim();
+      if (!data.startsWith("data:")) return false;
+      const payload = data.slice(5).trim();
+      if (!payload || payload === "[DONE]") return true;
+      try {
+        const chunk = JSON.parse(payload) as {
+          choices?: { delta?: { content?: unknown } }[];
+          usage?: OpenAiUsage;
+        };
+        if (chunk.usage) usage = chunk.usage;
+        const delta = chunk.choices?.[0]?.delta?.content;
+        if (typeof delta !== "string" || !delta) return true;
+        providerContent += delta;
+        const nextContent = streamedJsonContent(providerContent);
+        if (nextContent.length > sentContent.length) {
+          sendCoachStreamEvent(res, { type: "delta", text: nextContent.slice(sentContent.length) });
+          sentContent = nextContent;
+        }
+      } catch {
+        // Ignore incomplete provider events; the next chunk completes them.
+      }
+      return true;
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      pending += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+      let newlineIndex = pending.indexOf("\n");
+      while (newlineIndex >= 0) {
+        processLine(pending.slice(0, newlineIndex));
+        pending = pending.slice(newlineIndex + 1);
+        newlineIndex = pending.indexOf("\n");
+      }
+      if (done) break;
+    }
+    if (pending.trim()) processLine(pending);
+
+    const result = parseCoachPayload(providerContent);
+    logAiUsage(req, "coach", typeof clientId === "string" ? clientId.slice(0, 80) : null, {
+      model: provider.model,
+      usage,
+    });
+    if (!result.content) {
+      sendCoachStreamEvent(res, { type: "error", error: "AI coach returned an empty response." });
+      res.end();
+      return;
+    }
+    sendCoachStreamEvent(res, { type: "done", actions: result.actions });
+    res.end();
+  } catch (error) {
+    req.log?.error?.({ errorMessage: error instanceof Error ? error.message : String(error) }, "Coach stream failed");
+    if (!res.writableEnded) {
+      sendCoachStreamEvent(res, { type: "error", error: "AI coach unavailable." });
+      res.end();
+    }
+  }
+}
+
 function logAiUsage(req: Request, operation: string, clientId: string | null, result: { model: string; usage?: OpenAiUsage }) {
   const inputTokens = Math.max(0, Math.round(result.usage?.prompt_tokens ?? 0));
   const outputTokens = Math.max(0, Math.round(result.usage?.completion_tokens ?? 0));
@@ -214,7 +388,7 @@ router.post("/ai/access", async (req, res) => {
 router.post("/ai/coach", requireAiAccess, async (req, res) => {
   if (!enforceRateLimit(req, res, "coach", COACH_REQUESTS_PER_WINDOW)) return;
   try {
-    const { message, context, language, imageData, clientId } = req.body as { message?: string; context?: string; language?: string; imageData?: string; clientId?: string };
+    const { message, context, language, imageData, clientId, stream } = req.body as { message?: string; context?: string; language?: string; imageData?: string; clientId?: string; stream?: boolean };
     const selectedLanguage = normalizeLanguage(language) ?? "en";
     const normalizedImageData = normalizeImageData(imageData);
     const trimmedMessage = typeof message === "string" ? message.trim() : "";
@@ -228,17 +402,17 @@ router.post("/ai/coach", requireAiAccess, async (req, res) => {
     const userContent = normalizedImageData
       ? [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${normalizedImageData}` } }]
       : prompt;
-    const response = await askOpenAiWithOptions([
+    const coachMessages = [
       { role: "system", content: `You are Forge Coach, a warm fitness and nutrition coach who feels like a trusted gym friend. Speak naturally, casually, and supportively rather than sounding clinical, formal, or scripted. Briefly acknowledge the user's feeling or effort before giving advice. Celebrate real progress without exaggerated hype. If the user's preferred name exists in the app data, use it occasionally when it feels natural, never in every reply. Use the friendly informal form of "you" appropriate to ${languageNames[selectedLanguage]}. Never use pet names, shame, guilt, forced slang, or more than one emoji; an emoji is optional and should appear only when it genuinely fits. Use only the relevant app data included below. The userSummary and planOverview are the baseline facts you always know about this user; never act as if an available profile or workout plan does not exist. Use recentConversation to understand follow-up messages and references. If a category is not included, do not claim to have checked it and do not invent it. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[selectedLanguage]}; do not switch languages. Keep every reply short: 2-3 clear sentences, one compact paragraph, and no more than 55 words. Do not repeat the user's data, add long explanations, or use long bullet lists. Give only the most useful interpretation and one practical next step. Return ONLY valid JSON with this exact shape: {"content":"your localized reply","actions":[]}.
 
 Behavior rules:
 - When request.intent is "greeting", simply greet the user warmly, show natural familiarity with at most one relevant baseline fact if useful, and ask what they want help with. Do not create, recommend, replace, or describe a workout or nutrition program.
-- When a request is vague or could mean several things, ask one concise clarifying question instead of guessing or generating a program.
+- When a request is vague, make the safest reasonable assumption and give a useful answer. Ask a clarifying question only when the answer would otherwise be unsafe or impossible.
 - Never create or replace a program unless the user explicitly asks for a new program or asks to change the existing one.
 - Treat planOverview as the user's current program. Do not offer a random alternative merely because exercise details were not included.
 - General conversation and advice must return actions=[].
 
-Detect when the user explicitly wants to add, update, change, move, or remove information in the app. In that case, propose the corresponding action and tell the user briefly that the change is ready for their confirmation; never say it has already been applied. Questions that only ask for advice or whether a change is sensible must return actions=[].
+Detect when the user explicitly wants to add, update, change, move, or remove information in the app. Return the corresponding action without asking for confirmation; the app applies explicit requests automatically. Never ask for confirmation for ordinary advice or a change the user clearly requested. Questions that only ask for advice or whether a change is sensible must return actions=[].
 
 Allowed actions:
 - {"type":"add_exercise","workoutId":"existing workout id","name":"exercise name","sets":1-3,"reps":1-100}
@@ -250,7 +424,11 @@ Allowed actions:
 
 Supported profile fields are equipment, equipmentDetails, gymLevel, height, weight, age, goal, sex, activity, trainingDays, sessionDuration, goalRate, diet, proteinPreference, experience, preferredDays, and targetWeight. Use exact IDs and current values from the request context. Never invent IDs, fields, or values. Do not propose removing required profile facts; explain briefly that the required fact can be changed but not deleted. User app data: ${normalizedContext || "No profile data yet."}` },
       { role: "user", content: userContent },
-    ], { model: selectedModel, maxCompletionTokens: COACH_MAX_COMPLETION_TOKENS });
+    ];
+    if (stream === true) {
+      return streamCoachResponse(req, res, coachMessages, selectedModel, clientId);
+    }
+    const response = await askOpenAiWithOptions(coachMessages, { model: selectedModel, maxCompletionTokens: COACH_MAX_COMPLETION_TOKENS });
     logAiUsage(req, "coach", typeof clientId === "string" ? clientId.slice(0, 80) : null, response);
     if (!response.content) return res.status(502).json({ error: "AI coach returned an empty response." });
     const result = parseCoachPayload(response.content);
