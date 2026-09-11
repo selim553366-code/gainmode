@@ -26,3 +26,9 @@ CameraX's `PreviewView` performance mode can composite its SurfaceView above a s
 **Why:** The pose callback can be healthy while the skeleton remains invisible because the camera surface wins the native composition order.
 
 **How to apply:** Use `PreviewView.ImplementationMode.COMPATIBLE` for the live pose screen and keep the overlay explicitly above the preview; re-test after every native rebuild.
+
+The live workout overlay should be rendered from a smoothed JS landmark track while rep counting continues to use raw frames.
+
+**Why:** Native landmark overlays can blink during one or two missed detections, while counting from held landmarks could create false repetitions.
+
+**How to apply:** Keep the last reliable pose for a short dropout window, reject implausible torso jumps, then release the skeleton after the hold window; never feed the held pose into rep analysis.

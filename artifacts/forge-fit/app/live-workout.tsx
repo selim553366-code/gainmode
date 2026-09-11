@@ -13,9 +13,11 @@ import { liveTranslate, type LiveWorkoutCopyKey } from '@/lib/liveWorkoutCopy';
 import {
   analyzePose,
   exerciseKindFromName,
+  initialPoseTrackState,
   initialRepState,
   poseFromFrame,
   cameraDisplayX,
+  stabilizePose,
   type ExerciseKind,
   type LiveWarningKey,
   type PoseLandmarks,
@@ -36,7 +38,7 @@ const skeletonConnections: Array<[PoseJoint, PoseJoint]> = [
 
 function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmarks; width: number; height: number; color: string }) {
   const displayX = (normalizedX: number) => cameraDisplayX(normalizedX) * width;
-  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+  return <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 3 }]}>
     <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       {skeletonConnections.map(([from, to]) => {
         const start = pose[from];
@@ -104,6 +106,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const [skeletonOnly, setSkeletonOnly] = React.useState(false);
   const [showFormGuide, setShowFormGuide] = React.useState(true);
   const [skeletonPose, setSkeletonPose] = React.useState<PoseLandmarks>({});
+  const poseTrackRef = React.useRef(initialPoseTrackState);
   const stateRef = React.useRef<RepState>(initialRepState);
   const repTone = useAudioPlayer(require('@/assets/sounds/rep-confirmation.wav'));
   const repPulse = React.useRef(new Animated.Value(0)).current;
@@ -123,7 +126,9 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const handlePose = (frame: PoseFrame) => {
     const previousState = stateRef.current;
     const currentPose = poseFromFrame(frame);
-    setSkeletonPose(currentPose);
+    const trackedPose = stabilizePose(currentPose, poseTrackRef.current, frame.timestamp);
+    poseTrackRef.current = trackedPose.state;
+    setSkeletonPose(trackedPose.pose);
     const result = analyzePose(kind, currentPose, previousState, frame.timestamp);
     stateRef.current = result.state;
     if (result.state.reps > previousState.reps) {
@@ -149,13 +154,13 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
        minConfidence={0.45}
       smoothing
       data={{ mode: 'throttled', throttleMs: 90, landmarks: true }}
-       overlay={{ landmarks: true, connections: true, color: colors.primary, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
+       overlay={{ landmarks: false, connections: false, color: colors.primary, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
       onPose={handlePose}
        onReady={({ facing }) => { if (facing !== 'front') setCameraError(true); }}
        onCameraChange={({ facing }) => { if (facing !== 'front') setCameraError(true); }}
       onError={() => setCameraError(true)}
     />
-     {skeletonOnly ? <SkeletonOnlyOverlay pose={skeletonPose} width={width} height={height} color={colors.primary} /> : null}
+      <SkeletonOnlyOverlay pose={skeletonPose} width={width} height={height} color={colors.primary} />
      {!skeletonOnly ? <View pointerEvents="none" style={styles.cameraShade} /> : null}
      {!skeletonOnly ? <View pointerEvents="none" style={[styles.neonFrame, { borderColor: colors.primary, shadowColor: colors.primary }]} /> : null}
     <View style={[styles.liveHeader, { paddingTop: insets.top + 14 }]}>
@@ -194,6 +199,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
           </View>
         </View>
         <View style={[styles.cameraPlacementHint, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}><Ionicons name="camera-outline" size={15} color={colors.primary} /><Text style={[styles.cameraPlacementText, { color: colors.mutedForeground }]}>{t('liveCameraPlacement')}</Text></View>
+         <View style={[styles.countingRule, { backgroundColor: `${colors.success}12`, borderColor: `${colors.success}35` }]}><Ionicons name="analytics-outline" size={15} color={colors.success} /><Text style={[styles.countingRuleText, { color: colors.mutedForeground }]}>{t('liveCountingRule')}</Text></View>
         <View style={[styles.feedback, { backgroundColor: analysis.warning === 'liveGoodForm' ? `${colors.success}18` : `${colors.orange}18`, borderColor: analysis.warning === 'liveGoodForm' ? `${colors.success}45` : `${colors.orange}45` }]}><Ionicons name={analysis.warning === 'liveGoodForm' ? 'checkmark-circle' : 'alert-circle'} size={19} color={analysis.warning === 'liveGoodForm' ? colors.success : colors.orange} /><Text style={[styles.feedbackText, { color: colors.foreground }]}>{t(analysis.warning)}</Text></View>
         <Text style={[styles.privacyText, { color: colors.mutedForeground }]}>{t('livePrivacyNote')}</Text>
        </View> : <Pressable testID="show-live-reps-panel" accessibilityRole="button" accessibilityLabel={t('showRepsPanel')} onPress={() => setShowRepsPanel(true)} style={({ pressed }) => [styles.showRepsButton, { bottom: insets.bottom + 22, backgroundColor: `${colors.background}EC`, borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}>
@@ -273,6 +279,8 @@ const styles = StyleSheet.create({
   repNumber: { fontFamily: 'Inter_700Bold', fontSize: 36, letterSpacing: -1.4, lineHeight: 40, marginTop: 1 },
   cameraPlacementHint: { minHeight: 30, borderRadius: 10, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 5, marginTop: 7, flexDirection: 'row', alignItems: 'center', gap: 6 },
   cameraPlacementText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 9, lineHeight: 12 },
+  countingRule: { minHeight: 30, borderRadius: 10, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 5, marginTop: 6, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  countingRuleText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 9, lineHeight: 12 },
   confidencePill: { borderRadius: 11, paddingHorizontal: 9, paddingVertical: 5, flexDirection: 'row', alignItems: 'center', gap: 5 },
   confidenceDot: { width: 7, height: 7, borderRadius: 4 },
   confidenceText: { fontFamily: 'Inter_700Bold', fontSize: 10 },

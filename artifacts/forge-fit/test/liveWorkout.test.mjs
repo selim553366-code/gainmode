@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { analyzePose, cameraDisplayX, depthPercentForMetric, initialRepState } from '../lib/liveWorkoutAnalysis.ts';
+import {
+  analyzePose,
+  cameraDisplayX,
+  depthPercentForMetric,
+  initialPoseTrackState,
+  initialRepState,
+  stabilizePose,
+} from '../lib/liveWorkoutAnalysis.ts';
 
 const point = (x, y, visibility = 0.95) => ({ x, y, visibility });
 
@@ -154,4 +161,26 @@ test('does not count a push-up when elbows bend without the head dropping', () =
   ]);
 
   assert.equal(state.reps, 0);
+});
+
+test('does not count a squat that starts from the bottom position', () => {
+  const state = runCycle('squat', [
+    sidePose(95),
+    sidePose(130),
+    sidePose(170),
+  ]);
+
+  assert.equal(state.reps, 0);
+});
+
+test('keeps the last reliable skeleton during a short landmark dropout', () => {
+  const first = stabilizePose(sidePose(170), initialPoseTrackState, 1000);
+  const held = stabilizePose({}, first.state, 1250);
+  const released = stabilizePose({}, held.state, 1600);
+
+  assert.equal(first.locked, true);
+  assert.deepEqual(held.pose, first.pose);
+  assert.equal(held.locked, true);
+  assert.deepEqual(released.pose, {});
+  assert.equal(released.locked, false);
 });
