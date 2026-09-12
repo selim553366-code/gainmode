@@ -1,5 +1,5 @@
 kind = "web"
-previewPath = "/gainmode-site/"
+previewPath = "/"
 title = "GainMode Website"
 description = "A modern marketing website for the GainMode fitness app, explaining its AI coach, personalized training plans, live form analysis, nutrition tracking, and premium mobile experience."
 version = "1.0.0"
@@ -8,7 +8,7 @@ router = "path"
 
 [[services]]
 name = "web"
-paths = [ "/gainmode-site/" ]
+paths = [ "/" ]
 localPort = 19055
 
 [services.development]
@@ -25,4 +25,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "19055"
-BASE_PATH = "/gainmode-site/"
+BASE_PATH = "/"

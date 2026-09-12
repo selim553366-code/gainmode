@@ -23,3 +23,4 @@
 - [Forge Fit visual language](forge-fit-visual-language.md) — keep the app light, spacious, blue-white, and premium with restrained glass controls and soft elevated cards.
 - [GainMode mocked load testing](forge-fit-load-testing.md) — use an isolated API and mocked AI upstream for high-volume tests without provider charges.
 - [Resend feedback delivery](resend-feedback-delivery.md) — test-mode recipients must be provider-verified, and delivery failures must not consume user rate limits.
+- [Production root artifact](production-root-artifact.md) — Globe Studios web owns the root route; keep Forge Fit under its dedicated artifact path.
