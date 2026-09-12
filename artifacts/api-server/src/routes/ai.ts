@@ -4,7 +4,7 @@ import { clientKey, createAiAccessToken, getAiRateLimitKey, requireAiAccess } fr
 const router: IRouter = Router();
 const COACH_MODEL = "gpt-5-mini";
 const SIMPLE_COACH_MODEL = "gpt-5-nano";
-const FOOD_ANALYSIS_MODEL = "gpt-5-nano";
+const FOOD_ANALYSIS_MODEL = "gpt-5-mini";
 const LUNA_MODEL = "gpt-5.6-luna";
 const MODEL_PRICING_USD_PER_MILLION: Record<string, { input: number; output: number }> = {
   "gpt-5-mini": { input: 0.25, output: 2 },
