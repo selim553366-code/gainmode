@@ -45,9 +45,9 @@ router.post("/coach-rating", async (req: Request, res: Response) => {
   const safeMessage = escapeHtml(message);
   const safeLanguage = escapeHtml(language);
   const safeUsername = escapeHtml(username);
-  const subject = `Forge Fit coach rating — ${rating}/5`;
+  const subject = `GainMode coach rating — ${rating}/5`;
   const text = [
-    "New Forge Fit coach rating",
+    "New GainMode coach rating",
     "",
     `Rating: ${rating}/5`,
     `Language: ${language}`,
@@ -57,7 +57,7 @@ router.post("/coach-rating", async (req: Request, res: Response) => {
     message,
   ].join("\n");
   const html = `
-    <h2>New Forge Fit coach rating</h2>
+    <h2>New GainMode coach rating</h2>
     <p><strong>Rating:</strong> ${rating}/5</p>
     <p><strong>Language:</strong> ${safeLanguage}</p>
     <p><strong>Username:</strong> ${safeUsername}</p>
@@ -72,7 +72,7 @@ router.post("/coach-rating", async (req: Request, res: Response) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "Forge Fit <onboarding@resend.dev>",
+        from: "GainMode <onboarding@resend.dev>",
         to: [ratingRecipient],
         subject,
         text,

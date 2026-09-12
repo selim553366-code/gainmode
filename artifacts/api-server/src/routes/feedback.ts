@@ -53,9 +53,9 @@ router.post("/feedback", async (req: Request, res: Response) => {
   const safeLanguage = escapeHtml(language);
   const safeScreen = escapeHtml(screen);
   const safeReplyTo = escapeHtml(replyTo);
-  const subject = `Forge Fit feedback — ${category}`;
+  const subject = `GainMode feedback — ${category}`;
   const text = [
-    "New Forge Fit feedback",
+    "New GainMode feedback",
     "",
     `Category: ${category}`,
     `Language: ${language}`,
@@ -65,7 +65,7 @@ router.post("/feedback", async (req: Request, res: Response) => {
     message,
   ].join("\n");
   const html = `
-    <h2>New Forge Fit feedback</h2>
+    <h2>New GainMode feedback</h2>
     <p><strong>Category:</strong> ${safeCategory}</p>
     <p><strong>Language:</strong> ${safeLanguage}</p>
     <p><strong>Screen:</strong> ${safeScreen}</p>
@@ -80,7 +80,7 @@ router.post("/feedback", async (req: Request, res: Response) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "Forge Fit <onboarding@resend.dev>",
+        from: "GainMode <onboarding@resend.dev>",
         to: [feedbackRecipient],
         reply_to: replyTo,
         subject,
