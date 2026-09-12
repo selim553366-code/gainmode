@@ -3,8 +3,8 @@ name: FitBud coach identity
 description: Canonical visual identity and variation rule for FitBud coach artwork
 ---
 
-The user-selected translucent sky-blue mascot is the canonical FitBud coach across the mobile app and GainMode website. New coach artwork may change pose, gesture, crop, or scene, but must preserve the same face, body proportions, translucent blue material, and gray athletic outfit.
+The user-selected translucent sky-blue mascot is a reference for requested marketing artwork, but feature-graphic experiments must stay separate from the in-app coach assets unless the user explicitly authorizes an app-wide replacement. When authorized, new coach artwork may change pose, gesture, crop, or scene, but must preserve the same face, body proportions, translucent blue material, and gray athletic outfit.
 
-**Why:** Consistent character identity makes the coach recognizable across onboarding, chat, navigation, marketing, and motion states.
+**Why:** The user wants the feature graphic customized around the mascot without changing the existing in-app coach profile or motion visuals.
 
-**How to apply:** Start pose variants from the canonical reference image and review the result for face, body, clothing, and color consistency before replacing coach assets.
+**How to apply:** Keep campaign assets in generated-assets paths. Do not overwrite mobile or website coach imports during feature-graphic work; only replace those assets after an explicit request.

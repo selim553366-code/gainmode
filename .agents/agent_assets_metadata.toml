@@ -341,14 +341,14 @@ content_type = "image/jpeg"
 id = "fIKXTv9c9UHWObDB6gVzY"
 uri = "file://attached_assets/generated_images/gainmode_feature_graphic_1024x500.png"
 type = "image"
-title = "GainMode özellik grafiği — güncellenmiş koç"
-description = "1024×500 px PNG. Özellik grafiğindeki koç, kullanıcının gönderdiği referans karakterle değiştirildi; metin ve düzen korunuyor."
+title = "GainMode özellik grafiği — telefon içi FitBud"
+description = "1024×500 px PNG. FitBud, gönderilen referans karakter korunarak telefon ekranı içinde yeniden tasarlandı; poz, ışık ve arka plan özellik grafiğine göre oluşturuldu."
 logical_id = "1dd94c28-7b63-490e-b196-365b6df5e561"
-content_hash = "sha256:171c0dd26ffac9dc213336e7dba0e9384d10029f6203fdf85d3e2566c757360a"
-size = 344349
-mtime_ms = 1789171186397
-storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/1dd94c28-7b63-490e-b196-365b6df5e561/8344220b-9f4a-476c-b01a-2036e2dbe7af"
-storage_version_token = "1789171205805363"
+content_hash = "sha256:ec67cecc4b6c8293c8aadb3f23097219b8367f006bce75f9b9fc5b3f63e4cf87"
+size = 620703
+mtime_ms = 1789171578932
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/1dd94c28-7b63-490e-b196-365b6df5e561/6360ab48-1628-47a9-8375-462afed24b51"
+storage_version_token = "1789171611642168"
 content_type = "image/png"
 
 [[outputs]]
