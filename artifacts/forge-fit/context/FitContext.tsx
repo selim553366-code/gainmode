@@ -9,7 +9,6 @@ import { localDateKey } from '@/lib/nutritionDates';
 import { addStreakActivity, getCurrentStreak, normalizeStreakDates } from '@/lib/streak';
 import { badges, type BadgeMetric } from '@/lib/badges';
 import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, getWorkoutIntensity, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
-import { TEST_PREMIUM_PROMO_STORAGE_KEY } from '@/lib/testPremiumPromo';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type SavedMeal = Omit<Meal, 'date'> & { savedAt: string };
@@ -139,9 +138,7 @@ type FitContextValue = FitState & {
   coachThinking: boolean;
   setCoachThinking: (value: boolean) => void;
   enablePremium: () => void;
-  enableTestPremium: () => void;
   setLanguage: (language: Language) => void;
-  restartOnboarding: () => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
   removeMeal: (id: string) => void;
   addSavedMeal: (meal: Omit<SavedMeal, 'id' | 'savedAt'>) => void;
@@ -312,7 +309,6 @@ export function FitProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<FitState>(initialState);
   const [hydrated, setHydrated] = useState(false);
   const [coachThinking, setCoachThinking] = useState(false);
-  const [testPromoUnlocked, setTestPromoUnlocked] = useState(false);
   const { isSubscribed } = useSubscription();
 
   useEffect(() => {
@@ -386,12 +382,6 @@ export function FitProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    AsyncStorage.getItem(TEST_PREMIUM_PROMO_STORAGE_KEY).then((value) => {
-      if (value === 'true') setTestPromoUnlocked(true);
-    }).catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
     const resetExpiredUsageWindow = () => {
       const usageHour = localUsageHourKey();
       setState((current) => current.usageDate === usageHour
@@ -401,10 +391,6 @@ export function FitProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(resetExpiredUsageWindow, 60_000);
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    if (testPromoUnlocked) AsyncStorage.setItem(TEST_PREMIUM_PROMO_STORAGE_KEY, 'true').catch(() => undefined);
-  }, [testPromoUnlocked]);
 
   const sanitizedWorkouts = useMemo(() => sanitizeWorkoutSplits(state.workouts), [state.workouts]);
 
@@ -450,12 +436,12 @@ export function FitProvider({ children }: { children: ReactNode }) {
   }, [hydrated, state.achievementStats, state.streakDates, state.unlockedBadgeIds]);
 
   useEffect(() => {
-    if (isSubscribed === undefined && !testPromoUnlocked) return;
+    if (isSubscribed === undefined) return;
     setState((current) => {
-      const nextPremium = Boolean(isSubscribed) || testPromoUnlocked;
+      const nextPremium = Boolean(isSubscribed);
       return current.isPremium === nextPremium ? current : { ...current, isPremium: nextPremium };
     });
-  }, [isSubscribed, testPromoUnlocked]);
+  }, [isSubscribed]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -471,16 +457,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
     coachThinking,
     setCoachThinking,
      enablePremium: () => setState((current) => current.isPremium ? current : { ...current, isPremium: true }),
-    enableTestPremium: () => {
-      setTestPromoUnlocked(true);
-      setState((current) => current.isPremium ? current : { ...current, isPremium: true });
-    },
     setLanguage: (language) => setState((current) => ({ ...current, language })),
-    restartOnboarding: () => {
-      setTestPromoUnlocked(false);
-      AsyncStorage.removeItem(TEST_PREMIUM_PROMO_STORAGE_KEY).catch(() => undefined);
-      setState((current) => ({ ...current, onboardingComplete: false, introSeen: false, coachIntroPending: false, isPremium: false }));
-    },
      addMeal: (meal) => setState((current) => recordStreakActivity({
        ...current,
        meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }],

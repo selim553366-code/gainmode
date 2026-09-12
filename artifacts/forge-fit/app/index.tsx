@@ -26,7 +26,6 @@ import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat
 import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
 import { getEntryRoute } from '@/lib/entryFlow';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
-import { isValidTestPremiumPromoCode } from '@/lib/testPremiumPromo';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
@@ -247,22 +246,17 @@ function AgePicker({ value, inputValue, yearsLabel, onInputChange, onChange }: {
 
 export default function EntryScreen() {
   const colors = useColors();
-  const { onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen, restartOnboarding } = useFit();
+  const { onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen } = useFit();
   const params = useLocalSearchParams<{ edit?: string; fields?: string }>();
   const editMode = params.edit === '1';
   const selectedFields = React.useMemo(() => parseProfileEditFields(params.fields), [params.fields]);
   const entryRoute = getEntryRoute({ onboardingComplete, introSeen, isPremium, subscriptionPurchaseEnabled: SUBSCRIPTION_PURCHASE_ENABLED, coachIntroPending });
-  const [redirectFailed, setRedirectFailed] = React.useState(false);
   const [premiumCelebrationVisible, setPremiumCelebrationVisible] = React.useState(false);
   React.useEffect(() => {
-      if (!editMode && !premiumCelebrationVisible && (entryRoute === 'tabs' || entryRoute === 'coach')) {
-       setRedirectFailed(false);
-       const timeout = setTimeout(() => setRedirectFailed(true), 900);
-        router.replace(entryRoute === 'coach' ? '/(tabs)/coach' : '/(tabs)');
-       return () => clearTimeout(timeout);
-     }
-     setRedirectFailed(false);
-    }, [editMode, entryRoute, premiumCelebrationVisible]);
+    if (!editMode && !premiumCelebrationVisible && (entryRoute === 'tabs' || entryRoute === 'coach')) {
+      router.replace(entryRoute === 'coach' ? '/(tabs)/coach' : '/(tabs)');
+    }
+  }, [editMode, entryRoute, premiumCelebrationVisible]);
   if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
   if (entryRoute === 'onboarding') return <OnboardingQuestions />;
   if (entryRoute === 'intro') return <IntroScreen onDone={setIntroSeen} />;
@@ -282,34 +276,7 @@ export default function EntryScreen() {
       onPurchaseSuccess={() => setPremiumCelebrationVisible(true)}
     />;
   }
-  return redirectFailed ? <EntryRecoveryScreen onRestart={restartOnboarding} /> : <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
-}
-
-function EntryRecoveryScreen({ onRestart }: { onRestart: () => void }) {
-  const colors = useColors();
-  const { language } = useFit();
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-
-  return (
-    <Screen>
-      <View style={styles.entryRecovery}>
-        <ForgeFitMark size={58} />
-        <Text style={[styles.entryRecoveryTitle, { color: colors.foreground }]}>{t('restartOnboarding')}</Text>
-        <Text style={[styles.entryRecoveryBody, { color: colors.mutedForeground }]}>{t('restartOnboardingDescription')}</Text>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => {
-            triggerHaptic();
-            onRestart();
-          }}
-          style={({ pressed }) => [styles.entryRecoveryButton, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}
-        >
-          <Text style={[styles.entryRecoveryButtonText, { color: colors.primaryForeground }]}>{t('restartOnboarding')}</Text>
-          <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
-        </Pressable>
-      </View>
-    </Screen>
-  );
+  return <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
 }
 
 function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMode?: boolean; selectedFields?: ProfileEditField[] }) {
@@ -1182,7 +1149,7 @@ function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: (
 function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: () => void; onPurchaseSuccess: () => void }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-    const { language, enableTestPremium } = useFit();
+    const { language } = useFit();
      const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
    const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>(() => annualPackage ? 'annual' : 'monthly');
@@ -1193,10 +1160,6 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
     ? null
     : t('premiumAnnualSavingsValue').replace('{percent}', String(annualSavingsPercent));
   const [actionError, setActionError] = React.useState<string | null>(null);
-  const [promoOpen, setPromoOpen] = React.useState(false);
-  const [promoCode, setPromoCode] = React.useState('');
-  const [promoError, setPromoError] = React.useState<string | null>(null);
-  const [promoCelebrationVisible, setPromoCelebrationVisible] = React.useState(false);
    const subscriptionCheckPending = isAvailable && (isLoading || isSubscribed === undefined);
    const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
    const benefits: Array<{ icon?: React.ComponentProps<typeof Ionicons>['name']; logo?: boolean; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' | 'premiumFeature4' | 'premiumFeature5' }> = [
@@ -1248,14 +1211,6 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
       setActionError(t('premiumRestoreError'));
     }
   };
-  const handleTestPromo = () => {
-    if (!isValidTestPremiumPromoCode(promoCode)) {
-      setPromoError(t('premiumPromoInvalid'));
-      return;
-    }
-    setPromoError(null);
-    setPromoCelebrationVisible(true);
-  };
    return <>
    <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.offerGradient}>
     <View style={[styles.offerHeader, { paddingTop: insets.top + 10 }]}>
@@ -1306,42 +1261,10 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
         </Pressable>
       </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
-      <View style={styles.offerPromoSection}>
-        <Pressable accessibilityRole="button" accessibilityState={{ expanded: promoOpen }} onPress={() => { setPromoOpen((open) => !open); setPromoError(null); }} style={styles.offerPromoToggle}>
-          <Ionicons name="ticket-outline" size={14} color={colors.mutedForeground} />
-          <Text style={[styles.offerPromoToggleText, { color: colors.mutedForeground }]}>{t('premiumPromo')}</Text>
-          <Ionicons name={promoOpen ? 'chevron-up' : 'chevron-down'} size={14} color={colors.mutedForeground} />
-        </Pressable>
-        {promoOpen ? <View style={styles.offerPromoForm}>
-          <TextInput
-            value={promoCode}
-            onChangeText={(value) => { setPromoCode(value); setPromoError(null); }}
-            placeholder={t('premiumPromoPlaceholder')}
-            placeholderTextColor={colors.mutedForeground}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="done"
-            onSubmitEditing={handleTestPromo}
-            style={[styles.offerPromoInput, { backgroundColor: `${colors.secondary}88`, borderColor: colors.border, color: colors.foreground }]}
-          />
-          <Pressable accessibilityRole="button" onPress={handleTestPromo} style={({ pressed }) => [styles.offerPromoApply, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}>
-            <Text style={[styles.offerPromoApplyText, { color: colors.primaryForeground }]}>{t('premiumPromoApply')}</Text>
-          </Pressable>
-        </View> : null}
-        {promoError ? <Text style={[styles.offerPromoError, { color: colors.destructive }]}>{promoError}</Text> : null}
-      </View>
       <Pressable accessibilityRole="button" accessibilityLabel={t(isSubscribed ? 'premiumAccessActiveContinue' : 'premiumWelcomeCta')} disabled={subscriptionCheckPending || isPurchasing} onPress={() => { triggerHaptic(); void handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || subscriptionCheckPending || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isPurchasing ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
     </ScrollView>
    </LinearGradient>
-   <PremiumSuccessCelebration
-     visible={promoCelebrationVisible}
-     onDone={() => {
-       setPromoCelebrationVisible(false);
-       enableTestPremium();
-       onUnlock();
-     }}
-   />
    </>;
 }
 
@@ -1349,11 +1272,6 @@ const styles = StyleSheet.create({
   full: { flex: 1, paddingHorizontal: 24, paddingTop: 58, paddingBottom: 30, justifyContent: 'space-between' },
   onboardingShell: { flex: 1 },
   entryRedirecting: { flex: 1 },
-  entryRecovery: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
-  entryRecoveryTitle: { fontFamily: 'Inter_700Bold', fontSize: 26, lineHeight: 32, textAlign: 'center', marginTop: 22 },
-  entryRecoveryBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, textAlign: 'center', maxWidth: 310, marginTop: 10 },
-  entryRecoveryButton: { minHeight: 54, width: '100%', borderRadius: 18, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10, marginTop: 28 },
-  entryRecoveryButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
    questionTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingTop: 0, paddingLeft: 0, paddingRight: 0, zIndex: 3 },
   brandMark: { width: 38, height: 38, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   brandWordmark: { flex: 1, textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: 2.5, marginHorizontal: 14 },
@@ -1578,14 +1496,6 @@ const styles = StyleSheet.create({
   offerSavingsLabel: { fontFamily: 'Inter_700Bold', fontSize: 7, lineHeight: 9, letterSpacing: 0.3, textTransform: 'uppercase' },
   features: { gap: 17, paddingVertical: 20 },
   offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
-  offerPromoSection: { width: '100%', marginTop: 2, marginBottom: 8 },
-  offerPromoToggle: { minHeight: 32, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 10 },
-  offerPromoToggleText: { fontFamily: 'Inter_500Medium', fontSize: 11, textDecorationLine: 'underline' },
-  offerPromoForm: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
-  offerPromoInput: { flex: 1, minWidth: 0, height: 42, borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, fontFamily: 'Inter_500Medium', fontSize: 13 },
-  offerPromoApply: { minHeight: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 13 },
-  offerPromoApplyText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
-  offerPromoError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 14, marginTop: 6 },
   premiumRestoreButton: { width: '100%', alignItems: 'center', justifyContent: 'center', minHeight: 40, paddingHorizontal: 12 },
   premiumRestoreText: { flexShrink: 1, textAlign: 'center', fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 16 },
   exploreHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 10 },

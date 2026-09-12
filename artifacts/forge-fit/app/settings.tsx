@@ -27,7 +27,6 @@ export default function SettingsScreen() {
   const {
     language,
     setLanguage,
-    restartOnboarding,
   } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [expanded, setExpanded] = useState<LegalSection>(null);
@@ -153,27 +152,6 @@ export default function SettingsScreen() {
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('coachProfileCorrectionTitle')}</Text>
             <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('coachProfileCorrectionDescription')}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
-        </Pressable>
-      </Card>
-
-      <SectionTitle title={t('onboarding')} />
-      <Card>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => {
-            restartOnboarding();
-            setTimeout(() => router.replace('/'), 0);
-          }}
-          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
-        >
-          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
-            <Ionicons name="flash-outline" size={21} color={colors.primary} />
-          </View>
-          <View style={styles.rowCopy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('restartOnboarding')}</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('restartOnboardingDescription')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
         </Pressable>
