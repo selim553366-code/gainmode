@@ -406,3 +406,17 @@ mtime_ms = 1789170694520
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/e5526772-3423-4c6b-88b7-460d14db7548/46e445a6-5ebe-4d9b-a5c6-20546e962084"
 storage_version_token = "1789171076345872"
 content_type = "image/png"
+
+[[outputs]]
+id = "KTVNmCwBSKXJLsROqya-l"
+uri = "file://attached_assets/17677-1250x833_1789209686025.webp"
+type = "image"
+title = "Analiz edilen yemek fotoğrafı"
+description = "GPT-5 mini yemek analizi için kullanılan orijinal görsel."
+logical_id = "f5138609-1b69-4980-8d81-d849be7e4310"
+content_hash = "sha256:4d48c4e54499f3c9637cb44c36838699012c29c914433d329b042e719512aeb6"
+size = 105364
+mtime_ms = 1789209686441
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/f5138609-1b69-4980-8d81-d849be7e4310/8f0c16bb-5293-4496-854f-8073f71d8451"
+storage_version_token = "1789209756781915"
+content_type = "image/webp"
