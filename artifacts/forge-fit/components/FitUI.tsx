@@ -313,6 +313,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   const appear = React.useRef(new Animated.Value(0)).current;
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [purchaseCelebration, setPurchaseCelebration] = React.useState(false);
+  const subscriptionCheckPending = isAvailable && (isLoading || isSubscribed === undefined);
 
   React.useEffect(() => {
     if (!visible) return undefined;
@@ -332,6 +333,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
       onClose();
       return;
     }
+    if (subscriptionCheckPending) return;
     if (!isAvailable) {
       setActionError(t('premiumStoreUnavailable'));
       return;
@@ -408,7 +410,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
            </View>
           <Text style={[styles.premiumTrialBody, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
            {actionError ? <Text style={[styles.premiumActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
-            <Pressable testID="start-premium" disabled={isPurchasing || isLoading} onPress={activatePremium} style={({ pressed }) => [styles.premiumCta, { backgroundColor: colors.primary, opacity: pressed || isPurchasing || isLoading ? 0.58 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}><Text style={[styles.premiumCtaText, { color: colors.primaryForeground }]}>{isSubscribed ? t('premiumActiveNow') : isPurchasing ? t('premiumLoading') : t('premiumStart')}</Text><Ionicons name={isSubscribed ? 'checkmark-circle' : 'arrow-forward'} size={18} color={colors.primaryForeground} /></Pressable>
+             <Pressable testID="start-premium" disabled={subscriptionCheckPending || isPurchasing} onPress={activatePremium} style={({ pressed }) => [styles.premiumCta, { backgroundColor: colors.primary, opacity: pressed || subscriptionCheckPending || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}><Text style={[styles.premiumCtaText, { color: colors.primaryForeground }]}>{isSubscribed ? t('premiumAccessActiveContinue') : isPurchasing ? t('premiumLoading') : t('premiumStart')}</Text><Ionicons name={isSubscribed ? 'checkmark-circle' : 'arrow-forward'} size={18} color={colors.primaryForeground} /></Pressable>
            <Pressable testID="restore-premium" disabled={isRestoring} onPress={restorePremium} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
           <Text style={[styles.premiumTrust, { color: colors.mutedForeground }]}>{t('premiumTrust')}</Text>
         </LinearGradient>

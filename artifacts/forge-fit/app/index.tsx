@@ -1197,6 +1197,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
   const [promoCode, setPromoCode] = React.useState('');
   const [promoError, setPromoError] = React.useState<string | null>(null);
   const [promoCelebrationVisible, setPromoCelebrationVisible] = React.useState(false);
+   const subscriptionCheckPending = isAvailable && (isLoading || isSubscribed === undefined);
    const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
    const benefits: Array<{ icon?: React.ComponentProps<typeof Ionicons>['name']; logo?: boolean; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' | 'premiumFeature4' | 'premiumFeature5' }> = [
     { logo: true, key: 'premiumWelcomeBenefit1' },
@@ -1214,6 +1215,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
          onUnlock();
         return;
       }
+       if (subscriptionCheckPending) return;
        if (!isAvailable || !selectedPackage) {
         setActionError(t('premiumStoreUnavailable'));
         return;
@@ -1328,7 +1330,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
         </View> : null}
         {promoError ? <Text style={[styles.offerPromoError, { color: colors.destructive }]}>{promoError}</Text> : null}
       </View>
-     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumWelcomeCta')} disabled={isLoading || isPurchasing} onPress={() => { triggerHaptic(); void handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || isLoading || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isPurchasing ? t('premiumLoading') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={t(isSubscribed ? 'premiumAccessActiveContinue' : 'premiumWelcomeCta')} disabled={subscriptionCheckPending || isPurchasing} onPress={() => { triggerHaptic(); void handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || subscriptionCheckPending || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isPurchasing ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
     </ScrollView>
    </LinearGradient>
