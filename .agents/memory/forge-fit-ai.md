@@ -50,3 +50,9 @@ RevenueCat anonymous customer IDs can use the `$RCAnonymousID:...` format, so se
 **Why:** Rejecting the leading `$` returns a misleading 400 before RevenueCat entitlement verification, blocking both FitBud and food-photo analysis even when the client flow is correct.
 
 **How to apply:** Preserve strict length and character validation, but include the documented RevenueCat anonymous-ID prefix in the accepted character set.
+
+Production RevenueCat reauthorization does not guarantee AI access recovery: the connected credential must be a valid server API key with customer/subscription read access, not a public store SDK key.
+
+**Why:** The RevenueCat connector can remain connected and report healthy while the provider rejects the credential with `Invalid API Key`, causing `/api/ai/access` to return 503 and blocking both coach chat and food analysis.
+
+**How to apply:** When both AI features fail in a production build, verify the live RevenueCat credential type and permissions before changing mobile or AI code; never disable the server entitlement gate as a workaround.
