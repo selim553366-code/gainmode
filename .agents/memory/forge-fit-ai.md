@@ -56,3 +56,9 @@ Production RevenueCat reauthorization does not guarantee AI access recovery: the
 **Why:** The RevenueCat connector can remain connected and report healthy while the provider rejects the credential with `Invalid API Key`, causing `/api/ai/access` to return 503 and blocking both coach chat and food analysis.
 
 **How to apply:** When both AI features fail in a production build, verify the live RevenueCat credential type and permissions before changing mobile or AI code; never disable the server entitlement gate as a workaround.
+
+RevenueCat REST API v1 subscriber verification expects the secret API key directly in the `Authorization` header; the `Bearer` scheme is for v2 and causes v1 to return `Invalid API Key`.
+
+**Why:** A valid key was rejected in both local and production checks until the header format matched the API version.
+
+**How to apply:** Keep the existing v1 subscribers endpoint and send the raw secret key, or migrate endpoint and authentication together if adopting v2; do not mix v1 URLs with v2 auth.

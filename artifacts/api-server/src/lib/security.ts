@@ -67,7 +67,10 @@ async function hasActiveRevenueCatEntitlement(appUserId: string) {
   const response = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(appUserId)}`, {
     headers: {
       Accept: "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      // RevenueCat REST API v1 expects the secret key directly.
+      // The Bearer scheme is for the v2 API and makes a valid v1 key fail
+      // with "Invalid API Key".
+      Authorization: apiKey,
     },
     signal: AbortSignal.timeout(5000),
   });
