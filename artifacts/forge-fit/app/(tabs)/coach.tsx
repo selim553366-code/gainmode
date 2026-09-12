@@ -13,7 +13,7 @@ import { useColors } from '@/hooks/useColors';
 import { HOURLY_COACH_MESSAGE_LIMIT } from '@/lib/usageLimits';
 import { buildCoachContext } from '@/lib/coachContext';
 import { getWeeklySummary } from '@/lib/weeklyAnalysis';
-import { getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
+import { AiAccessError, getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
 import { validateCoachActions, type CoachAction } from '@/lib/coachActions';
 import { getFirstCoachReply } from '@/lib/coachRating';
 import { COACH_MESSAGES_STORAGE_KEY, getCoachMessagesStorageKey, parseStoredCoachMessages, type CoachMessageRecord } from '@/lib/coachMessages';
@@ -517,9 +517,14 @@ export default function CoachScreen() {
         setMessages((current) => [...current, { id: replyId, text: streamedText || t('coachWelcome'), from: 'coach' }]);
       }
     } catch (error) {
-      const status = (error as Error & { status?: number }).status;
+      const status = error instanceof AiAccessError ? error.status : (error as Error & { status?: number }).status;
       console.warn('Coach request failed.', error);
-      setMessages((current) => [...current, { id: `${Date.now()}-error`, text: status === 401 || status === 403 ? t('coachAccessFailed') : t('coachRequestFailed'), from: 'coach' }]);
+      const errorCopy = status === 401 || status === 403
+        ? t('coachAccessFailed')
+        : status !== undefined && status >= 500
+          ? t('coachServiceUnavailable')
+          : t('coachRequestFailed');
+      setMessages((current) => [...current, { id: `${Date.now()}-error`, text: errorCopy, from: 'coach' }]);
     } finally {
       setLoading(false);
       setIsStreamingReply(false);
