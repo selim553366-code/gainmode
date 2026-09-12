@@ -23,11 +23,12 @@ export function ForgeFitMark({ size = 28, style }: { size?: number; style?: obje
 }
 
 export function GainModeWordmark({ color, width = 150, height = 20 }: { color: string; width?: number; height?: number }) {
+  const colors = useColors();
   return <Image
     accessibilityLabel="GainMode"
     source={require('@/assets/images/gainmode-wordmark.png')}
     resizeMode="contain"
-    style={[styles.gainModeWordmark, { width, height }]}
+    style={[styles.gainModeWordmark, { width, height, tintColor: colors.colorScheme === 'dark' ? color : undefined }]}
   />;
 }
 
