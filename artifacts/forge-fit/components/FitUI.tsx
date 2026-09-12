@@ -27,7 +27,6 @@ export function GainModeWordmark({ color, width = 150, height = 20 }: { color: s
     accessibilityLabel="GainMode"
     source={require('@/assets/images/gainmode-wordmark.png')}
     resizeMode="contain"
-    tintColor={color}
     style={[styles.gainModeWordmark, { width, height }]}
   />;
 }
