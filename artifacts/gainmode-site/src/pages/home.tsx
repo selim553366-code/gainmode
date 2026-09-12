@@ -1,13 +1,21 @@
 import { GlobeLayout } from '@/components/layout/globe-layout';
-import { useI18n } from '@/lib/i18n';
+import { useI18n, type Lang } from '@/lib/i18n';
 import { products } from '@/lib/data';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import studioLogo from '../../../../attached_assets/image_1789248341751.png';
+import studioLogo from '../../../../attached_assets/image_1789248722769.png';
+
+const latestWorkLabels: Record<Lang, string> = {
+  en: 'Our latest work',
+  tr: 'En yeni çalışmamız',
+  de: 'Unser neuestes Projekt',
+  fr: 'Notre dernière création',
+  es: 'Nuestro trabajo más reciente',
+};
 
 export default function Home() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   return (
     <GlobeLayout>
@@ -22,10 +30,15 @@ export default function Home() {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="relative z-10"
           >
-            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/5 px-3 py-1 text-xs font-semibold text-cyan-100 backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_12px_#67e8f9]" />
-              <span>{t.studioName}</span>
-            </div>
+            <Link
+              href="/apps/gainmode"
+              className="group mb-8 inline-flex items-center gap-2.5 rounded-full border border-cyan-300/20 bg-cyan-300/5 px-3.5 py-1.5 text-xs font-semibold text-cyan-100 backdrop-blur transition-colors hover:border-cyan-300/45 hover:bg-cyan-300/10"
+            >
+              <span>{latestWorkLabels[lang]}</span>
+              <span className="h-1 w-1 rounded-full bg-cyan-300" />
+              <span className="text-white">GainMode</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </Link>
             <h1 className="mb-8 max-w-3xl font-serif text-5xl font-bold leading-[.98] tracking-[-.055em] text-white md:text-7xl xl:text-[6.2rem]">
               {t.studioTagline}
             </h1>
@@ -48,7 +61,7 @@ export default function Home() {
           >
             <div className="absolute inset-[12%] rounded-full bg-blue-500/20 blur-[90px]" />
             <div className="logo-frame relative overflow-hidden rounded-[2rem] border border-white/15 bg-[#070b1d]/65 p-2 shadow-[0_45px_100px_rgba(0,0,0,.55)] backdrop-blur-xl">
-              <img src={studioLogo} alt={t.studioName} className="aspect-[681/486] w-full rounded-[1.55rem] object-cover" />
+              <img src={studioLogo} alt={t.studioName} className="aspect-[692/484] w-full rounded-[1.55rem] object-cover" />
             </div>
           </motion.div>
         </div>

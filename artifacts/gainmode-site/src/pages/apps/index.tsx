@@ -35,26 +35,26 @@ export default function AppsPage() {
             >
               <Link 
                 href={product.href}
-                className="group block relative overflow-hidden rounded-2xl border border-border bg-card hover:border-foreground/20 transition-colors"
+                className="group relative block overflow-hidden rounded-2xl border border-white/15 bg-white transition-colors hover:border-cyan-300/40"
               >
-                <div className="aspect-[4/3] bg-muted relative p-8 flex flex-col items-start justify-between">
+                <div className="relative flex aspect-[4/3] flex-col items-start justify-between bg-slate-50 p-8 text-[#071022]">
                   <div className="w-32 h-10 relative mb-8">
                     <img 
                       src={product.logo} 
                       alt={product.name}
-                      className="object-contain w-full h-full brightness-0 dark:invert opacity-80 group-hover:opacity-100 transition-opacity"
+                      className="h-full w-full object-contain brightness-0 opacity-80 transition-opacity group-hover:opacity-100"
                     />
                   </div>
                   
                   <div>
-                    <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-foreground/5 text-foreground mb-4">
-                      {product.status === 'live' ? 'Live' : 'Coming Soon'}
+                    <div className="mb-4 inline-flex items-center rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                      {product.status === 'live' ? t.statusLive : t.statusComingSoon}
                     </div>
-                    <h3 className="text-2xl font-bold mb-3">{product.name}</h3>
-                    <p className="text-muted-foreground line-clamp-2">{product.description}</p>
+                    <h3 className="mb-3 text-2xl font-bold text-[#071022]">{product.name}</h3>
+                    <p className="line-clamp-2 text-slate-600">{product.description}</p>
                   </div>
                   
-                  <div className="absolute top-8 right-8 w-10 h-10 rounded-full bg-background flex items-center justify-center shadow-sm opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
+                  <div className="absolute right-8 top-8 flex h-10 w-10 -translate-y-2 items-center justify-center rounded-full bg-[#071022] text-white opacity-0 shadow-sm transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                     <ArrowRight className="w-4 h-4" />
                   </div>
                 </div>

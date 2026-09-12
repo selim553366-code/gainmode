@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { useI18n, languages, Lang } from '@/lib/i18n';
 import { Menu, X, ChevronDown, Check, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import studioIcon from '../../../../../attached_assets/image_1789248496643.png';
 
 export function GlobeLayout({ children }: { children: ReactNode }) {
   const { lang, setLang, t } = useI18n();
@@ -22,8 +23,15 @@ export function GlobeLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-[#070b18]/75 backdrop-blur-xl">
         <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2 group">
-               <Globe className="w-5 h-5 text-cyan-300 transition-transform group-hover:rotate-12" />
+             <Link href="/" className="group flex items-center gap-2.5">
+               <img
+                 src={studioIcon}
+                 alt=""
+                 aria-hidden="true"
+                 width="36"
+                 height="36"
+                 className="h-9 w-9 rounded-xl object-cover shadow-[0_0_18px_rgba(65,164,255,.2)] transition-transform duration-300 group-hover:scale-105"
+               />
                <span className="font-semibold tracking-tight text-white">{t.studioName}</span>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
