@@ -168,3 +168,11 @@ export function enforcePublicRateLimit(req: Request, res: Response, scope: strin
   }
   return true;
 }
+
+export function releasePublicRateLimit(req: Request, scope: string) {
+  const key = `${scope}:${clientKey(req)}`;
+  const bucket = publicRateLimitBuckets.get(key);
+  if (!bucket) return;
+  bucket.count = Math.max(0, bucket.count - 1);
+  if (bucket.count === 0) publicRateLimitBuckets.delete(key);
+}

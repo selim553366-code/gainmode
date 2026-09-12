@@ -26,6 +26,7 @@ packages = ["eas-cli"]
 [userenv]
 
 [userenv.shared]
+GAINMODE_FEEDBACK_RECIPIENT = "selim553366@gmail.com"
 
 [userenv.production]
 EXPO_PUBLIC_DOMAIN = "unfolded-superior-webpages.replit.app"

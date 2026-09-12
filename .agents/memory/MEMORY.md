@@ -22,3 +22,4 @@
 - [Expo SDK React alignment](expo-sdk-react-alignment.md) — multi-Expo workspaces must pin React per artifact when SDK-required versions differ.
 - [Forge Fit visual language](forge-fit-visual-language.md) — keep the app light, spacious, blue-white, and premium with restrained glass controls and soft elevated cards.
 - [GainMode mocked load testing](forge-fit-load-testing.md) — use an isolated API and mocked AI upstream for high-volume tests without provider charges.
+- [Resend feedback delivery](resend-feedback-delivery.md) — test-mode recipients must be provider-verified, and delivery failures must not consume user rate limits.

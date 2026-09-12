@@ -1,9 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { ReplitConnectors } from "@replit/connectors-sdk";
-import { enforcePublicRateLimit } from "../lib/security";
+import { enforcePublicRateLimit, releasePublicRateLimit } from "../lib/security";
 
 const router: IRouter = Router();
-const feedbackRecipient = "globestudiosdev@gmail.com";
 const maxFeedbackLength = 4_000;
 const supportedCategories = new Set(["bug", "suggestion", "subscription", "payment", "notifications", "other"]);
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -22,7 +21,6 @@ function normalizeValue(value: unknown, fallback: string) {
 }
 
 router.post("/feedback", async (req: Request, res: Response) => {
-  if (!enforcePublicRateLimit(req, res, "feedback", 3, 60 * 60 * 1000)) return;
   const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
   const category = normalizeValue(req.body?.category, "other").toLowerCase();
   const language = normalizeValue(req.body?.language, "en");
@@ -40,6 +38,14 @@ router.post("/feedback", async (req: Request, res: Response) => {
   }
   if (!emailPattern.test(replyTo) || replyTo.length > 254) {
     return res.status(400).json({ error: "A valid reply email is required." });
+  }
+  if (!enforcePublicRateLimit(req, res, "feedback", 3, 60 * 60 * 1000)) return;
+
+  const feedbackRecipient = process.env["GAINMODE_FEEDBACK_RECIPIENT"]?.trim();
+  if (!feedbackRecipient) {
+    releasePublicRateLimit(req, "feedback");
+    req.log?.error?.("Feedback recipient is not configured");
+    return res.status(503).json({ error: "Feedback email is not configured." });
   }
 
   const safeMessage = escapeHtml(message);
@@ -85,12 +91,14 @@ router.post("/feedback", async (req: Request, res: Response) => {
 
     if (!response.ok) {
       const details = await response.text();
+      releasePublicRateLimit(req, "feedback");
       req.log?.error?.({ status: response.status, details }, "Feedback email failed");
       return res.status(502).json({ error: "Feedback email could not be sent." });
     }
 
     return res.json({ ok: true });
   } catch (error) {
+    releasePublicRateLimit(req, "feedback");
     req.log?.error?.({ error }, "Feedback request failed");
     return res.status(502).json({ error: "Feedback email could not be sent." });
   }
