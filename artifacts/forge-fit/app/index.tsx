@@ -76,7 +76,9 @@ function formatImperialHeightLabel(heightCm: number) {
 
 function CoachMotion({ variant, large = false, onboarding = false }: { variant: CoachMotionVariant; large?: boolean; onboarding?: boolean }) {
   const source = onboarding
-    ? require('@/assets/images/coach-wave-transparent.png')
+    ? variant === 'done'
+      ? require('@/assets/images/coach-thumbs-up-no-bg.png')
+      : require('@/assets/images/coach-wave-transparent.png')
     : variant === 'wave'
       ? require('@/assets/images/coach-wave-direct.jpg')
       : variant === 'write'
