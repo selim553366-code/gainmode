@@ -5,7 +5,6 @@ import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import gainmodeWordmark from '../assets/forge-fit/gainmode-wordmark.png';
-import gainmodeVisual from '../assets/forge-fit/forge-fit-feature-aiCoach.jpg';
 
 const latestWorkLabels: Record<Lang, string> = {
   en: 'Our latest work',
@@ -65,14 +64,16 @@ export default function Home() {
               href="/apps/gainmode"
               className="group relative block overflow-hidden rounded-[2rem] border border-white/15 bg-[#070b1d] p-2 shadow-[0_45px_100px_rgba(0,0,0,.55)] backdrop-blur-xl transition-transform duration-500 hover:-translate-y-2"
             >
-              <div className="relative aspect-[16/11] overflow-hidden rounded-[1.55rem] bg-[#071022]">
-                <img
-                  src={gainmodeVisual}
-                  alt=""
-                  aria-hidden="true"
-                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
-                />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,10,26,.14),rgba(4,10,26,.2)_42%,rgba(4,10,26,.94)_100%)]" />
+              <div className="relative aspect-[16/11] overflow-hidden rounded-[1.55rem] bg-[linear-gradient(145deg,#0b1732_0%,#0a1026_48%,#11102c_100%)]">
+                <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(116,160,255,.1)_1px,transparent_1px),linear-gradient(90deg,rgba(116,160,255,.1)_1px,transparent_1px)] [background-size:38px_38px]" />
+                <div className="absolute -right-[12%] -top-[28%] h-[72%] w-[72%] rounded-full bg-[radial-gradient(circle_at_35%_65%,rgba(64,188,255,.75),rgba(66,67,230,.32)_42%,transparent_68%)] blur-[2px] transition-transform duration-700 group-hover:scale-105" />
+                <div className="absolute -bottom-[34%] -left-[16%] h-[62%] w-[62%] rounded-full bg-[radial-gradient(circle_at_64%_35%,rgba(251,146,91,.32),rgba(111,69,255,.26)_38%,transparent_70%)] blur-[1px]" />
+                <div className="absolute right-[13%] top-[28%] h-[42%] w-[42%] rounded-full border border-cyan-200/25 shadow-[0_0_70px_rgba(73,132,255,.2)]">
+                  <div className="absolute inset-[18%] rounded-full border border-violet-300/25" />
+                  <div className="absolute inset-[39%] rounded-full bg-cyan-200/80 shadow-[0_0_35px_rgba(103,232,249,.7)]" />
+                  <div className="absolute left-[-18%] top-1/2 h-px w-[136%] -rotate-12 bg-gradient-to-r from-transparent via-cyan-200/60 to-transparent" />
+                </div>
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,10,26,.04),rgba(4,10,26,.12)_45%,rgba(4,10,26,.72)_100%)]" />
                 <div className="absolute inset-x-0 top-0 flex items-start justify-between p-6 sm:p-8">
                   <img
                     src={gainmodeWordmark}
