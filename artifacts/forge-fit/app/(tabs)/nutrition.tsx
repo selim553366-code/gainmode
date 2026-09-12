@@ -13,7 +13,7 @@ import { useColors } from '@/hooks/useColors';
 import { Card, ForgeFitMark, Header, InlineStatus, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
 import { HOURLY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getMealsForRange } from '@/lib/nutritionDates';
-import { getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
+import { AiAccessError, getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
 import { calculateCalorieProgress, calculateNetCalories, calculateRemainingCalories } from '@/lib/nutritionCalories';
 import { estimateWorkoutCalories, getWorkoutForDate } from '@/lib/workoutPlan';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -224,13 +224,28 @@ export default function NutritionScreen() {
        const accessToken = await getAiAccessToken();
       const imageData = base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
       const response = await fetch(apiUrl('/api/ai/food-analysis'), { method: 'POST', headers: { 'Content-Type': 'application/json', ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) }, body: JSON.stringify({ imageData, language, clientId }) });
-      if (!response.ok) throw new Error('analysis failed');
+       if (!response.ok) {
+         let message = 'Food photo analysis failed';
+         try {
+           const body = await response.json() as { error?: unknown };
+           if (typeof body.error === 'string' && body.error.trim()) message = body.error;
+         } catch {
+           // Keep the HTTP status available even when the response is not JSON.
+         }
+         throw new AiAccessError(message, response.status);
+       }
       const analyzed = await response.json() as Meal;
       addMeal({ name: analyzed.name, type: 'snack', calories: analyzed.calories, protein: analyzed.protein, carbs: analyzed.carbs, fat: analyzed.fat, imageUri: uri });
       setAnalysisResult(analyzed);
       incrementPhotoUsage();
-    } catch {
-      Alert.alert(t('analyzePhoto'), t('photoAnalysisError'));
+    } catch (error) {
+      if (error instanceof AiAccessError && error.status === 403) {
+        Alert.alert(t('analyzePhoto'), t('photoAnalysisPremiumRequired'));
+      } else if (error instanceof AiAccessError && (error.status === 401 || error.status >= 500)) {
+        Alert.alert(t('analyzePhoto'), t('photoAnalysisUnavailable'));
+      } else {
+        Alert.alert(t('analyzePhoto'), t('photoAnalysisError'));
+      }
     } finally {
       setAnalyzing(false);
       await new Promise<void>((resolve) => setTimeout(resolve, 650));

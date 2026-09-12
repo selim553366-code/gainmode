@@ -7,6 +7,16 @@ const AI_ACCESS_TOKEN_KEY = 'forge-fit-ai-access-token';
 let cachedClientId: string | null = null;
 let cachedAccessToken: { token: string; expiresAt: number } | null = null;
 
+export class AiAccessError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'AiAccessError';
+    this.status = status;
+  }
+}
+
 export async function getAiClientId() {
   if (cachedClientId) return cachedClientId;
   const stored = await AsyncStorage.getItem(AI_CLIENT_ID_KEY);
@@ -50,7 +60,16 @@ export async function getAiAccessToken() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ appUserId }),
   });
-  if (!response.ok) throw new Error('AI access verification failed');
+  if (!response.ok) {
+    let message = 'AI access verification failed';
+    try {
+      const body = await response.json() as { error?: unknown };
+      if (typeof body.error === 'string' && body.error.trim()) message = body.error;
+    } catch {
+      // Keep the status available even when the response is not JSON.
+    }
+    throw new AiAccessError(message, response.status);
+  }
   const result = await response.json() as { accessToken?: unknown; expiresIn?: unknown };
   if (typeof result.accessToken !== 'string' || typeof result.expiresIn !== 'number') {
     throw new Error('AI access verification returned an invalid token');
