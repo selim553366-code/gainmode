@@ -341,14 +341,14 @@ content_type = "image/jpeg"
 id = "fIKXTv9c9UHWObDB6gVzY"
 uri = "file://attached_assets/generated_images/gainmode_feature_graphic_1024x500.png"
 type = "image"
-title = "GainMode özellik grafiği"
-description = "Google Play özellik grafiği için hazırlanmış 1024×500 px PNG görseli."
+title = "GainMode özellik grafiği — güncellenmiş koç"
+description = "1024×500 px PNG. Özellik grafiğindeki koç, kullanıcının gönderdiği referans karakterle değiştirildi; metin ve düzen korunuyor."
 logical_id = "1dd94c28-7b63-490e-b196-365b6df5e561"
-content_hash = "sha256:cb82be78f3814eee66a0dff6e5c52b880da655381eccb9305fc254bb28cbc5b7"
-size = 564314
-mtime_ms = 1789170323925
-storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/1dd94c28-7b63-490e-b196-365b6df5e561/c2f9bce1-508e-45d3-bf44-ff838f931f6c"
-storage_version_token = "1789170474628225"
+content_hash = "sha256:171c0dd26ffac9dc213336e7dba0e9384d10029f6203fdf85d3e2566c757360a"
+size = 344349
+mtime_ms = 1789171186397
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/1dd94c28-7b63-490e-b196-365b6df5e561/8344220b-9f4a-476c-b01a-2036e2dbe7af"
+storage_version_token = "1789171205805363"
 content_type = "image/png"
 
 [[outputs]]
