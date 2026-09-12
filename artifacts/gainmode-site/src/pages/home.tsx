@@ -3,7 +3,7 @@ import { useI18n, type Lang } from '@/lib/i18n';
 import { products } from '@/lib/data';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Dumbbell } from 'lucide-react';
 import gainmodeWordmark from '../assets/forge-fit/gainmode-wordmark.png';
 
 const latestWorkLabels: Record<Lang, string> = {
@@ -70,10 +70,16 @@ export default function Home() {
                 <div className="absolute -bottom-[34%] -left-[16%] h-[62%] w-[62%] rounded-full bg-[radial-gradient(circle_at_64%_35%,rgba(251,146,91,.32),rgba(111,69,255,.26)_38%,transparent_70%)] blur-[1px]" />
                 <div className="absolute right-[13%] top-[28%] h-[42%] w-[42%] rounded-full border border-cyan-200/25 shadow-[0_0_70px_rgba(73,132,255,.2)]">
                   <div className="absolute inset-[18%] rounded-full border border-violet-300/25" />
-                  <div className="absolute inset-[39%] rounded-full bg-cyan-200/80 shadow-[0_0_35px_rgba(103,232,249,.7)]" />
                   <div className="absolute left-[-18%] top-1/2 h-px w-[136%] -rotate-12 bg-gradient-to-r from-transparent via-cyan-200/60 to-transparent" />
                 </div>
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,10,26,.04),rgba(4,10,26,.12)_45%,rgba(4,10,26,.72)_100%)]" />
+                <div className="absolute right-[22%] top-[36%] z-10 flex h-[23%] w-[23%] -rotate-12 items-center justify-center rounded-[28%] border border-cyan-100/30 bg-cyan-100/10 shadow-[0_0_40px_rgba(103,232,249,.24)] backdrop-blur-md transition-transform duration-700 group-hover:-rotate-6 group-hover:scale-105">
+                  <Dumbbell
+                    aria-hidden="true"
+                    strokeWidth={1.6}
+                    className="h-[62%] w-[62%] text-cyan-50 drop-shadow-[0_0_12px_rgba(103,232,249,.85)]"
+                  />
+                </div>
                 <div className="absolute inset-x-0 top-0 flex items-start justify-between p-6 sm:p-8">
                   <img
                     src={gainmodeWordmark}
