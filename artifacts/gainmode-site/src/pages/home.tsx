@@ -4,7 +4,8 @@ import { products } from '@/lib/data';
 import { Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
-import studioLogo from '../../../../attached_assets/image_1789248722769.png';
+import gainmodeWordmark from '../assets/forge-fit/gainmode-wordmark.png';
+import gainmodeVisual from '../assets/forge-fit/forge-fit-feature-aiCoach.jpg';
 
 const latestWorkLabels: Record<Lang, string> = {
   en: 'Our latest work',
@@ -60,9 +61,39 @@ export default function Home() {
             className="relative z-10 mx-auto w-full max-w-[680px]"
           >
             <div className="absolute inset-[12%] rounded-full bg-blue-500/20 blur-[90px]" />
-            <div className="logo-frame relative overflow-hidden rounded-[2rem] border border-white/15 bg-[#070b1d]/65 p-2 shadow-[0_45px_100px_rgba(0,0,0,.55)] backdrop-blur-xl">
-              <img src={studioLogo} alt={t.studioName} className="aspect-[692/484] w-full rounded-[1.55rem] object-cover" />
-            </div>
+            <Link
+              href="/apps/gainmode"
+              className="group relative block overflow-hidden rounded-[2rem] border border-white/15 bg-[#070b1d] p-2 shadow-[0_45px_100px_rgba(0,0,0,.55)] backdrop-blur-xl transition-transform duration-500 hover:-translate-y-2"
+            >
+              <div className="relative aspect-[16/11] overflow-hidden rounded-[1.55rem] bg-[#071022]">
+                <img
+                  src={gainmodeVisual}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,10,26,.14),rgba(4,10,26,.2)_42%,rgba(4,10,26,.94)_100%)]" />
+                <div className="absolute inset-x-0 top-0 flex items-start justify-between p-6 sm:p-8">
+                  <img
+                    src={gainmodeWordmark}
+                    alt="GainMode"
+                    className="h-auto w-36 brightness-0 invert sm:w-44"
+                  />
+                  <span className="rounded-full border border-white/20 bg-black/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[.18em] text-white backdrop-blur-md">
+                    {latestWorkLabels[lang]}
+                  </span>
+                </div>
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-5 p-6 sm:p-8">
+                  <div>
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[.2em] text-cyan-200">{t.gmHeroKicker}</p>
+                    <h2 className="max-w-md text-2xl font-bold leading-tight text-white sm:text-4xl">{t.gmHeroTitle.split('\n')[0]}</h2>
+                  </div>
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-[#071022] shadow-xl transition-transform group-hover:translate-x-1">
+                    <ArrowRight className="h-5 w-5" />
+                  </span>
+                </div>
+              </div>
+            </Link>
           </motion.div>
         </div>
       </section>
