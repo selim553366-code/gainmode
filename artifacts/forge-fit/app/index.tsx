@@ -27,7 +27,7 @@ import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } 
 import { getEntryRoute } from '@/lib/entryFlow';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { isValidTestPremiumPromoCode } from '@/lib/testPremiumPromo';
-import { formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
+import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
@@ -1188,6 +1188,10 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
    const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>(() => annualPackage ? 'annual' : 'monthly');
    const canOfferAnnual = Boolean(annualPackage);
   const annualMonthlyPrice = formatAnnualMonthlyPrice(annualPackage?.product);
+  const annualSavingsPercent = calculateAnnualSavingsPercent(monthlyPackage?.product, annualPackage?.product);
+  const annualSavingsValue = annualSavingsPercent === null
+    ? null
+    : t('premiumAnnualSavingsValue').replace('{percent}', String(annualSavingsPercent));
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [promoOpen, setPromoOpen] = React.useState(false);
   const [promoCode, setPromoCode] = React.useState('');
@@ -1291,7 +1295,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
           {canOfferAnnual ? <View style={[styles.offerRecommendedBadge, { backgroundColor: colors.primary }]}>
             <Text style={[styles.offerRecommendedText, { color: colors.primaryForeground }]}>{t('premiumRecommended')}</Text>
           </View> : null}
-          <View style={styles.offerPlanHeader}><Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{canOfferAnnual ? <View style={[styles.offerSavingsBadge, { backgroundColor: `${colors.success}18` }]}><Text style={[styles.offerSavingsValue, { color: colors.success }]}>{t('premiumAnnualSavingsValue')}</Text><Text style={[styles.offerSavingsLabel, { color: colors.success }]}>{t('premiumAnnualSavingsLabel')}</Text></View> : null}</View>
+           <View style={styles.offerPlanHeader}><Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{annualSavingsValue ? <View style={[styles.offerSavingsBadge, { backgroundColor: `${colors.success}18` }]}><Text style={[styles.offerSavingsValue, { color: colors.success }]}>{annualSavingsValue}</Text><Text style={[styles.offerSavingsLabel, { color: colors.success }]}>{t('premiumAnnualSavingsLabel')}</Text></View> : null}</View>
           <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{annualPackage?.product.priceString ?? '—'}</Text>
           <View style={styles.offerAnnualPriceFooter}>
             <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>

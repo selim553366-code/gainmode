@@ -8,6 +8,7 @@ import { useFit } from '@/context/FitContext';
 import { translate, type Language, type TranslationKey } from '@/lib/i18n';
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
+import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@/components/AppIcon';
@@ -304,6 +305,11 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   const canOfferAnnual = Boolean(annualPackage);
   const monthlyPrice = monthlyPackage?.product.priceString ?? '—';
   const annualPrice = annualPackage?.product.priceString ?? '—';
+  const annualMonthlyPrice = formatAnnualMonthlyPrice(annualPackage?.product);
+  const annualSavingsPercent = calculateAnnualSavingsPercent(monthlyPackage?.product, annualPackage?.product);
+  const annualSavingsText = annualSavingsPercent === null
+    ? null
+    : t('premiumAnnualSavings').replace('{percent}', String(annualSavingsPercent));
   const appear = React.useRef(new Animated.Value(0)).current;
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [purchaseCelebration, setPurchaseCelebration] = React.useState(false);
@@ -392,9 +398,12 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
                {!isLoading ? <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text> : null}
              </Pressable>
                <Pressable disabled={!canOfferAnnual} testID="premium-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual', disabled: !canOfferAnnual }} onPress={() => { if (canOfferAnnual) setSelectedPlan('annual'); }} style={[styles.premiumPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border, opacity: canOfferAnnual ? 1 : 0.58 }]}>
-                <View style={styles.premiumPlanHeader}><Text style={[styles.premiumPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{canOfferAnnual ? <Text style={[styles.premiumSavingsBadge, { color: colors.success }]}>{t('premiumAnnualSavings')}</Text> : null}</View>
+                 <View style={styles.premiumPlanHeader}><Text style={[styles.premiumPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{annualSavingsText ? <Text style={[styles.premiumSavingsBadge, { color: colors.success }]}>{annualSavingsText}</Text> : null}</View>
                <Text style={[styles.premiumPlanPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : annualPrice}</Text>
-                <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
+                 <View style={styles.premiumAnnualPriceFooter}>
+                   <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
+                   {annualMonthlyPrice !== null ? <Text style={[styles.premiumMonthlyEquivalent, { color: colors.primary }]}>{annualMonthlyPrice} {t('premiumPerMonth')}</Text> : null}
+                 </View>
                </Pressable>
            </View>
           <Text style={[styles.premiumTrialBody, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
@@ -580,6 +589,8 @@ export const styles = StyleSheet.create({
   premiumPlanHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
   premiumPlanLabel: { fontFamily: 'Inter_700Bold', fontSize: 11 },
   premiumPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 20, marginTop: 12 },
+  premiumAnnualPriceFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: 5, rowGap: 3 },
+  premiumMonthlyEquivalent: { flexGrow: 1, flexShrink: 1, textAlign: 'right', fontFamily: 'Inter_600SemiBold', fontSize: 10, lineHeight: 14, marginTop: 3 },
   premiumPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 3 },
   premiumSavingsBadge: { fontFamily: 'Inter_700Bold', fontSize: 8 },
   premiumPriceOptions: { fontFamily: 'Inter_400Regular', fontSize: 10, textAlign: 'right', marginBottom: 16 },
