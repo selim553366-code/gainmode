@@ -195,6 +195,7 @@ async function syncFitnessNotificationsNow({
   language,
   weightLogs,
   registeredAt,
+  premiumActive,
 }: {
   settings: NotificationSettings;
   profile: Profile | null;
@@ -202,11 +203,13 @@ async function syncFitnessNotificationsNow({
   language: Language;
   weightLogs: { date: string }[];
   registeredAt: string | null;
+  premiumActive: boolean;
 }) {
   if (!notificationsSupported) return;
   const Notifications = await loadNotifications();
   if (!Notifications) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
+  if (!premiumActive) return;
   if (!(await requestNotificationPermission())) return;
   if (!(await prepareNotifications())) return;
 
@@ -245,6 +248,7 @@ export function syncFitnessNotifications(args: {
   language: Language;
   weightLogs: { date: string }[];
   registeredAt: string | null;
+  premiumActive: boolean;
 }) {
   if (!notificationsSupported) return Promise.resolve();
   const nextSync = notificationSync.catch(() => undefined).then(() => syncFitnessNotificationsNow(args));
