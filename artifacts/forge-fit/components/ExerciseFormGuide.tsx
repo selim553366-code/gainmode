@@ -186,7 +186,54 @@ const missingExerciseImages: Record<string, ImageSourcePropType> = {
   exerciseCableCrunch: remoteImage('form-coach-cable-crunch.png'),
 };
 
+const generatedExerciseImages: Record<string, ImageSourcePropType> = {
+  exerciseArnoldPress: remoteImage('form-coach-arnold-press.webp'),
+  exerciseBandChestPress: remoteImage('form-coach-band-chest-press.webp'),
+  exerciseBandTriceps: remoteImage('form-coach-band-triceps.webp'),
+  exerciseBentOverDumbbellRow: remoteImage('form-coach-bent-over-dumbbell-row.webp'),
+  exerciseCloseGripDumbbellPress: remoteImage('form-coach-close-grip-dumbbell-press.webp'),
+  exerciseConcentrationCurl: remoteImage('form-coach-concentration-curl.webp'),
+  exerciseDumbbellBenchPress: remoteImage('form-coach-dumbbell-bench-press.webp'),
+  exerciseDumbbellBulgarianSplitSquat: remoteImage('form-coach-dumbbell-bulgarian-split-squat.webp'),
+  exerciseDumbbellCurl: remoteImage('form-coach-dumbbell-curl.webp'),
+  exerciseDumbbellFarmerCarry: remoteImage('form-coach-dumbbell-farmer-carry.webp'),
+  exerciseDumbbellFloorPress: remoteImage('form-coach-dumbbell-floor-press.webp'),
+  exerciseDumbbellFly: remoteImage('form-coach-dumbbell-fly.webp'),
+  exerciseDumbbellFrontRaise: remoteImage('form-coach-dumbbell-front-raise.webp'),
+  exerciseDumbbellGoodMorning: remoteImage('form-coach-dumbbell-good-morning.webp'),
+  exerciseDumbbellHammerCurl: remoteImage('form-coach-dumbbell-hammer-curl.webp'),
+  exerciseDumbbellHipThrust: remoteImage('form-coach-dumbbell-hip-thrust.webp'),
+  exerciseDumbbellKickback: remoteImage('form-coach-dumbbell-kickback.webp'),
+  exerciseDumbbellLateralRaise: remoteImage('form-coach-dumbbell-lateral-raise.webp'),
+  exerciseDumbbellOverheadTriceps: remoteImage('form-coach-dumbbell-overhead-triceps.webp'),
+  exerciseDumbbellRdl: remoteImage('form-coach-dumbbell-rdl.webp'),
+  exerciseDumbbellReverseFly: remoteImage('form-coach-dumbbell-reverse-fly.webp'),
+  exerciseDumbbellRussianTwist: remoteImage('form-coach-dumbbell-russian-twist.webp'),
+  exerciseDumbbellShoulderPress: remoteImage('form-coach-dumbbell-shoulder-press.webp'),
+  exerciseDumbbellSideBend: remoteImage('form-coach-dumbbell-side-bend.webp'),
+  exerciseDumbbellSkullCrusher: remoteImage('form-coach-dumbbell-skull-crusher.webp'),
+  exerciseDumbbellStepUp: remoteImage('form-coach-dumbbell-step-up.webp'),
+  exerciseDumbbellSumoSquat: remoteImage('form-coach-dumbbell-sumo-squat.webp'),
+  exerciseDumbbellThruster: remoteImage('form-coach-dumbbell-thruster.webp'),
+  exerciseGobletSquat: remoteImage('form-coach-goblet-squat.webp'),
+  exerciseInclineDumbbellCurl: remoteImage('form-coach-incline-dumbbell-curl.webp'),
+  exerciseInclineDumbbellPress: remoteImage('form-coach-incline-dumbbell-press.webp'),
+  exerciseInclinePushup: remoteImage('form-coach-incline-pushup.webp'),
+  exerciseLegCurl: remoteImage('form-coach-leg-curl.webp'),
+  exerciseOneArmDumbbellRow: remoteImage('form-coach-one-arm-dumbbell-row.webp'),
+  exercisePushup: remoteImage('form-coach-pushup.webp'),
+  exerciseRenegadeRow: remoteImage('form-coach-renegade-row.webp'),
+  exerciseSeatedDumbbellCalfRaise: remoteImage('form-coach-seated-dumbbell-calf-raise.webp'),
+  exerciseSingleLegDumbbellRdl: remoteImage('form-coach-single-leg-dumbbell-rdl.webp'),
+  exerciseStandingDumbbellCalfRaise: remoteImage('form-coach-standing-dumbbell-calf-raise.webp'),
+  exerciseWeightedDeadBug: remoteImage('form-coach-weighted-dead-bug.webp'),
+  exerciseWidePushup: remoteImage('form-coach-wide-pushup.webp'),
+};
+
 Object.entries(missingExerciseImages).forEach(([exercise, image]) => {
+  if (guideByExercise[exercise]) guideByExercise[exercise].image = image;
+});
+Object.entries(generatedExerciseImages).forEach(([exercise, image]) => {
   if (guideByExercise[exercise]) guideByExercise[exercise].image = image;
 });
 
@@ -200,6 +247,7 @@ export function hasExerciseFormGuide(name: string) {
 
 export function ExerciseFormGuide({ visible, exerciseName, language, onClose }: { visible: boolean; exerciseName: string; language: Language; onClose: () => void }) {
   const colors = useColors();
+  if (!visible) return null;
   const guide = exerciseFormGuideFor(exerciseName);
   const title = translate(language, exerciseName as TranslationKey);
   return <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
