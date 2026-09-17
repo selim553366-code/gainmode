@@ -6,6 +6,9 @@ import { hasActivePremiumEntitlement, PREMIUM_ENTITLEMENT_IDENTIFIER } from '@/l
 
 export const REVENUECAT_ENTITLEMENT_IDENTIFIER = PREMIUM_ENTITLEMENT_IDENTIFIER;
 export const SUBSCRIPTION_PURCHASE_ENABLED = true;
+// The preview is a product walkthrough, so it always has access without
+// changing the native iOS/Android entitlement flow.
+export const PREVIEW_SUBSCRIPTION_ACTIVE = Platform.OS === 'web';
 const REVENUECAT_IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY;
 const REVENUECAT_ANDROID_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY;
 
@@ -96,7 +99,11 @@ function useSubscriptionContext(): SubscriptionContextValue {
       annualPackage: currentOffering?.annual ?? undefined,
       isAvailable,
       isLoading: isAvailable && (customerInfoQuery.isLoading || offeringsQuery.isLoading),
-       isSubscribed: customerInfoQuery.data ? hasActivePremiumEntitlement(customerInfoQuery.data) : undefined,
+      isSubscribed: PREVIEW_SUBSCRIPTION_ACTIVE
+        ? true
+        : customerInfoQuery.data
+          ? hasActivePremiumEntitlement(customerInfoQuery.data)
+          : undefined,
       purchase: purchaseMutation.mutateAsync,
       restore: restoreMutation.mutateAsync,
       isPurchasing: purchaseMutation.isPending,

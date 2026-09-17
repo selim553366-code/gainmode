@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState } from 'react-native';
 import { Language, TranslationKey } from '@/lib/i18n';
-import { useSubscription } from '@/lib/revenuecat';
+import { PREVIEW_SUBSCRIPTION_ACTIVE, useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
 import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey } from '@/lib/nutritionDates';
@@ -181,7 +181,7 @@ const initialState: FitState = {
   onboardingComplete: false,
   coachIntroPending: false,
   introSeen: false,
-  isPremium: false,
+  isPremium: PREVIEW_SUBSCRIPTION_ACTIVE,
   coachMessagesUsed: 0,
   photoAnalysesUsed: 0,
   usageDate: '',
@@ -326,8 +326,8 @@ export function FitProvider({ children }: { children: ReactNode }) {
               : parsed.onboardingComplete
                 ? new Date().toISOString()
                 : null,
-             // Premium access must come from RevenueCat, never from a locally persisted test flag.
-             isPremium: false,
+             // Preview access is web-only; native access still comes from RevenueCat.
+             isPremium: PREVIEW_SUBSCRIPTION_ACTIVE,
             notificationSettings: initialState.notificationSettings,
              savedMeals: Array.isArray(parsed.savedMeals) ? parsed.savedMeals : [],
              streakDates: normalizeStreakDates(Array.isArray(parsed.streakDates) ? parsed.streakDates : []),
