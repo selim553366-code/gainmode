@@ -25,6 +25,13 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/apps" component={AppsPage} />
         <Route path="/apps/gainmode" component={GainmodePage} />
+        <Route path="/apps/gainmode/" component={GainmodePage} />
+        <Route path="/gainmode" component={GainmodePage} />
+        <Route path="/gainmode/" component={GainmodePage} />
+        <Route path="/gainmode-site" component={Home} />
+        <Route path="/gainmode-site/" component={Home} />
+        <Route path="/gainmode-site/apps/gainmode" component={GainmodePage} />
+        <Route path="/gainmode-site/apps/gainmode/" component={GainmodePage} />
         <Route path="/about" component={AboutPage} />
         <Route path="/contact" component={ContactPage} />
         <Route path="/privacy" component={PrivacyPage} />
