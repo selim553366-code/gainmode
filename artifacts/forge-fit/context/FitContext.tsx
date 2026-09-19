@@ -5,7 +5,7 @@ import { Language, TranslationKey } from '@/lib/i18n';
 import { PREVIEW_SUBSCRIPTION_ACTIVE, useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
 import { getCurrentMonthKey } from '@/lib/profileEdit';
-import { localDateKey } from '@/lib/nutritionDates';
+import { localDateKey, upsertTodayWeightLog } from '@/lib/nutritionDates';
 import { addStreakActivity, getCurrentStreak, normalizeStreakDates } from '@/lib/streak';
 import { badges, type BadgeMetric } from '@/lib/badges';
 import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, getWorkoutIntensity, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
@@ -725,12 +725,18 @@ export function FitProvider({ children }: { children: ReactNode }) {
      }),
     addFriend: (username) => setState((current) => current.friends.some((friend) => friend.username.toLowerCase() === username.toLowerCase()) ? current : { ...current, friends: [...current.friends, { id: `${Date.now()}-${Math.random()}`, username }] }),
     addChallenge: (name, target) => setState((current) => ({ ...current, challenges: [...current.challenges, { id: `${Date.now()}-${Math.random()}`, name, target, progress: 0 }] })),
-      addWeight: (value) => setState((current) => recordStreakActivity({
-        ...current,
-        weight: value,
-        weightLogs: [...current.weightLogs, { id: `${Date.now()}-${Math.random()}`, value, date: new Date().toISOString() }],
-        achievementStats: { ...current.achievementStats, weightLogs: current.achievementStats.weightLogs + 1 },
-      })),
+       addWeight: (value) => setState((current) => {
+         const nextWeight = upsertTodayWeightLog(current.weightLogs, value);
+         return recordStreakActivity({
+           ...current,
+           weight: value,
+           weightLogs: nextWeight.logs,
+           achievementStats: {
+             ...current.achievementStats,
+             weightLogs: current.achievementStats.weightLogs + (nextWeight.addedNewDay ? 1 : 0),
+           },
+         });
+       }),
     setNotificationSetting: (key, enabled) => setState((current) => ({ ...current, notificationSettings: { ...current.notificationSettings, [key]: enabled } })),
     completeDailyMood: () => setState((current) => ({ ...current, dailyMoodCompletedDate: localDateKey() })),
   }), [state, sanitizedWorkouts, coachThinking, hydrated]);

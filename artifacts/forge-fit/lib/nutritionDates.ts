@@ -35,3 +35,33 @@ export function getMealsForRange<T extends { date?: string }>(meals: T[], range:
     return date >= start && date <= end;
   });
 }
+
+export type WeightLog = {
+  id: string;
+  value: number;
+  date: string;
+};
+
+export function upsertTodayWeightLog(
+  logs: WeightLog[],
+  value: number,
+  now = new Date(),
+  newId = `${Date.now()}-${Math.random()}`,
+) {
+  const today = localDateKey(now);
+  const hasTodayLog = logs.some((log) => mealDateKey(log.date) === today);
+  const logsWithoutToday = logs.filter((log) => mealDateKey(log.date) !== today);
+  const existingTodayLog = logs.find((log) => mealDateKey(log.date) === today);
+
+  return {
+    logs: [
+      ...logsWithoutToday,
+      {
+        id: existingTodayLog?.id ?? newId,
+        value,
+        date: now.toISOString(),
+      },
+    ],
+    addedNewDay: !hasTodayLog,
+  };
+}
