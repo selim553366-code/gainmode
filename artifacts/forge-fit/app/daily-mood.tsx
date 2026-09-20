@@ -79,7 +79,7 @@ export default function DailyMoodScreen() {
   return (
     <Screen bottomPadding={46}>
       <Header eyebrow={t('dailyMoodEyebrow')} title={t('dailyMoodTitle')} subtitle={t('dailyMoodSubtitle')} action="close-outline" onAction={() => router.back()} />
-      <View style={[styles.introCard, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}40` }]}><View style={[styles.introIcon, { backgroundColor: colors.primary }]}><Ionicons name="sparkles" size={20} color={colors.primaryForeground} /></View><Text style={[styles.introText, { color: colors.foreground }]}>{t('dailyMoodIntro')}</Text></View>
+      <View style={[styles.introCard, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}40` }]}><View style={[styles.introIcon, { backgroundColor: colors.primary }]}><Ionicons name="star" size={20} color={colors.primaryForeground} /></View><Text style={[styles.introText, { color: colors.foreground }]}>{t('dailyMoodIntro')}</Text></View>
       {questions.map((question, index) => (
         <View key={question.id} style={styles.questionBlock}>
           <Text style={[styles.questionNumber, { color: colors.primary }]}>{String(index + 1).padStart(2, '0')}</Text>
