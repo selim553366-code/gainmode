@@ -34,7 +34,7 @@ export function addStreakActivity(dates: string[], date = new Date()) {
 export function getCurrentStreak(dates: string[], now = new Date()) {
   const completedDates = new Set(normalizeStreakDates(dates));
   const today = localDateKey(now);
-  let cursor = completedDates.has(today) ? today : shiftDate(today, -1);
+  let cursor = today;
   let streak = 0;
 
   while (completedDates.has(cursor)) {

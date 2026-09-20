@@ -14,8 +14,8 @@ test('streak counts consecutive local calendar days', () => {
   assert.equal(getCurrentStreak(['2026-08-28', '2026-08-30', '2026-08-31', '2026-09-01'], now), 3);
 });
 
-test('yesterday remains visible until today is completed', () => {
-  assert.equal(getCurrentStreak(['2026-08-30', '2026-08-31'], now), 2);
+test('missing today ends the current streak immediately', () => {
+  assert.equal(getCurrentStreak(['2026-08-30', '2026-08-31'], now), 0);
   assert.equal(getCurrentStreak(['2026-08-29'], now), 0);
 });
 
