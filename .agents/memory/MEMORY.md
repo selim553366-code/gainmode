@@ -19,6 +19,7 @@
 - [Forge Fit muscle map masks](forge-fit-muscle-maps.md) — anatomy highlights must use full-canvas masks aligned to the source image, not approximate UI shapes.
 - [Video artifact metadata](video-artifact-metadata.md) — preserve immutable artifact metadata and repair missing services through verified TOML replacement.
 - [PNPM patched dependencies](pnpm-patched-dependencies.md) — patched dependency edits require a valid unified diff and a regenerated lockfile hash.
+- [Workspace package removal](workspace-package-removal.md) — verify artifact-scoped dependency removals; use pnpm filters if the generic helper misses a workspace package.
 - [Expo SDK React alignment](expo-sdk-react-alignment.md) — multi-Expo workspaces must pin React per artifact when SDK-required versions differ.
 - [Forge Fit visual language](forge-fit-visual-language.md) — keep the app light, spacious, blue-white, and premium with restrained glass controls and soft elevated cards.
 - [GainMode product naming](gainmode-brand.md) — GainMode is the current product name; older Forge Fit references are legacy.

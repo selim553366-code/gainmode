@@ -1017,7 +1017,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const appear = React.useRef(new Animated.Value(0)).current;
   React.useEffect(() => { Animated.timing(appear, { toValue: 1, duration: 420, useNativeDriver: true }).start(); }, [appear]);
-   return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}><View style={styles.introVisual}><View style={[styles.auraLarge, { backgroundColor: `${colors.primary}18` }]} /><Image source={require('@/assets/images/icon.png')} style={styles.introIcon} /></View><Animated.View style={{ opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }}><Text style={[styles.eyebrow, { color: colors.primary }]}>1 / 1</Text><Text style={[styles.introTitle, { color: colors.foreground }]}>{t('onboardingTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('onboardingIntro')}</Text></Animated.View><View style={styles.introBottom}><Pressable onPress={() => { triggerHaptic(); onDone(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View></LinearGradient>;
+   return <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.full}><View style={styles.introVisual}><View style={[styles.auraLarge, { backgroundColor: `${colors.primary}18` }]} /><Image source={require('@/assets/images/icon.png')} style={styles.introIcon} /></View><Animated.View style={{ opacity: appear, transform: [{ scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }}><Text style={[styles.eyebrow, { color: colors.primary }]}>1 / 1</Text><Text style={[styles.introTitle, { color: colors.foreground }]}>{t('onboardingTitle')}</Text><Text style={[styles.introText, { color: colors.mutedForeground }]}>{t('onboardingIntro')}</Text><View style={[styles.healthNotice, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}><Ionicons name="shield-checkmark-outline" size={17} color={colors.primary} /><Text style={[styles.healthNoticeText, { color: colors.mutedForeground }]}>{t('healthDisclaimerBody')}</Text></View></Animated.View><View style={styles.introBottom}><Pressable onPress={() => { triggerHaptic(); onDone(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('continue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable></View></LinearGradient>;
 }
 
 type ExploreDemoKind = 'home' | 'coach' | 'nutrition' | 'workout' | 'form' | 'weekly';
@@ -1238,12 +1238,6 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
         <Pressable testID="welcome-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : colors.glass, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.glassBorder }]}>
           <View style={styles.offerPlanHeader}>
             <Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumMonthlyPlan')}</Text>
-            <View style={[styles.offerTrialBadge, { backgroundColor: `${colors.success}18`, borderColor: `${colors.success}45` }]}>
-              <View style={styles.offerTrialIcon} accessible={false}>
-                <Ionicons name="gift-outline" size={14} color={colors.success} />
-              </View>
-              <Text style={[styles.offerTrialBadgeText, { color: colors.success }]}>{t('premiumTrialShort')}</Text>
-            </View>
           </View>
           <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{monthlyPackage?.product.priceString ?? '—'}</Text>
           <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text>
@@ -1458,6 +1452,8 @@ const styles = StyleSheet.create({
   introIcon: { width: 150, height: 150, borderRadius: 50 },
   introTitle: { fontFamily: 'Inter_700Bold', fontSize: 34, lineHeight: 39, letterSpacing: -1.2 },
   introText: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 23, marginTop: 12 },
+  healthNotice: { flexDirection: 'row', alignItems: 'flex-start', gap: 9, borderWidth: 1, borderRadius: 14, padding: 11, marginTop: 15 },
+  healthNoticeText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16 },
   introBottom: { gap: 18 },
   dots: { flexDirection: 'row', gap: 7, justifyContent: 'center' },
   dot: { width: 28, height: 4, borderRadius: 5 },

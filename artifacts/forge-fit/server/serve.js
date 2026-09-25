@@ -15,6 +15,7 @@ const path = require('path');
 const readFileDescriptor = fs.readSync;
 const { renderPrivacyPolicyPage } = require('./privacyPolicy');
 const { renderAccountDeletionPage } = require('./accountDeletion');
+const { renderTermsOfServicePage } = require('./termsOfService');
 
 const STATIC_ROOT = path.resolve(__dirname, '..', 'static-build');
 const TEMPLATE_PATH = path.resolve(__dirname, 'templates', 'landing-page.html');
@@ -209,6 +210,19 @@ const server = http.createServer((req, res) => {
     const browserLanguage = (req.headers['accept-language'] || '').split(',')[0].split('-')[0];
     const language = requestedLanguage || browserLanguage || 'en';
     const html = renderAccountDeletionPage(language, basePath);
+    res.writeHead(200, {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'public, max-age=300',
+    });
+    res.end(html);
+    return;
+  }
+
+  if (pathname === '/terms-of-service' || pathname === '/terms') {
+    const requestedLanguage = url.searchParams.get('lang');
+    const browserLanguage = (req.headers['accept-language'] || '').split(',')[0].split('-')[0];
+    const language = requestedLanguage || browserLanguage || 'en';
+    const html = renderTermsOfServicePage(language, basePath);
     res.writeHead(200, {
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'public, max-age=300',

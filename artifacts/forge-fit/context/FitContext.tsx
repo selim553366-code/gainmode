@@ -9,6 +9,7 @@ import { localDateKey, upsertTodayWeightLog } from '@/lib/nutritionDates';
 import { addStreakActivity, getCurrentStreak, normalizeStreakDates } from '@/lib/streak';
 import { badges, type BadgeMetric } from '@/lib/badges';
 import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, getWorkoutIntensity, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
+import { clearLocalAiUsageIdentity } from '@/lib/aiUsage';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type SavedMeal = Omit<Meal, 'date'> & { savedAt: string };
@@ -139,6 +140,7 @@ type FitContextValue = FitState & {
   setCoachThinking: (value: boolean) => void;
   enablePremium: () => void;
   setLanguage: (language: Language) => void;
+  resetLocalUserData: () => Promise<void>;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
   removeMeal: (id: string) => void;
   addSavedMeal: (meal: Omit<SavedMeal, 'id' | 'savedAt'>) => void;
@@ -466,6 +468,23 @@ export function FitProvider({ children }: { children: ReactNode }) {
     setCoachThinking,
      enablePremium: () => setState((current) => current.isPremium ? current : { ...current, isPremium: true }),
     setLanguage: (language) => setState((current) => ({ ...current, language })),
+    resetLocalUserData: async () => {
+      const keys = await AsyncStorage.getAllKeys();
+      const localUserDataKeys = keys.filter((key) => (
+        key === 'forge-fit-state'
+        || key.startsWith('forge-fit-coach-')
+        || key === 'forge-fit-ai-client-id'
+        || key === 'forge-fit-ai-access-token'
+      ));
+      await AsyncStorage.multiRemove(localUserDataKeys);
+      await clearLocalAiUsageIdentity();
+      setState((current) => ({
+        ...initialState,
+        accountId: createLocalAccountId(),
+        language: current.language,
+        isPremium: isSubscribed === true || PREVIEW_SUBSCRIPTION_ACTIVE,
+      }));
+    },
      addMeal: (meal) => setState((current) => recordStreakActivity({
        ...current,
        meals: [...current.meals, { ...meal, date: meal.date ?? new Date().toISOString(), id: `${Date.now()}-${Math.random()}` }],

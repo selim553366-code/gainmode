@@ -68,7 +68,7 @@ const policies = {
         heading: '8. Verileriniz üzerindeki seçenekleriniz',
         bullets: [
           'Kamera iznini cihaz ayarlarından kapatabilirsiniz.',
-          'Yerel profil, öğün ve ilerleme kayıtlarını uygulama verilerini temizleyerek veya uygulamayı kaldırarak silebilirsiniz.',
+          'Yerel verilerinizi GainMode içinde Ayarlar > Cihazımdaki verileri sil seçeneğiyle kaldırabilirsiniz. Uygulama verilerini temizlemek veya uygulamayı kaldırmak da yerel kayıtları siler.',
           'Yapay zekâ koçu, yemek fotoğrafı analizi veya yemek aramasını kullanmayarak bu özellikler için veri aktarımını önleyebilirsiniz.',
           'Gizlilikle ilgili bir soru veya talep için Google Play mağaza listelemesinde yer alan geliştirici iletişim kanalını kullanabilirsiniz.',
         ],
@@ -106,7 +106,7 @@ const policies = {
         heading: '2. Information stored on your device',
         paragraphs: [
           'Your profile information, username, meals, weight logs, workout progress, friend and challenge records, app language, and usage counters are stored by default in the app storage on your device.',
-          'Forge Fit does not send this local data to the server to create an account profile. Uninstalling the app or clearing its data in your device settings may delete these local records.',
+          'GainMode does not send this local data to the server to create an account profile. You can delete it in the app under Settings > Delete my local data, or clear the app data in your device settings.',
         ],
       },
       {
@@ -149,7 +149,7 @@ const policies = {
         heading: '8. Your choices',
         bullets: [
           'You can revoke camera permission in your device settings.',
-          'You can delete local profile, meal, and progress records by clearing app data or uninstalling the app.',
+          'You can delete local data in GainMode under Settings > Delete my local data. Clearing app data or uninstalling the app also removes local records.',
           'You can prevent data transfer for these features by not using the AI coach, food photo analysis, or food search.',
           'For privacy questions or requests, use the developer contact channel shown on the Google Play store listing.',
         ],
@@ -187,7 +187,7 @@ const policies = {
         heading: '2. Auf deinem Gerät gespeicherte Informationen',
         paragraphs: [
           'Profilinformationen, Benutzername, Mahlzeiten, Gewichtsprotokolle, Trainingsfortschritt, Freundes- und Challenge-Einträge, App-Sprache und Nutzungzähler werden standardmäßig im App-Speicher deines Geräts gespeichert.',
-          'Forge Fit sendet diese lokalen Daten nicht an den Server, um ein Kontoprofil zu erstellen. Das Deinstallieren der App oder das Löschen ihrer Daten in den Geräteeinstellungen kann diese lokalen Einträge entfernen.',
+          'GainMode sendet diese lokalen Daten nicht an den Server, um ein Kontoprofil zu erstellen. Du kannst sie in der App unter Einstellungen > Meine lokalen Daten löschen entfernen oder die App-Daten in den Geräteeinstellungen löschen.',
         ],
       },
       {
@@ -230,7 +230,7 @@ const policies = {
         heading: '8. Deine Möglichkeiten',
         bullets: [
           'Du kannst die Kameraberechtigung in den Geräteeinstellungen widerrufen.',
-          'Du kannst lokale Profil-, Mahlzeiten- und Fortschrittsdaten durch das Löschen der App-Daten oder die Deinstallation der App entfernen.',
+          'Du kannst lokale Daten in GainMode unter Einstellungen > Meine lokalen Daten löschen entfernen. Auch das Löschen der App-Daten oder die Deinstallation entfernt lokale Einträge.',
           'Du kannst die Datenübertragung für diese Funktionen vermeiden, indem du KI-Coach, Essensfotoanalyse und Lebensmittelsuche nicht verwendest.',
           'Für Datenschutzfragen oder Anfragen nutze den Entwicklerkontakt in der Google-Play-Store-Auflistung.',
         ],
@@ -268,7 +268,7 @@ const policies = {
         heading: '2. Informations stockées sur votre appareil',
         paragraphs: [
           'Vos informations de profil, votre nom d’utilisateur, vos repas, vos relevés de poids, votre progression, vos amis et défis, la langue de l’application et vos compteurs d’utilisation sont stockés par défaut dans le stockage de l’application sur votre appareil.',
-          'Forge Fit n’envoie pas ces données locales au serveur pour créer un profil de compte. La désinstallation de l’application ou l’effacement de ses données dans les réglages de l’appareil peut supprimer ces données locales.',
+          'GainMode n’envoie pas ces données locales au serveur pour créer un profil de compte. Tu peux les supprimer dans l’app sous Réglages > Supprimer mes données locales ou effacer les données de l’app dans les réglages de l’appareil.',
         ],
       },
       {
@@ -311,7 +311,7 @@ const policies = {
         heading: '8. Vos choix',
         bullets: [
           'Vous pouvez retirer l’autorisation de la caméra dans les réglages de votre appareil.',
-          'Vous pouvez supprimer les données locales de profil, de repas et de progression en effaçant les données de l’application ou en la désinstallant.',
+          'Tu peux supprimer les données locales dans GainMode sous Réglages > Supprimer mes données locales. Effacer les données de l’app ou désinstaller l’application supprime aussi les données locales.',
           'Vous pouvez éviter le transfert de données pour ces fonctionnalités en n’utilisant pas le coach IA, l’analyse de photos de repas ou la recherche d’aliments.',
           'Pour toute question ou demande relative à la confidentialité, utilisez le contact développeur indiqué sur la fiche Google Play.',
         ],
@@ -349,7 +349,7 @@ const policies = {
         heading: '2. Información almacenada en tu dispositivo',
         paragraphs: [
           'Tu información de perfil, nombre de usuario, comidas, registros de peso, progreso de entrenamiento, amigos y retos, idioma de la aplicación y contadores de uso se almacenan de forma predeterminada en el almacenamiento de la aplicación de tu dispositivo.',
-          'Forge Fit no envía estos datos locales al servidor para crear un perfil de cuenta. Desinstalar la aplicación o borrar sus datos desde los ajustes del dispositivo puede eliminar estos registros locales.',
+          'GainMode no envía estos datos locales al servidor para crear un perfil de cuenta. Puedes eliminarlos en la app desde Ajustes > Eliminar mis datos locales, o borrar los datos de la app desde los ajustes del dispositivo.',
         ],
       },
       {
@@ -392,7 +392,7 @@ const policies = {
         heading: '8. Tus opciones',
         bullets: [
           'Puedes retirar el permiso de cámara desde los ajustes del dispositivo.',
-          'Puedes borrar los datos locales de perfil, comidas y progreso borrando los datos de la aplicación o desinstalándola.',
+          'Puedes eliminar los datos locales desde Ajustes > Eliminar mis datos locales en GainMode. Borrar los datos de la aplicación o desinstalarla también elimina los registros locales.',
           'Puedes evitar la transferencia de datos de estas funciones si no utilizas el coach de IA, el análisis de fotos de comida o la búsqueda de alimentos.',
           'Para preguntas o solicitudes de privacidad, utiliza el contacto del desarrollador que aparece en la ficha de Google Play.',
         ],

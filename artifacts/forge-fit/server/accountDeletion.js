@@ -29,13 +29,14 @@ const pages = {
           'Alternatif olarak Forge Fit’i cihazınızdan kaldırın.',
         ],
         paragraphs: [
+          'GainMode içinde Ayarlar > Cihazımdaki verileri sil seçeneğini kullanın. Bu seçenek iOS ve Android’de yerel uygulama verilerini siler; mağaza aboneliğinizi iptal etmez.',
           'Bu işlem cihazda bulunan profil, kullanıcı adı, öğün, kilo, antrenman, arkadaş, challenge ve kullanım verilerini siler. Silinen yerel veriler geri getirilemez.',
         ],
       },
       {
         heading: 'Premium aboneliği iptal etme',
         paragraphs: [
-          'Uygulamayı kaldırmak Premium aboneliğinizi otomatik olarak iptal etmeyebilir. Aboneliği Google Play Store’daki Abonelikler bölümünden ayrıca iptal edin.',
+          'Uygulamayı kaldırmak Premium aboneliğinizi iptal etmez. Aboneliği App Store veya Google Play hesap ayarlarınızdaki Abonelikler bölümünden ayrıca iptal edin.',
         ],
       },
       {
@@ -71,13 +72,14 @@ const pages = {
           'Alternatively, uninstall Forge Fit from your device.',
         ],
         paragraphs: [
+          'In GainMode, open Settings and select Delete my local data. This option clears local app data on iOS and Android; it does not cancel your store subscription.',
           'This removes profile, username, meal, weight, workout, friend, challenge, and usage data stored on the device. Deleted local data cannot be recovered.',
         ],
       },
       {
         heading: 'Cancel your Premium subscription',
         paragraphs: [
-          'Uninstalling the app may not automatically cancel your Premium subscription. Cancel the subscription separately from the Subscriptions section of Google Play Store.',
+          'Uninstalling the app does not cancel your Premium subscription. Cancel it separately in the Subscriptions settings of your App Store or Google Play account.',
         ],
       },
       {
@@ -113,13 +115,14 @@ const pages = {
           'Alternativ kannst du Forge Fit von deinem Gerät deinstallieren.',
         ],
         paragraphs: [
+          'Öffne in GainMode die Einstellungen und wähle Meine lokalen Daten löschen. Damit werden lokale App-Daten unter iOS und Android gelöscht; dein Store-Abo wird nicht gekündigt.',
           'Dadurch werden Profil, Benutzername, Mahlzeiten, Gewicht, Training, Freunde, Challenges und Nutzungsdaten auf dem Gerät gelöscht. Gelöschte lokale Daten können nicht wiederhergestellt werden.',
         ],
       },
       {
         heading: 'Premium-Abonnement kündigen',
         paragraphs: [
-          'Die Deinstallation der App kündigt dein Premium-Abonnement möglicherweise nicht automatisch. Kündige das Abonnement separat im Bereich Abonnements des Google Play Store.',
+          'Die Deinstallation der App kündigt dein Premium-Abonnement nicht. Kündige es separat in den Abo-Einstellungen deines App-Store- oder Google-Play-Kontos.',
         ],
       },
       {
@@ -155,13 +158,14 @@ const pages = {
           'Vous pouvez aussi désinstaller Forge Fit de votre appareil.',
         ],
         paragraphs: [
+          'Dans GainMode, ouvre les réglages et sélectionne Supprimer mes données locales. Cette option efface les données locales sur iOS et Android ; elle ne résilie pas ton abonnement de store.',
           'Cette action supprime de l’appareil le profil, le nom d’utilisateur, les repas, le poids, les entraînements, les amis, les défis et les données d’utilisation. Les données locales supprimées ne peuvent pas être récupérées.',
         ],
       },
       {
         heading: 'Annuler votre abonnement Premium',
         paragraphs: [
-          'La désinstallation de l’application peut ne pas annuler automatiquement votre abonnement Premium. Annulez séparément l’abonnement dans la section Abonnements du Google Play Store.',
+          'La désinstallation de l’application ne résilie pas ton abonnement Premium. Résilie-le séparément dans les réglages d’abonnement de ton compte App Store ou Google Play.',
         ],
       },
       {
@@ -197,13 +201,14 @@ const pages = {
           'También puedes desinstalar Forge Fit del dispositivo.',
         ],
         paragraphs: [
+          'En GainMode, abre Ajustes y selecciona Eliminar mis datos locales. Esta opción borra los datos locales de iOS y Android, pero no cancela tu suscripción de la tienda.',
           'Esto elimina del dispositivo los datos de perfil, nombre de usuario, comidas, peso, entrenamientos, amigos, retos y uso. Los datos locales eliminados no se pueden recuperar.',
         ],
       },
       {
         heading: 'Cancelar la suscripción Premium',
         paragraphs: [
-          'Desinstalar la aplicación puede no cancelar automáticamente tu suscripción Premium. Cancela la suscripción por separado desde la sección Suscripciones de Google Play Store.',
+          'Desinstalar la aplicación no cancela tu suscripción Premium. Cancélala por separado en los ajustes de suscripciones de tu cuenta de App Store o Google Play.',
         ],
       },
       {

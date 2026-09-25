@@ -7,6 +7,12 @@ const AI_ACCESS_TOKEN_KEY = 'forge-fit-ai-access-token';
 let cachedClientId: string | null = null;
 let cachedAccessToken: { token: string; expiresAt: number } | null = null;
 
+export async function clearLocalAiUsageIdentity() {
+  cachedClientId = null;
+  cachedAccessToken = null;
+  await AsyncStorage.multiRemove([AI_CLIENT_ID_KEY, AI_ACCESS_TOKEN_KEY]);
+}
+
 export class AiAccessError extends Error {
   readonly status: number;
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Animated, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
@@ -8,6 +8,7 @@ import { useColors } from '@/hooks/useColors';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 import { apiUrl } from '@/lib/api';
+import { legalDocumentUrl, type LegalDocument } from '@/lib/legalDocuments';
 
 type LegalSection = 'privacy' | 'terms' | null;
 type FeedbackCategory = 'bug' | 'suggestion' | 'subscription' | 'payment' | 'notifications' | 'other';
@@ -27,6 +28,7 @@ export default function SettingsScreen() {
   const {
     language,
     setLanguage,
+    resetLocalUserData,
   } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [expanded, setExpanded] = useState<LegalSection>(null);
@@ -38,6 +40,33 @@ export default function SettingsScreen() {
   const [feedbackSending, setFeedbackSending] = useState(false);
   const feedbackSuccessProgress = React.useRef(new Animated.Value(0)).current;
   const languages = Object.keys(languageLabels) as Language[];
+
+  const openLegalDocument = async (document: LegalDocument) => {
+    try {
+      await Linking.openURL(legalDocumentUrl(document, language));
+    } catch {
+      Alert.alert(t('legalLinkErrorTitle'), t('legalLinkErrorBody'));
+    }
+  };
+
+  const confirmLocalDataDeletion = () => {
+    Alert.alert(t('deleteLocalDataConfirmTitle'), t('deleteLocalDataConfirmBody'), [
+      { text: t('deleteLocalDataCancel'), style: 'cancel' },
+      {
+        text: t('deleteLocalDataConfirmAction'),
+        style: 'destructive',
+        onPress: () => {
+          void resetLocalUserData().then(() => {
+            Alert.alert(t('deleteLocalDataDoneTitle'), t('deleteLocalDataDoneBody'), [
+              { text: t('deleteLocalDataOkay'), onPress: () => router.replace('/') },
+            ]);
+          }).catch(() => {
+            Alert.alert(t('deleteLocalDataErrorTitle'), t('deleteLocalDataErrorBody'));
+          });
+        },
+      },
+    ]);
+  };
 
   React.useEffect(() => {
     if (!feedbackSent) return undefined;
@@ -250,6 +279,8 @@ export default function SettingsScreen() {
         onPress={() => setExpanded(expanded === 'privacy' ? null : 'privacy')}
         body={t('privacyPolicyBody')}
         points={[t('privacyPoint1'), t('privacyPoint2'), t('privacyPoint3')]}
+        openFullLabel={t('openFullPrivacy')}
+        onOpenFull={() => { void openLegalDocument('privacy-policy'); }}
       />
       <LegalCard
         icon="document-text-outline"
@@ -259,7 +290,28 @@ export default function SettingsScreen() {
         onPress={() => setExpanded(expanded === 'terms' ? null : 'terms')}
         body={t('termsBody')}
         points={[t('termsPoint1'), t('termsPoint2'), t('termsPoint3')]}
+        openFullLabel={t('openFullTerms')}
+        onOpenFull={() => { void openLegalDocument('terms-of-service'); }}
       />
+      <SectionTitle title={t('localDataSectionTitle')} />
+      <Card>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityHint={t('deleteLocalDataSummary')}
+          testID="delete-local-data"
+          onPress={confirmLocalDataDeletion}
+          style={({ pressed }) => [styles.row, { opacity: pressed ? 0.72 : 1 }]}
+        >
+          <View style={[styles.iconBox, { backgroundColor: `${colors.destructive}18` }]}>
+            <Ionicons name="trash-outline" size={21} color={colors.destructive} />
+          </View>
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('deleteLocalData')}</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('deleteLocalDataSummary')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
+        </Pressable>
+      </Card>
       </Screen>
     </>
   );
@@ -273,6 +325,8 @@ function LegalCard({
   onPress,
   body,
   points,
+  openFullLabel,
+  onOpenFull,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   title: string;
@@ -281,6 +335,8 @@ function LegalCard({
   onPress: () => void;
   body: string;
   points: string[];
+  openFullLabel: string;
+  onOpenFull: () => void;
 }) {
   const colors = useColors();
   return (
@@ -304,6 +360,10 @@ function LegalCard({
               <Text style={[styles.pointText, { color: colors.mutedForeground }]}>{point}</Text>
             </View>
           ))}
+          <Pressable accessibilityRole="link" onPress={onOpenFull} style={styles.legalLink}>
+            <Text style={[styles.legalLinkText, { color: colors.primary }]}>{openFullLabel}</Text>
+            <Ionicons name="arrow-forward" size={15} color={colors.primary} />
+          </Pressable>
         </View>
       ) : null}
     </Card>
@@ -331,6 +391,8 @@ const styles = StyleSheet.create({
   body: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20 },
   point: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   pointText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
+  legalLink: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, paddingVertical: 4 },
+  legalLinkText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   feedbackDetails: { borderTopWidth: 1, marginTop: 15, paddingTop: 14, gap: 12 },
   feedbackLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   feedbackTypeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },

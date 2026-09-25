@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { ActivityIndicator, Animated, Image, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -12,6 +12,7 @@ import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/s
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@/components/AppIcon';
+import { legalDocumentUrl } from '@/lib/legalDocuments';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -377,6 +378,15 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   };
 
   if (!visible || !SUBSCRIPTION_PURCHASE_ENABLED) return null;
+  const openLegalDocument = (document: 'privacy-policy' | 'terms-of-service') => {
+    try {
+      void Linking.openURL(legalDocumentUrl(document, language)).catch(() => {
+        Alert.alert(t('legalLinkErrorTitle'), t('legalLinkErrorBody'));
+      });
+    } catch {
+      Alert.alert(t('legalLinkErrorTitle'), t('legalLinkErrorBody'));
+    }
+  };
   return <>
    <Modal transparent visible animationType="none" onRequestClose={onClose}>
     <View style={styles.premiumModalRoot}>
@@ -412,6 +422,14 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
            {actionError ? <Text style={[styles.premiumActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
              <Pressable testID="start-premium" disabled={subscriptionCheckPending || isPurchasing} onPress={activatePremium} style={({ pressed }) => [styles.premiumCta, { backgroundColor: colors.primary, opacity: pressed || subscriptionCheckPending || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}><Text style={[styles.premiumCtaText, { color: colors.primaryForeground }]}>{isSubscribed ? t('premiumAccessActiveContinue') : isPurchasing ? t('premiumLoading') : t('premiumStart')}</Text><Ionicons name={isSubscribed ? 'checkmark-circle' : 'arrow-forward'} size={18} color={colors.primaryForeground} /></Pressable>
            <Pressable testID="restore-premium" disabled={isRestoring} onPress={restorePremium} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
+           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 2 }}>
+             <Pressable accessibilityRole="link" testID="premium-terms-link" onPress={() => openLegalDocument('terms-of-service')} hitSlop={8}>
+               <Text style={[styles.premiumTrust, { color: colors.primary }]}>{t('termsOfService')}</Text>
+             </Pressable>
+             <Pressable accessibilityRole="link" testID="premium-privacy-link" onPress={() => openLegalDocument('privacy-policy')} hitSlop={8}>
+               <Text style={[styles.premiumTrust, { color: colors.primary }]}>{t('privacyPolicy')}</Text>
+             </Pressable>
+           </View>
           <Text style={[styles.premiumTrust, { color: colors.mutedForeground }]}>{t('premiumTrust')}</Text>
         </LinearGradient>
       </Animated.View>
