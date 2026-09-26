@@ -1161,7 +1161,6 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
     ? null
     : t('premiumAnnualSavingsValue').replace('{percent}', String(annualSavingsPercent));
   const [actionError, setActionError] = React.useState<string | null>(null);
-  const [promoOpen, setPromoOpen] = React.useState(false);
   const [promoCode, setPromoCode] = React.useState('');
   const [promoError, setPromoError] = React.useState<string | null>(null);
   const [promoCelebrationVisible, setPromoCelebrationVisible] = React.useState(false);
@@ -1268,19 +1267,10 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
         </Pressable>
       </View>
      {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel={t(isSubscribed ? 'premiumAccessActiveContinue' : 'premiumWelcomeCta')} disabled={subscriptionCheckPending || isPurchasing} onPress={() => { triggerHaptic(); void handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || subscriptionCheckPending || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isPurchasing ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
       {__DEV__ ? <View style={styles.offerPromoSection}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: promoOpen }}
-          testID="premium-test-access-toggle"
-          onPress={() => { setPromoOpen((open) => !open); setPromoError(null); }}
-          style={styles.offerPromoToggle}
-        >
-          <Ionicons name="ticket-outline" size={14} color={colors.mutedForeground} />
-          <Text style={[styles.offerPromoToggleText, { color: colors.mutedForeground }]}>{t('premiumPromo')}</Text>
-          <Ionicons name={promoOpen ? 'chevron-up' : 'chevron-down'} size={14} color={colors.mutedForeground} />
-        </Pressable>
-        {promoOpen ? <View style={styles.offerPromoForm}>
+        <Text style={[styles.offerPromoLabel, { color: colors.mutedForeground }]}>{t('premiumPromo')}</Text>
+        <View style={styles.offerPromoForm}>
           <TextInput
             testID="premium-test-access-code"
             accessibilityLabel={t('premiumPromo')}
@@ -1302,10 +1292,9 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
           >
             <Text style={[styles.offerPromoApplyText, { color: colors.primaryForeground }]}>{t('premiumPromoApply')}</Text>
           </Pressable>
-        </View> : null}
+        </View>
         {promoError ? <Text accessibilityRole="alert" style={[styles.offerPromoError, { color: colors.destructive }]}>{promoError}</Text> : null}
       </View> : null}
-      <Pressable accessibilityRole="button" accessibilityLabel={t(isSubscribed ? 'premiumAccessActiveContinue' : 'premiumWelcomeCta')} disabled={subscriptionCheckPending || isPurchasing} onPress={() => { triggerHaptic(); void handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || subscriptionCheckPending || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isPurchasing ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
     <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
     </ScrollView>
    </LinearGradient>
@@ -1550,9 +1539,8 @@ const styles = StyleSheet.create({
   offerSavingsLabel: { fontFamily: 'Inter_700Bold', fontSize: 7, lineHeight: 9, letterSpacing: 0.3, textTransform: 'uppercase' },
   features: { gap: 17, paddingVertical: 20 },
   offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
-  offerPromoSection: { width: '100%', marginTop: 2, marginBottom: 8 },
-  offerPromoToggle: { minHeight: 32, alignSelf: 'center', alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 10 },
-  offerPromoToggleText: { fontFamily: 'Inter_500Medium', fontSize: 11, textDecorationLine: 'underline' },
+  offerPromoSection: { width: '100%', marginTop: 9, marginBottom: 4 },
+  offerPromoLabel: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, marginBottom: 6 },
   offerPromoForm: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
   offerPromoInput: { flex: 1, minWidth: 0, height: 42, borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, fontFamily: 'Inter_500Medium', fontSize: 13 },
   offerPromoApply: { minHeight: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 13 },
