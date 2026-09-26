@@ -266,7 +266,7 @@ export function ExerciseFormGuide({ visible, exerciseName, language, onClose }: 
             <Ionicons name="close" size={19} color={colors.foreground} />
           </Pressable>
         </View>
-        <Image source={guide.image ?? formImages[guide.kind]} resizeMode="cover" style={styles.image} />
+        <Image source={guide.image ?? formImages[guide.kind]} resizeMode="contain" style={styles.image} />
         <View style={[styles.tip, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}>
           <Ionicons name="checkmark-circle-outline" size={18} color={colors.primary} />
           <Text style={[styles.tipText, { color: colors.foreground }]}>{translate(language, guide.tip)}</Text>
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1, textTransform: 'uppercase' },
   title: { fontFamily: 'Inter_700Bold', fontSize: 17, lineHeight: 21, marginTop: 1 },
   close: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  image: { width: '100%', height: 196, borderRadius: 15, backgroundColor: '#2461B4' },
+  image: { width: '100%', aspectRatio: 1, borderRadius: 15, backgroundColor: '#2461B4' },
   tip: { minHeight: 54, borderRadius: 13, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 9, marginTop: 9, flexDirection: 'row', alignItems: 'center', gap: 8 },
   tipText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17 },
   action: { minHeight: 44, borderRadius: 14, marginTop: 10, alignItems: 'center', justifyContent: 'center' },

@@ -271,7 +271,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
                <Ionicons name="close" size={18} color={colors.foreground} />
              </Pressable>
            </View>
-           <Image source={guideImageForKind(kind)} resizeMode="cover" style={styles.guideImage} />
+            <Image source={guideImageForKind(kind)} resizeMode="contain" style={styles.guideImage} />
            <Text style={[styles.guideBody, { color: colors.foreground }]}>{directionHint}</Text>
            <View style={[styles.guideTip, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}>
              <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   guideEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1, textTransform: 'uppercase' },
   guideTitle: { fontFamily: 'Inter_700Bold', fontSize: 20, lineHeight: 24, marginTop: 1 },
   guideClose: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  guideImage: { width: '100%', height: 218, borderRadius: 16, backgroundColor: '#0B0D0C' },
+  guideImage: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: '#0B0D0C' },
   guideBody: { fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18, marginTop: 11 },
   guideTip: { minHeight: 42, borderRadius: 12, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 7, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
   guideTipText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 14 },
