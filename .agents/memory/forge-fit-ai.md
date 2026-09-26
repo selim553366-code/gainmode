@@ -27,11 +27,11 @@ FitBud plan changes should travel as a small structured action list, but the mob
 
 **How to apply:** Keep model actions pending until explicit user approval; apply only validated actions and recompute dependent projections when nutrition targets change.
 
-Test-only Premium access must remain a separate local flag and must never alter RevenueCat entitlements, offerings, products, or purchase/restore behavior.
+The user-facing test-code Premium bypass was removed from the mobile app; do not restore the test-code entry field or local Premium unlock path.
 
-**Why:** Android QA needs a deterministic local unlock without creating or faking a real store subscription.
+**Why:** The fixed development code appeared in Expo's onboarding and Premium screens; the app should use its real RevenueCat purchase and restore flows instead.
 
-**How to apply:** Keep the test code and storage key isolated, preserve the real entitlement check, and treat the local unlock as temporary QA functionality.
+**How to apply:** Keep Premium gated by RevenueCat entitlement checks. Use isolated test fixtures or mocked store responses for QA rather than adding a user-facing access code.
 
 Production AI access is issued by the API only after RevenueCat verifies the `forge_fit_pro` entitlement; the mobile app presents a short-lived signed access token on coach and food-analysis requests.
 

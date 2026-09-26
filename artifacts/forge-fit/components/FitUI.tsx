@@ -9,7 +9,6 @@ import { translate, type Language, type TranslationKey } from '@/lib/i18n';
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
-import { isValidTestPremiumPromoCode } from '@/lib/testPremiumPromo';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@/components/AppIcon';
@@ -300,7 +299,7 @@ export function PremiumLock() {
 
 export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const colors = useColors();
-  const { language, enablePremium, enableTestPremium } = useFit();
+  const { language, enablePremium } = useFit();
   const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>(() => annualPackage ? 'annual' : 'monthly');
@@ -315,8 +314,6 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   const appear = React.useRef(new Animated.Value(0)).current;
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [purchaseCelebration, setPurchaseCelebration] = React.useState(false);
-  const [promoCode, setPromoCode] = React.useState('');
-  const [promoError, setPromoError] = React.useState<string | null>(null);
   const subscriptionCheckPending = isAvailable && (isLoading || isSubscribed === undefined);
 
   React.useEffect(() => {
@@ -379,16 +376,6 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
       setActionError(t('premiumRestoreError'));
     }
   };
-  const handleTestPromo = () => {
-    if (!isValidTestPremiumPromoCode(promoCode, __DEV__)) {
-      setPromoError(t('premiumPromoInvalid'));
-      return;
-    }
-    setPromoError(null);
-    enableTestPremium();
-    setPurchaseCelebration(true);
-  };
-
   if (!visible || !SUBSCRIPTION_PURCHASE_ENABLED) return null;
   const openLegalDocument = (document: 'privacy-policy' | 'terms-of-service') => {
     try {
@@ -433,33 +420,6 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
           <Text style={[styles.premiumTrialBody, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
            {actionError ? <Text style={[styles.premiumActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
              <Pressable testID="start-premium" disabled={subscriptionCheckPending || isPurchasing} onPress={activatePremium} style={({ pressed }) => [styles.premiumCta, { backgroundColor: colors.primary, opacity: pressed || subscriptionCheckPending || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}><Text style={[styles.premiumCtaText, { color: colors.primaryForeground }]}>{isSubscribed ? t('premiumAccessActiveContinue') : isPurchasing ? t('premiumLoading') : t('premiumStart')}</Text><Ionicons name={isSubscribed ? 'checkmark-circle' : 'arrow-forward'} size={18} color={colors.primaryForeground} /></Pressable>
-              {__DEV__ ? <View style={styles.premiumPromoSection}>
-                <Text style={[styles.premiumPromoLabel, { color: colors.mutedForeground }]}>{t('premiumPromo')}</Text>
-                <View style={styles.premiumPromoForm}>
-                  <TextInput
-                    testID="premium-test-access-code"
-                    accessibilityLabel={t('premiumPromo')}
-                    value={promoCode}
-                    onChangeText={(value) => { setPromoCode(value); setPromoError(null); }}
-                    placeholder={t('premiumPromoPlaceholder')}
-                    placeholderTextColor={colors.mutedForeground}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="done"
-                    onSubmitEditing={handleTestPromo}
-                    style={[styles.premiumPromoInput, { backgroundColor: `${colors.secondary}88`, borderColor: colors.border, color: colors.foreground }]}
-                  />
-                  <Pressable
-                    accessibilityRole="button"
-                    testID="premium-test-access-apply"
-                    onPress={handleTestPromo}
-                    style={({ pressed }) => [styles.premiumPromoApply, { backgroundColor: colors.primary, opacity: pressed ? 0.78 : 1 }]}
-                  >
-                    <Text style={[styles.premiumPromoApplyText, { color: colors.primaryForeground }]}>{t('premiumPromoApply')}</Text>
-                  </Pressable>
-                </View>
-                {promoError ? <Text accessibilityRole="alert" style={[styles.premiumPromoError, { color: colors.destructive }]}>{promoError}</Text> : null}
-              </View> : null}
            <Pressable testID="restore-premium" disabled={isRestoring} onPress={restorePremium} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
            <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 2 }}>
              <Pressable accessibilityRole="link" testID="premium-terms-link" onPress={() => openLegalDocument('terms-of-service')} hitSlop={8}>
@@ -657,13 +617,6 @@ export const styles = StyleSheet.create({
   premiumCta: { height: 53, borderRadius: 17, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },
   premiumCtaText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   premiumActionError: { fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, textAlign: 'center', marginBottom: 10 },
-  premiumPromoSection: { width: '100%', marginTop: 8, marginBottom: 4 },
-  premiumPromoLabel: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, marginBottom: 5 },
-  premiumPromoForm: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 8 },
-  premiumPromoInput: { flex: 1, minWidth: 0, height: 42, borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, fontFamily: 'Inter_500Medium', fontSize: 13 },
-  premiumPromoApply: { minHeight: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 13 },
-  premiumPromoApplyText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
-  premiumPromoError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 14, marginTop: 5 },
   premiumRestoreButton: { alignItems: 'center', justifyContent: 'center', minHeight: 36 },
   premiumRestoreText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   premiumTrust: { fontFamily: 'Inter_400Regular', fontSize: 10, textAlign: 'center', marginTop: 12 },
