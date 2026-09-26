@@ -48,6 +48,8 @@ export type DumbbellWeightLog = {
   id: string;
   workoutId: string;
   exerciseId: string;
+  exerciseName?: string;
+  muscleGroup?: MuscleGroup;
   weightKg: number;
   date: string;
 };
@@ -719,6 +721,8 @@ export function FitProvider({ children }: { children: ReactNode }) {
              id: `${Date.now()}-${Math.random()}`,
              workoutId,
              exerciseId,
+              exerciseName: patch.name ?? previousExercise?.name,
+              muscleGroup: previousExercise?.muscleGroup,
              weightKg: nextWeight,
              date: new Date().toISOString(),
            }]

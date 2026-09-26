@@ -20,3 +20,9 @@ Per-exercise calorie labels now weight each movement by its type, muscle group, 
 **Why:** Users need movement-specific estimates instead of a misleading equal split, while nutrition totals must remain aligned with the same duration and equipment intensity model.
 
 **How to apply:** Keep body weight and dumbbell weight in the profile, use recognized movement/muscle fallbacks for the exercise effort, and calculate a label from the exercise’s position in the complete workout rather than its completion flag.
+
+Exercise-weight history must follow movement identity across generated cycles, not only workout-slot IDs. Cycle generation reuses slot IDs while rotating the exercise selected for each slot, so new history records retain the exercise name and muscle group; legacy records without that metadata can still fall back to their original IDs.
+
+**Why:** Matching only stable slot IDs can combine different movements into one misleading progress chart or comparison after a plan rotates.
+
+**How to apply:** For cross-cycle movement progress, match identified records by exercise name and muscle group. Use workout/exercise IDs only for older records that lack movement metadata.

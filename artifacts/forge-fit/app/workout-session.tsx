@@ -7,9 +7,11 @@ import { Ionicons } from '@/components/AppIcon';
 import { MuscleAnatomy, type WorkoutMapKey } from '@/components/MuscleAnatomy';
 import { Card, CelebrationBurst, ProgressBar, triggerHaptic } from '@/components/FitUI';
 import { ExerciseFormGuide, hasExerciseFormGuide } from '@/components/ExerciseFormGuide';
+import { ExerciseWeightProgressChart } from '@/components/ExerciseWeightProgressChart';
 import { useFit } from '@/context/FitContext';
 import { useColors } from '@/hooks/useColors';
 import { translate, type TranslationKey } from '@/lib/i18n';
+import { getExerciseWeightHistory } from '@/lib/exerciseWeightHistory';
 import { estimateExerciseCalories, type MuscleGroup } from '@/lib/workoutPlan';
 
 type BodySide = 'front' | 'back';
@@ -71,6 +73,8 @@ export default function WorkoutSessionScreen() {
   const [celebrating, setCelebrating] = React.useState(false);
   const [showTapHint, setShowTapHint] = React.useState(false);
   const [guideExercise, setGuideExercise] = React.useState<string | null>(null);
+  const [expandedWeightChartId, setExpandedWeightChartId] = React.useState<string | null>(null);
+  const [weightDrafts, setWeightDrafts] = React.useState<Record<string, string>>({});
   const listAnimation = React.useRef(new Animated.Value(0)).current;
   const tapHintAnimation = React.useRef(new Animated.Value(0)).current;
   const activeMuscles = React.useMemo(() => {
@@ -143,16 +147,22 @@ export default function WorkoutSessionScreen() {
     const normalized = text.replace(',', '.').trim();
     if (!normalized) {
       updateExercise(workout.id, exerciseId, { dumbbellWeightKg: null });
-      return;
+    } else {
+      const parsed = Number(normalized);
+      if (Number.isFinite(parsed) && parsed > 0 && parsed <= 100) {
+        updateExercise(workout.id, exerciseId, { dumbbellWeightKg: Math.round(parsed * 10) / 10 });
+      }
     }
-    const parsed = Number(normalized);
-    if (Number.isFinite(parsed) && parsed > 0 && parsed <= 100) {
-      updateExercise(workout.id, exerciseId, { dumbbellWeightKg: Math.round(parsed * 10) / 10 });
-    }
+    setWeightDrafts((current) => {
+      if (!Object.prototype.hasOwnProperty.call(current, exerciseId)) return current;
+      const next = { ...current };
+      delete next[exerciseId];
+      return next;
+    });
   };
 
   return <View style={[styles.page, { backgroundColor: colors.background }]}>
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 36 }]}>
+    <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 36 }]}>
       <View style={styles.header}>
         <Pressable accessibilityLabel={t('backToPlan')} onPress={() => router.back()} style={[styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name="arrow-back" size={20} color={colors.foreground} />
@@ -241,22 +251,29 @@ export default function WorkoutSessionScreen() {
           const revealStart = Math.min(0.65, index * 0.1);
           const revealEnd = Math.min(1, revealStart + 0.32);
           const exerciseCalories = estimateExerciseCalories(workout, exercise, profile ?? undefined);
-           const exerciseWeightHistory = dumbbellWeightHistory
-             .filter((item) => item.workoutId === workout.id && item.exerciseId === exercise.id)
-             .sort((a, b) => a.date.localeCompare(b.date));
+           const exerciseWeightHistory = getExerciseWeightHistory(dumbbellWeightHistory, {
+             workoutId: workout.id,
+             exerciseId: exercise.id,
+             exerciseName: exercise.name,
+             muscleGroup: exercise.muscleGroup,
+           });
            const previousDumbbellWeight = exerciseWeightHistory.length > 1
              ? exerciseWeightHistory[exerciseWeightHistory.length - 2].weightKg
              : null;
            const dumbbellWeightIncrease = previousDumbbellWeight !== null && exercise.dumbbellWeightKg !== undefined
              ? Math.round((exercise.dumbbellWeightKg - previousDumbbellWeight) * 10) / 10
              : null;
+           const weightChartExpanded = expandedWeightChartId === exercise.id;
+           const canShowWeightChart = profile?.equipment !== 'bodyweight'
+             && (exercise.dumbbellWeightKg !== undefined || exerciseWeightHistory.length > 0);
           return <Animated.View key={exercise.id} style={{
             opacity: listAnimation.interpolate({ inputRange: [revealStart, revealEnd], outputRange: [0, 1], extrapolate: 'clamp' }),
             transform: [{ translateY: listAnimation.interpolate({ inputRange: [revealStart, revealEnd], outputRange: [18, 0], extrapolate: 'clamp' }) }],
           }}>
           <Card style={[styles.exerciseCard, exercise.completed ? { backgroundColor: `${colors.success}10`, borderColor: `${colors.success}55` } : null]}>
-            <ExerciseVisual color={exercise.completed ? colors.success : colors.primary} completed={Boolean(exercise.completed)} />
-            <View style={styles.exerciseInfo}>
+             <View style={styles.exerciseCardTop}>
+               <ExerciseVisual color={exercise.completed ? colors.success : colors.primary} completed={Boolean(exercise.completed)} />
+               <View style={styles.exerciseInfo}>
               <Text style={[styles.exerciseOrder, { color: colors.primary }]}>{String(index + 1).padStart(2, '0')}</Text>
               <Text style={[styles.exerciseName, { color: colors.foreground }, exercise.completed ? styles.completedText : null]}>{label(exercise.name)}</Text>
               <View style={styles.exerciseMeta}>
@@ -276,8 +293,11 @@ export default function WorkoutSessionScreen() {
                  <View style={[styles.dumbbellWeightInputShell, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
                    <TextInput
                      accessibilityLabel={t('exerciseDumbbellWeight')}
-                     value={exercise.dumbbellWeightKg ? String(exercise.dumbbellWeightKg) : ''}
-                     onChangeText={(text) => updateDumbbellWeight(exercise.id, text)}
+                      value={Object.prototype.hasOwnProperty.call(weightDrafts, exercise.id)
+                        ? weightDrafts[exercise.id]
+                        : exercise.dumbbellWeightKg !== undefined ? String(exercise.dumbbellWeightKg) : ''}
+                      onChangeText={(text) => setWeightDrafts((current) => ({ ...current, [exercise.id]: text }))}
+                      onEndEditing={({ nativeEvent }) => updateDumbbellWeight(exercise.id, nativeEvent.text)}
                      keyboardType="decimal-pad"
                      placeholder="—"
                      placeholderTextColor={colors.mutedForeground}
@@ -287,16 +307,29 @@ export default function WorkoutSessionScreen() {
                  </View>
                </View> : null}
                {profile?.equipment !== 'bodyweight' && dumbbellWeightIncrease !== null ? <Text style={[styles.dumbbellWeightIncrease, { color: dumbbellWeightIncrease >= 0 ? colors.success : colors.orange }]}>{t('exerciseDumbbellIncrease')}: {dumbbellWeightIncrease >= 0 ? '+' : ''}{dumbbellWeightIncrease} kg</Text> : null}
-            </View>
-            <Pressable
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: Boolean(exercise.completed) }}
-              accessibilityLabel={t(exercise.completed ? 'markExerciseUndone' : 'markExerciseDone')}
-              onPress={() => completeExercise(exercise.id)}
-              style={[styles.checkButton, { backgroundColor: exercise.completed ? colors.success : colors.secondary, borderColor: exercise.completed ? colors.success : colors.border }]}
-            >
-              <Ionicons name={exercise.completed ? 'checkmark' : 'arrow-forward'} size={18} color={exercise.completed ? colors.primaryForeground : colors.primary} />
-            </Pressable>
+                 {canShowWeightChart ? <Pressable
+                   testID={`exercise-weight-chart-toggle-${exercise.id}`}
+                   accessibilityRole="button"
+                   accessibilityState={{ expanded: weightChartExpanded }}
+                   accessibilityLabel={t(weightChartExpanded ? 'exerciseWeightProgressHide' : 'exerciseWeightProgressShow')}
+                   onPress={() => setExpandedWeightChartId(weightChartExpanded ? null : exercise.id)}
+                   style={[styles.weightChartToggle, { borderColor: colors.border, backgroundColor: `${colors.primary}0C` }]}
+                 >
+                   <Ionicons name={weightChartExpanded ? 'chevron-up' : 'analytics-outline'} size={14} color={colors.primary} />
+                   <Text style={[styles.weightChartToggleText, { color: colors.primary }]}>{t(weightChartExpanded ? 'exerciseWeightProgressHide' : 'exerciseWeightProgressShow')}</Text>
+                 </Pressable> : null}
+               </View>
+               <Pressable
+                 accessibilityRole="checkbox"
+                 accessibilityState={{ checked: Boolean(exercise.completed) }}
+                 accessibilityLabel={t(exercise.completed ? 'markExerciseUndone' : 'markExerciseDone')}
+                 onPress={() => completeExercise(exercise.id)}
+                 style={[styles.checkButton, { backgroundColor: exercise.completed ? colors.success : colors.secondary, borderColor: exercise.completed ? colors.success : colors.border }]}
+               >
+                 <Ionicons name={exercise.completed ? 'checkmark' : 'arrow-forward'} size={18} color={exercise.completed ? colors.primaryForeground : colors.primary} />
+               </Pressable>
+             </View>
+             {weightChartExpanded ? <ExerciseWeightProgressChart entries={exerciseWeightHistory} language={language} /> : null}
           </Card>
         </Animated.View>;
         })}
@@ -339,7 +372,8 @@ const styles = StyleSheet.create({
   legendDot: { width: 9, height: 9, borderRadius: 5 },
   legendText: { fontFamily: 'Inter_500Medium', fontSize: 11 },
   exerciseHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 2 },
-  exerciseCard: { padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  exerciseCard: { padding: 12, marginBottom: 10 },
+  exerciseCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   exerciseVisual: { width: 70, height: 78, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   visualHead: { width: 15, height: 15, borderRadius: 8, borderWidth: 2, marginBottom: 3 },
   visualBody: { width: 7, height: 25, borderRadius: 4 },
@@ -365,6 +399,8 @@ const styles = StyleSheet.create({
   dumbbellWeightInput: { flex: 1, minWidth: 34, paddingVertical: 0, paddingHorizontal: 0, fontFamily: 'Inter_700Bold', fontSize: 12, textAlign: 'right' },
   dumbbellWeightUnit: { fontFamily: 'Inter_700Bold', fontSize: 10, marginLeft: 3 },
   dumbbellWeightIncrease: { fontFamily: 'Inter_700Bold', fontSize: 9, marginTop: 5 },
+  weightChartToggle: { minHeight: 34, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 5, marginTop: 7, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10, borderWidth: 1, maxWidth: '100%' },
+  weightChartToggleText: { flexShrink: 1, fontFamily: 'Inter_700Bold', fontSize: 9 },
   checkButton: { width: 39, height: 39, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   emptyPrompt: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 20, alignItems: 'center', padding: 24, marginBottom: 20 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, marginTop: 10 },
