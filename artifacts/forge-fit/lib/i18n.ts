@@ -1097,6 +1097,39 @@ const translations = {
   },
 } as const;
 
+const premiumPromoTranslations = {
+  tr: {
+    premiumPromo: 'Test erişimi',
+    premiumPromoPlaceholder: 'Test kodunu gir',
+    premiumPromoApply: 'Uygula',
+    premiumPromoInvalid: 'Geçersiz test kodu.',
+  },
+  en: {
+    premiumPromo: 'Test access',
+    premiumPromoPlaceholder: 'Enter test code',
+    premiumPromoApply: 'Apply',
+    premiumPromoInvalid: 'Invalid test code.',
+  },
+  de: {
+    premiumPromo: 'Testzugang',
+    premiumPromoPlaceholder: 'Testcode eingeben',
+    premiumPromoApply: 'Anwenden',
+    premiumPromoInvalid: 'Ungültiger Testcode.',
+  },
+  fr: {
+    premiumPromo: 'Accès de test',
+    premiumPromoPlaceholder: 'Saisis le code de test',
+    premiumPromoApply: 'Appliquer',
+    premiumPromoInvalid: 'Code de test invalide.',
+  },
+  es: {
+    premiumPromo: 'Acceso de prueba',
+    premiumPromoPlaceholder: 'Introduce el código de prueba',
+    premiumPromoApply: 'Aplicar',
+    premiumPromoInvalid: 'Código de prueba no válido.',
+  },
+} as const;
+
 const premiumTranslations = {
   tr: {
     premiumLoading: 'Yükleniyor...', premiumRestore: 'Satın alımları geri yükle', premiumRestoreNoPurchase: 'Geri yüklenecek aktif bir Premium satın alımı bulunamadı.', premiumPurchaseError: 'Satın alma tamamlanamadı. Lütfen tekrar dene.', premiumRestoreError: 'Satın alımlar geri yüklenemedi. Lütfen tekrar dene.', premiumStoreUnavailable: 'GainMode Access şu anda kullanılamıyor. Lütfen daha sonra tekrar dene.', premiumOwned: 'AKTİF', premiumExploreCta: 'Satın almadan önce keşfet', premiumExploreIncluded: 'GainMode Access alırsan bu özellik ve daha fazlası seninle.', premiumExploreDemoLabel: 'UYGULAMA ÖNİZLEMESİ', premiumExploreLocked: 'Access gerekli · Bu demo etkileşimli değildir.', premiumExploreSkip: 'Atla', premiumExploreNext: 'Sonraki özellik', premiumExploreFinish: 'Satın alma seçeneklerine geç', premiumAccessActiveEyebrow: 'GAINMODE ACCESS', premiumAccessActiveTitle: 'GainMode Access senin.', premiumAccessActiveBody: 'Tüm premium özelliklere erişimin açık. Hedeflerine odaklanmaya devam et.', premiumAccessActiveFeature1: 'Kişisel AI koçu', premiumAccessActiveFeature2: 'Akıllı beslenme araçları', premiumAccessActiveFeature3: 'Sana özel antrenman planı', premiumAccessActiveContinue: 'Devam et', premiumPurchaseSuccessEyebrow: 'ERİŞİM AÇILDI', premiumPurchaseSuccessTitle: 'GainMode Access senin.', premiumPurchaseSuccessBody: 'Planın, koçun ve tüm akıllı araçların artık yanında.',
@@ -2313,7 +2346,7 @@ const trainingLoadTranslations = {
   },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof coachRatingTranslations.tr | keyof typeof coachAtmosphereTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr | keyof typeof trainingLoadTranslations.tr;
+export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof premiumPromoTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof coachRatingTranslations.tr | keyof typeof coachAtmosphereTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr | keyof typeof trainingLoadTranslations.tr;
 
 const workoutReminderDescriptions: Record<Language, string> = {
   tr: 'Antrenman günlerinde saat 09:00’da o günün antrenmanını ve süresini hatırlat.',
@@ -2340,6 +2373,9 @@ function applyCurrentBrand(value: string): string {
 }
 
 export function translate(language: Language, key: TranslationKey): string {
+  if (key in premiumPromoTranslations.tr) {
+    return premiumPromoTranslations[language][key as keyof typeof premiumPromoTranslations.tr];
+  }
   if (key === 'premiumTrial' || key === 'premiumTrialBody' || key === 'premiumTrust') {
     return premiumPurchaseDisclosure[language][key];
   }

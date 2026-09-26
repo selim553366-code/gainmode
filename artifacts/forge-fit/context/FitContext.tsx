@@ -10,6 +10,7 @@ import { addStreakActivity, getCurrentStreak, normalizeStreakDates } from '@/lib
 import { badges, type BadgeMetric } from '@/lib/badges';
 import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, getWorkoutIntensity, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
 import { clearLocalAiUsageIdentity } from '@/lib/aiUsage';
+import { TEST_PREMIUM_PROMO_STORAGE_KEY } from '@/lib/testPremiumPromo';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type SavedMeal = Omit<Meal, 'date'> & { savedAt: string };
@@ -139,6 +140,7 @@ type FitContextValue = FitState & {
   coachThinking: boolean;
   setCoachThinking: (value: boolean) => void;
   enablePremium: () => void;
+  enableTestPremium: () => void;
   setLanguage: (language: Language) => void;
   resetLocalUserData: () => Promise<void>;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
@@ -311,6 +313,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<FitState>(initialState);
   const [hydrated, setHydrated] = useState(false);
   const [coachThinking, setCoachThinking] = useState(false);
+  const [testPromoUnlocked, setTestPromoUnlocked] = useState(false);
   const { isSubscribed } = useSubscription();
 
   useEffect(() => {
@@ -394,6 +397,18 @@ export function FitProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!__DEV__) return;
+    AsyncStorage.getItem(TEST_PREMIUM_PROMO_STORAGE_KEY).then((value) => {
+      if (value === 'true') setTestPromoUnlocked(true);
+    }).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!__DEV__ || !testPromoUnlocked) return;
+    AsyncStorage.setItem(TEST_PREMIUM_PROMO_STORAGE_KEY, 'true').catch(() => undefined);
+  }, [testPromoUnlocked]);
+
   const sanitizedWorkouts = useMemo(() => sanitizeWorkoutSplits(state.workouts), [state.workouts]);
 
   useEffect(() => {
@@ -438,12 +453,12 @@ export function FitProvider({ children }: { children: ReactNode }) {
   }, [hydrated, state.achievementStats, state.streakDates, state.unlockedBadgeIds]);
 
   useEffect(() => {
-    if (isSubscribed === undefined) return;
+    if (isSubscribed === undefined && !testPromoUnlocked) return;
     setState((current) => {
-      const nextPremium = Boolean(isSubscribed);
+      const nextPremium = Boolean(isSubscribed) || testPromoUnlocked;
       return current.isPremium === nextPremium ? current : { ...current, isPremium: nextPremium };
     });
-  }, [isSubscribed]);
+  }, [isSubscribed, testPromoUnlocked]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -467,6 +482,11 @@ export function FitProvider({ children }: { children: ReactNode }) {
     coachThinking,
     setCoachThinking,
      enablePremium: () => setState((current) => current.isPremium ? current : { ...current, isPremium: true }),
+    enableTestPremium: () => {
+      if (!__DEV__) return;
+      setTestPromoUnlocked(true);
+      setState((current) => current.isPremium ? current : { ...current, isPremium: true });
+    },
     setLanguage: (language) => setState((current) => ({ ...current, language })),
     resetLocalUserData: async () => {
       const keys = await AsyncStorage.getAllKeys();
@@ -475,9 +495,11 @@ export function FitProvider({ children }: { children: ReactNode }) {
         || key.startsWith('forge-fit-coach-')
         || key === 'forge-fit-ai-client-id'
         || key === 'forge-fit-ai-access-token'
+        || key === TEST_PREMIUM_PROMO_STORAGE_KEY
       ));
       await AsyncStorage.multiRemove(localUserDataKeys);
       await clearLocalAiUsageIdentity();
+      setTestPromoUnlocked(false);
       setState((current) => ({
         ...initialState,
         accountId: createLocalAccountId(),
