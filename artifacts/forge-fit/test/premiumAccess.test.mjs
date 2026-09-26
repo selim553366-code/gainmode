@@ -17,4 +17,3 @@ test('an unrelated active entitlement does not unlock Premium', () => {
     false,
   );
 });
-
