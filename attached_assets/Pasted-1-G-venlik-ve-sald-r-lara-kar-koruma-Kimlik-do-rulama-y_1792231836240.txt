@@ -1,0 +1,54 @@
+1. Güvenlik ve saldırılara karşı koruma
+- [ ] Kimlik doğrulama, yetkilendirme ve oturum güvenliği denetlensin.
+- [ ] Bir kullanıcı başka bir kullanıcının projelerine, dosyalarına, sohbetlerine veya API anahtarlarına erişememeli.
+- [ ] SQL injection, XSS, CSRF, SSRF, IDOR ve komut enjeksiyonu test edilsin.
+- [ ] API rate limiting, brute-force koruması, bot ve spam önlemleri uygulansın.
+- [ ] Gizli anahtarlar koddan ve istemci paketlerinden çıkarılsın; sızmış anahtarlar yenilensin.
+- [ ] Bağımlılık, güvenlik açığı, secret ve statik kod analizleri çalıştırılsın.
+
+2. Hesap ve kullanıcı verileri
+- [ ] E-posta doğrulama, parola sıfırlama ve güvenli oturum kapatma çalışsın.
+- [ ] MFA veya ek hesap koruması değerlendirilsin; hassas işlemlerde yeniden doğrulama olsun.
+- [ ] Hesap silme, veri dışa aktarma ve kullanıcı verisi silme akışları test edilsin.
+- [ ] Veriler aktarımda ve uygun olduğu yerde depolamada şifrelensin.
+- [ ] Loglara parola, token, özel prompt, ödeme bilgisi veya gizli anahtar yazılmasın.
+- [ ] Yedekleme, geri yükleme ve felaket kurtarma denensin.
+
+3. AI ve kod üretme güvenliği
+- [ ] AI prompt injection ve zararlı kod üretimi senaryoları test edilsin.
+- [ ] AI tarafından üretilen kod güvenilir kabul edilmesin; güvenli çalıştırma sınırları olsun.
+- [ ] Kullanıcı kodu ayrı ve kısıtlı sandbox ortamında çalışsın; ana sisteme erişemesin.
+- [ ] Dosya sistemi, ağ erişimi, CPU, RAM, süre ve disk kullanımı sınırlandırılsın.
+- [ ] AI araçlarına verilen izinler ve fonksiyon çağrıları sunucu tarafında doğrulansın.
+- [ ] Ücretsiz kredi, model çağrısı ve pahalı görevler kötüye kullanıma karşı sınırlansın.
+
+4. Ödeme ve abonelik
+- [ ] Ödeme sağlayıcısının webhook imzaları ve tekrar gönderim kontrolleri doğrulansın.
+- [ ] Fiyat, plan, kredi ve abonelik durumu yalnızca güvenilir sunucu mantığıyla belirlensin.
+- [ ] Başarılı, başarısız, bekleyen, iptal edilen ve iade edilen ödeme senaryoları test edilsin.
+- [ ] Kredi iki kez yüklenmemeli veya başarısız ödemede harcanabilir hale gelmemeli.
+- [ ] Abonelik iptali, yenileme, vergi, fatura ve kullanıcıya gösterilen fiyatlar kontrol edilsin.
+
+5. Global yasal uyumluluk
+- [ ] Gizlilik politikası, kullanım koşulları ve çerez politikası hazırlansın.
+- [ ] GDPR ve uygulanabildiği ölçüde diğer ülke/bölge veri koruma yükümlülükleri incelensin.
+- [ ] KVKK, veri saklama süreleri, silme talepleri ve yurt dışı veri aktarımı değerlendirilsin.
+- [ ] Ürün AI kullanıyorsa AI sağlayıcılarının veri saklama ve eğitim koşulları incelensin.
+- [ ] Telif hakkı, kullanıcı içerikleri, kötüye kullanım bildirimleri ve yaptırım süreci belirlensin.
+- [ ] Vergi, tüketici hakları, otomatik yenileme ve iade kuralları hedef pazarlara göre incelensin.
+
+6. Stabilite ve performans
+- [ ] Mobil, tablet ve masaüstünde ana kullanıcı akışları test edilsin.
+- [ ] Yük, stres, eşzamanlı kullanım ve uzun süren AI görevleri test edilsin.
+- [ ] Hata takibi, performans izleme ve uptime alarmları kurulsun.
+- [ ] Veritabanı indeksleri, bağlantı havuzları ve pahalı sorgular incelensin.
+- [ ] AI sağlayıcısı çökerse, zaman aşımı olursa veya kota dolarsa sistem düzgün davransın.
+- [ ] Staging ve production ortamları, veritabanları ve anahtarları ayrıştırılsın.
+
+7. Yayına alma ve işletme
+- [ ] CI/CD pipeline içinde otomatik testler ve güvenlik kontrolleri çalışsın.
+- [ ] Production ortamına geçişte onay, geri alma ve veritabanı migration planı olsun.
+- [ ] Domain, HTTPS, DNS, e-posta gönderimi ve SPF/DKIM/DMARC kontrol edilsin.
+- [ ] Admin paneli ve yönetici hesapları en az ayrıcalıkla korunsun.
+- [ ] Güvenlik olayı müdahale planı, destek iletişimi ve durum sayfası hazırlansın.
+- [ ] Ürün analitiği, kullanıcı geri bildirimi ve kritik hata bildirimleri çalışsın.
