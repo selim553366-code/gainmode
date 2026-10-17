@@ -10,6 +10,7 @@ const app: Express = express();
 
 app.disable("x-powered-by");
 app.disable("etag");
+app.set("trust proxy", 1);
 
 const allowedOrigins = new Set(
   (process.env["ALLOWED_ORIGINS"] ?? "")
