@@ -5,7 +5,6 @@ const router: IRouter = Router();
 const COACH_MODEL = "gpt-5-mini";
 const SIMPLE_COACH_MODEL = "gpt-5-nano";
 const FOOD_ANALYSIS_MODEL = "gpt-5-mini";
-const LUNA_MODEL = "gpt-5.6-luna";
 const MODEL_PRICING_USD_PER_MILLION: Record<string, { input: number; output: number }> = {
   "gpt-5-mini": { input: 0.25, output: 2 },
   "gpt-5-nano": { input: 0.05, output: 0.4 },
@@ -157,26 +156,8 @@ async function askOpenAiWithOptions(
   messages: unknown[],
   options: { maxCompletionTokens?: number; model: string },
 ) {
-  const lunaApiKey = process.env["LUNA_API_KEY"];
-  const lunaBaseUrl = process.env["LUNA_API_BASE_URL"];
   const openAiApiKey = process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? "";
   const maxCompletionTokens = options.maxCompletionTokens ?? 1200;
-
-  if (lunaApiKey && lunaBaseUrl) {
-    try {
-      return await requestChatCompletion(
-        `${lunaBaseUrl.replace(/\/$/, "")}/chat/completions`,
-        lunaApiKey,
-        LUNA_MODEL,
-        messages,
-        maxCompletionTokens,
-      );
-    } catch (error) {
-      if (!openAiApiKey) throw error;
-      console.warn("Luna provider unavailable; using the configured OpenAI fallback.");
-    }
-  }
-
   return requestChatCompletion(openAiUrl(), openAiApiKey, options.model, messages, maxCompletionTokens);
 }
 
@@ -213,26 +194,8 @@ async function askOpenAiStreamWithOptions(
   messages: unknown[],
   options: { maxCompletionTokens?: number; model: string },
 ) {
-  const lunaApiKey = process.env["LUNA_API_KEY"];
-  const lunaBaseUrl = process.env["LUNA_API_BASE_URL"];
-  const openAiApiKey = process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? "";
   const maxCompletionTokens = options.maxCompletionTokens ?? 1200;
-
-  if (lunaApiKey && lunaBaseUrl) {
-    try {
-      return await requestChatCompletionStream(
-        `${lunaBaseUrl.replace(/\/$/, "")}/chat/completions`,
-        lunaApiKey,
-        LUNA_MODEL,
-        messages,
-        maxCompletionTokens,
-      );
-    } catch (error) {
-      if (!openAiApiKey) throw error;
-      console.warn("Luna stream unavailable; using the configured OpenAI fallback.");
-    }
-  }
-
+  const openAiApiKey = process.env["AI_INTEGRATIONS_OPENAI_API_KEY"] ?? "";
   return requestChatCompletionStream(openAiUrl(), openAiApiKey, options.model, messages, maxCompletionTokens);
 }
 
