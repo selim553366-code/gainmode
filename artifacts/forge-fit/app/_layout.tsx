@@ -25,6 +25,7 @@ import { setBaseUrl } from '@workspace/api-client-react';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import colors from '@/constants/colors';
 import { CelebrationBurst, triggerHaptic } from '@/components/FitUI';
+import { WidgetOfferHost } from '@/components/WidgetOffer';
 import { Ionicons } from '@/components/AppIcon';
 import { badges, badgeText, badgeUi } from '@/lib/badges';
 import { clearNotificationResponse, subscribeToNotificationResponses } from '@/lib/notifications';
@@ -163,6 +164,7 @@ function RootLayoutNav() {
       <Stack.Screen name="daily-mood" options={{ headerShown: false, presentation: 'card', animation: reducedMotion ? 'fade' : 'fade_from_bottom' }} />
     </Stack>
     <BadgeUnlockCelebration />
+    <WidgetOfferHost />
     </>
   );
 }

@@ -26,6 +26,7 @@ import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollV
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
 import { getEntryRoute } from '@/lib/entryFlow';
+import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
 
@@ -253,6 +254,7 @@ export default function EntryScreen() {
   const selectedFields = React.useMemo(() => parseProfileEditFields(params.fields), [params.fields]);
   const entryRoute = getEntryRoute({ onboardingComplete, introSeen, isPremium, subscriptionPurchaseEnabled: SUBSCRIPTION_PURCHASE_ENABLED, coachIntroPending });
   const [premiumCelebrationVisible, setPremiumCelebrationVisible] = React.useState(false);
+  const purchasedRef = React.useRef(false);
   React.useEffect(() => {
     if (!editMode && !premiumCelebrationVisible && (entryRoute === 'tabs' || entryRoute === 'coach')) {
       router.replace(entryRoute === 'coach' ? '/(tabs)/coach' : '/(tabs)');
@@ -268,13 +270,17 @@ export default function EntryScreen() {
       onDone={() => {
         setPremiumCelebrationVisible(false);
         router.replace('/(tabs)/coach');
+        if (purchasedRef.current) void offerWidgetAfterFirstPurchase();
       }}
     />;
   }
   if (entryRoute === 'premium') {
     return <PremiumWelcomeOfferScreen
       onUnlock={() => router.replace('/(tabs)/coach')}
-      onPurchaseSuccess={() => setPremiumCelebrationVisible(true)}
+      onPurchaseSuccess={(kind) => {
+        purchasedRef.current = kind === 'purchase';
+        setPremiumCelebrationVisible(true);
+      }}
     />;
   }
   return <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
@@ -1147,7 +1153,7 @@ function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: (
   </LinearGradient>;
 }
 
-function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: () => void; onPurchaseSuccess: () => void }) {
+function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: () => void; onPurchaseSuccess: (kind: 'purchase' | 'restore') => void }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
     const { language } = useFit();
@@ -1190,7 +1196,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
           setActionError(t('premiumPurchaseError'));
           return;
         }
-        onPurchaseSuccess();
+        onPurchaseSuccess('purchase');
       } catch {
         setActionError(t('premiumPurchaseError'));
       }
@@ -1207,7 +1213,7 @@ function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: 
         setActionError(t('premiumRestoreNoPurchase'));
         return;
       }
-      onPurchaseSuccess();
+      onPurchaseSuccess('restore');
     } catch {
       setActionError(t('premiumRestoreError'));
     }

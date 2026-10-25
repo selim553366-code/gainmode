@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Platform, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from 'react-native';
 import { AnimatedFill, PressableScale as Pressable, Reveal } from '@/components/Motion';
+import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -327,6 +328,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   const appear = React.useRef(new Animated.Value(0)).current;
   const [actionError, setActionError] = React.useState<string | null>(null);
   const [purchaseCelebration, setPurchaseCelebration] = React.useState(false);
+  const purchasedRef = React.useRef(false);
   const subscriptionCheckPending = isAvailable && (isLoading || isSubscribed === undefined);
 
   React.useEffect(() => {
@@ -364,6 +366,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
         return;
       }
        enablePremium();
+       purchasedRef.current = true;
        setPurchaseCelebration(true);
     } catch {
       setActionError(t('premiumPurchaseError'));
@@ -447,7 +450,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
       </Animated.View>
     </View>
    </Modal>
-   <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onClose(); }} />
+   <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onClose(); if (purchasedRef.current) void offerWidgetAfterFirstPurchase(); }} />
   </>;
 }
 

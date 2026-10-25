@@ -7,6 +7,7 @@ import { useFit } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
+import { openWidgetOffer } from '@/components/WidgetOffer';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 import { apiUrl } from '@/lib/api';
 import { legalDocumentUrl, type LegalDocument } from '@/lib/legalDocuments';
@@ -167,6 +168,25 @@ export default function SettingsScreen() {
             </Pressable>;
           })}
         </View>
+      </Card>
+
+      <SectionTitle title={t('widgetSettingsTitle')} />
+      <Card>
+        <Pressable
+          accessibilityRole="button"
+          testID="settings-widget"
+          onPress={openWidgetOffer}
+          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
+        >
+          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
+            <Ionicons name="phone-portrait-outline" size={21} color={colors.primary} />
+          </View>
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('widgetSettingsTitle')}</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('widgetSettingsBody')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
+        </Pressable>
       </Card>
 
       <SectionTitle title={t('coachProfileCorrectionTitle')} />
