@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, Alert, Animated, Easing, Image, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Easing, Image, Modal, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';

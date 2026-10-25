@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
-import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Platform, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Platform, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from 'react-native';
+import { AnimatedFill, PressableScale as Pressable, Reveal } from '@/components/Motion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -88,11 +89,23 @@ function AmbientBackdrop({ children }: { children: ReactNode }) {
   </LinearGradient>;
 }
 
+// Wraps each top-level section of a screen in a staggered entrance. Absolutely positioned children stay
+// unwrapped, and a child that flexes passes its flex to the wrapper so centered layouts keep working.
+function revealSections(children: ReactNode) {
+  return React.Children.toArray(children).map((child, index) => {
+    if (!React.isValidElement<{ style?: StyleProp<ViewStyle> }>(child)) return child;
+    const flat = StyleSheet.flatten(child.props.style) ?? {};
+    if (flat.position === 'absolute') return child;
+    const wrapperStyle = flat.flex !== undefined || flat.flexGrow !== undefined ? { flex: flat.flex ?? undefined, flexGrow: flat.flexGrow ?? undefined } : undefined;
+    return <Reveal key={child.key ?? index} index={index} style={wrapperStyle}>{child}</Reveal>;
+  });
+}
+
 export function Screen({ children, scroll = true, bottomPadding = 104, ambient = true }: { children: ReactNode; scroll?: boolean; bottomPadding?: number; ambient?: boolean }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topSpacing = Platform.OS === 'ios' ? 28 : 16;
-  const content = <View style={[styles.screen, { paddingTop: insets.top + topSpacing, paddingBottom: insets.bottom + bottomPadding }]}>{children}</View>;
+  const content = <View style={[styles.screen, { paddingTop: insets.top + topSpacing, paddingBottom: insets.bottom + bottomPadding }]}>{revealSections(children)}</View>;
   const backdrop = ambient ? <AmbientBackdrop>{content}</AmbientBackdrop> : <View style={[styles.plainBackdrop, { backgroundColor: colors.background }]}>{content}</View>;
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{backdrop}</ScrollView> : backdrop;
 }
@@ -128,7 +141,7 @@ export function Card({ children, style, onPress }: { children: ReactNode; style?
   const pressed = React.useRef(new Animated.Value(0)).current;
   const setPressed = (value: number) => Animated.spring(pressed, { toValue: value, friction: 8, tension: 90, useNativeDriver: true }).start();
   const content = <Animated.View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }, style, onPress ? { transform: [{ scale: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) }], shadowColor: colors.primary, shadowOpacity: pressed.interpolate({ inputRange: [0, 1], outputRange: [0.12, 0.34] }), shadowRadius: pressed.interpolate({ inputRange: [0, 1], outputRange: [8, 16] }), elevation: pressed.interpolate({ inputRange: [0, 1], outputRange: [2, 7] }) } : null]}>{children}</Animated.View>;
-  return onPress ? <Pressable onPress={() => { triggerHaptic(); onPress(); }} onPressIn={() => setPressed(1)} onPressOut={() => setPressed(0)}>{content}</Pressable> : content;
+  return onPress ? <Pressable scaleTo={1} onPress={() => { triggerHaptic(); onPress(); }} onPressIn={() => setPressed(1)} onPressOut={() => setPressed(0)}>{content}</Pressable> : content;
 }
 
 export function IconButton({ icon, onPress, label }: { icon: IconName; onPress?: () => void; label?: string }) {
@@ -138,7 +151,7 @@ export function IconButton({ icon, onPress, label }: { icon: IconName; onPress?:
 
 export function ProgressBar({ value, color }: { value: number; color?: string }) {
   const colors = useColors();
-  return <View style={[styles.progressTrack, { backgroundColor: colors.secondary }]}><View style={[styles.progressFill, { backgroundColor: color ?? colors.primary, width: `${Math.min(Math.max(value, 0), 1) * 100}%` }]} /></View>;
+  return <View style={[styles.progressTrack, { backgroundColor: colors.secondary }]}><AnimatedFill value={value} color={color ?? colors.primary} style={styles.progressFill} /></View>;
 }
 
 export function Metric({ icon, value, label, color }: { icon: IconName; value: ReactNode; label: string; color: string }) {
@@ -162,12 +175,12 @@ export function ActionTile({ icon, title, subtitle, onPress, color }: { icon: Ic
   const colors = useColors();
   const pressed = React.useRef(new Animated.Value(0)).current;
   const setPressed = (value: number) => Animated.spring(pressed, { toValue: value, friction: 8, tension: 90, useNativeDriver: true }).start();
-  return <Pressable testID={title} onPress={() => { triggerHaptic(); onPress?.(); }} onPressIn={() => setPressed(1)} onPressOut={() => setPressed(0)}><Animated.View style={[styles.actionTile, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: color, shadowOpacity: pressed.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.3] }), shadowRadius: pressed.interpolate({ inputRange: [0, 1], outputRange: [5, 14] }), elevation: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 6] }), transform: [{ translateY: pressed.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }, { scale: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) }] }]}><View style={[styles.actionIcon, { backgroundColor: `${color}20` }]}><Ionicons name={icon} size={20} color={color} /></View><Text style={[styles.actionTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.actionSubtitle, { color: colors.mutedForeground }]}>{subtitle}</Text></Animated.View></Pressable>;
+  return <Pressable scaleTo={1} testID={title} onPress={() => { triggerHaptic(); onPress?.(); }} onPressIn={() => setPressed(1)} onPressOut={() => setPressed(0)}><Animated.View style={[styles.actionTile, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: color, shadowOpacity: pressed.interpolate({ inputRange: [0, 1], outputRange: [0.08, 0.3] }), shadowRadius: pressed.interpolate({ inputRange: [0, 1], outputRange: [5, 14] }), elevation: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 6] }), transform: [{ translateY: pressed.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }, { scale: pressed.interpolate({ inputRange: [0, 1], outputRange: [1, 0.985] }) }] }]}><View style={[styles.actionIcon, { backgroundColor: `${color}20` }]}><Ionicons name={icon} size={20} color={color} /></View><Text style={[styles.actionTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.actionSubtitle, { color: colors.mutedForeground }]}>{subtitle}</Text></Animated.View></Pressable>;
 }
 
 export function Pill({ label, active, onPress, lightBackground = false }: { label: string; active?: boolean; onPress?: () => void; lightBackground?: boolean }) {
   const colors = useColors();
-  return <Pressable onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.pill, { backgroundColor: lightBackground ? (active ? `${colors.primary}D9` : `${colors.foreground}B8`) : (active ? colors.primary : colors.secondary), borderWidth: lightBackground ? 1 : 0, borderColor: lightBackground ? `${colors.primaryForeground}20` : 'transparent', opacity: pressed ? 0.72 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] }]}><Text style={[styles.pillText, { color: lightBackground || active ? colors.primaryForeground : colors.mutedForeground }]}>{label}</Text></Pressable>;
+  return <Pressable onPress={() => { triggerHaptic(); onPress?.(); }} style={({ pressed }) => [styles.pill, { backgroundColor: lightBackground ? (active ? `${colors.primary}D9` : `${colors.foreground}B8`) : (active ? colors.primary : colors.secondary), borderWidth: lightBackground ? 1 : 0, borderColor: lightBackground ? `${colors.primaryForeground}20` : 'transparent', opacity: pressed ? 0.86 : 1 }]}><Text style={[styles.pillText, { color: lightBackground || active ? colors.primaryForeground : colors.mutedForeground }]}>{label}</Text></Pressable>;
 }
 
 export function CelebrationBurst({ visible, onDone, title, subtitle, duration = 1650 }: { visible: boolean; onDone?: () => void; title?: string; subtitle?: string; duration?: number }) {
@@ -389,7 +402,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   return <>
    <Modal transparent visible animationType="none" onRequestClose={onClose}>
     <View style={styles.premiumModalRoot}>
-      <Pressable onPress={onClose} style={StyleSheet.absoluteFill} />
+      <Pressable scaleTo={1} onPress={onClose} style={StyleSheet.absoluteFill} />
       <Animated.View style={[styles.premiumSheet, { backgroundColor: colors.card, borderColor: colors.border, opacity: appear, transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }]}>
         <LinearGradient colors={[`${colors.primary}3A`, `${colors.primary}08`, colors.card]} style={styles.premiumGradient}>
           <View style={styles.premiumModalHeader}>
@@ -464,7 +477,7 @@ export function PremiumAccessStatusModal({ visible, onClose }: { visible: boolea
   ];
   return <Modal transparent visible animationType="fade" onRequestClose={onClose}>
     <View style={[styles.accessStatusRoot, { paddingTop: insets.top + 18, paddingBottom: insets.bottom + 18 }]}>
-      <Pressable onPress={onClose} style={StyleSheet.absoluteFill} />
+      <Pressable scaleTo={1} onPress={onClose} style={StyleSheet.absoluteFill} />
       <View style={[styles.accessStatusSheet, { backgroundColor: colors.card, borderColor: `${colors.success}66`, shadowColor: colors.success }]}>
         <LinearGradient colors={[`${colors.success}30`, `${colors.primary}0D`, colors.card]} style={styles.accessStatusGradient}>
           <Pressable accessibilityLabel={t('close')} onPress={onClose} style={[styles.accessStatusClose, { backgroundColor: `${colors.foreground}0D` }]}>

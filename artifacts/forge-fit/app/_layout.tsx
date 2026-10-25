@@ -13,6 +13,7 @@ import {
   useFonts,
 } from '@expo-google-fonts/inter';
 import { Stack } from 'expo-router';
+import { useReducedMotion } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import type { NotificationResponse } from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
@@ -100,6 +101,7 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav() {
   const { resolvedTheme } = useTheme();
+  const reducedMotion = useReducedMotion();
   const handledNotificationResponse = useRef<string | null>(null);
   useEffect(() => {
     const openNotificationDestination = (response: NotificationResponse) => {
@@ -148,9 +150,9 @@ function RootLayoutNav() {
   return (
     <>
     <StatusBar style={resolvedTheme === 'dark' ? 'light' : 'dark'} />
-    <Stack screenOptions={{ headerBackTitle: 'Back', contentStyle: { backgroundColor: colors[resolvedTheme].background } }}>
+    <Stack screenOptions={{ headerBackTitle: 'Back', contentStyle: { backgroundColor: colors[resolvedTheme].background }, animation: reducedMotion ? 'fade' : 'slide_from_right', animationMatchesGesture: true, fullScreenGestureEnabled: true }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
       <Stack.Screen name="live-workout" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="workout-session" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="settings" options={{ headerShown: false }} />
@@ -158,7 +160,7 @@ function RootLayoutNav() {
       <Stack.Screen name="streak" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="badges" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="features" options={{ headerShown: false, presentation: 'card' }} />
-      <Stack.Screen name="daily-mood" options={{ headerShown: false, presentation: 'card' }} />
+      <Stack.Screen name="daily-mood" options={{ headerShown: false, presentation: 'card', animation: reducedMotion ? 'fade' : 'fade_from_bottom' }} />
     </Stack>
     <BadgeUnlockCelebration />
     </>

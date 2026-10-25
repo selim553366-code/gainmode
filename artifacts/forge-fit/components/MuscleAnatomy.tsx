@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import Svg, { G, Line, Path, Polygon } from 'react-native-svg';
 import type { MuscleGroup } from '@/lib/workoutPlan';
 

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Animated, Easing, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, PanResponder, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';

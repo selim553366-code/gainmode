@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert, Animated, Dimensions, Easing, FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Dimensions, Easing, FlatList, Image, Modal, StyleSheet, Text, TextInput, View } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { fetch as expoFetch } from 'expo/fetch';
 import { Ionicons } from '@/components/AppIcon';

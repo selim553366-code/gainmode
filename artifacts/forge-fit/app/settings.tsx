@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, Animated, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Linking, StyleSheet, Text, TextInput, View } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';

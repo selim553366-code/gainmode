@@ -1,5 +1,6 @@
 import React from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { router } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';

@@ -1,5 +1,8 @@
 import React from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
+import { EASE_IN_OUT, EASE_OUT, PressableScale as Pressable } from '@/components/Motion';
+import Reanimated, { FadeInDown, FadeOutUp, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
@@ -62,13 +65,55 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
   );
 }
 
+// Focused tab icon lifts slightly; 200ms ease-out keeps it under the threshold for something tapped all day.
+function TabIcon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
+  const progress = useSharedValue(focused ? 1 : 0);
+  React.useEffect(() => {
+    progress.set(withTiming(focused ? 1 : 0, { duration: 200, easing: EASE_OUT, reduceMotion: ReduceMotion.System }));
+  }, [focused, progress]);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateY: -2 * progress.get() }, { scale: 1 + 0.08 * progress.get() }],
+  }));
+  return <Reanimated.View style={style}>{children}</Reanimated.View>;
+}
+
+type TabLayout = { x: number; width: number };
+
+// Pill that glides behind the active tab. Absolutely positioned and childless, so animating width is safe.
+function TabIndicator({ layout, visible, color }: { layout?: TabLayout; visible: boolean; color: string }) {
+  const x = useSharedValue(layout?.x ?? 0);
+  const width = useSharedValue(layout?.width ?? 0);
+  const opacity = useSharedValue(0);
+  const placed = React.useRef(false);
+  React.useEffect(() => {
+    if (!layout) return;
+    const config = { duration: 250, easing: EASE_IN_OUT, reduceMotion: ReduceMotion.System };
+    if (!placed.current) {
+      x.set(layout.x);
+      width.set(layout.width);
+      placed.current = true;
+    } else {
+      x.set(withTiming(layout.x, config));
+      width.set(withTiming(layout.width, config));
+    }
+  }, [layout, width, x]);
+  React.useEffect(() => {
+    opacity.set(withTiming(visible && layout ? 1 : 0, { duration: 180, easing: EASE_OUT }));
+  }, [layout, opacity, visible]);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.get(), width: width.get(), transform: [{ translateX: x.get() }] }));
+  return <Reanimated.View pointerEvents="none" style={[styles.tabIndicator, { backgroundColor: color }, style]} />;
+}
+
 function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const routes = tabOrder
     .map((name) => state.routes.find((route) => route.name === name))
     .filter((route): route is typeof state.routes[number] => Boolean(route));
+  const [layouts, setLayouts] = React.useState<Record<string, TabLayout>>({});
+  const focusedRoute = state.routes[state.index];
   const handlePress = (route: typeof routes[number]) => {
+    if (focusedRoute?.key !== route.key) Haptics.selectionAsync().catch(() => undefined);
     const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
     if (!event.defaultPrevented) navigation.navigate(route.name);
   };
@@ -88,6 +133,7 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
            <View style={[StyleSheet.absoluteFill, styles.tabBarGlassTint, { backgroundColor: colors.glass }]} />
          </View>
          <View style={styles.tabBarContent}>
+          <TabIndicator layout={focusedRoute ? layouts[focusedRoute.key] : undefined} visible={focusedRoute?.name !== 'coach'} color={`${colors.primary}1A`} />
           {routes.map((route) => {
           const descriptor = descriptors[route.key];
           const focused = state.index === state.routes.findIndex((item) => item.key === route.key);
@@ -110,9 +156,13 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
               accessibilityState={{ selected: focused }}
               accessibilityLabel={label}
               onPress={() => handlePress(route)}
+              onLayout={(event) => {
+                const { x, width } = event.nativeEvent.layout;
+                setLayouts((current) => (current[route.key]?.x === x + 6 && current[route.key]?.width === width - 12 ? current : { ...current, [route.key]: { x: x + 6, width: width - 12 } }));
+              }}
               style={styles.tabItem}
             >
-               <Feather name={iconForRoute(route.name)} size={22} color={focused ? colors.primary : colors.mutedForeground} />
+               <TabIcon focused={focused}><Feather name={iconForRoute(route.name)} size={22} color={focused ? colors.primary : colors.mutedForeground} /></TabIcon>
                <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
             </Pressable>
           );
@@ -122,6 +172,9 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
     </View>
   );
 }
+
+const moodPromptEntering = FadeInDown.duration(320).delay(400).easing(EASE_OUT).reduceMotion(ReduceMotion.System);
+const moodPromptExiting = FadeOutUp.duration(200).easing(EASE_OUT).reduceMotion(ReduceMotion.System);
 
 function DailyMoodPrompt() {
   const colors = useColors();
@@ -140,12 +193,12 @@ function DailyMoodPrompt() {
 
   return (
     <View pointerEvents="box-none" style={[styles.moodPromptOverlay, { top: insets.top + 10 }]}>
-      <View style={[styles.moodPrompt, { backgroundColor: colors.card, borderColor: `${colors.primary}70`, shadowColor: colors.background }]}>
+      <Reanimated.View entering={moodPromptEntering} exiting={moodPromptExiting} style={[styles.moodPrompt, { backgroundColor: colors.card, borderColor: `${colors.primary}70`, shadowColor: colors.background }]}>
         <View style={[styles.moodPromptIcon, { backgroundColor: `${colors.primary}1F` }]}><Ionicons name="analytics-outline" size={19} color={colors.primary} /></View>
         <View style={styles.moodPromptCopy}><Text style={[styles.moodPromptTitle, { color: colors.foreground }]}>{t('dailyMoodPromptTitle')}</Text><Text style={[styles.moodPromptBody, { color: colors.mutedForeground }]}>{t('dailyMoodPromptBody')}</Text></View>
         <Pressable accessibilityRole="button" onPress={() => { setDismissed(true); router.push('/daily-mood'); }} style={({ pressed }) => [styles.moodPromptButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.moodPromptButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodOpen')}</Text></Pressable>
         <Pressable accessibilityLabel={t('dailyMoodLater')} onPress={() => setDismissed(true)} hitSlop={8}><Ionicons name="close" size={18} color={colors.mutedForeground} /></Pressable>
-      </View>
+      </Reanimated.View>
     </View>
   );
 }
@@ -180,6 +233,7 @@ const styles = StyleSheet.create({
   tabBarGlassTint: { borderRadius: 28 },
   tabBarContent: { flex: 1, flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 4, zIndex: 1 },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 5, paddingBottom: 9, paddingTop: 12 },
+  tabIndicator: { position: 'absolute', left: 0, top: 9, bottom: 9, borderRadius: 20 },
   tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   coachTabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
   coachTabButton: { position: 'absolute', top: -34, alignItems: 'center', shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 4 }, elevation: 14 },

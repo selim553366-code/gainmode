@@ -1,5 +1,6 @@
 import React from 'react';
-import { Animated, Easing, Image, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Image, Linking, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { router, useLocalSearchParams } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

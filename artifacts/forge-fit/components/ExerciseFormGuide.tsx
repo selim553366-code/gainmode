@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import { Image, Modal, StyleSheet, Text, View, type ImageSourcePropType } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { Ionicons } from '@/components/AppIcon';
 import { useColors } from '@/hooks/useColors';
 import { apiUrl } from '@/lib/api';

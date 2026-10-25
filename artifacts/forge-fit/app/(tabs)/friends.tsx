@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { Ionicons } from '@/components/AppIcon';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
