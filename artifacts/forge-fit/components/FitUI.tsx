@@ -2,6 +2,8 @@ import React, { ReactNode } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Platform, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from 'react-native';
 import { AnimatedFill, PressableScale as Pressable, Reveal } from '@/components/Motion';
 import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
+import { Paywall } from '@/components/Paywall';
+import { PremiumSuccessCelebration } from '@/components/WelcomeCelebration';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -176,58 +178,8 @@ export function CelebrationBurst({ visible, onDone, title, subtitle, duration = 
   </View>;
 }
 
-export function PremiumSuccessCelebration({ visible, onDone, modal = true }: { visible: boolean; onDone: () => void; modal?: boolean }) {
-  const colors = useColors();
-  const { language } = useFit();
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const successTone = useAudioPlayer(require('@/assets/sounds/premium-success.wav'));
-  const cardProgress = React.useRef(new Animated.Value(0)).current;
-  const glowProgress = React.useRef(new Animated.Value(0)).current;
-  const doneRef = React.useRef(onDone);
-  doneRef.current = onDone;
-  const handleDone = React.useCallback(() => doneRef.current(), []);
-
-  React.useEffect(() => {
-    if (!visible) return undefined;
-    cardProgress.setValue(0);
-    glowProgress.setValue(0);
-    successTone.volume = 0.8;
-    void setAudioModeAsync({ playsInSilentMode: true }).catch(() => undefined);
-    void successTone.seekTo(0).then(() => successTone.play()).catch(() => successTone.play());
-    Animated.parallel([
-      Animated.spring(cardProgress, { toValue: 1, friction: 8, tension: 65, useNativeDriver: true }),
-      Animated.loop(Animated.sequence([
-        Animated.timing(glowProgress, { toValue: 1, duration: 650, useNativeDriver: true }),
-        Animated.timing(glowProgress, { toValue: 0, duration: 650, useNativeDriver: true }),
-      ]), { iterations: 2 }),
-    ]).start();
-    return () => {
-      successTone.pause();
-      cardProgress.stopAnimation();
-      glowProgress.stopAnimation();
-    };
-  }, [cardProgress, glowProgress, successTone, visible]);
-
-  const content = <View style={styles.premiumSuccessRoot}>
-    <LinearGradient colors={[`${colors.primary}D9`, `${colors.success}35`, colors.background]} style={styles.premiumSuccessGradient}>
-      <Animated.View style={[styles.premiumSuccessGlow, { backgroundColor: `${colors.success}55`, opacity: glowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.5] }), transform: [{ scale: glowProgress.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1.16] }) }] }]} />
-      <Animated.View style={[styles.premiumSuccessCard, { backgroundColor: colors.card, borderColor: `${colors.success}65`, opacity: 1, transform: [{ translateY: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: cardProgress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) }] }]}>
-        <View style={[styles.premiumSuccessBadge, { backgroundColor: colors.success }]}>
-          <Ionicons name="checkmark" size={42} color={colors.primaryForeground} />
-        </View>
-        <Text style={[styles.premiumSuccessEyebrow, { color: colors.success }]}>{t('premiumPurchaseSuccessEyebrow')}</Text>
-        <Text style={[styles.premiumSuccessTitle, { color: colors.foreground }]}>{t('premiumPurchaseSuccessTitle')}</Text>
-        <Text style={[styles.premiumSuccessBody, { color: colors.mutedForeground }]}>{t('premiumPurchaseSuccessBody')}</Text>
-        <View style={[styles.premiumSuccessLine, { backgroundColor: `${colors.success}35` }]} />
-      </Animated.View>
-      <CelebrationBurst visible={visible} duration={2800} onDone={handleDone} />
-    </LinearGradient>
-  </View>;
-
-  return modal ? <Modal transparent visible={visible} animationType="fade" onRequestClose={handleDone}>
-    {content}
-  </Modal> : content;
-}
+// The first-purchase welcome lives in its own module; re-exported so existing imports keep working.
+export { PremiumSuccessCelebration };
 
 export function EmptyState({ icon, title, text }: { icon: IconName; title: string; text: string }) {
   const colors = useColors();
@@ -275,145 +227,23 @@ export function PremiumLock() {
 }
 
 export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const colors = useColors();
-  const { language, enablePremium } = useFit();
-  const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>(() => annualPackage ? 'annual' : 'monthly');
-  const canOfferAnnual = Boolean(annualPackage);
-  const monthlyPrice = monthlyPackage?.product.priceString ?? '—';
-  const annualPrice = annualPackage?.product.priceString ?? '—';
-  const annualMonthlyPrice = formatAnnualMonthlyPrice(annualPackage?.product);
-  const annualSavingsPercent = calculateAnnualSavingsPercent(monthlyPackage?.product, annualPackage?.product);
-  const annualSavingsText = annualSavingsPercent === null
-    ? null
-    : t('premiumAnnualSavings').replace('{percent}', String(annualSavingsPercent));
-  const appear = React.useRef(new Animated.Value(0)).current;
-  const [actionError, setActionError] = React.useState<string | null>(null);
+  const { enablePremium } = useFit();
   const [purchaseCelebration, setPurchaseCelebration] = React.useState(false);
   const purchasedRef = React.useRef(false);
-  const subscriptionCheckPending = isAvailable && (isLoading || isSubscribed === undefined);
-
-  React.useEffect(() => {
-    if (!visible) return undefined;
-    appear.setValue(0);
-    Animated.spring(appear, { toValue: 1, friction: 8, tension: 70, useNativeDriver: true }).start();
-    return () => appear.stopAnimation();
-  }, [appear, visible]);
-
-  React.useEffect(() => {
-    if (!canOfferAnnual && selectedPlan === 'annual') setSelectedPlan('monthly');
-  }, [canOfferAnnual, selectedPlan]);
-
-  const activatePremium = async () => {
-    triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
-    setActionError(null);
-    if (isSubscribed) {
-      onClose();
-      return;
-    }
-    if (subscriptionCheckPending) return;
-    if (!isAvailable) {
-      setActionError(t('premiumStoreUnavailable'));
-      return;
-    }
-    const packageToPurchase = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
-    if (!packageToPurchase) {
-      setActionError(t('premiumStoreUnavailable'));
-      return;
-    }
-    try {
-      const customerInfo = await purchase(packageToPurchase);
-      if (!hasActivePremiumEntitlement(customerInfo)) {
-        setActionError(t('premiumPurchaseError'));
-        return;
-      }
-       enablePremium();
-       purchasedRef.current = true;
-       setPurchaseCelebration(true);
-    } catch {
-      setActionError(t('premiumPurchaseError'));
-    }
-  };
-
-  const restorePremium = async () => {
-    triggerHaptic();
-    setActionError(null);
-    if (!isAvailable) {
-      setActionError(t('premiumStoreUnavailable'));
-      return;
-    }
-    try {
-      const customerInfo = await restore();
-       if (hasActivePremiumEntitlement(customerInfo)) {
-         enablePremium();
-         setPurchaseCelebration(true);
-        return;
-      }
-      setActionError(t('premiumRestoreNoPurchase'));
-    } catch {
-      setActionError(t('premiumRestoreError'));
-    }
-  };
-  if (!visible || !SUBSCRIPTION_PURCHASE_ENABLED) return null;
-  const openLegalDocument = (document: 'privacy-policy' | 'terms-of-service') => {
-    try {
-      void Linking.openURL(legalDocumentUrl(document, language)).catch(() => {
-        Alert.alert(t('legalLinkErrorTitle'), t('legalLinkErrorBody'));
-      });
-    } catch {
-      Alert.alert(t('legalLinkErrorTitle'), t('legalLinkErrorBody'));
-    }
-  };
+  if (!SUBSCRIPTION_PURCHASE_ENABLED) return null;
   return <>
-   <Modal transparent visible animationType="none" onRequestClose={onClose}>
-    <View style={styles.premiumModalRoot}>
-      <Pressable scaleTo={1} onPress={onClose} style={StyleSheet.absoluteFill} />
-      <Animated.View style={[styles.premiumSheet, { backgroundColor: colors.card, borderColor: colors.border, opacity: appear, transform: [{ translateY: appear.interpolate({ inputRange: [0, 1], outputRange: [28, 0] }) }, { scale: appear.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) }] }]}>
-        <LinearGradient colors={[`${colors.primary}3A`, `${colors.primary}08`, colors.card]} style={styles.premiumGradient}>
-          <View style={styles.premiumModalHeader}>
-       <View style={[styles.premiumModalIcon, { backgroundColor: colors.primary }]}><Ionicons name="trophy-outline" size={27} color={colors.primaryForeground} /></View>
-            <Pressable accessibilityLabel={t('close')} testID="close-premium" onPress={onClose} hitSlop={10} style={[styles.premiumClose, { backgroundColor: colors.secondary }]}><Ionicons name="close" size={19} color={colors.foreground} /></Pressable>
-          </View>
-          <Text style={[styles.premiumModalEyebrow, { color: colors.primary }]}>{t('premiumModalEyebrow')}</Text>
-          <Text style={[styles.premiumModalTitle, { color: colors.foreground }]}>{t('premiumModalTitle')}</Text>
-          <Text style={[styles.premiumModalSubtitle, { color: colors.mutedForeground }]}>{t('premiumModalSubtitle')}</Text>
-           <View style={styles.premiumBenefits}>
-             {(['premiumFeature1', 'premiumFeature2', 'premiumFeature3', 'premiumFeature4', 'premiumFeature5'] as const).map((key) => <View key={key} style={styles.premiumBenefit}><View style={[styles.premiumBenefitIcon, { backgroundColor: `${colors.primary}1A` }]}><Ionicons name="checkmark" size={15} color={colors.primary} /></View><Text style={[styles.premiumBenefitText, { color: colors.foreground }]}>{t(key)}</Text></View>)}
-          </View>
-           <View style={styles.premiumPlanChoices}>
-             <Pressable testID="premium-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.premiumPlanOption, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.border }]}>
-               <Text style={[styles.premiumPlanLabel, { color: colors.foreground }]}>{t('premiumMonthlyPlan')}</Text>
-               <Text style={[styles.premiumPlanPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : monthlyPrice}</Text>
-               {!isLoading ? <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text> : null}
-             </Pressable>
-               <Pressable disabled={!canOfferAnnual} testID="premium-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual', disabled: !canOfferAnnual }} onPress={() => { if (canOfferAnnual) setSelectedPlan('annual'); }} style={[styles.premiumPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : `${colors.secondary}88`, borderColor: selectedPlan === 'annual' ? colors.primary : colors.border, opacity: canOfferAnnual ? 1 : 0.58 }]}>
-                 <View style={styles.premiumPlanHeader}><Text style={[styles.premiumPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{annualSavingsText ? <Text style={[styles.premiumSavingsBadge, { color: colors.success }]}>{annualSavingsText}</Text> : null}</View>
-               <Text style={[styles.premiumPlanPrice, { color: colors.foreground }]}>{isLoading ? t('premiumLoading') : annualPrice}</Text>
-                 <View style={styles.premiumAnnualPriceFooter}>
-                   <Text style={[styles.premiumPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
-                   {annualMonthlyPrice !== null ? <Text style={[styles.premiumMonthlyEquivalent, { color: colors.primary }]}>{annualMonthlyPrice} {t('premiumPerMonth')}</Text> : null}
-                 </View>
-               </Pressable>
-           </View>
-          <Text style={[styles.premiumTrialBody, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
-           {actionError ? <Text style={[styles.premiumActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
-             <Pressable testID="start-premium" disabled={subscriptionCheckPending || isPurchasing} onPress={activatePremium} style={({ pressed }) => [styles.premiumCta, { backgroundColor: colors.primary, opacity: pressed || subscriptionCheckPending || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.985 : 1 }] }]}><Text style={[styles.premiumCtaText, { color: colors.primaryForeground }]}>{isSubscribed ? t('premiumAccessActiveContinue') : isPurchasing ? t('premiumLoading') : t('premiumStart')}</Text><Ionicons name={isSubscribed ? 'checkmark-circle' : 'arrow-forward'} size={18} color={colors.primaryForeground} /></Pressable>
-           <Pressable testID="restore-premium" disabled={isRestoring} onPress={restorePremium} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
-           <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 18, marginTop: 2 }}>
-             <Pressable accessibilityRole="link" testID="premium-terms-link" onPress={() => openLegalDocument('terms-of-service')} hitSlop={8}>
-               <Text style={[styles.premiumTrust, { color: colors.primary }]}>{t('termsOfService')}</Text>
-             </Pressable>
-             <Pressable accessibilityRole="link" testID="premium-privacy-link" onPress={() => openLegalDocument('privacy-policy')} hitSlop={8}>
-               <Text style={[styles.premiumTrust, { color: colors.primary }]}>{t('privacyPolicy')}</Text>
-             </Pressable>
-           </View>
-          <Text style={[styles.premiumTrust, { color: colors.mutedForeground }]}>{t('premiumTrust')}</Text>
-        </LinearGradient>
-      </Animated.View>
-    </View>
-   </Modal>
-   <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onClose(); if (purchasedRef.current) void offerWidgetAfterFirstPurchase(); }} />
+    <Modal visible={visible && !purchaseCelebration} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+      <Paywall
+        onClose={onClose}
+        onUnlock={onClose}
+        onPurchaseSuccess={(kind) => {
+          enablePremium();
+          purchasedRef.current = kind === 'purchase';
+          setPurchaseCelebration(true);
+        }}
+      />
+    </Modal>
+    <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onClose(); if (purchasedRef.current) void offerWidgetAfterFirstPurchase(); }} />
   </>;
 }
 
@@ -501,43 +331,4 @@ export const styles = StyleSheet.create({
   lockButtonText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
   previewLayer: { position: 'absolute', left: 22, right: 22, top: 80, gap: 12, opacity: 0.45 },
   previewCard: { height: 65, borderRadius: 19, borderWidth: 1, borderColor: '#1D3B5E' },
-  premiumSuccessRoot: { flex: 1, backgroundColor: '#000000E6' },
-  premiumSuccessGradient: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  premiumSuccessGlow: { position: 'absolute', width: 260, height: 260, borderRadius: 130 },
-  premiumSuccessCard: { width: '84%', maxWidth: 360, alignItems: 'center', borderRadius: 30, borderWidth: 1, paddingHorizontal: 24, paddingTop: 28, paddingBottom: 24, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 15 },
-  premiumSuccessBadge: { width: 82, height: 82, borderRadius: 29, alignItems: 'center', justifyContent: 'center', marginBottom: 18, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, elevation: 7 },
-  premiumSuccessEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.8 },
-  premiumSuccessTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, lineHeight: 35, letterSpacing: -0.9, textAlign: 'center', marginTop: 9 },
-  premiumSuccessBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, textAlign: 'center', marginTop: 10, maxWidth: 280 },
-  premiumSuccessLine: { width: 48, height: 4, borderRadius: 4, marginTop: 20 },
-  premiumModalRoot: { flex: 1, justifyContent: 'flex-end', paddingHorizontal: 12, paddingBottom: 14, backgroundColor: '#000000A6' },
-  premiumSheet: { overflow: 'hidden', borderRadius: 32, borderWidth: 1, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 14 },
-  premiumGradient: { paddingHorizontal: 22, paddingTop: 20, paddingBottom: 18 },
-  premiumModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
-  premiumModalIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  premiumClose: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  premiumModalEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.7, marginBottom: 8 },
-  premiumModalTitle: { fontFamily: 'Inter_700Bold', fontSize: 29, letterSpacing: -1, lineHeight: 34 },
-  premiumModalSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20, marginTop: 9 },
-  premiumBenefits: { gap: 12, marginTop: 22, marginBottom: 20 },
-  premiumBenefit: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  premiumBenefitIcon: { width: 25, height: 25, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  premiumBenefitText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17 },
-  premiumPlanChoices: { flexDirection: 'row', gap: 8, marginBottom: 9 },
-  premiumPlanOption: { flex: 1, minHeight: 98, borderRadius: 18, borderWidth: 1, padding: 13 },
-  premiumPlanHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
-  premiumPlanLabel: { fontFamily: 'Inter_700Bold', fontSize: 11 },
-  premiumPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 20, marginTop: 12 },
-  premiumAnnualPriceFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: 5, rowGap: 3 },
-  premiumMonthlyEquivalent: { flexGrow: 1, flexShrink: 1, textAlign: 'right', fontFamily: 'Inter_600SemiBold', fontSize: 10, lineHeight: 14, marginTop: 3 },
-  premiumPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 3 },
-  premiumSavingsBadge: { fontFamily: 'Inter_700Bold', fontSize: 8 },
-  premiumPriceOptions: { fontFamily: 'Inter_400Regular', fontSize: 10, textAlign: 'right', marginBottom: 16 },
-  premiumTrialBody: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 15, textAlign: 'center', marginTop: -8, marginBottom: 14 },
-  premiumCta: { height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 9 },
-  premiumCtaText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
-  premiumActionError: { fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, textAlign: 'center', marginBottom: 10 },
-  premiumRestoreButton: { alignItems: 'center', justifyContent: 'center', minHeight: 36 },
-  premiumRestoreText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  premiumTrust: { fontFamily: 'Inter_400Regular', fontSize: 10, textAlign: 'center', marginTop: 12 },
 });

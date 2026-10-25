@@ -161,6 +161,7 @@ function RootLayoutNav() {
       <Stack.Screen name="streak" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="badges" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="features" options={{ headerShown: false, presentation: 'card' }} />
+      <Stack.Screen name="paywall-preview" options={{ headerShown: false, animation: 'fade' }} />
       <Stack.Screen name="daily-mood" options={{ headerShown: false, presentation: 'card', animation: reducedMotion ? 'fade' : 'fade_from_bottom' }} />
     </Stack>
     <BadgeUnlockCelebration />
