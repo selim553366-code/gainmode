@@ -25,10 +25,10 @@ function outcomeCopy(outcome: WeightOutcome, t: (key: Parameters<typeof translat
   return t('weeklyWeightMissing');
 }
 
-function StatTile({ icon, value, label, color }: { icon: React.ComponentProps<typeof Ionicons>['name']; value: React.ReactNode; label: string; color: string }) {
+function StatTile({ icon, value, label }: { icon: React.ComponentProps<typeof Ionicons>['name']; value: React.ReactNode; label: string }) {
   const colors = useColors();
   return <View style={[styles.statTile, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <View style={[styles.statIcon, { backgroundColor: `${color}18` }]}><Ionicons name={icon} size={17} color={color} /></View>
+    <View style={[styles.statIcon, { backgroundColor: colors.secondary }]}><Ionicons name={icon} size={17} color={colors.foreground} /></View>
     <Text style={[styles.statValue, { color: colors.foreground }]}>{value}</Text>
     <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{label}</Text>
   </View>;
@@ -85,10 +85,10 @@ export default function ProgressScreen() {
 
     <View style={styles.sectionHeading}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('weeklyStatsTitle')}</Text><Text style={[styles.sectionCaption, { color: colors.mutedForeground }]}>{t('weeklyStatsSubtitle')}</Text></View>
     <View style={styles.statsGrid}>
-      <StatTile icon="activity" value={<><AnimatedNumber value={summary.workoutMinutes} /> <Text style={styles.inlineUnit}>{t('minutesShort')}</Text></>} label={t('weeklyWorkoutMinutes')} color={colors.orange} />
-      <StatTile icon="barbell-outline" value={<AnimatedNumber value={summary.totalSets} />} label={t('weeklyTotalSets')} color={colors.primary} />
-      <StatTile icon="activity" value={<AnimatedNumber value={summary.totalExercises} />} label={t('weeklyTotalExercises')} color={colors.blue} />
-      <StatTile icon="flame-outline" value={summary.calorieConsistency === null ? '—' : `${summary.calorieConsistency}%`} label={t('weeklyCalorieConsistency')} color={colors.success} />
+      <StatTile icon="activity" value={<><AnimatedNumber value={summary.workoutMinutes} /> <Text style={styles.inlineUnit}>{t('minutesShort')}</Text></>} label={t('weeklyWorkoutMinutes')} />
+      <StatTile icon="barbell-outline" value={<AnimatedNumber value={summary.totalSets} />} label={t('weeklyTotalSets')} />
+      <StatTile icon="activity" value={<AnimatedNumber value={summary.totalExercises} />} label={t('weeklyTotalExercises')} />
+      <StatTile icon="flame-outline" value={summary.calorieConsistency === null ? '—' : `${summary.calorieConsistency}%`} label={t('weeklyCalorieConsistency')} />
     </View>
      <Card style={styles.consistencyCard}>
       <View style={styles.consistencyHeader}><View style={[styles.consistencyIcon, { backgroundColor: `${colors.success}18` }]}><Ionicons name="checkmark-circle-outline" size={19} color={colors.success} /></View><View style={{ flex: 1 }}><Text style={[styles.consistencyTitle, { color: colors.foreground }]}>{t('weeklyCalorieTitle')}</Text><Text style={[styles.consistencySubtitle, { color: colors.mutedForeground }]}>{summary.trackedCalorieDays > 0 ? `${summary.onTargetCalorieDays}/${summary.trackedCalorieDays} ${t('weeklyCalorieDays')}` : t('weeklyCalorieNoData')}</Text></View><Text style={[styles.consistencyValue, { color: colors.success }]}>{summary.calorieConsistency === null ? '—' : `${summary.calorieConsistency}%`}</Text></View>
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   heroWeight: { fontFamily: 'Inter_700Bold', fontSize: 39, letterSpacing: -1.8, marginTop: 3 },
   heroOutcome: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 2 },
   muscleFocus: { flexDirection: 'row', alignItems: 'center', gap: 13, minHeight: 92, marginTop: 22 },
-  muscleFocusIcon: { width: 62, height: 62, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  muscleFocusIcon: { width: 62, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center' },
   muscleFocusText: { fontFamily: 'Inter_700Bold', fontSize: 18, lineHeight: 23, marginTop: 5, maxWidth: 220 },
   heroBadge: { width: 82, height: 82, borderRadius: 25, borderWidth: 1, alignItems: 'center', justifyContent: 'center', gap: 4 },
   heroBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
@@ -138,12 +138,12 @@ const styles = StyleSheet.create({
   sectionCaption: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 3 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 16 },
   statTile: { width: '48.5%', minHeight: 113, borderRadius: 20, borderWidth: 1, padding: 13 },
-  statIcon: { width: 31, height: 31, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  statIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   statValue: { fontFamily: 'Inter_700Bold', fontSize: 22, marginTop: 12 },
   statLabel: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 4 },
   inlineUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
    loadRow: { borderTopWidth: 1, marginTop: 15, paddingTop: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  loadIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  loadIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   loadCopy: { flex: 1 },
   loadTitle: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   loadHint: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 15, marginTop: 3 },
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
    loadIncrease: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
   consistencyCard: { padding: 16, marginBottom: 16 },
   consistencyHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  consistencyIcon: { width: 39, height: 39, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  consistencyIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   consistencyTitle: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   consistencySubtitle: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 3 },
   consistencyValue: { fontFamily: 'Inter_700Bold', fontSize: 18 },

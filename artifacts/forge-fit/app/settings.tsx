@@ -112,8 +112,8 @@ export default function SettingsScreen() {
       <SectionTitle title={t('preferences')} />
       <Card>
         <View style={styles.row}>
-          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
-            <Ionicons name="language-outline" size={21} color={colors.primary} />
+          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+            <Ionicons name="language-outline" size={21} color={colors.foreground} />
           </View>
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('appLanguage')}</Text>
@@ -147,8 +147,8 @@ export default function SettingsScreen() {
       <SectionTitle title={t('appearance')} />
       <Card>
         <View style={styles.row}>
-          <View style={[styles.iconBox, { backgroundColor: `${colors.plum}20` }]}>
-            <Ionicons name="sunny-outline" size={21} color={colors.plum} />
+          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+            <Ionicons name="sunny-outline" size={21} color={colors.foreground} />
           </View>
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('appearance')}</Text>
@@ -178,8 +178,8 @@ export default function SettingsScreen() {
           onPress={openWidgetOffer}
           style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
-            <Ionicons name="phone-portrait-outline" size={21} color={colors.primary} />
+          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+            <Ionicons name="phone-portrait-outline" size={21} color={colors.foreground} />
           </View>
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('widgetSettingsTitle')}</Text>
@@ -196,8 +196,8 @@ export default function SettingsScreen() {
           onPress={() => router.push('/(tabs)/coach')}
           style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
-            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.primary} />
+          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.foreground} />
           </View>
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('coachProfileCorrectionTitle')}</Text>
@@ -218,8 +218,8 @@ export default function SettingsScreen() {
           })}
           style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
-            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.primary} />
+          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.foreground} />
           </View>
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('feedbackTitle')}</Text>
@@ -363,8 +363,8 @@ function LegalCard({
   return (
     <Card style={styles.legalCard}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={onPress} style={styles.legalHeader}>
-        <View style={[styles.iconBox, { backgroundColor: `${colors.blue}20` }]}>
-          <Ionicons name={icon} size={21} color={colors.blue} />
+        <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+          <Ionicons name={icon} size={21} color={colors.foreground} />
         </View>
         <View style={styles.rowCopy}>
           <Text style={[styles.rowTitle, { color: colors.foreground }]}>{title}</Text>
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   restartRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowCopy: { flex: 1 },
-  iconBox: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  iconBox: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   rowSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18, marginTop: 4 },
   selectedLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 20, marginBottom: 9 },
