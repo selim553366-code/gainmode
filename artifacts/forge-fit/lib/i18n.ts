@@ -2238,6 +2238,14 @@ const widgetTranslations = {
   es: { widgetOfferEyebrow: 'WIDGET DE PANTALLA DE INICIO', widgetOfferTitle: 'Una frase nueva en tu pantalla de inicio, cada día.', widgetOfferBody: 'El widget de GainMode muestra una nueva frase motivadora cada mañana, para tener tu objetivo presente cada vez que desbloqueas el móvil.', widgetOfferAdd: 'Añadir a la pantalla de inicio', widgetOfferLater: 'Ahora no', widgetOfferGotIt: 'Entendido', widgetOfferIosHint: 'En iPhone, los widgets los añades tú. Son 3 pasos:', widgetOfferIosStep1: 'Mantén pulsada una zona vacía de la pantalla de inicio.', widgetOfferIosStep2: 'Toca «Editar» arriba a la izquierda y luego «Añadir widget».', widgetOfferIosStep3: 'Busca «GainMode», elige un tamaño y toca «Añadir widget».', widgetOfferAndroidHint: 'Tu móvil no permite añadirlo automáticamente. Así puedes hacerlo:', widgetOfferAndroidStep1: 'Mantén pulsada una zona vacía de la pantalla de inicio.', widgetOfferAndroidStep2: 'Toca «Widgets» y busca «GainMode».', widgetOfferAndroidStep3: 'Mantén pulsado el widget y arrástralo a la pantalla de inicio.', widgetSettingsTitle: 'Widget de pantalla de inicio', widgetSettingsBody: 'Añade la frase motivadora del día a tu pantalla de inicio.' },
 } as const;
 
+const feedbackFormTranslations = {
+  tr: { feedbackEmailLabel: 'E-posta', feedbackMessageLabel: 'Mesajın' },
+  en: { feedbackEmailLabel: 'Email', feedbackMessageLabel: 'Your message' },
+  de: { feedbackEmailLabel: 'E-Mail', feedbackMessageLabel: 'Deine Nachricht' },
+  fr: { feedbackEmailLabel: 'E-mail', feedbackMessageLabel: 'Ton message' },
+  es: { feedbackEmailLabel: 'Correo electrónico', feedbackMessageLabel: 'Tu mensaje' },
+} as const;
+
 const trainingLoadTranslations = {
   tr: {
     dumbbellOptionLabel: 'Dumbbell kullanıyorum',
@@ -2341,7 +2349,7 @@ const trainingLoadTranslations = {
   },
 } as const;
 
-export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof coachRatingTranslations.tr | keyof typeof coachAtmosphereTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr | keyof typeof trainingLoadTranslations.tr | keyof typeof widgetTranslations.tr;
+export type TranslationKey = keyof typeof translations.tr | keyof typeof featuresTranslations.tr | keyof typeof dailyMoodTranslations.tr | keyof typeof premiumTranslations.tr | keyof typeof onboardingTranslations.tr | keyof typeof onboardingModeTranslations.tr | keyof typeof settingsTranslations.tr | keyof typeof coachRatingTranslations.tr | keyof typeof coachAtmosphereTranslations.tr | keyof typeof profileEditTranslations.tr | keyof typeof workoutPlanTranslations.tr | keyof typeof exerciseFormTranslations.tr | keyof typeof premiumPlanTranslations.tr | keyof typeof streakUiTranslations.tr | keyof typeof themeTranslations.tr | keyof typeof trainingLoadTranslations.tr | keyof typeof widgetTranslations.tr | keyof typeof feedbackFormTranslations.tr;
 
 const workoutReminderDescriptions: Record<Language, string> = {
   tr: 'Antrenman günlerinde saat 09:00’da o günün antrenmanını ve süresini hatırlat.',
@@ -2375,6 +2383,7 @@ export function translate(language: Language, key: TranslationKey): string {
   if (key === 'photoAiBox') return photoAnalysisStatusCopy[language];
   if (key in themeTranslations.tr) return themeTranslations[language][key as keyof typeof themeTranslations.tr];
   if (key in widgetTranslations.tr) return widgetTranslations[language][key as keyof typeof widgetTranslations.tr];
+  if (key in feedbackFormTranslations.tr) return feedbackFormTranslations[language][key as keyof typeof feedbackFormTranslations.tr];
   if (key in trainingLoadTranslations.tr) return trainingLoadTranslations[language][key as keyof typeof trainingLoadTranslations.tr];
   if (key === 'workoutReminderDescription') return workoutReminderDescriptions[language];
   if (key === 'premiumPriceOptions') return applyCurrentBrand(getPremiumPreviewPriceOptions(language));
