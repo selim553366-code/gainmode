@@ -75,7 +75,7 @@ function FeatureRow({ icon, title, body, delay }: { icon: IconName; title: strin
  * Plan card. Selection animates the border, the radio fill and a soft tint together (220ms ease-out),
  * so switching plans reads as one physical change rather than a style swap.
  */
-function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadge, strike, testID }: {
+function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadge, strike, glow, testID }: {
   selected: boolean;
   onPress: () => void;
   title: string;
@@ -85,9 +85,12 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadg
   badge?: string;
   saveBadge?: string | null;
   strike?: string | null;
+  /** Two colors for the frosted aurora that rises from the middle of the card toward the price. */
+  glow: [string, string];
   testID: string;
 }) {
   const colors = useColors();
+  const dark = colors.colorScheme === 'dark';
   const progress = useSharedValue(selected ? 1 : 0);
   React.useEffect(() => {
     progress.set(withTiming(selected ? 1 : 0, { duration: 220, easing: EASE_OUT }));
@@ -100,6 +103,19 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadg
 
   return <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} scaleTo={0.98}>
     <Animated.View style={[styles.plan, { backgroundColor: colors.card }, cardStyle]}>
+      <View pointerEvents="none" style={styles.glowLayer}>
+        <LinearGradient
+          colors={[`${glow[0]}00`, `${glow[0]}${dark ? '47' : '33'}`, `${glow[1]}${dark ? '73' : '59'}`]}
+          locations={[0.22, 0.6, 1]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={[styles.glowBlobA, { backgroundColor: `${glow[0]}${dark ? '80' : '66'}` }]} />
+        <View style={[styles.glowBlobB, { backgroundColor: `${glow[1]}${dark ? '99' : '73'}` }]} />
+        <BlurView intensity={dark ? 50 : 60} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={[colors.card, `${colors.card}00`]} locations={[0.18, 0.42]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+      </View>
       {badge ? <View style={[styles.planBadge, { backgroundColor: colors.primary }]}><Text style={[styles.planBadgeText, { color: colors.primaryForeground }]}>{badge}</Text></View> : null}
       <Animated.View style={[styles.radio, ringStyle]}>
         <Animated.View style={[styles.radioDot, { backgroundColor: colors.primary }, dotStyle]} />
@@ -254,6 +270,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               badge={t('paywallBestValue')}
               saveBadge={savings !== null ? t('paywallSave').replace('{percent}', String(savings)) : null}
               strike={yearOfMonthly}
+              glow={['#FF3B5C', '#FF8A3D']}
             /> : null}
             {monthly ? <PlanCard
               testID="paywall-monthly-plan"
@@ -263,6 +280,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               price={monthly.priceString}
               unit={t('premiumPerMonth')}
               note={t('paywallMonthlyNote')}
+              glow={['#2563EB', '#38BDF8']}
             /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
           </View>
@@ -332,6 +350,9 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 19, letterSpacing: -0.5, marginTop: 28, marginBottom: 12 },
   plans: { gap: 12 },
   plan: { borderRadius: 22, borderWidth: 2, paddingHorizontal: 16, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  glowLayer: { ...StyleSheet.absoluteFill, borderRadius: 20, overflow: 'hidden' },
+  glowBlobA: { position: 'absolute', width: 150, height: 150, borderRadius: 75, right: 70, top: -40 },
+  glowBlobB: { position: 'absolute', width: 170, height: 170, borderRadius: 85, right: -40, bottom: -70 },
   planBadge: { position: 'absolute', top: -11, left: 18, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   planBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8 },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
