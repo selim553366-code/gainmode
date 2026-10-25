@@ -687,44 +687,16 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
   );
 }
 
+// The minimal identity keeps the ground calm; the mascot and type carry the screen.
 function OnboardingAtmosphere() {
-  const colors = useColors();
-  const motion = React.useRef(new Animated.Value(0)).current;
-  const pulse = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    const drift = Animated.loop(Animated.sequence([
-      Animated.timing(motion, { toValue: 1, duration: 11500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      Animated.timing(motion, { toValue: 0, duration: 11500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-    ]));
-    const breathe = Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1, duration: 5200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-    ]));
-    drift.start();
-    breathe.start();
-    return () => {
-      drift.stop();
-      breathe.stop();
-    };
-  }, [motion, pulse]);
-
-  const driftX = motion.interpolate({ inputRange: [0, 1], outputRange: [-22, 26] });
-  const driftY = motion.interpolate({ inputRange: [0, 1], outputRange: [18, -26] });
-  const blobScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.1] });
-  const blobOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.4] });
-
-  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-    <Animated.View style={[styles.onboardingBlob, styles.onboardingBlobBlue, { backgroundColor: colors.primary, opacity: blobOpacity, transform: [{ translateX: driftX }, { translateY: driftY }, { scale: blobScale }] }]} />
-    <Animated.View style={[styles.onboardingBlob, styles.onboardingBlobPurple, { backgroundColor: colors.blue, opacity: blobOpacity, transform: [{ translateX: driftY }, { translateY: driftX }, { scale: blobScale }] }]} />
-    <Animated.View style={[styles.onboardingBlob, styles.onboardingBlobCyan, { backgroundColor: colors.secondary, opacity: blobOpacity, transform: [{ translateX: Animated.multiply(driftX, -0.7) }, { translateY: Animated.multiply(driftY, -0.55) }, { scale: blobScale }] }]} />
-  </View>;
+  return null;
 }
 
 function WelcomeLanguageSelector({ language, onSelect }: { language: Language; onSelect: (language: Language) => void }) {
-  return <View style={styles.welcomeLanguagePill}>
+  const colors = useColors();
+  return <View style={[styles.welcomeLanguagePill, { backgroundColor: colors.card, borderColor: colors.border }]}>
     {(Object.keys(languageLabels) as Language[]).map((item) => (
-      <Pressable key={item} onPress={() => { triggerHaptic(); onSelect(item); }} style={[styles.welcomeLanguageOption, language === item ? styles.welcomeLanguageSelected : null]}>
+      <Pressable key={item} onPress={() => { triggerHaptic(); onSelect(item); }} style={[styles.welcomeLanguageOption, language === item ? [styles.welcomeLanguageSelected, { backgroundColor: colors.secondary }] : null]}>
         <MiniFlag language={item} />
       </Pressable>
     ))}
@@ -815,7 +787,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
        </View>
     </View>
      <View style={[styles.welcomeReferenceCard, { backgroundColor: colors.colorScheme === 'dark' ? colors.glass : 'transparent', borderColor: colors.colorScheme === 'dark' ? colors.glassBorder : 'rgba(255,255,255,0.82)' }]}>
-      <Animated.View style={[styles.welcomeCardGlow, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
+      <Animated.View style={[styles.welcomeCardGlow, { backgroundColor: colors.accent, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
       <Animated.View style={[styles.welcomeCharacterStage, { transform: [{ translateY: coachTranslateY }, { scale: orbScale }, { rotate: orbRotateValue }] }]}>
          <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={styles.welcomeReferenceCharacter} />
       </Animated.View>
@@ -1281,10 +1253,6 @@ const styles = StyleSheet.create({
   languageOption: { width: 20, alignItems: 'center', gap: 2 },
   language: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 12 },
   languageFlagImage: { width: 20, height: 12, borderRadius: 2, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.16)' },
-  onboardingBlob: { position: 'absolute', borderRadius: 999 },
-  onboardingBlobBlue: { width: 420, height: 300, top: 72, right: -140 },
-  onboardingBlobPurple: { width: 360, height: 520, top: 190, left: -150 },
-  onboardingBlobCyan: { width: 300, height: 360, bottom: -70, right: -90 },
    questionBody: { flex: 1, minHeight: 0, marginTop: -6 },
    questionScrollContent: { paddingTop: 0, paddingBottom: 12 },
    questionScrollHint: { position: 'absolute', left: 0, right: 0, bottom: 8, alignItems: 'center', justifyContent: 'center', gap: 1 },
@@ -1383,9 +1351,9 @@ const styles = StyleSheet.create({
    welcomeLogoDock: { transform: [{ translateX: -8 }, { translateY: -6 }] },
    welcomeLanguageDock: { transform: [{ translateY: -12 }, { translateX: 8 }] },
   welcomeBrand: { fontFamily: 'Inter_700Bold', fontSize: 25, letterSpacing: -1.2 },
-   welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.46)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.76)' },
-  welcomeLanguageOption: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  welcomeLanguageSelected: { backgroundColor: 'rgba(255,255,255,0.88)', shadowColor: '#2E63E6', shadowOpacity: 0.12, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+   welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
+  welcomeLanguageOption: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  welcomeLanguageSelected: {},
     welcomeReferenceCard: { flex: 1, marginHorizontal: 16, marginTop: 38, marginBottom: 12, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.82)', backgroundColor: 'rgba(255,255,255,0.39)', overflow: 'hidden', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 22, shadowColor: '#2558D9', shadowOpacity: 0.12, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
   welcomeCardGlow: { position: 'absolute', width: 260, height: 260, top: 64, borderRadius: 130, alignSelf: 'center' },
    welcomeCharacterStage: { width: 260, height: 260, marginTop: 52, borderRadius: 130, overflow: 'visible', alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },

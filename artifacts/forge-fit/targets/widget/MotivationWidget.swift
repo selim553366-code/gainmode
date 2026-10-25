@@ -101,9 +101,6 @@ struct MotivationPosterView: View {
           .tracking(1.2)
           .foregroundStyle(.white.opacity(0.72))
         Spacer()
-        if !compact {
-          Text("GAINMODE").font(.system(size: 10, weight: .heavy)).tracking(0.8).foregroundStyle(.white)
-        }
       }
       Spacer(minLength: 8)
       Text(entry.quote)
@@ -115,7 +112,7 @@ struct MotivationPosterView: View {
       Spacer(minLength: 8)
       HStack(spacing: 8) {
         Capsule().fill(brandSky).frame(width: 22, height: 3)
-        Text(compact ? "GAINMODE" : "FitBud")
+        Text("FitBud")
           .font(.system(size: 11, weight: .semibold))
           .foregroundStyle(.white.opacity(0.8))
       }

@@ -60,10 +60,10 @@ function PhotoAnalysisTransfer({ uri, phase, sendingLabel, aiBoxLabel, analyzing
         <Image source={{ uri }} style={styles.analysisPhotoImage} />
       </Animated.View>
       <Animated.View style={[styles.analysisAiBox, { opacity: boxOpacity, transform: [{ scale: boxScale }] }]}>
-        <LinearGradient colors={[colors.secondary, colors.blue, colors.primary]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={styles.analysisAiGradient}>
+        <LinearGradient colors={[colors.accent, colors.inkCardEnd]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={styles.analysisAiGradient}>
           <ForgeFitMark size={26} />
-          <Text style={[styles.analysisAiText, { color: colors.primaryForeground }]}>{aiBoxLabel}</Text>
-          {phase === 'analyzing' ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Ionicons name="arrow-forward" size={14} color={colors.primaryForeground} />}
+          <Text style={[styles.analysisAiText, { color: colors.inkCardForeground }]}>{aiBoxLabel}</Text>
+          {phase === 'analyzing' ? <ActivityIndicator size="small" color={colors.inkCardForeground} /> : <Ionicons name="arrow-forward" size={14} color={colors.inkCardForeground} />}
         </LinearGradient>
       </Animated.View>
     </View>
@@ -125,8 +125,8 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen">
     <View style={[styles.scannerScreen, { backgroundColor: colors.background }]}>
       {!cameraReady ? <View style={styles.cameraPermission}><Ionicons name="camera-outline" size={42} color={colors.primary} /><Text style={[styles.scannerTitle, { color: colors.foreground }]}>{cameraAvailable ? permissionText : unavailableText}</Text>{cameraAvailable ? <Pressable onPress={() => requestPermission()} style={[styles.scannerPermissionButton, { backgroundColor: colors.primary }]}><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{allowCameraLabel}</Text></Pressable> : null}</View> : null}
-      <View style={[styles.scannerHeader, { top: insets.top + 14 }]}><View style={styles.scannerHeaderCopy}><Text style={[styles.scannerTitle, { color: colors.foreground }]}>{title}</Text><View style={[styles.scannerLivePill, { borderColor: `${colors.primary}75`, backgroundColor: `${colors.primary}20` }]}><View style={[styles.scannerLiveDot, { backgroundColor: colors.primary }]} /><Text style={[styles.scannerLiveText, { color: colors.primary }]}>{mode === 'meal' ? captureLabel : title}</Text></View></View><Pressable accessibilityLabel={closeLabel} onPress={onClose} style={[styles.scannerClose, { backgroundColor: `${colors.background}CC`, borderColor: `${colors.primary}55` }]}><Ionicons name="close" size={22} color={colors.foreground} /></Pressable></View>
-        {cameraReady ? <View pointerEvents="none" style={styles.scannerCenter}><Text style={[styles.healthySlogan, { color: colors.primary }]}>{healthySlogan}</Text><LinearGradient colors={[colors.secondary, colors.blue, colors.primary]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={[styles.neonFrame, styles.neonFrameGradient, mode === 'barcode' ? styles.neonBarcodeFrame : styles.neonMealFrame]}><View style={styles.neonCameraInner}>{capturedPhoto ? <Image source={{ uri: capturedPhoto.uri }} style={styles.camera} /> : <CameraView
+      <View style={[styles.scannerHeader, { top: insets.top + 14 }]}><View style={styles.scannerHeaderCopy}><Text style={[styles.scannerTitle, { color: colors.foreground }]}>{title}</Text><View style={[styles.scannerLivePill, { borderColor: `${colors.accent}75`, backgroundColor: `${colors.accent}20` }]}><View style={[styles.scannerLiveDot, { backgroundColor: colors.accent }]} /><Text style={[styles.scannerLiveText, { color: colors.accent }]}>{mode === 'meal' ? captureLabel : title}</Text></View></View><Pressable accessibilityLabel={closeLabel} onPress={onClose} style={[styles.scannerClose, { backgroundColor: `${colors.background}CC`, borderColor: `${colors.primary}55` }]}><Ionicons name="close" size={22} color={colors.foreground} /></Pressable></View>
+        {cameraReady ? <View pointerEvents="none" style={styles.scannerCenter}><Text style={[styles.healthySlogan, { color: colors.accent }]}>{healthySlogan}</Text><LinearGradient colors={[colors.plum, colors.accent, colors.blue]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={[styles.neonFrame, styles.neonFrameGradient, mode === 'barcode' ? styles.neonBarcodeFrame : styles.neonMealFrame]}><View style={styles.neonCameraInner}>{capturedPhoto ? <Image source={{ uri: capturedPhoto.uri }} style={styles.camera} /> : <CameraView
          ref={cameraRef}
          style={styles.camera}
          facing={facing}

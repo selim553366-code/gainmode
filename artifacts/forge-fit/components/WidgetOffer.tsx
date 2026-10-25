@@ -44,7 +44,6 @@ function WidgetPosterPreview() {
     <View style={styles.posterGlow} />
     <View style={styles.posterTop}>
       <Text style={styles.posterEyebrow}>{eyebrowByLanguage[language]}</Text>
-      <Text style={styles.posterBrand}>GAINMODE</Text>
     </View>
     <Text style={styles.posterQuote}>{quoteOfTheDay(language)}</Text>
     <View style={styles.posterFooter}><View style={styles.posterBar} /><Text style={styles.posterSignature}>FitBud</Text></View>
@@ -130,7 +129,6 @@ const styles = StyleSheet.create({
   posterGlow: { position: 'absolute', width: 220, height: 220, borderRadius: 110, right: -80, top: -110, backgroundColor: 'rgba(255,255,255,0.08)' },
   posterTop: { flexDirection: 'row', justifyContent: 'space-between' },
   posterEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.3, color: 'rgba(255,255,255,0.72)' },
-  posterBrand: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8, color: '#FFFFFF' },
   posterQuote: { fontFamily: 'Inter_700Bold', fontSize: 20, lineHeight: 25, color: '#FFFFFF' },
   posterFooter: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   posterBar: { width: 22, height: 3, borderRadius: 2, backgroundColor: '#8EDBFA' },

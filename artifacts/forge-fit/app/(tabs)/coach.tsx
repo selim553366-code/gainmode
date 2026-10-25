@@ -126,7 +126,8 @@ function CoachAtmosphereBackground({ colors, reveal, atmosphere }: { colors: Ret
     return () => animation.stop();
   }, [ambientMotion]);
 
-  if (atmosphere === 'night') {
+  // Dark mode always gets the night sky: a bright morning photo would glare against graphite surfaces.
+  if (atmosphere === 'night' || colors.colorScheme === 'dark') {
     return <View pointerEvents="none" style={styles.coachBackgroundLayer}>
       <Animated.View style={[styles.coachAtmosphereLayer, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]}>
         <LinearGradient
@@ -153,8 +154,9 @@ function CoachAtmosphereBackground({ colors, reveal, atmosphere }: { colors: Ret
       <Animated.Image
         source={require('@/assets/images/coach-background.jpeg')}
         resizeMode="cover"
-        style={[styles.coachBackground, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]}
+        style={[styles.coachBackground, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.06, 0.5, 0.7] }) }]}
       />
+      <LinearGradient colors={[`${colors.background}00`, `${colors.background}B3`, colors.background]} locations={[0, 0.45, 0.85]} style={StyleSheet.absoluteFill} />
     </View>
   </View>;
 }
