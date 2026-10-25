@@ -9,9 +9,11 @@ import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { Feather, Ionicons } from '@/components/AppIcon';
 import { router, Tabs } from 'expo-router';
-import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
+import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { isDailyMoodDue } from '@/lib/dailyMood';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { dailyMoodPromptWindow, shouldShowDailyMoodPrompt } from '@/lib/dailyMood';
+import { PREMIUM_ENTITLEMENT_IDENTIFIER } from '@/lib/premiumAccess';
 import { localDateKey } from '@/lib/nutritionDates';
 
 const tabOrder = ['index', 'nutrition', 'coach', 'plan', 'progress'];
@@ -173,31 +175,47 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   );
 }
 
+const MOOD_PROMPT_HANDLED_KEY = 'gainmode-mood-prompt-handled-window';
+
 const moodPromptEntering = FadeInDown.duration(320).delay(400).easing(EASE_OUT).reduceMotion(ReduceMotion.System);
 const moodPromptExiting = FadeOutUp.duration(200).easing(EASE_OUT).reduceMotion(ReduceMotion.System);
 
 function DailyMoodPrompt() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, onboardingComplete, dailyMoodCompletedDate } = useFit();
+  const { language, onboardingComplete, dailyMoodCompletedDate, registeredAt } = useFit();
+  const { customerInfo } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [dismissed, setDismissed] = React.useState(false);
-  const [due, setDue] = React.useState(isDailyMoodDue());
+  // Windows are counted from when the subscription started; the account's start is the fallback.
+  const subscribedAt = customerInfo?.entitlements.active[PREMIUM_ENTITLEMENT_IDENTIFIER]?.originalPurchaseDate ?? registeredAt;
+  const [now, setNow] = React.useState(Date.now());
+  // undefined while the stored value loads, so the banner never flashes for an already handled window.
+  const [handledWindow, setHandledWindow] = React.useState<number | null | undefined>(undefined);
 
   React.useEffect(() => {
-    const timer = setInterval(() => setDue(isDailyMoodDue()), 60000);
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    AsyncStorage.getItem(MOOD_PROMPT_HANDLED_KEY)
+      .then((stored) => setHandledWindow(stored !== null && Number.isFinite(Number(stored)) ? Number(stored) : null))
+      .catch(() => setHandledWindow(null));
     return () => clearInterval(timer);
   }, []);
 
-  if (!onboardingComplete || dismissed || !due || dailyMoodCompletedDate === localDateKey()) return null;
+  const promptWindow = dailyMoodPromptWindow(subscribedAt, now);
+  const markHandled = () => {
+    if (promptWindow === null) return;
+    setHandledWindow(promptWindow);
+    AsyncStorage.setItem(MOOD_PROMPT_HANDLED_KEY, String(promptWindow)).catch(() => undefined);
+  };
+
+  if (!onboardingComplete || handledWindow === undefined || !shouldShowDailyMoodPrompt(promptWindow, handledWindow) || dailyMoodCompletedDate === localDateKey()) return null;
 
   return (
     <View pointerEvents="box-none" style={[styles.moodPromptOverlay, { top: insets.top + 10 }]}>
       <Reanimated.View entering={moodPromptEntering} exiting={moodPromptExiting} style={[styles.moodPrompt, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000000' }]}>
         <View style={[styles.moodPromptIcon, { backgroundColor: `${colors.primary}1F` }]}><Ionicons name="analytics-outline" size={19} color={colors.primary} /></View>
         <View style={styles.moodPromptCopy}><Text style={[styles.moodPromptTitle, { color: colors.foreground }]}>{t('dailyMoodPromptTitle')}</Text><Text style={[styles.moodPromptBody, { color: colors.mutedForeground }]}>{t('dailyMoodPromptBody')}</Text></View>
-        <Pressable accessibilityRole="button" onPress={() => { setDismissed(true); router.push('/daily-mood'); }} style={({ pressed }) => [styles.moodPromptButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.moodPromptButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodOpen')}</Text></Pressable>
-        <Pressable accessibilityLabel={t('dailyMoodLater')} onPress={() => setDismissed(true)} hitSlop={8}><Ionicons name="close" size={18} color={colors.mutedForeground} /></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { markHandled(); router.push('/daily-mood'); }} style={({ pressed }) => [styles.moodPromptButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.moodPromptButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodOpen')}</Text></Pressable>
+        <Pressable accessibilityLabel={t('dailyMoodLater')} onPress={markHandled} hitSlop={8}><Ionicons name="close" size={18} color={colors.mutedForeground} /></Pressable>
       </Reanimated.View>
     </View>
   );
