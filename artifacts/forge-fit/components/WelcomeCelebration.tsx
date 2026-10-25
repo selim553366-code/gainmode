@@ -58,7 +58,7 @@ const CARDBOARD_FLAP = '#D6A46C';
 const TAPE = '#E7C78F';
 
 const unlocked: Array<{ icon: IconName; key: TranslationKey }> = [
-  { icon: 'sparkles-outline', key: 'paywallFeature1Title' },
+  { icon: 'coach-outline', key: 'paywallFeature1Title' },
   { icon: 'camera-outline', key: 'paywallFeature2Title' },
   { icon: 'barbell-outline', key: 'paywallFeature3Title' },
   { icon: 'analytics-outline', key: 'paywallFeature4Title' },

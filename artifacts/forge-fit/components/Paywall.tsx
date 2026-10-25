@@ -287,7 +287,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
         </Animated.View>
 
         <View style={[styles.features, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <FeatureRow icon="sparkles-outline" title={t('paywallFeature1Title')} body={t('paywallFeature1Body')} delay={220} />
+          <FeatureRow icon="coach-outline" title={t('paywallFeature1Title')} body={t('paywallFeature1Body')} delay={220} />
           <FeatureRow icon="camera-outline" title={t('paywallFeature2Title')} body={t('paywallFeature2Body')} delay={280} />
           <FeatureRow icon="barbell-outline" title={t('paywallFeature3Title')} body={t('paywallFeature3Body')} delay={340} />
           <FeatureRow icon="analytics-outline" title={t('paywallFeature4Title')} body={t('paywallFeature4Body')} delay={400} />

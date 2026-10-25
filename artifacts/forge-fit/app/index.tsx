@@ -935,7 +935,7 @@ function ProgressiveOverloadScreen({ onContinue }: { onContinue: () => void }) {
         <View style={[styles.overloadRuleNumber, { backgroundColor: `${colors.primary}18` }]}><Text style={[styles.overloadRuleNumberText, { color: colors.primary }]}>12+</Text></View>
         <View style={{ flex: 1 }}><Text style={[styles.overloadRuleTitle, { color: colors.foreground }]}>{t('overloadRuleTitle')}</Text><Text style={[styles.overloadRuleText, { color: colors.mutedForeground }]}>{t('overloadRule')}</Text></View>
       </View>
-      <View style={[styles.overloadTip, { backgroundColor: `${colors.success}15`, borderColor: `${colors.success}40` }]}><Ionicons name="sparkles-outline" size={18} color={colors.success} /><Text style={[styles.overloadTipText, { color: colors.foreground }]}>{t('overloadTip')}</Text></View>
+      <View style={[styles.overloadTip, { backgroundColor: `${colors.success}15`, borderColor: `${colors.success}40` }]}><Ionicons name="trending-up-outline" size={18} color={colors.success} /><Text style={[styles.overloadTipText, { color: colors.foreground }]}>{t('overloadTip')}</Text></View>
     </View>
     <Pressable onPress={() => { triggerHaptic(); onContinue(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('overloadContinue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
   </LinearGradient>;
@@ -1015,7 +1015,7 @@ function DemoPreviewFrame({ kind, lockedLabel, t }: { kind: ExploreDemoKind; loc
   const colors = useColors();
   const miniIcon = (name: React.ComponentProps<typeof Ionicons>['name'], active = false) => <Ionicons name={name} size={14} color={active ? colors.primary : colors.mutedForeground} />;
   const lockedChip = <View style={[styles.demoLockedChip, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}42` }]}><Ionicons name="badge-lock" size={11} color={colors.primary} /><Text style={[styles.demoLockedText, { color: colors.primary }]}>{lockedLabel}</Text></View>;
-  const miniHeader = (title: string, icon: React.ComponentProps<typeof Ionicons>['name'] = 'sparkles-outline') => (
+  const miniHeader = (title: string, icon: React.ComponentProps<typeof Ionicons>['name'] = 'coach-outline') => (
     <View style={styles.demoMiniHeader}>
       <View style={[styles.demoMiniBrand, { backgroundColor: colors.primary }]}><ForgeFitMark size={17} /></View>
       <Text numberOfLines={1} style={[styles.demoMiniHeaderTitle, { color: colors.foreground }]}>{title}</Text>
@@ -1039,11 +1039,11 @@ function DemoPreviewFrame({ kind, lockedLabel, t }: { kind: ExploreDemoKind; loc
   </View>;
 
   if (kind === 'coach') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
-    {miniHeader(t('coachTitle'), 'sparkles-outline')}
+    {miniHeader(t('coachTitle'), 'coach-outline')}
     <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('coachSubtitle')}</Text>
-    <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="sparkles" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachWelcome')}</Text></View>
+    <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="chat-more" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachWelcome')}</Text></View>
     <View style={[styles.demoUserBubble, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachExample')}</Text></View>
-    <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="sparkles" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachAiCapabilities')}</Text></View>
+    <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="chat-more" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachAiCapabilities')}</Text></View>
   </View>;
 
   if (kind === 'nutrition') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
@@ -1079,7 +1079,7 @@ function DemoPreviewFrame({ kind, lockedLabel, t }: { kind: ExploreDemoKind; loc
     {miniHeader(t('weeklyAiTitle'), 'analytics-outline')}
     <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('weeklyAiSubtitle')}</Text>
     <View style={[styles.demoChartCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.demoMetricLabel, { color: colors.primary }]}>{t('weeklyAiLastSeven')}</Text><View style={styles.demoBars}>{[38, 62, 48, 78, 54, 88, 70].map((height, index) => <View key={index} style={[styles.demoBar, { height, backgroundColor: index === 6 ? colors.primary : `${colors.primary}45` }]} />)}</View></View>
-    <View style={[styles.demoInsightCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}38` }]}><Ionicons name="sparkles-outline" size={17} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('weeklyAiCardSubtitle')}</Text></View>
+    <View style={[styles.demoInsightCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}38` }]}><Ionicons name="analytics-outline" size={17} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('weeklyAiCardSubtitle')}</Text></View>
     {lockedChip}
   </View>;
 }
@@ -1109,7 +1109,7 @@ function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: (
       <Text style={[styles.exploreTitle, { color: colors.foreground }]}>{t(slide.title)}</Text>
       <Text style={[styles.exploreSummary, { color: colors.mutedForeground }]}>{t(slide.summary)}</Text>
       <View style={[styles.exploreValueCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}42` }]}>
-        <View style={[styles.exploreValueIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="sparkles-outline" size={18} color={colors.primary} /></View>
+        <View style={[styles.exploreValueIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="gem-outline" size={18} color={colors.primary} /></View>
         <View style={styles.exploreValueCopy}>
           <Text style={[styles.exploreValueLabel, { color: colors.primary }]}>{t('premiumExploreIncluded')}</Text>
           <Text style={[styles.exploreDetail, { color: colors.foreground }]}>{t(slide.detail)}</Text>

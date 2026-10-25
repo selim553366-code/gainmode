@@ -107,7 +107,7 @@ export default function StreakScreen() {
 
       <View style={[styles.keepGoing, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}>
         <View style={[styles.keepGoingIcon, { backgroundColor: `${colors.primary}22` }]}>
-          <Ionicons name="sparkles-outline" size={18} color={colors.primary} />
+          <Ionicons name="flash-outline" size={18} color={colors.primary} />
         </View>
         <Text style={[styles.keepGoingText, { color: colors.foreground }]}>{t('streakKeepGoing')}</Text>
       </View>

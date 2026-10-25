@@ -27,7 +27,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 const CHECK_LENGTH = 18;
 
 const features: Array<{ icon: IconName; key: TranslationKey }> = [
-  { icon: 'sparkles-outline', key: 'premiumAccessActiveFeature1' },
+  { icon: 'coach-outline', key: 'premiumAccessActiveFeature1' },
   { icon: 'nutrition-outline', key: 'premiumAccessActiveFeature2' },
   { icon: 'barbell-outline', key: 'premiumAccessActiveFeature3' },
 ];

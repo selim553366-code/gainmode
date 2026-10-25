@@ -19,7 +19,7 @@ type FeedbackCategory = 'bug' | 'suggestion' | 'subscription' | 'payment' | 'not
 
 const feedbackCategories = [
   { value: 'bug', label: 'feedbackBug', icon: 'alert-circle' },
-  { value: 'suggestion', label: 'feedbackSuggestion', icon: 'sparkles-outline' },
+  { value: 'suggestion', label: 'feedbackSuggestion', icon: 'bulb-outline' },
   { value: 'subscription', label: 'feedbackSubscription', icon: 'trophy-outline' },
   { value: 'payment', label: 'feedbackPayment', icon: 'ticket-outline' },
   { value: 'notifications', label: 'feedbackNotifications', icon: 'notifications-outline' },
