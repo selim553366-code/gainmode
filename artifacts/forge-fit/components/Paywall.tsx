@@ -5,12 +5,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
+  Easing,
+  cancelAnimation,
   interpolate,
   interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withDelay,
+  withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { useColors } from '@/hooks/useColors';
@@ -72,8 +76,9 @@ function FeatureRow({ icon, title, body, delay }: { icon: IconName; title: strin
 }
 
 /**
- * Plan card. Selection animates the border, the radio fill and a soft tint together (220ms ease-out),
- * so switching plans reads as one physical change rather than a style swap.
+ * Plan card. Selecting it floods the whole card with its frosted aurora (420ms ease-out) while the
+ * border and radio settle (220ms). The chosen card then gets a light sheen that sweeps across every
+ * few seconds, like light catching glass; it stops as soon as the card is deselected or motion is reduced.
  */
 function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadge, strike, glow, testID }: {
   selected: boolean;
@@ -85,25 +90,52 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadg
   badge?: string;
   saveBadge?: string | null;
   strike?: string | null;
-  /** Two colors for the frosted aurora that rises from the middle of the card toward the price. */
+  /** Two colors for the frosted aurora; a hint of it shows at rest, the selected card is filled. */
   glow: [string, string];
   testID: string;
 }) {
   const colors = useColors();
   const dark = colors.colorScheme === 'dark';
+  const reduced = useReducedMotion();
+  const [width, setWidth] = React.useState(0);
   const progress = useSharedValue(selected ? 1 : 0);
+  const fill = useSharedValue(selected ? 1 : 0);
+  const sheen = useSharedValue(0);
+
   React.useEffect(() => {
     progress.set(withTiming(selected ? 1 : 0, { duration: 220, easing: EASE_OUT }));
-  }, [progress, selected]);
+    fill.set(withTiming(selected ? 1 : 0, { duration: selected ? 420 : 260, easing: EASE_OUT }));
+    cancelAnimation(sheen);
+    sheen.set(0);
+    if (selected && !reduced && width) {
+      sheen.set(withDelay(450, withRepeat(withSequence(
+        withTiming(1, { duration: 1700, easing: Easing.bezier(0.45, 0, 0.25, 1) }),
+        withDelay(2300, withTiming(0, { duration: 0 })),
+      ), -1)));
+    }
+    return () => cancelAnimation(sheen);
+  }, [fill, progress, reduced, selected, sheen, width]);
+
   const cardStyle = useAnimatedStyle(() => ({
     borderColor: interpolateColor(progress.get(), [0, 1], [colors.border, colors.primary]),
   }));
   const dotStyle = useAnimatedStyle(() => ({ opacity: progress.get(), transform: [{ scale: interpolate(progress.get(), [0, 1], [0.4, 1]) }] }));
   const ringStyle = useAnimatedStyle(() => ({ borderColor: interpolateColor(progress.get(), [0, 1], [colors.border, colors.primary]) }));
+  const floodStyle = useAnimatedStyle(() => ({ opacity: fill.get() }));
+  const restMaskStyle = useAnimatedStyle(() => ({ opacity: 1 - fill.get() }));
+  const sheenStyle = useAnimatedStyle(() => ({
+    opacity: sheen.get() > 0 && sheen.get() < 1 ? 1 : 0,
+    transform: [{ translateX: -150 + sheen.get() * (width + 200) }, { rotate: '18deg' }],
+  }));
 
+  const strong = dark ? '8C' : '66';
   return <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} scaleTo={0.98}>
-    <Animated.View style={[styles.plan, { backgroundColor: colors.card }, cardStyle]}>
+    <Animated.View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={[styles.plan, { backgroundColor: colors.card }, cardStyle]}>
       <View pointerEvents="none" style={styles.glowLayer}>
+        <Animated.View style={[StyleSheet.absoluteFill, floodStyle]}>
+          <LinearGradient colors={[`${glow[0]}${strong}`, `${glow[1]}${strong}`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <View style={[styles.glowBlobLeft, { backgroundColor: `${glow[1]}${dark ? '80' : '59'}` }]} />
+        </Animated.View>
         <LinearGradient
           colors={[`${glow[0]}00`, `${glow[0]}${dark ? '47' : '33'}`, `${glow[1]}${dark ? '73' : '59'}`]}
           locations={[0.22, 0.6, 1]}
@@ -114,7 +146,12 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadg
         <View style={[styles.glowBlobA, { backgroundColor: `${glow[0]}${dark ? '80' : '66'}` }]} />
         <View style={[styles.glowBlobB, { backgroundColor: `${glow[1]}${dark ? '99' : '73'}` }]} />
         <BlurView intensity={dark ? 50 : 60} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />
-        <LinearGradient colors={[colors.card, `${colors.card}00`]} locations={[0.18, 0.42]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+        <Animated.View style={[StyleSheet.absoluteFill, restMaskStyle]}>
+          <LinearGradient colors={[colors.card, `${colors.card}00`]} locations={[0.18, 0.42]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+        </Animated.View>
+        <Animated.View style={[styles.sheen, sheenStyle]}>
+          <LinearGradient colors={['rgba(255,255,255,0)', dark ? 'rgba(255,255,255,0.34)' : 'rgba(255,255,255,0.75)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+        </Animated.View>
       </View>
       {badge ? <View style={[styles.planBadge, { backgroundColor: colors.primary }]}><Text style={[styles.planBadgeText, { color: colors.primaryForeground }]}>{badge}</Text></View> : null}
       <Animated.View style={[styles.radio, ringStyle]}>
@@ -353,6 +390,8 @@ const styles = StyleSheet.create({
   glowLayer: { ...StyleSheet.absoluteFill, borderRadius: 20, overflow: 'hidden' },
   glowBlobA: { position: 'absolute', width: 150, height: 150, borderRadius: 75, right: 70, top: -40 },
   glowBlobB: { position: 'absolute', width: 170, height: 170, borderRadius: 85, right: -40, bottom: -70 },
+  glowBlobLeft: { position: 'absolute', width: 160, height: 160, borderRadius: 80, left: -50, top: -60 },
+  sheen: { position: 'absolute', top: -30, bottom: -30, left: 0, width: 120 },
   planBadge: { position: 'absolute', top: -11, left: 18, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   planBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8 },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
