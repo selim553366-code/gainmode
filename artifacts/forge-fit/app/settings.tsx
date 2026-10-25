@@ -8,6 +8,7 @@ import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
 import { openWidgetOffer } from '@/components/WidgetOffer';
+import { LanguageList, SegmentedControl } from '@/components/SettingsControls';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 import { apiUrl } from '@/lib/api';
 import { legalDocumentUrl, type LegalDocument } from '@/lib/legalDocuments';
@@ -120,28 +121,7 @@ export default function SettingsScreen() {
             <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('languageDescription')}</Text>
           </View>
         </View>
-        <Text style={[styles.selectedLabel, { color: colors.mutedForeground }]}>{t('currentLanguage')}</Text>
-        <View style={styles.languageGrid}>
-          {languages.map((item) => {
-            const active = item === language;
-            return (
-              <Pressable
-                key={item}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={languageLabels[item]}
-                onPress={() => setLanguage(item)}
-                style={({ pressed }) => [
-                  styles.languageOption,
-                  { backgroundColor: active ? colors.primary : colors.secondary, borderColor: active ? colors.primary : colors.border, opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <Text style={[styles.languageCode, { color: active ? colors.primaryForeground : colors.foreground }]}>{item.toUpperCase()}</Text>
-                <Text style={[styles.languageName, { color: active ? colors.primaryForeground : colors.mutedForeground }]}>{languageLabels[item]}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <LanguageList value={language} onChange={setLanguage} />
       </Card>
 
       <SectionTitle title={t('appearance')} />
@@ -155,19 +135,15 @@ export default function SettingsScreen() {
             <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('appearanceDescription')}</Text>
           </View>
         </View>
-        <View style={styles.themeGrid}>
-          {([
-            { value: 'system', label: 'themeSystem', icon: 'phone-portrait-outline' },
-            { value: 'light', label: 'themeLight', icon: 'sunny-outline' },
-            { value: 'dark', label: 'themeDark', icon: 'moon-outline' },
-          ] as const).map((option) => {
-            const active = themePreference === option.value;
-            return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected: active }} onPress={() => setThemePreference(option.value as ThemePreference)} style={({ pressed }) => [styles.themeOption, { backgroundColor: active ? colors.primary : colors.secondary, borderColor: active ? colors.primary : colors.border, opacity: pressed ? 0.72 : 1 }]}>
-              <Ionicons name={option.icon} size={18} color={active ? colors.primaryForeground : colors.foreground} />
-              <Text style={[styles.themeLabel, { color: active ? colors.primaryForeground : colors.foreground }]}>{t(option.label)}</Text>
-            </Pressable>;
-          })}
-        </View>
+        <SegmentedControl<ThemePreference>
+          value={themePreference}
+          onChange={setThemePreference}
+          options={[
+            { value: 'system', label: t('themeSystem'), icon: 'phone-portrait-outline' },
+            { value: 'light', label: t('themeLight'), icon: 'sunny-outline' },
+            { value: 'dark', label: t('themeDark'), icon: 'moon-outline' },
+          ]}
+        />
       </Card>
 
       <SectionTitle title={t('widgetSettingsTitle')} />
@@ -398,14 +374,6 @@ const styles = StyleSheet.create({
   iconBox: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   rowSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18, marginTop: 4 },
-  selectedLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 20, marginBottom: 9 },
-  languageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  languageOption: { minWidth: '30%', flexGrow: 1, borderWidth: 1, borderRadius: 15, paddingVertical: 10, paddingHorizontal: 8, alignItems: 'center' },
-  languageCode: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 0.6 },
-  languageName: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 3 },
-  themeGrid: { flexDirection: 'row', gap: 8, marginTop: 18 },
-  themeOption: { flex: 1, minHeight: 48, borderWidth: 1, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 8 },
-  themeLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   legalCard: { padding: 15 },
   legalHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   legalDetails: { borderTopWidth: 1, marginTop: 15, paddingTop: 14, gap: 12 },
