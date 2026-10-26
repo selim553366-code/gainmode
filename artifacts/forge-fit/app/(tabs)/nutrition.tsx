@@ -11,13 +11,16 @@ import { useFit, Meal } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { apiUrl } from '@/lib/api';
 import { useColors } from '@/hooks/useColors';
-import { Card, ForgeFitMark, Header, InlineStatus, ProgressBar, Screen, SectionTitle } from '@/components/FitUI';
+import { Card, ForgeFitMark, Header, InlineStatus, Screen } from '@/components/FitUI';
 import { HOURLY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { AiAccessError, getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
-import { calculateCalorieProgress, calculateNetCalories, calculateRemainingCalories } from '@/lib/nutritionCalories';
+import { calculateNetCalories, calculateRemainingCalories } from '@/lib/nutritionCalories';
 import { estimateWorkoutCalories, getWorkoutForDate } from '@/lib/workoutPlan';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Apple, Bookmark, Camera, Flame, ImagePlus, Moon, Plus, ScanBarcode, Search, Sun, Sunrise, Trash2, Utensils, X } from 'lucide-react-native';
+import { MacroRing, ProgressRing } from '@/components/NutritionVisuals';
+import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
 
 const formatNutrition = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
 
@@ -178,7 +181,6 @@ export default function NutritionScreen() {
   const todaysWorkout = getWorkoutForDate(workouts);
   const exerciseCalories = todaysWorkout ? estimateWorkoutCalories(todaysWorkout, profile ?? undefined) : 0;
   const netCalories = calculateNetCalories(calories, exerciseCalories);
-  const calorieProgress = calculateCalorieProgress(calorieGoal, netCalories);
   const remainingCalories = calculateRemainingCalories(calorieGoal, netCalories);
 
   React.useEffect(() => {
@@ -338,61 +340,115 @@ export default function NutritionScreen() {
     Alert.alert(t('addSavedMeal'), t('foodAdded'));
   };
 
+  const dateLabel = new Intl.DateTimeFormat(language, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+  const ringValue = calorieGoal ? netCalories / calorieGoal : 0;
+  const over = remainingCalories !== null && remainingCalories < 0;
+  const mealGroups = (['breakfast', 'lunch', 'dinner', 'snack'] as const)
+    .map((type) => ({ type, items: loggedMeals.filter((meal) => meal.type === type) }))
+    .filter((group) => group.items.length > 0);
+  const mealTypeIcon = { breakfast: Sunrise, lunch: Sun, dinner: Moon, snack: Apple } as const;
+  const mealTypeColor = { breakfast: '#F59E0B', lunch: colors.blue, dinner: '#8B5CF6', snack: '#10B981' } as const;
+  const dark = colors.colorScheme === 'dark';
+
+  const mealRow = (meal: Meal, actions: React.ReactNode) => {
+    const TypeIcon = mealTypeIcon[meal.type] ?? Utensils;
+    const tone = mealTypeColor[meal.type] ?? colors.primary;
+    return <View key={meal.id} style={[styles.mealRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {meal.imageUri
+        ? <Image source={{ uri: meal.imageUri }} style={styles.mealPhoto} />
+        : <View style={[styles.mealPhoto, styles.mealGlyph, { backgroundColor: `${tone}1F` }]}><TypeIcon size={20} color={tone} strokeWidth={2} /></View>}
+      <View style={styles.mealCopy}>
+        <Text numberOfLines={1} style={[styles.mealRowName, { color: colors.foreground }]}>{meal.name}</Text>
+        <View style={styles.macroDots}>
+          {[{ v: meal.protein, c: colors.blue, l: 'P' }, { v: meal.carbs, c: colors.orange, l: 'K' }, { v: meal.fat, c: colors.plum, l: 'Y' }].map((m) => <View key={m.l} style={styles.macroDot}>
+            <View style={[styles.dot, { backgroundColor: m.c }]} />
+            <Text style={[styles.macroDotText, { color: colors.mutedForeground }]}>{formatNutrition(m.v)}g</Text>
+          </View>)}
+        </View>
+      </View>
+      <View style={styles.mealKcalCol}>
+        <Text style={[styles.mealRowKcal, { color: colors.foreground }]}>{meal.calories}</Text>
+        <Text style={[styles.mealRowUnit, { color: colors.mutedForeground }]}>{t('caloriesShort')}</Text>
+      </View>
+      {actions}
+    </View>;
+  };
+
   return <Screen>
-     <Header eyebrow="Fuel / 01" title={t('nutritionTitle')} subtitle={t('nutritionSubtitle')} />
-    <Card style={styles.summaryCard}>
-       <View style={styles.summaryTop}><View><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('calories')}</Text><Text style={[styles.summaryNumber, { color: colors.foreground }]}>{calories.toLocaleString()} <Text style={styles.summaryUnit}>{t('caloriesShort')}</Text></Text></View><View style={[styles.summaryBadge, { backgroundColor: `${colors.success}22` }]}><Ionicons name="checkmark-circle" size={15} color={colors.success} /><Text style={[styles.badgeText, { color: colors.success }]}>{calorieGoal ? `${Math.round((netCalories / calorieGoal) * 100)}%` : '—'}</Text></View></View>
-       <ProgressBar value={calorieProgress} />
-       <View style={[styles.exerciseCaloriesRow, { borderTopColor: colors.border }]}>
-         <View style={[styles.exerciseCaloriesIcon, { backgroundColor: `${colors.orange}20` }]}><Ionicons name="flame-outline" size={17} color={colors.orange} /></View>
-         <View style={styles.exerciseCaloriesCopy}>
-           <Text style={[styles.exerciseCaloriesTitle, { color: colors.foreground }]}>{t('exerciseCalories')}</Text>
-           <Text style={[styles.exerciseCaloriesHint, { color: colors.mutedForeground }]}>{todaysWorkout ? t('exerciseCaloriesEstimate') : t('noWorkoutToday')}</Text>
-         </View>
-         <Text style={[styles.exerciseCaloriesValue, { color: colors.orange }]}>−{exerciseCalories} {t('caloriesShort')}</Text>
-       </View>
-       <View style={[styles.summaryFooter, styles.netCaloriesFooter, { borderTopColor: colors.border }]}><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('netCalories')}</Text><Text style={[styles.footerValue, { color: colors.foreground }]}>{netCalories} {t('caloriesShort')}</Text></View>
-       <View style={styles.summaryFooter}><Text style={[styles.caption, { color: colors.mutedForeground }]}>{t('remaining')}</Text><Text style={[styles.footerValue, { color: colors.foreground }]}>{remainingCalories === null ? '—' : `${remainingCalories} ${t('caloriesShort')}`}</Text></View>
-      <View style={[styles.macroTargets, { borderTopColor: colors.border }]}>
-        <Text style={[styles.macroTargetsTitle, { color: colors.foreground }]}>{t('dailyTargets')}</Text>
-        {[
-          { label: t('protein'), current: macros.protein, target: proteinGoal, color: colors.blue },
-          { label: t('carbs'), current: macros.carbs, target: carbsGoal, color: colors.orange },
-          { label: t('fat'), current: macros.fat, target: fatGoal, color: colors.plum },
-        ].map((macro) => (
-          <View key={macro.label} style={styles.macroTarget}>
-            <View style={styles.macroTargetRow}>
-              <Text style={[styles.macroLabel, { color: colors.mutedForeground }]}>{macro.label}</Text>
-              <Text style={[styles.macroValue, { color: colors.foreground }]}>{formatNutrition(macro.current)} / {macro.target ? `${formatNutrition(macro.target)}g` : '—'}</Text>
+    <Header eyebrow={dateLabel.toLocaleUpperCase(language)} title={t('nutritionTitle')} />
+
+    <LinearGradient colors={[colors.inkCardStart, colors.inkCardEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+      <Svg pointerEvents="none" width={320} height={320} style={styles.heroGlow}>
+        <Defs>
+          <RadialGradient id="nutritionGlow" cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor={colors.accent} stopOpacity={0.45} />
+            <Stop offset="1" stopColor={colors.accent} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Circle cx={160} cy={160} r={160} fill="url(#nutritionGlow)" />
+      </Svg>
+      <View style={styles.heroTop}>
+        <ProgressRing value={ringValue} size={164} stroke={13} color={over ? colors.destructive : '#7FA6FF'} gradientTo={over ? colors.orange : colors.accent} track={`${colors.inkCardForeground}1A`}>
+          <Text style={[styles.ringValue, { color: colors.inkCardForeground }]}>{remainingCalories === null ? '—' : Math.abs(remainingCalories).toLocaleString(language)}</Text>
+          <Text style={[styles.ringLabel, { color: `${colors.inkCardForeground}A6` }]}>{over ? '+ kcal' : `${t('remaining')} ${t('caloriesShort')}`}</Text>
+        </ProgressRing>
+        <View style={styles.heroStats}>
+          {[
+            { icon: Utensils, label: t('consumed'), value: calories, tint: '#7FA6FF' },
+            { icon: Flame, label: t('exerciseCalories'), value: exerciseCalories, tint: colors.orange },
+            { icon: Plus, label: t('netCalories'), value: netCalories, tint: colors.inkCardForeground },
+          ].map((stat) => <View key={stat.label} style={styles.heroStat}>
+            <View style={[styles.heroStatIcon, { backgroundColor: `${colors.inkCardForeground}14` }]}><stat.icon size={14} color={stat.tint} strokeWidth={2.2} /></View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={1} style={[styles.heroStatLabel, { color: `${colors.inkCardForeground}99` }]}>{stat.label.charAt(0).toLocaleUpperCase(language) + stat.label.slice(1)}</Text>
+              <Text style={[styles.heroStatValue, { color: colors.inkCardForeground }]}>{stat.value.toLocaleString(language)}<Text style={styles.heroStatUnit}> {t('caloriesShort')}</Text></Text>
             </View>
-            <View style={[styles.macroTrack, { backgroundColor: `${macro.color}20` }]}>
-              <View style={[styles.macroFill, { width: `${macro.target ? Math.min((macro.current / macro.target) * 100, 100) : 0}%`, backgroundColor: macro.color }]} />
-            </View>
+          </View>)}
+        </View>
+      </View>
+      <View style={[styles.heroDivider, { backgroundColor: `${colors.inkCardForeground}14` }]} />
+      <View style={styles.macros}>
+        <MacroRing label={t('protein')} current={macros.protein} target={proteinGoal} color={colors.blue} track={`${colors.inkCardForeground}14`} ink={colors.inkCardForeground} muted={`${colors.inkCardForeground}99`} delay={120} />
+        <MacroRing label={t('carbs')} current={macros.carbs} target={carbsGoal} color={colors.orange} track={`${colors.inkCardForeground}14`} ink={colors.inkCardForeground} muted={`${colors.inkCardForeground}99`} delay={200} />
+        <MacroRing label={t('fat')} current={macros.fat} target={fatGoal} color={colors.plum} track={`${colors.inkCardForeground}14`} ink={colors.inkCardForeground} muted={`${colors.inkCardForeground}99`} delay={280} />
+      </View>
+    </LinearGradient>
+
+    <View style={styles.actions}>
+      <Pressable testID="camera-scan" accessibilityRole="button" onPress={openMealCamera} scaleTo={0.97} style={styles.cameraAction}>
+        <LinearGradient colors={[colors.accent, dark ? '#3D5BD9' : '#1D4ED8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cameraActionFill}>
+          <View style={styles.cameraIcon}><Camera size={22} color="#FFFFFF" strokeWidth={2.2} /></View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.cameraTitle}>{t('scanMeal')}</Text>
+            <Text numberOfLines={2} style={styles.cameraHint}>{t('mealCaptureHint')}</Text>
           </View>
-        ))}
+        </LinearGradient>
+      </Pressable>
+      <View style={styles.sideActions}>
+        <Pressable testID="barcode-scan" accessibilityRole="button" onPress={openBarcodeScanner} style={[styles.sideAction, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <ScanBarcode size={20} color={colors.foreground} strokeWidth={2} />
+          <Text numberOfLines={1} style={[styles.sideActionText, { color: colors.foreground }]}>{t('scanBarcode')}</Text>
+        </Pressable>
+        <Pressable testID="gallery-scan" accessibilityRole="button" onPress={pickPhoto} style={[styles.sideAction, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <ImagePlus size={20} color={colors.foreground} strokeWidth={2} />
+          <Text numberOfLines={1} style={[styles.sideActionText, { color: colors.foreground }]}>{t('add')}</Text>
+        </Pressable>
       </View>
-    </Card>
-     <Card style={styles.captureCard}>
-       <View style={[styles.captureFrame, { borderColor: `${colors.primary}70`, backgroundColor: `${colors.primary}0D` }]}>
-        {photoUri ? <Image source={{ uri: photoUri }} style={styles.captureImage} /> : <><Ionicons name="scan-outline" size={31} color={colors.primary} /><Text style={[styles.capturePlaceholder, { color: colors.mutedForeground }]}>{t('mealCaptureHint')}</Text></>}
-      </View>
-      {photoUri ? <PhotoAnalysisTransfer uri={photoUri} phase={analysisPhase} sendingLabel={t('photoSendingToAi')} aiBoxLabel={t('photoAiBox')} analyzingLabel={t('photoAnalyzingStep')} /> : null}
-      {photoUri ? <View style={styles.captureStatus}><Text style={[styles.mealName, { color: colors.foreground }]}>{analyzing ? t('analyzing') : t('analyzePhoto')}</Text></View> : null}
-        {analysisResult && !analyzing ? <Pressable accessibilityRole="button" accessibilityLabel={t('viewMacroDetails')} onPress={() => setAnalysisDetailsVisible(true)} style={({ pressed }) => [styles.analysisResultCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45`, opacity: pressed ? 0.72 : 1 }]}>
-         <View style={[styles.analysisResultIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={18} color={colors.primary} /></View>
-         <View style={styles.analysisResultCopy}><Text style={[styles.analysisResultName, { color: colors.foreground }]} numberOfLines={1}>{analysisResult.name}</Text><Text style={[styles.analysisResultHint, { color: colors.primary }]}>{t('photoAnalysisReady')} · {t('viewMacroDetails')}</Text></View>
-         <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-       </Pressable> : null}
-       {analysisResult && !analyzing ? <Pressable testID="save-analyzed-meal" accessibilityRole="button" accessibilityLabel={isAnalysisSaved ? t('mealSaved') : t('saveMeal')} onPress={saveAnalysisMeal} disabled={isAnalysisSaved} style={({ pressed }) => [styles.saveMealButton, { borderColor: `${colors.primary}55`, backgroundColor: isAnalysisSaved ? `${colors.success}16` : `${colors.primary}0D`, opacity: isAnalysisSaved ? 0.8 : pressed ? 0.7 : 1 }]}>
-         <Ionicons name={isAnalysisSaved ? 'checkmark-circle' : 'add-circle-outline'} size={17} color={isAnalysisSaved ? colors.success : colors.primary} />
-         <Text style={[styles.saveMealButtonText, { color: isAnalysisSaved ? colors.success : colors.primary }]}>{isAnalysisSaved ? t('mealSaved') : t('saveMeal')}</Text>
-       </Pressable> : null}
-       <View style={styles.captureOptions}>
-         <Pressable testID="camera-scan" onPress={openMealCamera} style={({ pressed }) => [styles.captureOptionPrimary, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="camera-outline" size={18} color={colors.primaryForeground} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={[styles.scanText, { color: colors.primaryForeground }]}>{t('scanMeal')}</Text></Pressable>
-          <Pressable testID="barcode-scan" onPress={openBarcodeScanner} style={({ pressed }) => [styles.captureOption, styles.captureOptionBarcode, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="scan-outline" size={18} color={colors.foreground} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={[styles.scanText, { color: colors.foreground }]}>{t('scanBarcode')}</Text></Pressable>
-         <Pressable testID="gallery-scan" onPress={pickPhoto} style={({ pressed }) => [styles.captureOption, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="images-outline" size={18} color={colors.foreground} /><Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.82} style={[styles.scanText, { color: colors.foreground }]}>{t('add')}</Text></Pressable>
-      </View>
-    </Card>
+    </View>
+
+    {photoUri ? <Card style={styles.analysisCard}>
+      <Image source={{ uri: photoUri }} style={styles.analysisImage} />
+      <PhotoAnalysisTransfer uri={photoUri} phase={analysisPhase} sendingLabel={t('photoSendingToAi')} aiBoxLabel={t('photoAiBox')} analyzingLabel={t('photoAnalyzingStep')} />
+      {analyzing ? <Text style={[styles.analysisStatus, { color: colors.foreground }]}>{t('analyzing')}</Text> : null}
+      {analysisResult && !analyzing ? <Pressable accessibilityRole="button" accessibilityLabel={t('viewMacroDetails')} onPress={() => setAnalysisDetailsVisible(true)} style={[styles.analysisResultCard, { backgroundColor: `${colors.primary}0D`, borderColor: colors.border }]}>
+        <View style={styles.analysisResultCopy}><Text style={[styles.analysisResultName, { color: colors.foreground }]} numberOfLines={1}>{analysisResult.name}</Text><Text style={[styles.analysisResultHint, { color: colors.mutedForeground }]}>{t('photoAnalysisReady')} · {t('viewMacroDetails')}</Text></View>
+        <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+      </Pressable> : null}
+      {analysisResult && !analyzing ? <Pressable testID="save-analyzed-meal" accessibilityRole="button" accessibilityLabel={isAnalysisSaved ? t('mealSaved') : t('saveMeal')} onPress={saveAnalysisMeal} disabled={isAnalysisSaved} style={[styles.saveMealButton, { borderColor: colors.border, backgroundColor: isAnalysisSaved ? `${colors.success}16` : 'transparent' }]}>
+        <Bookmark size={16} color={isAnalysisSaved ? colors.success : colors.foreground} strokeWidth={2} />
+        <Text style={[styles.saveMealButtonText, { color: isAnalysisSaved ? colors.success : colors.foreground }]}>{isAnalysisSaved ? t('mealSaved') : t('saveMeal')}</Text>
+      </Pressable> : null}
+    </Card> : null}
      <Modal visible={analysisDetailsVisible} transparent animationType="fade" onRequestClose={() => setAnalysisDetailsVisible(false)}>
        <View style={styles.analysisModalBackdrop}>
          <View style={[styles.analysisDetailsSheet, { backgroundColor: colors.card, borderColor: colors.border }]} onStartShouldSetResponder={() => true}>
@@ -410,36 +466,110 @@ export default function NutritionScreen() {
       {barcodeLoading ? <View style={styles.inlineStateWrap}><InlineStatus icon="search-outline" text={t('barcodeLookingUp')} color={colors.primary} loading /></View> : null}
       {barcodeError ? <View style={styles.inlineStateWrap}><InlineStatus icon="alert-circle" text={barcodeError} color={colors.destructive} /></View> : null}
      {barcodeResult ? <Card style={styles.barcodeResultCard}><View style={styles.barcodeResultHeader}><View style={[styles.barcodeResultIcon, { backgroundColor: `${colors.primary}18` }]}><Ionicons name="scan-outline" size={18} color={colors.primary} /></View><View style={styles.barcodeResultHeading}><Text style={[styles.barcodeResultEyebrow, { color: colors.primary }]}>{t('barcodeNutritionTitle')}</Text><Text style={[styles.barcodeProductName, { color: colors.foreground }]}>{barcodeResult.name}</Text><Text style={[styles.resultServing, { color: colors.mutedForeground }]}>{barcodeResult.serving}</Text></View></View><View style={[styles.barcodeMacroGrid, { borderTopColor: colors.border }]}><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('calories')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.foreground }]}>{barcodeResult.calories} {t('caloriesShort')}</Text></View><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('protein')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.blue }]}>{formatNutrition(barcodeResult.protein)}g</Text></View><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('carbs')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.orange }]}>{formatNutrition(barcodeResult.carbs)}g</Text></View><View><Text style={[styles.barcodeMacroLabel, { color: colors.mutedForeground }]}>{t('fat')}</Text><Text style={[styles.barcodeMacroValue, { color: colors.plum }]}>{formatNutrition(barcodeResult.fat)}g</Text></View></View><Pressable onPress={addBarcodeResult} style={({ pressed }) => [styles.barcodeAddButton, { backgroundColor: colors.primary, opacity: pressed ? 0.7 : 1 }]}><Ionicons name="add-circle-outline" size={17} color={colors.primaryForeground} /><Text style={[styles.scanText, { color: colors.primaryForeground }]}>{t('barcodeAddMeal')}</Text></Pressable></Card> : null}
-    <SectionTitle title={t('searchFood')} />
-    <Card style={styles.searchCard}>
-      <View style={styles.searchRow}><Ionicons name="search-outline" size={18} color={colors.mutedForeground} /><TextInput testID="food-search" value={search} onChangeText={setSearch} placeholder={t('searchPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.searchInput, { color: colors.foreground }]} autoCapitalize="none" returnKeyType="search" />{normalizedSearch ? <Pressable testID="clear-food-search" onPress={() => { setSearch(''); setDebouncedSearch(''); }} hitSlop={8}><Ionicons name="close-circle" size={18} color={colors.mutedForeground} /></Pressable> : null}</View>
-      {!normalizedSearch ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('searchFoodHint')}</Text> : null}
-      {normalizedSearch.length === 1 ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('searchTooShort')}</Text> : null}
-       {searchEnabled && foodSearchLoading ? <View style={styles.inlineStateWrap}><InlineStatus icon="search-outline" text={t('searchingFood')} color={colors.primary} loading /></View> : null}
-       {searchEnabled && foodSearchError ? <View style={styles.inlineStateWrap}><InlineStatus icon="alert-circle" text={t('foodSearchError')} color={colors.destructive} /></View> : null}
-       {searchEnabled && !foodSearchLoading && !foodSearchError && foodSearchItems.length === 0 ? <View style={styles.inlineStateWrap}><InlineStatus icon="restaurant-outline" text={t('noFoodResults')} color={colors.mutedForeground} /></View> : null}
-      {searchEnabled && !foodSearchLoading && !foodSearchError ? foodSearchItems.map((food) => <Pressable key={`${food.id}-${food.name}`} onPress={() => addFood(food)} style={({ pressed }) => [styles.resultRow, { borderTopColor: colors.border, opacity: pressed ? 0.65 : 1 }]}><View style={styles.resultContent}><Text style={[styles.mealName, { color: colors.foreground }]}>{food.name}</Text><Text style={[styles.resultServing, { color: colors.mutedForeground }]}>{food.serving}</Text><View style={styles.nutritionLine}><Text style={[styles.nutritionValue, { color: colors.foreground }]}>{food.calories} {t('caloriesShort')}</Text><Text style={[styles.nutritionValue, { color: colors.blue }]}>{formatNutrition(food.protein)}g {t('protein')}</Text><Text style={[styles.nutritionValue, { color: colors.orange }]}>{formatNutrition(food.carbs)}g {t('carbs')}</Text><Text style={[styles.nutritionValue, { color: colors.plum }]}>{formatNutrition(food.fat)}g {t('fat')}</Text></View></View><Ionicons name="add-circle-outline" size={22} color={colors.primary} /></Pressable>) : null}
-    </Card>
-     <SectionTitle title={t('loggedFoods')} />
-     <View style={[styles.mealTabs, { backgroundColor: `${colors.secondary}A8`, borderColor: colors.border }]}>
-       <Pressable testID="daily-meals-tab" accessibilityRole="tab" accessibilityState={{ selected: mealSection === 'daily' }} onPress={() => setMealSection('daily')} style={[styles.mealTab, mealSection === 'daily' && { backgroundColor: colors.card, shadowColor: colors.primary }]}><Text style={[styles.mealTabText, { color: mealSection === 'daily' ? colors.foreground : colors.mutedForeground }]}>{t('loggedFoods')}</Text></Pressable>
-       <Pressable testID="saved-meals-tab" accessibilityRole="tab" accessibilityState={{ selected: mealSection === 'saved' }} onPress={() => setMealSection('saved')} style={[styles.mealTab, mealSection === 'saved' && { backgroundColor: colors.card, shadowColor: colors.primary }]}><Text style={[styles.mealTabText, { color: mealSection === 'saved' ? colors.foreground : colors.mutedForeground }]}>{t('savedMealsTab')}</Text></Pressable>
-     </View>
-     <Card style={styles.mealCard}>
-       {mealSection === 'daily' ? <>
-      <View style={styles.mealHeader}><View style={[styles.mealIcon, { backgroundColor: colors.secondary }]}><Ionicons name="restaurant-outline" size={19} color={colors.foreground} /></View><View style={{ flex: 1 }}><Text style={[styles.mealTitle, { color: colors.foreground }]}>{t('loggedFoods')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{loggedMeals.length} · {calories} {t('caloriesShort')}</Text></View></View>
-      {loggedMeals.length > 0 ? loggedMeals.map((meal) => <View key={meal.id} style={[styles.mealLine, { borderTopColor: colors.border }]}>{meal.imageUri ? <Image source={{ uri: meal.imageUri }} style={styles.mealThumb} /> : null}<View style={{ flex: 1 }}><Text style={[styles.mealName, { color: colors.foreground }]}>{meal.name}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{meal.protein}g {t('protein')}  ·  {meal.carbs}g {t('carbs')}  ·  {meal.fat}g {t('fat')}</Text></View><View style={styles.mealActions}><Text style={[styles.mealKcal, { color: colors.foreground }]}>{meal.calories}</Text><Pressable onPress={() => removeMeal(meal.id)} hitSlop={8}><Ionicons name="close-circle-outline" size={18} color={colors.mutedForeground} /></Pressable></View></View>) : <Text style={[styles.emptyMeal, { color: colors.mutedForeground }]}>{t('noMeals')}</Text>}
-       </> : <>
-        <View style={styles.mealHeader}><View style={[styles.mealIcon, { backgroundColor: colors.secondary }]}><Ionicons name="restaurant-outline" size={19} color={colors.foreground} /></View><View style={{ flex: 1 }}><Text style={[styles.mealTitle, { color: colors.foreground }]}>{t('savedMealsTab')}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{savedMeals.length}</Text></View></View>
-        {savedMeals.length > 0 ? [...savedMeals].reverse().map((meal) => <View key={meal.id} style={[styles.mealLine, { borderTopColor: colors.border }]}>{meal.imageUri ? <Image source={{ uri: meal.imageUri }} style={styles.mealThumb} /> : null}<View style={{ flex: 1 }}><Text style={[styles.mealName, { color: colors.foreground }]}>{meal.name}</Text><Text style={[styles.caption, { color: colors.mutedForeground }]}>{meal.protein}g {t('protein')}  ·  {meal.carbs}g {t('carbs')}  ·  {meal.fat}g {t('fat')}</Text></View><View style={styles.savedMealActions}><Text style={[styles.mealKcal, { color: colors.foreground }]}>{meal.calories}</Text><Pressable accessibilityRole="button" accessibilityLabel={t('addSavedMeal')} onPress={() => addSavedFood(meal)} hitSlop={8}><Ionicons name="add-circle-outline" size={21} color={colors.primary} /></Pressable><Pressable accessibilityRole="button" accessibilityLabel={t('removeSavedMeal')} onPress={() => removeSavedMeal(meal.id)} hitSlop={8}><Ionicons name="trash-outline" size={18} color={colors.mutedForeground} /></Pressable></View></View>) : <Text style={[styles.emptyMeal, { color: colors.mutedForeground }]}>{t('noSavedMeals')}</Text>}
-       </>}
-    </Card>
+    <View style={[styles.search, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Search size={18} color={colors.mutedForeground} strokeWidth={2} />
+      <TextInput testID="food-search" value={search} onChangeText={setSearch} placeholder={t('searchPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.searchInput, { color: colors.foreground }]} autoCapitalize="none" returnKeyType="search" />
+      {normalizedSearch ? <Pressable testID="clear-food-search" onPress={() => { setSearch(''); setDebouncedSearch(''); }} hitSlop={8}><X size={18} color={colors.mutedForeground} strokeWidth={2} /></Pressable> : null}
+    </View>
+    {normalizedSearch.length === 1 ? <Text style={[styles.searchHint, { color: colors.mutedForeground }]}>{t('searchTooShort')}</Text> : null}
+    {searchEnabled && foodSearchLoading ? <View style={styles.inlineStateWrap}><InlineStatus icon="search-outline" text={t('searchingFood')} color={colors.primary} loading /></View> : null}
+    {searchEnabled && foodSearchError ? <View style={styles.inlineStateWrap}><InlineStatus icon="alert-circle" text={t('foodSearchError')} color={colors.destructive} /></View> : null}
+    {searchEnabled && !foodSearchLoading && !foodSearchError && foodSearchItems.length === 0 ? <View style={styles.inlineStateWrap}><InlineStatus icon="restaurant-outline" text={t('noFoodResults')} color={colors.mutedForeground} /></View> : null}
+    {searchEnabled && !foodSearchLoading && !foodSearchError && foodSearchItems.length ? <View style={[styles.results, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {foodSearchItems.map((food, index) => <Pressable key={`${food.id}-${food.name}`} onPress={() => addFood(food)} scaleTo={0.99} style={[styles.resultRow, index > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+        <View style={styles.resultContent}>
+          <Text numberOfLines={1} style={[styles.mealRowName, { color: colors.foreground }]}>{food.name}</Text>
+          <Text style={[styles.resultServing, { color: colors.mutedForeground }]}>{food.serving} · {food.calories} {t('caloriesShort')} · P {formatNutrition(food.protein)} · K {formatNutrition(food.carbs)} · Y {formatNutrition(food.fat)}</Text>
+        </View>
+        <View style={[styles.addBubble, { backgroundColor: colors.primary }]}><Plus size={16} color={colors.primaryForeground} strokeWidth={2.6} /></View>
+      </Pressable>)}
+    </View> : null}
+
+    <View style={styles.listHeader}>
+      <View style={[styles.segment, { backgroundColor: colors.secondary }]}>
+        {(['daily', 'saved'] as const).map((section) => {
+          const active = mealSection === section;
+          return <Pressable key={section} testID={section === 'daily' ? 'daily-meals-tab' : 'saved-meals-tab'} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => setMealSection(section)} scaleTo={1} style={[styles.segmentItem, active && { backgroundColor: colors.segmentActive }]}>
+            <Text style={[styles.segmentText, { color: active ? colors.foreground : colors.mutedForeground }]}>{section === 'daily' ? t('loggedFoods') : t('savedMealsTab')}</Text>
+          </Pressable>;
+        })}
+      </View>
+    </View>
+
+    {mealSection === 'daily' ? (mealGroups.length ? mealGroups.map((group) => <View key={group.type} style={styles.group}>
+      <View style={styles.groupHeader}>
+        <Text style={[styles.groupTitle, { color: colors.foreground }]}>{t(group.type)}</Text>
+        <Text style={[styles.groupKcal, { color: colors.mutedForeground }]}>{group.items.reduce((sum, meal) => sum + meal.calories, 0).toLocaleString(language)} {t('caloriesShort')}</Text>
+      </View>
+      {group.items.map((meal) => mealRow(meal, <Pressable accessibilityLabel={t('close')} onPress={() => removeMeal(meal.id)} hitSlop={8} style={styles.rowAction}><X size={16} color={colors.mutedForeground} strokeWidth={2} /></Pressable>))}
+    </View>) : <View style={[styles.empty, { borderColor: colors.border }]}>
+      <Utensils size={22} color={colors.mutedForeground} strokeWidth={1.8} />
+      <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t('noMeals')}</Text>
+    </View>) : (savedMeals.length ? <View style={styles.group}>{[...savedMeals].reverse().map((meal) => mealRow(meal, <View style={styles.savedActions}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('addSavedMeal')} onPress={() => addSavedFood(meal)} hitSlop={6} style={[styles.addBubble, { backgroundColor: colors.primary }]}><Plus size={16} color={colors.primaryForeground} strokeWidth={2.6} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('removeSavedMeal')} onPress={() => removeSavedMeal(meal.id)} hitSlop={6} style={styles.rowAction}><Trash2 size={16} color={colors.mutedForeground} strokeWidth={2} /></Pressable>
+    </View>))}</View> : <View style={[styles.empty, { borderColor: colors.border }]}>
+      <Bookmark size={22} color={colors.mutedForeground} strokeWidth={1.8} />
+      <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t('noSavedMeals')}</Text>
+    </View>)}
       <NeonCaptureCamera visible={mealCameraVisible} onClose={() => setMealCameraVisible(false)} onPhoto={(photo) => { setMealCameraVisible(false); void analyzeFoodPhoto(photo.uri, photo.base64); }} mode="meal" title={t('scanMeal')} hint={t('mealCameraHint')} healthySlogan={t('healthySlogan')} permissionText={t('cameraPermission')} unavailableText={t('cameraUnavailable')} allowCameraLabel={t('allowCamera')} closeLabel={t('close')} captureLabel={t('cameraCapture')} flipLabel={t('cameraFlip')} sendPhotoLabel={t('photoSendButton')} retakeLabel={t('photoRetake')} photoGuidance={t('photoFrameGuidance')} />
       <NeonCaptureCamera visible={barcodeScannerVisible} onClose={() => setBarcodeScannerVisible(false)} onScanned={handleBarcode} mode="barcode" title={t('barcodeScannerTitle')} hint={t('barcodeScannerHint')} healthySlogan={t('healthySlogan')} permissionText={t('barcodePermission')} unavailableText={t('barcodeUnavailable')} allowCameraLabel={t('allowCamera')} closeLabel={t('close')} captureLabel={t('cameraCapture')} flipLabel={t('cameraFlip')} sendPhotoLabel={t('photoSendButton')} retakeLabel={t('photoRetake')} photoGuidance={t('photoFrameGuidance')} />
   </Screen>;
 }
 
 const styles = StyleSheet.create({
+  hero: { borderRadius: 30, padding: 20, overflow: 'hidden', marginBottom: 14 },
+  heroGlow: { position: 'absolute', right: -120, top: -150 },
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: 18 },
+  ringValue: { fontFamily: 'Inter_700Bold', fontSize: 32, letterSpacing: -1.2 },
+  ringLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 0.3, marginTop: 1 },
+  heroStats: { flex: 1, gap: 14 },
+  heroStat: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  heroStatIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  heroStatLabel: { fontFamily: 'Inter_500Medium', fontSize: 10 },
+  heroStatValue: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.4, marginTop: 1 },
+  heroStatUnit: { fontFamily: 'Inter_500Medium', fontSize: 10 },
+  heroDivider: { height: StyleSheet.hairlineWidth, marginVertical: 18 },
+  macros: { flexDirection: 'row' },
+  actions: { flexDirection: 'row', gap: 10, marginBottom: 18 },
+  cameraAction: { flex: 1.35 },
+  cameraActionFill: { flex: 1, minHeight: 128, borderRadius: 24, padding: 16, justifyContent: 'space-between' },
+  cameraIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  cameraTitle: { fontFamily: 'Inter_700Bold', fontSize: 16, color: '#FFFFFF', marginTop: 12 },
+  cameraHint: { fontFamily: 'Inter_400Regular', fontSize: 10.5, lineHeight: 14, color: 'rgba(255,255,255,0.78)', marginTop: 3 },
+  sideActions: { flex: 1, gap: 10 },
+  sideAction: { flex: 1, borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  sideActionText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12.5 },
+  analysisCard: { padding: 12, marginBottom: 18 },
+  analysisImage: { width: '100%', height: 170, borderRadius: 18 },
+  analysisStatus: { fontFamily: 'Inter_600SemiBold', fontSize: 13, marginTop: 10, paddingHorizontal: 4 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, borderRadius: 18, borderWidth: 1, paddingHorizontal: 16 },
+  results: { borderRadius: 20, borderWidth: 1, marginTop: 10, overflow: 'hidden' },
+  addBubble: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  listHeader: { marginTop: 22, marginBottom: 14 },
+  segment: { flexDirection: 'row', borderRadius: 14, padding: 4 },
+  segmentItem: { flex: 1, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  segmentText: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
+  group: { marginBottom: 16, gap: 8 },
+  groupHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2, paddingHorizontal: 2 },
+  groupTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, letterSpacing: -0.2 },
+  groupKcal: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  mealRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, borderWidth: 1, padding: 10 },
+  mealPhoto: { width: 52, height: 52, borderRadius: 15 },
+  mealGlyph: { alignItems: 'center', justifyContent: 'center' },
+  mealCopy: { flex: 1, minWidth: 0 },
+  mealRowName: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
+  macroDots: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  macroDot: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  macroDotText: { fontFamily: 'Inter_500Medium', fontSize: 11 },
+  mealKcalCol: { alignItems: 'flex-end' },
+  mealRowKcal: { fontFamily: 'Inter_700Bold', fontSize: 16, letterSpacing: -0.3 },
+  mealRowUnit: { fontFamily: 'Inter_500Medium', fontSize: 9 },
+  rowAction: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  savedActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  empty: { borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', paddingVertical: 28, alignItems: 'center', gap: 8 },
+  emptyText: { fontFamily: 'Inter_500Medium', fontSize: 12, textAlign: 'center', paddingHorizontal: 24 },
   summaryCard: { padding: 20 },
   macroTargets: { borderTopWidth: 1, marginTop: 17, paddingTop: 14 },
   macroTargetsTitle: { fontFamily: 'Inter_700Bold', fontSize: 12, marginBottom: 10 },
@@ -479,12 +609,12 @@ const styles = StyleSheet.create({
   searchCard: { padding: 12 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   searchInput: { flex: 1, height: 40, fontFamily: 'Inter_400Regular', fontSize: 13 },
-  searchHint: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 10 },
+  searchHint: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 10, paddingHorizontal: 4 },
   stateRow: { flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 10 },
   inlineStateWrap: { marginTop: 10 },
-  resultRow: { borderTopWidth: 1, paddingTop: 13, marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  resultRow: { paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   resultContent: { flex: 1 },
-  resultServing: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 3 },
+  resultServing: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
   nutritionLine: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 8 },
   nutritionValue: { fontFamily: 'Inter_500Medium', fontSize: 10 },
   analysisStage: { marginTop: 13, paddingHorizontal: 4, paddingVertical: 12, borderRadius: 18, backgroundColor: 'rgba(103,199,255,0.07)' },
