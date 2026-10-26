@@ -233,16 +233,24 @@ function MuscleCallouts({
   </>;
 }
 
+// Every workout map crop is 512×1024.
+const MAP_ASPECT = 0.5;
+
 export function MuscleAnatomy({ side, activeMuscles, mapKey, selectedMuscle, onSelect, activeColor, selectedColor, labelBackgroundColor, labelTextColor, muscleLabels, isDark = false }: MuscleAnatomyProps) {
   const hotspots = side === 'front' ? frontHotspots : backHotspots;
   const workoutMap = (isDark ? darkWorkoutMaps : lightWorkoutMaps)[mapKey];
   return <View style={styles.crop}>
-    <Image
-      source={workoutMap[side]}
-      resizeMode="contain"
-      style={styles.referenceImage}
-      accessibilityLabel={side === 'front' ? 'Front muscle anatomy' : 'Back muscle anatomy'}
-    />
+    {/* The map image is wrapped in a box of its own aspect ratio so its corners can be rounded. */}
+    <View pointerEvents="none" style={styles.imageFrame}>
+      <View style={[styles.imageClip, { aspectRatio: MAP_ASPECT }]}>
+        <Image
+          source={workoutMap[side]}
+          resizeMode="cover"
+          style={styles.fill}
+          accessibilityLabel={side === 'front' ? 'Front muscle anatomy' : 'Back muscle anatomy'}
+        />
+      </View>
+    </View>
     <MuscleCallouts
       side={side}
       activeMuscles={activeMuscles}
@@ -280,7 +288,9 @@ export function MuscleAnatomy({ side, activeMuscles, mapKey, selectedMuscle, onS
 
 const styles = StyleSheet.create({
   crop: { width: '100%', height: '100%', position: 'relative', overflow: 'hidden' },
-  referenceImage: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  imageFrame: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+  imageClip: { maxWidth: '100%', maxHeight: '100%', height: '100%', borderRadius: 24, overflow: 'hidden' },
+  fill: { width: '100%', height: '100%' },
   calloutLines: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 3 },
   calloutLabel: { position: 'absolute', width: '28%', minHeight: 26, borderWidth: 1, borderRadius: 10, paddingHorizontal: 4, paddingVertical: 3, alignItems: 'center', justifyContent: 'center', zIndex: 4, elevation: 3 },
   calloutLabelLeft: { left: '0.5%' },
