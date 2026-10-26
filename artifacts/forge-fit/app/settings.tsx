@@ -13,6 +13,7 @@ import { LanguageList, SegmentedControl } from '@/components/SettingsControls';
 import { FeedbackSent } from '@/components/FeedbackSent';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 import { apiUrl } from '@/lib/api';
+import { isDesignPreview } from '@/lib/designPreview';
 import { legalDocumentUrl, type LegalDocument } from '@/lib/legalDocuments';
 
 type LegalSection = 'privacy' | 'terms' | null;
@@ -54,6 +55,8 @@ export default function SettingsScreen() {
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'message' | null>(null);
+  // Shown inline: alert dialogs do not appear on the web, so a failed send must explain itself in the form.
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const languages = Object.keys(languageLabels) as Language[];
 
   const openLegalDocument = async (document: LegalDocument) => {
@@ -90,12 +93,21 @@ export default function SettingsScreen() {
     const message = feedbackText.trim();
     const replyTo = feedbackEmail.trim().toLowerCase();
     if (!message || !replyTo || feedbackSending) return;
+    setFeedbackError(null);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo)) {
-      Alert.alert(t('feedbackErrorTitle'), t('feedbackEmailInvalid'));
+      setFeedbackError(t('feedbackEmailInvalid'));
       return;
     }
     setFeedbackSending(true);
     try {
+      // The web design preview has no reachable server, so it simulates a successful send.
+      if (isDesignPreview()) {
+        await new Promise((resolve) => setTimeout(resolve, 900));
+        setFeedbackText('');
+        setFeedbackEmail('');
+        setFeedbackSent(true);
+        return;
+      }
       const response = await fetch(apiUrl('/api/feedback'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,7 +118,7 @@ export default function SettingsScreen() {
       setFeedbackEmail('');
       setFeedbackSent(true);
     } catch {
-      Alert.alert(t('feedbackErrorTitle'), t('feedbackErrorBody'));
+      setFeedbackError(t('feedbackErrorBody'));
     } finally {
       setFeedbackSending(false);
     }
@@ -237,7 +249,7 @@ export default function SettingsScreen() {
                 <Text style={[styles.feedbackLabel, styles.feedbackFieldLabel, { color: colors.mutedForeground }]}>{t('feedbackEmailLabel').toUpperCase()}</Text>
                 <TextInput
                   value={feedbackEmail}
-                  onChangeText={setFeedbackEmail}
+                  onChangeText={(value) => { setFeedbackEmail(value); setFeedbackError(null); }}
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
                   autoCapitalize="none"
@@ -254,7 +266,7 @@ export default function SettingsScreen() {
                   multiline
                   numberOfLines={5}
                   value={feedbackText}
-                  onChangeText={setFeedbackText}
+                  onChangeText={(value) => { setFeedbackText(value); setFeedbackError(null); }}
                   onFocus={() => setFocusedField('message')}
                   onBlur={() => setFocusedField(null)}
                   placeholder={t('feedbackPlaceholder')}
@@ -263,6 +275,10 @@ export default function SettingsScreen() {
                   style={[styles.feedbackInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: focusedField === 'message' ? colors.foreground : colors.border }]}
                 />
                 <Text style={[styles.feedbackCount, { color: colors.mutedForeground }]}>{feedbackText.trim().length}</Text>
+                {feedbackError ? <View accessibilityRole="alert" style={[styles.feedbackError, { backgroundColor: `${colors.destructive}12`, borderColor: `${colors.destructive}40` }]}>
+                  <Ionicons name="alert-circle" size={16} color={colors.destructive} />
+                  <Text style={[styles.feedbackErrorText, { color: colors.destructive }]}>{feedbackError}</Text>
+                </View> : null}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ disabled: !feedbackReady, busy: feedbackSending }}
@@ -406,6 +422,8 @@ const styles = StyleSheet.create({
   feedbackHint: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 8 },
   feedbackInput: { minHeight: 132, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 21 },
   feedbackCount: { fontFamily: 'Inter_500Medium', fontSize: 11, textAlign: 'right', marginTop: 6, fontVariant: ['tabular-nums'] },
+  feedbackError: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, marginTop: 14 },
+  feedbackErrorText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 13, lineHeight: 18 },
   feedbackButton: { minHeight: 54, borderRadius: 27, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 18, marginTop: 16 },
   feedbackButtonText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
 });
