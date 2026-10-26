@@ -62,6 +62,7 @@ import {
   Plus,
   Rocket,
   MessagesSquare,
+  RotateCcw,
   Send,
   Lightbulb,
   Brain,
@@ -103,6 +104,7 @@ import {
 export type IconName =
   | 'activity'
   | 'coach-outline'
+  | 'restore-outline'
   | 'send-outline'
   | 'bulb-outline'
   | 'gem-outline'
@@ -263,6 +265,7 @@ const iconMap: Record<IconName, IconComponent> = {
   'moon-outline': Moon,
   star: Star,
   'coach-outline': MessagesSquare,
+  'restore-outline': RotateCcw,
   'send-outline': Send,
   'bulb-outline': Lightbulb,
   'gem-outline': Gem,

@@ -110,6 +110,7 @@ export default function TodayScreen() {
         subtitle={t('ready')}
         centered
         action="settings-outline"
+        actionAvatar={(username?.trim()?.slice(0, 1) || '•').toLocaleUpperCase(language)}
         onAction={() => router.push('/settings')}
         premiumLabel={SUBSCRIPTION_PURCHASE_ENABLED ? (isPremium ? t('premiumOwned') : t('premiumShort')) : undefined}
         premiumIcon="trophy-outline"
