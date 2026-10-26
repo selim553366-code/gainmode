@@ -11,7 +11,7 @@ import { getWeeklySummary, type WeightOutcome } from '@/lib/weeklyAnalysis';
 import { daysUntilWeeklyAnalysis, isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
 import { AnimatedNumber, Card, Header, Screen } from '@/components/FitUI';
 import { TodayWeightBar } from '@/components/TodayWeightBar';
-import { ProgressChartsSection } from '@/components/ProgressChartsSection';
+import { ProgressChartsButton } from '@/components/ProgressChartsSection';
 
 function formatChange(value: number | null) {
   if (value === null) return '—';
@@ -97,7 +97,7 @@ export default function ProgressScreen() {
        </View>
     </Card>
 
-    <ProgressChartsSection />
+    <ProgressChartsButton />
 
      <TodayWeightBar language={language} tracksWeight={tracksWeight} onSave={addWeight} testID="progress-add-today-weight" />
   </Screen>;
