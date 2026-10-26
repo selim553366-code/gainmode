@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Linking, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, StyleSheet, Text, TextInput, View } from 'react-native';
 import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { EASE_OUT, PressableScale as Pressable, Reveal } from '@/components/Motion';
 import { Ionicons } from '@/components/AppIcon';
@@ -10,6 +10,7 @@ import { useColors } from '@/hooks/useColors';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
 import { openWidgetOffer } from '@/components/WidgetOffer';
 import { LanguageList, SegmentedControl } from '@/components/SettingsControls';
+import { FeedbackSent } from '@/components/FeedbackSent';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 import { apiUrl } from '@/lib/api';
 import { legalDocumentUrl, type LegalDocument } from '@/lib/legalDocuments';
@@ -53,7 +54,6 @@ export default function SettingsScreen() {
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [feedbackSending, setFeedbackSending] = useState(false);
   const [focusedField, setFocusedField] = useState<'email' | 'message' | null>(null);
-  const feedbackSuccessProgress = React.useRef(new Animated.Value(0)).current;
   const languages = Object.keys(languageLabels) as Language[];
 
   const openLegalDocument = async (document: LegalDocument) => {
@@ -83,13 +83,6 @@ export default function SettingsScreen() {
     ]);
   };
 
-  React.useEffect(() => {
-    if (!feedbackSent) return undefined;
-    feedbackSuccessProgress.setValue(0);
-    const animation = Animated.spring(feedbackSuccessProgress, { toValue: 1, friction: 7, tension: 80, useNativeDriver: true });
-    animation.start();
-    return () => animation.stop();
-  }, [feedbackSent, feedbackSuccessProgress]);
 
   const feedbackReady = Boolean(feedbackText.trim() && feedbackEmail.trim()) && !feedbackSending;
 
@@ -220,13 +213,7 @@ export default function SettingsScreen() {
         {feedbackOpen ? (
           <View style={[styles.feedbackDetails, { borderTopColor: colors.border }]}>
             {feedbackSent ? (
-              <Animated.View style={[styles.feedbackSuccess, { opacity: feedbackSuccessProgress, transform: [{ scale: feedbackSuccessProgress.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) }] }]}>
-                <View style={[styles.feedbackSuccessIcon, { backgroundColor: `${colors.success}20` }]}>
-                  <Ionicons name="checkmark-circle" size={46} color={colors.success} />
-                </View>
-                <Text style={[styles.feedbackSuccessTitle, { color: colors.foreground }]}>{t('feedbackSentTitle')}</Text>
-                <Text style={[styles.feedbackSuccessBody, { color: colors.mutedForeground }]}>{t('feedbackSentBody')}</Text>
-              </Animated.View>
+              <FeedbackSent title={t('feedbackSentTitle')} body={t('feedbackSentBody')} />
             ) : (
               <Reveal>
                 <Text style={[styles.feedbackLabel, { color: colors.mutedForeground }]}>{t('feedbackType').toUpperCase()}</Text>
@@ -421,8 +408,4 @@ const styles = StyleSheet.create({
   feedbackCount: { fontFamily: 'Inter_500Medium', fontSize: 11, textAlign: 'right', marginTop: 6, fontVariant: ['tabular-nums'] },
   feedbackButton: { minHeight: 54, borderRadius: 27, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 18, marginTop: 16 },
   feedbackButtonText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
-  feedbackSuccess: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8 },
-  feedbackSuccessIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  feedbackSuccessTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, textAlign: 'center' },
-  feedbackSuccessBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 7, maxWidth: 285 },
 });
