@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Easing, Image, PanResponder, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -250,17 +250,23 @@ function AgePicker({ value, inputValue, yearsLabel, onInputChange, onChange }: {
 export default function EntryScreen() {
   const colors = useColors();
   const { onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen } = useFit();
-  const params = useLocalSearchParams<{ edit?: string; fields?: string }>();
+  const params = useLocalSearchParams<{ edit?: string; fields?: string; preview?: string }>();
   const editMode = params.edit === '1';
+  const previewHome = Platform.OS === 'web' && params.preview === 'home';
   const selectedFields = React.useMemo(() => parseProfileEditFields(params.fields), [params.fields]);
   const entryRoute = getEntryRoute({ onboardingComplete, introSeen, isPremium, subscriptionPurchaseEnabled: SUBSCRIPTION_PURCHASE_ENABLED, coachIntroPending });
   const [premiumCelebrationVisible, setPremiumCelebrationVisible] = React.useState(false);
   const purchasedRef = React.useRef(false);
   React.useEffect(() => {
+    if (previewHome) {
+      router.replace('/(tabs)');
+      return;
+    }
     if (!editMode && !premiumCelebrationVisible && (entryRoute === 'tabs' || entryRoute === 'coach')) {
       router.replace(entryRoute === 'coach' ? '/(tabs)/coach' : '/(tabs)');
     }
-  }, [editMode, entryRoute, premiumCelebrationVisible]);
+  }, [editMode, entryRoute, premiumCelebrationVisible, previewHome]);
+  if (previewHome) return <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
   if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
   if (entryRoute === 'onboarding') return <OnboardingQuestions />;
   if (entryRoute === 'intro') return <IntroScreen onDone={setIntroSeen} />;
