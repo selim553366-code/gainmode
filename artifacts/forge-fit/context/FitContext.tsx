@@ -9,8 +9,9 @@ import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey, upsertTodayWeightLog } from '@/lib/nutritionDates';
 import { addStreakActivity, getCurrentStreak, normalizeStreakDates } from '@/lib/streak';
 import { badges, type BadgeMetric } from '@/lib/badges';
-import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, getWorkoutIntensity, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
+import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, getWorkoutIntensity, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, estimateExerciseCalories, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
 import { clearLocalAiUsageIdentity } from '@/lib/aiUsage';
+import { logCompletedExercises, restoreActivityLog, unlogExercises, type ActivityEntry } from '@/lib/progressCharts';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type SavedMeal = Omit<Meal, 'date'> & { savedAt: string };
@@ -115,6 +116,7 @@ type FitState = {
   challenges: Challenge[];
   weightLogs: { id: string; value: number; date: string }[];
   dumbbellWeightHistory: DumbbellWeightLog[];
+  activityLog: ActivityEntry[];
   notificationSettings: NotificationSettings;
   profileEditUsedMonth: string | null;
   dailyMoodCompletedDate: string | null;
@@ -199,6 +201,7 @@ const initialState: FitState = {
   challenges: [],
   weightLogs: [],
   dumbbellWeightHistory: [],
+  activityLog: [],
   meals: [],
   notificationSettings: {
     workoutReminder: true,
@@ -217,6 +220,19 @@ const FitContext = createContext<FitContextValue | null>(null);
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 const roundKg = (value: number) => Math.round(value * 10) / 10;
+/** Time and calories for the given exercises of a workout, as logged into the day's activity. */
+function completedActivity(workout: Workout, exerciseIds: string[], profile: Profile | null) {
+  const minutesEach = workout.exercises.length ? Math.max(0, workout.duration) / workout.exercises.length : 0;
+  return workout.exercises
+    .filter((exercise) => exerciseIds.includes(exercise.id))
+    .map((exercise) => ({
+      workoutId: workout.id,
+      exerciseId: exercise.id,
+      minutes: minutesEach,
+      calories: estimateExerciseCalories(workout, exercise, profile ?? undefined),
+    }));
+}
+
 const recordStreakActivity = (current: FitState) => ({ ...current, streakDates: addStreakActivity(current.streakDates) });
 
 export function recommendTargetWeight(profile: Pick<Profile, 'height' | 'weight' | 'age' | 'goal' | 'sex' | 'activity' | 'goalRate'>) {
@@ -347,6 +363,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
                  && typeof (item as DumbbellWeightLog).date === 'string'
                ))
                : [],
+            activityLog: restoreActivityLog(parsed.activityLog),
             version: initialState.version,
           };
            const restoredWorkouts = sanitizeWorkoutSplits(normalizeWorkoutSets(restoreWorkoutProgress(merged.workouts)));
@@ -602,6 +619,11 @@ export function FitProvider({ children }: { children: ReactNode }) {
          ...current,
          workouts,
           workoutCycleReady: workoutsAreComplete(workouts),
+         activityLog: changedWorkout && previousWorkout
+           ? changedWorkout.completed
+             ? logCompletedExercises(current.activityLog, completedActivity(changedWorkout, previousWorkout.exercises.filter((exercise) => !exercise.completed).map((exercise) => exercise.id), current.profile))
+             : unlogExercises(current.activityLog, id, changedWorkout.exercises.map((exercise) => exercise.id))
+           : current.activityLog,
          achievementStats: newlyCompleted && changedWorkout ? {
            ...current.achievementStats,
            workouts: current.achievementStats.workouts + 1,
@@ -622,10 +644,16 @@ export function FitProvider({ children }: { children: ReactNode }) {
        const changedWorkout = workouts.find((workout) => workout.id === workoutId);
        const newlyCompletedWorkout = !previousWorkout?.completed && Boolean(changedWorkout?.completed);
        const newlyCompletedExercise = !previousExercise?.completed && Boolean(changedWorkout?.exercises.find((exercise) => exercise.id === exerciseId)?.completed);
+       const nowCompleted = Boolean(changedWorkout?.exercises.find((exercise) => exercise.id === exerciseId)?.completed);
        const nextState = {
          ...current,
          workouts,
           workoutCycleReady: workoutsAreComplete(workouts),
+         activityLog: changedWorkout
+           ? nowCompleted
+             ? logCompletedExercises(current.activityLog, completedActivity(changedWorkout, [exerciseId], current.profile))
+             : unlogExercises(current.activityLog, workoutId, [exerciseId])
+           : current.activityLog,
          achievementStats: {
            ...current.achievementStats,
            workouts: current.achievementStats.workouts + (newlyCompletedWorkout ? 1 : 0),

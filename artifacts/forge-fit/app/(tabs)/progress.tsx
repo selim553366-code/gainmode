@@ -11,6 +11,7 @@ import { getWeeklySummary, type WeightOutcome } from '@/lib/weeklyAnalysis';
 import { daysUntilWeeklyAnalysis, isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
 import { AnimatedNumber, Card, Header, Screen } from '@/components/FitUI';
 import { TodayWeightBar } from '@/components/TodayWeightBar';
+import { ProgressChartsSection } from '@/components/ProgressChartsSection';
 
 function formatChange(value: number | null) {
   if (value === null) return '—';
@@ -44,10 +45,6 @@ export default function ProgressScreen() {
   const weeklyAnalysisUnlocked = isWeeklyAnalysisUnlocked(registeredAt);
   const weeklyAnalysisDays = daysUntilWeeklyAnalysis(registeredAt);
   const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal, profile: profile ?? undefined, dumbbellWeightHistory });
-  const points = weightLogs.filter((item) => item.date >= summary.weekStart).slice(-7);
-  const maxPoint = Math.max(...points.map((item) => item.value), summary.currentWeightKg ?? 0, 1);
-  const minPoint = Math.min(...points.map((item) => item.value), summary.currentWeightKg ?? maxPoint, maxPoint);
-  const pointRange = Math.max(maxPoint - minPoint, 1);
 
   const requestAnalysis = () => {
     if (launching || !weeklyAnalysisUnlocked) return;
@@ -100,10 +97,7 @@ export default function ProgressScreen() {
        </View>
     </Card>
 
-    {tracksWeight ? <Card style={styles.chartCard}>
-      <View style={styles.chartHeader}><View><Text style={[styles.chartEyebrow, { color: colors.mutedForeground }]}>{t('weeklyWeightChart')}</Text><Text style={[styles.chartWeight, { color: colors.foreground }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View><View style={[styles.changePill, { backgroundColor: `${colors.primary}14` }]}><Ionicons name="analytics-outline" size={14} color={colors.primary} /><Text style={[styles.changePillText, { color: colors.primary }]}>{formatChange(summary.weightChangeKg)}</Text></View></View>
-      <View style={styles.chart}>{points.length > 0 ? points.map((point) => <View key={point.id} style={styles.chartColumn}><View style={[styles.bar, { height: 20 + ((point.value - minPoint) / pointRange) * 78, backgroundColor: point.id === points.at(-1)?.id ? colors.primary : `${colors.primary}42` }]} /></View>) : <Text style={[styles.chartEmpty, { color: colors.mutedForeground }]}>{t('weeklyWeightNoData')}</Text>}</View>
-    </Card> : null}
+    <ProgressChartsSection />
 
      <TodayWeightBar language={language} tracksWeight={tracksWeight} onSave={addWeight} testID="progress-add-today-weight" />
   </Screen>;
@@ -158,14 +152,4 @@ const styles = StyleSheet.create({
   consistencyValue: { fontFamily: 'Inter_700Bold', fontSize: 18 },
   track: { height: 8, borderRadius: 5, overflow: 'hidden', marginTop: 15 },
   fill: { height: '100%', borderRadius: 5 },
-  chartCard: { padding: 18, marginBottom: 16 },
-  chartHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  chartEyebrow: { fontFamily: 'Inter_500Medium', fontSize: 10 },
-  chartWeight: { fontFamily: 'Inter_700Bold', fontSize: 28, letterSpacing: -1, marginTop: 4 },
-  changePill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 6 },
-  changePillText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
-  chart: { height: 120, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', marginTop: 16 },
-  chartColumn: { height: 106, width: 20, justifyContent: 'flex-end', alignItems: 'center' },
-  bar: { width: 13, borderRadius: 7 },
-  chartEmpty: { fontFamily: 'Inter_400Regular', fontSize: 11, marginBottom: 45 },
 });

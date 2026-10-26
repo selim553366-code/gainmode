@@ -10,10 +10,13 @@ import {
   BadgeX,
   ArrowLeft,
   ArrowRight,
+  ArrowDown,
   ArrowUp,
   Bell,
   Building2,
   CalendarDays,
+  Clock3,
+  Crosshair,
   Camera,
   Check,
   ChartArea,
@@ -118,6 +121,7 @@ export type IconName =
   | 'alert-circle'
   | 'arrow-back'
   | 'arrow-forward'
+  | 'arrow-down'
   | 'arrow-up'
   | 'barbell-outline'
   | 'body-outline'
@@ -192,6 +196,9 @@ export type IconName =
   | 'badge-week'
   | 'badge-unstoppable'
   | 'badge-calendar'
+  | 'time-outline'
+  | 'calendar-outline'
+  | 'target'
   | 'badge-meal'
   | 'badge-rhythm'
   | 'badge-master'
@@ -213,6 +220,7 @@ const iconMap: Record<IconName, IconComponent> = {
   'alert-circle': AlertCircle,
   'arrow-back': ArrowLeft,
   'arrow-forward': ArrowRight,
+  'arrow-down': ArrowDown,
   'arrow-up': ArrowUp,
   'barbell-outline': Dumbbell,
   'body-outline': PersonStanding,
@@ -281,6 +289,9 @@ const iconMap: Record<IconName, IconComponent> = {
   'trophy-outline': Trophy,
   users: Users,
   'scale-outline': Scale,
+  'time-outline': Clock3,
+  'calendar-outline': CalendarDays,
+  'target': Crosshair,
   x: BadgeX,
   'analytics-outline': ChartNoAxesCombined,
   'badge-collection': Medal,
