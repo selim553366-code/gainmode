@@ -1,5 +1,6 @@
 import React from 'react';
-import { Animated, Easing, Image, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Image, Linking, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { router, useLocalSearchParams } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -194,23 +195,23 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
        minConfidence={0.45}
        smoothing={{ minCutoff: 1, beta: 4 }}
        data={{ mode: 'live', landmarks: true }}
-       overlay={{ landmarks: false, connections: false, color: colors.primary, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
+       overlay={{ landmarks: false, connections: false, color: colors.accent, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
       onPose={handlePose}
        onReady={({ facing }) => { if (facing !== 'front') setCameraError(true); }}
        onCameraChange={({ facing }) => { if (facing !== 'front') setCameraError(true); }}
       onError={() => setCameraError(true)}
     />
-      <SkeletonOnlyOverlay pose={skeletonPose} width={width} height={height} color={colors.primary} />
+      <SkeletonOnlyOverlay pose={skeletonPose} width={width} height={height} color={colors.accent} />
      {!skeletonOnly ? <View pointerEvents="none" style={styles.cameraShade} /> : null}
-     {!skeletonOnly ? <View pointerEvents="none" style={[styles.neonFrame, { borderColor: colors.primary, shadowColor: colors.primary }]} /> : null}
+     {!skeletonOnly ? <View pointerEvents="none" style={[styles.neonFrame, { borderColor: colors.accent, shadowColor: colors.accent }]} /> : null}
     <View style={[styles.liveHeader, { paddingTop: insets.top + 14 }]}>
       <View style={[styles.liveBadge, { backgroundColor: `${colors.destructive}D9` }]}><View style={styles.liveDot} /><Text style={styles.liveBadgeText}>{t('live')}</Text></View>
-      <View style={[styles.exerciseBadge, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.primary}65` }]}><Ionicons name="activity" size={15} color={colors.primary} /><Text style={[styles.exerciseBadgeText, { color: colors.foreground }]}>{title}</Text></View>
-       <Pressable testID="toggle-skeleton-mode" accessibilityRole="button" accessibilityLabel={skeletonOnly ? t('cameraMode') : t('skeletonOnlyMode')} onPress={() => setSkeletonOnly((value) => !value)} style={({ pressed }) => [styles.modeToggle, { backgroundColor: `${colors.background}D9`, borderColor: colors.border, opacity: pressed ? 0.72 : 1 }]}><Ionicons name={skeletonOnly ? 'camera-outline' : 'body-outline'} size={18} color={colors.primary} /></Pressable>
+      <View style={[styles.exerciseBadge, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.accent}65` }]}><Ionicons name="activity" size={15} color={colors.accent} /><Text style={[styles.exerciseBadgeText, { color: colors.foreground }]}>{title}</Text></View>
+       <Pressable testID="toggle-skeleton-mode" accessibilityRole="button" accessibilityLabel={skeletonOnly ? t('cameraMode') : t('skeletonOnlyMode')} onPress={() => setSkeletonOnly((value) => !value)} style={({ pressed }) => [styles.modeToggle, { backgroundColor: `${colors.background}D9`, borderColor: colors.border, opacity: pressed ? 0.72 : 1 }]}><Ionicons name={skeletonOnly ? 'camera-outline' : 'body-outline'} size={18} color={colors.accent} /></Pressable>
       <Pressable accessibilityLabel={t('stopLiveWorkout')} onPress={() => router.back()} style={[styles.closeButton, { backgroundColor: `${colors.background}D9`, borderColor: colors.border }]}><Ionicons name="close" size={20} color={colors.foreground} /></Pressable>
     </View>
        <View style={[styles.topStatusRow, { top: insets.top + 62 }]}>
-         <View testID="live-workout-reps-panel" style={[styles.topRepsCard, { backgroundColor: `${colors.background}E8`, borderColor: `${colors.primary}65` }]}>
+         <View testID="live-workout-reps-panel" style={[styles.topRepsCard, { backgroundColor: `${colors.background}E8`, borderColor: `${colors.accent}65` }]}>
            <Text style={[styles.metricCaption, { color: colors.mutedForeground }]}>{t('reps').toUpperCase()}</Text>
            <Animated.Text style={[styles.topRepNumber, { color: colors.foreground, transform: [{ scale: repPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2] }) }] }]}>{analysis.state.reps}</Animated.Text>
          </View>
@@ -227,7 +228,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
          <Text style={[styles.depthSidePercent, { color: analysis.depthPercent >= 100 ? colors.success : colors.foreground }]}>{analysis.depthPercent}%</Text>
          <View style={[styles.depthTrack, { backgroundColor: `${colors.foreground}18`, borderColor: `${colors.foreground}28` }]}>
            <View style={[styles.depthTargetLine, { backgroundColor: colors.success }]} />
-           <View style={[styles.depthFill, { height: `${analysis.depthPercent}%`, backgroundColor: analysis.depthPercent >= 100 ? colors.success : colors.primary }]} />
+           <View style={[styles.depthFill, { height: `${analysis.depthPercent}%`, backgroundColor: analysis.depthPercent >= 100 ? colors.success : colors.accent }]} />
          </View>
          <Text style={[styles.depthSideTarget, { color: colors.success }]}>100%</Text>
        </View>

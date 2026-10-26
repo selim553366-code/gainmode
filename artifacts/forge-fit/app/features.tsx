@@ -1,5 +1,6 @@
 import React from 'react';
-import { Image, ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { router } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
 import { Header, Screen } from '@/components/FitUI';
@@ -25,7 +26,7 @@ export default function FeaturesScreen() {
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
 
   const tabs: Array<{ id: FeatureTab; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }> = [
-    { id: 'ai', label: t('featuresTabAi'), icon: 'sparkles' },
+    { id: 'ai', label: t('featuresTabAi'), icon: 'brain-outline' },
     { id: 'photo', label: t('featuresTabPhoto'), icon: 'camera-scan' },
     { id: 'live', label: t('featuresTabLive'), icon: 'activity' },
     { id: 'plan', label: t('featuresTabPlan'), icon: 'barbell-outline' },

@@ -30,3 +30,22 @@ test('daily mood quote stays stable throughout the same day', () => {
   const evening = new Date(2026, 4, 18, 22, 45);
   assert.equal(getDailyMoodQuote('tr', morning), getDailyMoodQuote('tr', evening));
 });
+test('daily mood prompt opens one day after the subscription started, then every 24 hours', async () => {
+  const { dailyMoodPromptWindow } = await import('../lib/dailyMood.ts');
+  const start = '2026-10-01T15:30:00.000Z';
+  const at = (hours) => Date.parse(start) + hours * 60 * 60 * 1000;
+  assert.equal(dailyMoodPromptWindow(start, at(23.9)), null);
+  assert.equal(dailyMoodPromptWindow(start, at(24)), 1);
+  assert.equal(dailyMoodPromptWindow(start, at(47.9)), 1);
+  assert.equal(dailyMoodPromptWindow(start, at(48)), 2);
+  assert.equal(dailyMoodPromptWindow(null, at(48)), null);
+  assert.equal(dailyMoodPromptWindow('not a date', at(48)), null);
+});
+
+test('daily mood prompt shows once per window and stays hidden after it is dismissed', async () => {
+  const { shouldShowDailyMoodPrompt } = await import('../lib/dailyMood.ts');
+  assert.equal(shouldShowDailyMoodPrompt(null, null), false);
+  assert.equal(shouldShowDailyMoodPrompt(1, null), true);
+  assert.equal(shouldShowDailyMoodPrompt(1, 1), false);
+  assert.equal(shouldShowDailyMoodPrompt(2, 1), true);
+});

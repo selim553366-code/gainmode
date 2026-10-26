@@ -196,3 +196,21 @@ export function isDailyMoodDue(date = new Date()) {
   return date.getHours() > DAILY_MOOD_NOTIFICATION_HOUR
     || (date.getHours() === DAILY_MOOD_NOTIFICATION_HOUR && date.getMinutes() >= DAILY_MOOD_NOTIFICATION_MINUTE);
 }
+export const DAILY_MOOD_PROMPT_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Which 24-hour window since the subscription started `now` falls in. The first prompt window opens
+ * a full day after the subscription began; before that, and without a valid start, there is none.
+ */
+export function dailyMoodPromptWindow(subscribedAt: string | null | undefined, now = Date.now()): number | null {
+  const start = subscribedAt ? Date.parse(subscribedAt) : Number.NaN;
+  if (!Number.isFinite(start)) return null;
+  const elapsed = now - start;
+  if (elapsed < DAILY_MOOD_PROMPT_INTERVAL_MS) return null;
+  return Math.floor(elapsed / DAILY_MOOD_PROMPT_INTERVAL_MS);
+}
+
+/** The banner shows once per window: never again in a window the user already dismissed or acted on. */
+export function shouldShowDailyMoodPrompt(window: number | null, handledWindow: number | null) {
+  return window !== null && (handledWindow === null || window > handledWindow);
+}

@@ -61,6 +61,12 @@ import {
   PieChart,
   Plus,
   Rocket,
+  MessagesSquare,
+  Lightbulb,
+  Brain,
+  Compass,
+  LayoutGrid,
+  MessageCircleMore,
   ScanSearch,
   Salad,
   Scale,
@@ -72,7 +78,6 @@ import {
   Share2,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
   Smartphone,
   Star,
   Sun,
@@ -89,7 +94,6 @@ import {
   Utensils,
   Waypoints,
   Wheat,
-  WandSparkles,
   Zap,
   X,
   SquareX,
@@ -97,6 +101,13 @@ import {
 
 export type IconName =
   | 'activity'
+  | 'coach-outline'
+  | 'bulb-outline'
+  | 'gem-outline'
+  | 'brain-outline'
+  | 'compass-outline'
+  | 'grid-outline'
+  | 'chat-more'
   | 'analytics-outline'
   | 'add'
   | 'add-circle-outline'
@@ -153,8 +164,6 @@ export type IconName =
   | 'phone-portrait-outline'
   | 'sunny-outline'
   | 'moon-outline'
-  | 'sparkles'
-  | 'sparkles-outline'
   | 'star'
   | 'shield-checkmark-outline'
   | 'trash-outline'
@@ -250,9 +259,14 @@ const iconMap: Record<IconName, IconComponent> = {
   'phone-portrait-outline': Smartphone,
   'sunny-outline': Sun,
   'moon-outline': Moon,
-  sparkles: Sparkles,
-  'sparkles-outline': WandSparkles,
   star: Star,
+  'coach-outline': MessagesSquare,
+  'bulb-outline': Lightbulb,
+  'gem-outline': Gem,
+  'brain-outline': Brain,
+  'compass-outline': Compass,
+  'grid-outline': LayoutGrid,
+  'chat-more': MessageCircleMore,
   'shield-checkmark-outline': ShieldCheck,
   'trash-outline': Trash2,
   'ticket-outline': Ticket,

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Animated, Easing, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, PanResponder, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
@@ -25,6 +26,8 @@ import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollV
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
 import { getEntryRoute } from '@/lib/entryFlow';
+import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
+import { Paywall } from '@/components/Paywall';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
 
@@ -252,6 +255,7 @@ export default function EntryScreen() {
   const selectedFields = React.useMemo(() => parseProfileEditFields(params.fields), [params.fields]);
   const entryRoute = getEntryRoute({ onboardingComplete, introSeen, isPremium, subscriptionPurchaseEnabled: SUBSCRIPTION_PURCHASE_ENABLED, coachIntroPending });
   const [premiumCelebrationVisible, setPremiumCelebrationVisible] = React.useState(false);
+  const purchasedRef = React.useRef(false);
   React.useEffect(() => {
     if (!editMode && !premiumCelebrationVisible && (entryRoute === 'tabs' || entryRoute === 'coach')) {
       router.replace(entryRoute === 'coach' ? '/(tabs)/coach' : '/(tabs)');
@@ -267,13 +271,17 @@ export default function EntryScreen() {
       onDone={() => {
         setPremiumCelebrationVisible(false);
         router.replace('/(tabs)/coach');
+        if (purchasedRef.current) void offerWidgetAfterFirstPurchase();
       }}
     />;
   }
   if (entryRoute === 'premium') {
     return <PremiumWelcomeOfferScreen
       onUnlock={() => router.replace('/(tabs)/coach')}
-      onPurchaseSuccess={() => setPremiumCelebrationVisible(true)}
+      onPurchaseSuccess={(kind) => {
+        purchasedRef.current = kind === 'purchase';
+        setPremiumCelebrationVisible(true);
+      }}
     />;
   }
   return <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
@@ -680,44 +688,16 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
   );
 }
 
+// The minimal identity keeps the ground calm; the mascot and type carry the screen.
 function OnboardingAtmosphere() {
-  const colors = useColors();
-  const motion = React.useRef(new Animated.Value(0)).current;
-  const pulse = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    const drift = Animated.loop(Animated.sequence([
-      Animated.timing(motion, { toValue: 1, duration: 11500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      Animated.timing(motion, { toValue: 0, duration: 11500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-    ]));
-    const breathe = Animated.loop(Animated.sequence([
-      Animated.timing(pulse, { toValue: 1, duration: 5200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      Animated.timing(pulse, { toValue: 0, duration: 5200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-    ]));
-    drift.start();
-    breathe.start();
-    return () => {
-      drift.stop();
-      breathe.stop();
-    };
-  }, [motion, pulse]);
-
-  const driftX = motion.interpolate({ inputRange: [0, 1], outputRange: [-22, 26] });
-  const driftY = motion.interpolate({ inputRange: [0, 1], outputRange: [18, -26] });
-  const blobScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.1] });
-  const blobOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.4] });
-
-  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-    <Animated.View style={[styles.onboardingBlob, styles.onboardingBlobBlue, { backgroundColor: colors.primary, opacity: blobOpacity, transform: [{ translateX: driftX }, { translateY: driftY }, { scale: blobScale }] }]} />
-    <Animated.View style={[styles.onboardingBlob, styles.onboardingBlobPurple, { backgroundColor: colors.blue, opacity: blobOpacity, transform: [{ translateX: driftY }, { translateY: driftX }, { scale: blobScale }] }]} />
-    <Animated.View style={[styles.onboardingBlob, styles.onboardingBlobCyan, { backgroundColor: colors.secondary, opacity: blobOpacity, transform: [{ translateX: Animated.multiply(driftX, -0.7) }, { translateY: Animated.multiply(driftY, -0.55) }, { scale: blobScale }] }]} />
-  </View>;
+  return null;
 }
 
 function WelcomeLanguageSelector({ language, onSelect }: { language: Language; onSelect: (language: Language) => void }) {
-  return <View style={styles.welcomeLanguagePill}>
+  const colors = useColors();
+  return <View style={[styles.welcomeLanguagePill, { backgroundColor: colors.card, borderColor: colors.border }]}>
     {(Object.keys(languageLabels) as Language[]).map((item) => (
-      <Pressable key={item} onPress={() => { triggerHaptic(); onSelect(item); }} style={[styles.welcomeLanguageOption, language === item ? styles.welcomeLanguageSelected : null]}>
+      <Pressable key={item} onPress={() => { triggerHaptic(); onSelect(item); }} style={[styles.welcomeLanguageOption, language === item ? [styles.welcomeLanguageSelected, { backgroundColor: colors.secondary }] : null]}>
         <MiniFlag language={item} />
       </Pressable>
     ))}
@@ -808,7 +788,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
        </View>
     </View>
      <View style={[styles.welcomeReferenceCard, { backgroundColor: colors.colorScheme === 'dark' ? colors.glass : 'transparent', borderColor: colors.colorScheme === 'dark' ? colors.glassBorder : 'rgba(255,255,255,0.82)' }]}>
-      <Animated.View style={[styles.welcomeCardGlow, { backgroundColor: colors.primary, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
+      <Animated.View style={[styles.welcomeCardGlow, { backgroundColor: colors.accent, opacity: haloOpacity, transform: [{ scale: haloScale }] }]} />
       <Animated.View style={[styles.welcomeCharacterStage, { transform: [{ translateY: coachTranslateY }, { scale: orbScale }, { rotate: orbRotateValue }] }]}>
          <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={styles.welcomeReferenceCharacter} />
       </Animated.View>
@@ -955,7 +935,7 @@ function ProgressiveOverloadScreen({ onContinue }: { onContinue: () => void }) {
         <View style={[styles.overloadRuleNumber, { backgroundColor: `${colors.primary}18` }]}><Text style={[styles.overloadRuleNumberText, { color: colors.primary }]}>12+</Text></View>
         <View style={{ flex: 1 }}><Text style={[styles.overloadRuleTitle, { color: colors.foreground }]}>{t('overloadRuleTitle')}</Text><Text style={[styles.overloadRuleText, { color: colors.mutedForeground }]}>{t('overloadRule')}</Text></View>
       </View>
-      <View style={[styles.overloadTip, { backgroundColor: `${colors.success}15`, borderColor: `${colors.success}40` }]}><Ionicons name="sparkles-outline" size={18} color={colors.success} /><Text style={[styles.overloadTipText, { color: colors.foreground }]}>{t('overloadTip')}</Text></View>
+      <View style={[styles.overloadTip, { backgroundColor: `${colors.success}15`, borderColor: `${colors.success}40` }]}><Ionicons name="trending-up-outline" size={18} color={colors.success} /><Text style={[styles.overloadTipText, { color: colors.foreground }]}>{t('overloadTip')}</Text></View>
     </View>
     <Pressable onPress={() => { triggerHaptic(); onContinue(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{t('overloadContinue')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
   </LinearGradient>;
@@ -1035,7 +1015,7 @@ function DemoPreviewFrame({ kind, lockedLabel, t }: { kind: ExploreDemoKind; loc
   const colors = useColors();
   const miniIcon = (name: React.ComponentProps<typeof Ionicons>['name'], active = false) => <Ionicons name={name} size={14} color={active ? colors.primary : colors.mutedForeground} />;
   const lockedChip = <View style={[styles.demoLockedChip, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}42` }]}><Ionicons name="badge-lock" size={11} color={colors.primary} /><Text style={[styles.demoLockedText, { color: colors.primary }]}>{lockedLabel}</Text></View>;
-  const miniHeader = (title: string, icon: React.ComponentProps<typeof Ionicons>['name'] = 'sparkles-outline') => (
+  const miniHeader = (title: string, icon: React.ComponentProps<typeof Ionicons>['name'] = 'coach-outline') => (
     <View style={styles.demoMiniHeader}>
       <View style={[styles.demoMiniBrand, { backgroundColor: colors.primary }]}><ForgeFitMark size={17} /></View>
       <Text numberOfLines={1} style={[styles.demoMiniHeaderTitle, { color: colors.foreground }]}>{title}</Text>
@@ -1059,11 +1039,11 @@ function DemoPreviewFrame({ kind, lockedLabel, t }: { kind: ExploreDemoKind; loc
   </View>;
 
   if (kind === 'coach') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
-    {miniHeader(t('coachTitle'), 'sparkles-outline')}
+    {miniHeader(t('coachTitle'), 'coach-outline')}
     <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('coachSubtitle')}</Text>
-    <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="sparkles" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachWelcome')}</Text></View>
+    <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="chat-more" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachWelcome')}</Text></View>
     <View style={[styles.demoUserBubble, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachExample')}</Text></View>
-    <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="sparkles" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachAiCapabilities')}</Text></View>
+    <View style={[styles.demoCoachBubble, { backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}32` }]}><Ionicons name="chat-more" size={14} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('coachAiCapabilities')}</Text></View>
   </View>;
 
   if (kind === 'nutrition') return <View style={[styles.demoFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
@@ -1099,7 +1079,7 @@ function DemoPreviewFrame({ kind, lockedLabel, t }: { kind: ExploreDemoKind; loc
     {miniHeader(t('weeklyAiTitle'), 'analytics-outline')}
     <Text style={[styles.demoMuted, { color: colors.mutedForeground }]}>{t('weeklyAiSubtitle')}</Text>
     <View style={[styles.demoChartCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.demoMetricLabel, { color: colors.primary }]}>{t('weeklyAiLastSeven')}</Text><View style={styles.demoBars}>{[38, 62, 48, 78, 54, 88, 70].map((height, index) => <View key={index} style={[styles.demoBar, { height, backgroundColor: index === 6 ? colors.primary : `${colors.primary}45` }]} />)}</View></View>
-    <View style={[styles.demoInsightCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}38` }]}><Ionicons name="sparkles-outline" size={17} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('weeklyAiCardSubtitle')}</Text></View>
+    <View style={[styles.demoInsightCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}38` }]}><Ionicons name="analytics-outline" size={17} color={colors.primary} /><Text style={[styles.demoBubbleText, { color: colors.foreground }]}>{t('weeklyAiCardSubtitle')}</Text></View>
     {lockedChip}
   </View>;
 }
@@ -1129,7 +1109,7 @@ function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: (
       <Text style={[styles.exploreTitle, { color: colors.foreground }]}>{t(slide.title)}</Text>
       <Text style={[styles.exploreSummary, { color: colors.mutedForeground }]}>{t(slide.summary)}</Text>
       <View style={[styles.exploreValueCard, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}42` }]}>
-        <View style={[styles.exploreValueIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="sparkles-outline" size={18} color={colors.primary} /></View>
+        <View style={[styles.exploreValueIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="gem-outline" size={18} color={colors.primary} /></View>
         <View style={styles.exploreValueCopy}>
           <Text style={[styles.exploreValueLabel, { color: colors.primary }]}>{t('premiumExploreIncluded')}</Text>
           <Text style={[styles.exploreDetail, { color: colors.foreground }]}>{t(slide.detail)}</Text>
@@ -1146,120 +1126,8 @@ function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: (
   </LinearGradient>;
 }
 
-function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: () => void; onPurchaseSuccess: () => void }) {
-  const colors = useColors();
-  const insets = useSafeAreaInsets();
-    const { language } = useFit();
-     const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-   const [selectedPlan, setSelectedPlan] = React.useState<'monthly' | 'annual'>(() => annualPackage ? 'annual' : 'monthly');
-   const canOfferAnnual = Boolean(annualPackage);
-  const annualMonthlyPrice = formatAnnualMonthlyPrice(annualPackage?.product);
-  const annualSavingsPercent = calculateAnnualSavingsPercent(monthlyPackage?.product, annualPackage?.product);
-  const annualSavingsValue = annualSavingsPercent === null
-    ? null
-    : t('premiumAnnualSavingsValue').replace('{percent}', String(annualSavingsPercent));
-  const [actionError, setActionError] = React.useState<string | null>(null);
-   const subscriptionCheckPending = isAvailable && (isLoading || isSubscribed === undefined);
-   const selectedPackage = selectedPlan === 'annual' ? annualPackage : monthlyPackage;
-   const benefits: Array<{ icon?: React.ComponentProps<typeof Ionicons>['name']; logo?: boolean; key: 'premiumWelcomeBenefit1' | 'premiumWelcomeBenefit2' | 'premiumWelcomeBenefit3' | 'premiumFeature4' | 'premiumFeature5' }> = [
-    { logo: true, key: 'premiumWelcomeBenefit1' },
-    { icon: 'restaurant-outline', key: 'premiumWelcomeBenefit2' },
-    { icon: 'chatbubble-ellipses-outline', key: 'premiumWelcomeBenefit3' },
-     { icon: 'analytics-outline', key: 'premiumFeature4' },
-     { icon: 'chatbubble-ellipses-outline', key: 'premiumFeature5' },
-  ];
-   React.useEffect(() => {
-     if (!canOfferAnnual && selectedPlan === 'annual') setSelectedPlan('monthly');
-   }, [canOfferAnnual, selectedPlan]);
-    const handlePurchase = async () => {
-     setActionError(null);
-      if (isSubscribed) {
-         onUnlock();
-        return;
-      }
-       if (subscriptionCheckPending) return;
-       if (!isAvailable || !selectedPackage) {
-        setActionError(t('premiumStoreUnavailable'));
-        return;
-      }
-      try {
-         const customerInfo = await purchase(selectedPackage);
-        if (!hasActivePremiumEntitlement(customerInfo)) {
-          setActionError(t('premiumPurchaseError'));
-          return;
-        }
-        onPurchaseSuccess();
-      } catch {
-        setActionError(t('premiumPurchaseError'));
-      }
-   };
-  const handleRestore = async () => {
-    if (!isAvailable) {
-      setActionError(t('premiumStoreUnavailable'));
-      return;
-    }
-    setActionError(null);
-    try {
-      const customerInfo = await restore();
-      if (!hasActivePremiumEntitlement(customerInfo)) {
-        setActionError(t('premiumRestoreNoPurchase'));
-        return;
-      }
-      onPurchaseSuccess();
-    } catch {
-      setActionError(t('premiumRestoreError'));
-    }
-  };
-   return <>
-   <LinearGradient colors={[colors.background, colors.secondary, colors.background]} style={styles.offerGradient}>
-    <View style={[styles.offerHeader, { paddingTop: insets.top + 10 }]}>
-      <ForgeFitMark size={38} />
-      <View style={[styles.offerProPill, { backgroundColor: `${isSubscribed ? colors.success : colors.primary}18`, borderColor: `${isSubscribed ? colors.success : colors.primary}55` }]}>{isSubscribed ? <Ionicons name="checkmark-circle" size={12} color={colors.success} /> : <ForgeFitMark size={18} />}<Text style={[styles.offerProText, { color: isSubscribed ? colors.success : colors.primary }]}>{isSubscribed ? t('premiumOwned') : t('premiumShort')}</Text></View>
-    </View>
-    <ScrollView
-      contentContainerStyle={[styles.offerScrollContent, { paddingBottom: insets.bottom + 24 }]}
-      showsVerticalScrollIndicator={false}
-      bounces={false}
-      alwaysBounceVertical={false}
-      keyboardShouldPersistTaps="handled"
-    >
-    <View style={styles.offerHero}>
-        <View style={[styles.offerOrb, { backgroundColor: colors.primary }]}><Ionicons name="trending-up-outline" size={44} color={colors.primaryForeground} /></View>
-      <Text style={[styles.offerEyebrow, { color: colors.primary }]}>{t('premiumWelcomeEyebrow')}</Text>
-      <Text style={[styles.offerTitle, { color: colors.foreground }]}>{t('premiumWelcomeTitle')}</Text>
-      <Text style={[styles.offerBody, { color: colors.mutedForeground }]}>{t('premiumWelcomeBody')}</Text>
-      </View>
-    <View style={[styles.offerValueCard, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
-      <Text style={[styles.offerReason, { color: colors.foreground }]}>{t('premiumWelcomeReason')}</Text>
-        <View style={styles.offerBenefits}>{benefits.map((benefit) => <View key={benefit.key} style={styles.offerBenefit}><View style={[styles.offerBenefitIcon, { backgroundColor: `${colors.primary}18` }]}>{benefit.logo ? <ForgeFitMark size={25} /> : <Ionicons name={benefit.icon!} size={17} color={colors.primary} />}</View><Text style={[styles.offerBenefitText, { color: colors.foreground }]}>{t(benefit.key)}</Text></View>)}</View>
-    </View>
-      <View style={styles.offerPlanChoices}>
-        <Pressable testID="welcome-monthly-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'monthly' }} onPress={() => setSelectedPlan('monthly')} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'monthly' ? `${colors.primary}18` : colors.glass, borderColor: selectedPlan === 'monthly' ? colors.primary : colors.glassBorder }]}>
-          <View style={styles.offerPlanHeader}>
-            <Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumMonthlyPlan')}</Text>
-          </View>
-          <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{monthlyPackage?.product.priceString ?? '—'}</Text>
-          <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerMonth')}</Text>
-        </Pressable>
-        <Pressable disabled={!canOfferAnnual} testID="welcome-annual-plan" accessibilityRole="button" accessibilityState={{ selected: selectedPlan === 'annual', disabled: !canOfferAnnual }} onPress={() => { if (canOfferAnnual) setSelectedPlan('annual'); }} style={[styles.offerPlanOption, { backgroundColor: selectedPlan === 'annual' ? `${colors.primary}18` : colors.glass, borderColor: selectedPlan === 'annual' ? colors.primary : colors.glassBorder, opacity: canOfferAnnual ? 1 : 0.58 }]}>
-          {canOfferAnnual ? <View style={[styles.offerRecommendedBadge, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.offerRecommendedText, { color: colors.primaryForeground }]}>{t('premiumRecommended')}</Text>
-          </View> : null}
-           <View style={styles.offerPlanHeader}><Text style={[styles.offerPlanLabel, { color: colors.foreground }]}>{t('premiumAnnualPlan')}</Text>{annualSavingsValue ? <View style={[styles.offerSavingsBadge, { backgroundColor: `${colors.success}18` }]}><Text style={[styles.offerSavingsValue, { color: colors.success }]}>{annualSavingsValue}</Text><Text style={[styles.offerSavingsLabel, { color: colors.success }]}>{t('premiumAnnualSavingsLabel')}</Text></View> : null}</View>
-          <Text style={[styles.offerPlanPrice, { color: colors.foreground }]}>{annualPackage?.product.priceString ?? '—'}</Text>
-          <View style={styles.offerAnnualPriceFooter}>
-            <Text style={[styles.offerPlanUnit, { color: colors.mutedForeground }]}>{t('premiumPerYear')}</Text>
-            {annualMonthlyPrice !== null ? <Text testID="annual-monthly-equivalent" style={[styles.offerMonthlyEquivalent, { color: colors.primary }]}>{annualMonthlyPrice} {t('premiumPerMonth')}</Text> : null}
-          </View>
-        </Pressable>
-      </View>
-     {actionError ? <Text style={[styles.offerActionError, { color: colors.destructive }]}>{actionError}</Text> : null}
-      <Pressable accessibilityRole="button" accessibilityLabel={t(isSubscribed ? 'premiumAccessActiveContinue' : 'premiumWelcomeCta')} disabled={subscriptionCheckPending || isPurchasing} onPress={() => { triggerHaptic(); void handlePurchase(); }} style={({ pressed }) => [styles.nextButton, { backgroundColor: colors.primary, opacity: pressed || subscriptionCheckPending || isPurchasing ? 0.58 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}><Text style={[styles.nextText, { color: colors.primaryForeground }]}>{isPurchasing ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('premiumWelcomeCta')}</Text><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></Pressable>
-    <Pressable accessibilityRole="button" accessibilityLabel={t('premiumRestore')} disabled={isRestoring} onPress={() => { triggerHaptic(); handleRestore(); }} style={({ pressed }) => [styles.premiumRestoreButton, { opacity: pressed || isRestoring ? 0.58 : 1 }]}><Text style={[styles.premiumRestoreText, { color: colors.primary }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text></Pressable>
-    </ScrollView>
-   </LinearGradient>
-   </>;
+function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: () => void; onPurchaseSuccess: (kind: 'purchase' | 'restore') => void }) {
+  return <Paywall onUnlock={onUnlock} onPurchaseSuccess={onPurchaseSuccess} />;
 }
 
 const styles = StyleSheet.create({
@@ -1274,10 +1142,6 @@ const styles = StyleSheet.create({
   languageOption: { width: 20, alignItems: 'center', gap: 2 },
   language: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 12 },
   languageFlagImage: { width: 20, height: 12, borderRadius: 2, borderWidth: 0.5, borderColor: 'rgba(0,0,0,0.16)' },
-  onboardingBlob: { position: 'absolute', borderRadius: 999 },
-  onboardingBlobBlue: { width: 420, height: 300, top: 72, right: -140 },
-  onboardingBlobPurple: { width: 360, height: 520, top: 190, left: -150 },
-  onboardingBlobCyan: { width: 300, height: 360, bottom: -70, right: -90 },
    questionBody: { flex: 1, minHeight: 0, marginTop: -6 },
    questionScrollContent: { paddingTop: 0, paddingBottom: 12 },
    questionScrollHint: { position: 'absolute', left: 0, right: 0, bottom: 8, alignItems: 'center', justifyContent: 'center', gap: 1 },
@@ -1376,9 +1240,9 @@ const styles = StyleSheet.create({
    welcomeLogoDock: { transform: [{ translateX: -8 }, { translateY: -6 }] },
    welcomeLanguageDock: { transform: [{ translateY: -12 }, { translateX: 8 }] },
   welcomeBrand: { fontFamily: 'Inter_700Bold', fontSize: 25, letterSpacing: -1.2 },
-   welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.46)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.76)' },
-  welcomeLanguageOption: { width: 29, height: 29, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  welcomeLanguageSelected: { backgroundColor: 'rgba(255,255,255,0.88)', shadowColor: '#2E63E6', shadowOpacity: 0.12, shadowRadius: 7, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+   welcomeLanguagePill: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingVertical: 6, borderRadius: 999, borderWidth: 1 },
+  welcomeLanguageOption: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  welcomeLanguageSelected: {},
     welcomeReferenceCard: { flex: 1, marginHorizontal: 16, marginTop: 38, marginBottom: 12, borderRadius: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.82)', backgroundColor: 'rgba(255,255,255,0.39)', overflow: 'hidden', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 22, shadowColor: '#2558D9', shadowOpacity: 0.12, shadowRadius: 26, shadowOffset: { width: 0, height: 12 }, elevation: 6 },
   welcomeCardGlow: { position: 'absolute', width: 260, height: 260, top: 64, borderRadius: 130, alignSelf: 'center' },
    welcomeCharacterStage: { width: 260, height: 260, marginTop: 52, borderRadius: 130, overflow: 'visible', alignSelf: 'center', alignItems: 'center', justifyContent: 'center' },
@@ -1458,40 +1322,7 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', gap: 7, justifyContent: 'center' },
   dot: { width: 28, height: 4, borderRadius: 5 },
   offerGradient: { flex: 1 },
-  offerScrollContent: { paddingHorizontal: 20, paddingTop: 8 },
-  offerScreen: { paddingHorizontal: 20 },
-  offerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 8 },
-  offerProPill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 7 },
-  offerProText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1 },
-  offerHero: { alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
-  offerOrb: { alignSelf: 'center', width: 68, height: 68, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  offerEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.6, marginTop: 14, marginBottom: 7 },
-  offerTitle: { width: '100%', textAlign: 'center', fontFamily: 'Inter_700Bold', fontSize: 35, lineHeight: 40, letterSpacing: -1.2 },
-  offerBody: { width: '100%', textAlign: 'center', fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, marginTop: 9, maxWidth: 330 },
-  offerValueCard: { width: '100%', borderWidth: 1, borderRadius: 23, padding: 16, gap: 13 },
-  offerReason: { fontFamily: 'Inter_700Bold', fontSize: 13 },
-  offerBenefits: { gap: 12 },
-  offerBenefit: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  offerBenefitIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  offerBenefitText: { flex: 1, minWidth: 0, fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17 },
-  offerPlanChoices: { width: '100%', flexDirection: 'row', gap: 8, marginTop: 12, marginBottom: 10 },
-  offerPlanOption: { flex: 1, minWidth: 0, minHeight: 104, borderWidth: 1, borderRadius: 17, padding: 14, overflow: 'hidden' },
-  offerPlanHeader: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 5 },
-  offerPlanLabel: { flex: 1, minWidth: 0, flexShrink: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
-  offerPlanPrice: { fontFamily: 'Inter_700Bold', fontSize: 19, marginTop: 13 },
-  offerPlanUnit: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 3 },
-  offerRecommendedBadge: { alignSelf: 'flex-start', maxWidth: '100%', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 4, marginBottom: 8 },
-  offerRecommendedText: { fontFamily: 'Inter_700Bold', fontSize: 9, lineHeight: 12 },
-  offerAnnualPriceFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'space-between', columnGap: 5, rowGap: 3 },
-  offerMonthlyEquivalent: { flexGrow: 1, flexShrink: 1, textAlign: 'right', fontFamily: 'Inter_600SemiBold', fontSize: 10, lineHeight: 14, marginTop: 3 },
-  offerTrialBadge: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 5, maxWidth: 88 },
-  offerTrialIcon: { width: 16, height: 16, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
-  offerTrialBadgeText: { flexShrink: 1, fontFamily: 'Inter_700Bold', fontSize: 8, lineHeight: 10, letterSpacing: 0.45, textAlign: 'center', textTransform: 'uppercase' },
-  offerSavingsBadge: { flexShrink: 0, alignItems: 'flex-end', borderRadius: 8, paddingHorizontal: 5, paddingVertical: 3 },
-  offerSavingsValue: { fontFamily: 'Inter_700Bold', fontSize: 14, lineHeight: 16, letterSpacing: -0.2 },
-  offerSavingsLabel: { fontFamily: 'Inter_700Bold', fontSize: 7, lineHeight: 9, letterSpacing: 0.3, textTransform: 'uppercase' },
   features: { gap: 17, paddingVertical: 20 },
-  offerActionError: { textAlign: 'center', fontFamily: 'Inter_500Medium', fontSize: 11, lineHeight: 16, marginBottom: 10 },
   premiumRestoreButton: { width: '100%', alignItems: 'center', justifyContent: 'center', minHeight: 40, paddingHorizontal: 12 },
   premiumRestoreText: { flexShrink: 1, textAlign: 'center', fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 16 },
   exploreHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 10 },

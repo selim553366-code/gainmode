@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
-import { Alert, Animated, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Linking, StyleSheet, Text, TextInput, View } from 'react-native';
+import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { EASE_OUT, PressableScale as Pressable, Reveal } from '@/components/Motion';
 import { Ionicons } from '@/components/AppIcon';
 import { router } from 'expo-router';
 import { useFit } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
+import { openWidgetOffer } from '@/components/WidgetOffer';
+import { LanguageList, SegmentedControl } from '@/components/SettingsControls';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
 import { apiUrl } from '@/lib/api';
 import { legalDocumentUrl, type LegalDocument } from '@/lib/legalDocuments';
@@ -14,13 +18,23 @@ type LegalSection = 'privacy' | 'terms' | null;
 type FeedbackCategory = 'bug' | 'suggestion' | 'subscription' | 'payment' | 'notifications' | 'other';
 
 const feedbackCategories = [
-  { value: 'bug', label: 'feedbackBug' },
-  { value: 'suggestion', label: 'feedbackSuggestion' },
-  { value: 'subscription', label: 'feedbackSubscription' },
-  { value: 'payment', label: 'feedbackPayment' },
-  { value: 'notifications', label: 'feedbackNotifications' },
-  { value: 'other', label: 'feedbackOther' },
+  { value: 'bug', label: 'feedbackBug', icon: 'alert-circle' },
+  { value: 'suggestion', label: 'feedbackSuggestion', icon: 'bulb-outline' },
+  { value: 'subscription', label: 'feedbackSubscription', icon: 'trophy-outline' },
+  { value: 'payment', label: 'feedbackPayment', icon: 'ticket-outline' },
+  { value: 'notifications', label: 'feedbackNotifications', icon: 'notifications-outline' },
+  { value: 'other', label: 'feedbackOther', icon: 'ellipsis-horizontal' },
 ] as const;
+
+// Disclosure chevron: rotates a quarter turn toward the content it reveals (200ms ease-out).
+function Chevron({ open, color }: { open: boolean; color: string }) {
+  const turn = useSharedValue(open ? 1 : 0);
+  React.useEffect(() => {
+    turn.set(withTiming(open ? 1 : 0, { duration: 200, easing: EASE_OUT }));
+  }, [open, turn]);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.get() * 90}deg` }] }));
+  return <ReAnimated.View style={style}><Ionicons name="chevron-forward" size={19} color={color} /></ReAnimated.View>;
+}
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -38,6 +52,7 @@ export default function SettingsScreen() {
   const [feedbackEmail, setFeedbackEmail] = useState('');
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [feedbackSending, setFeedbackSending] = useState(false);
+  const [focusedField, setFocusedField] = useState<'email' | 'message' | null>(null);
   const feedbackSuccessProgress = React.useRef(new Animated.Value(0)).current;
   const languages = Object.keys(languageLabels) as Language[];
 
@@ -76,6 +91,8 @@ export default function SettingsScreen() {
     return () => animation.stop();
   }, [feedbackSent, feedbackSuccessProgress]);
 
+  const feedbackReady = Boolean(feedbackText.trim() && feedbackEmail.trim()) && !feedbackSending;
+
   const submitFeedback = async () => {
     const message = feedbackText.trim();
     const replyTo = feedbackEmail.trim().toLowerCase();
@@ -110,62 +127,56 @@ export default function SettingsScreen() {
       <SectionTitle title={t('preferences')} />
       <Card>
         <View style={styles.row}>
-          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
-            <Ionicons name="language-outline" size={21} color={colors.primary} />
+          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+            <Ionicons name="language-outline" size={21} color={colors.foreground} />
           </View>
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('appLanguage')}</Text>
             <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('languageDescription')}</Text>
           </View>
         </View>
-        <Text style={[styles.selectedLabel, { color: colors.mutedForeground }]}>{t('currentLanguage')}</Text>
-        <View style={styles.languageGrid}>
-          {languages.map((item) => {
-            const active = item === language;
-            return (
-              <Pressable
-                key={item}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={languageLabels[item]}
-                onPress={() => setLanguage(item)}
-                style={({ pressed }) => [
-                  styles.languageOption,
-                  { backgroundColor: active ? colors.primary : colors.secondary, borderColor: active ? colors.primary : colors.border, opacity: pressed ? 0.7 : 1 },
-                ]}
-              >
-                <Text style={[styles.languageCode, { color: active ? colors.primaryForeground : colors.foreground }]}>{item.toUpperCase()}</Text>
-                <Text style={[styles.languageName, { color: active ? colors.primaryForeground : colors.mutedForeground }]}>{languageLabels[item]}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <LanguageList value={language} onChange={setLanguage} />
       </Card>
 
       <SectionTitle title={t('appearance')} />
       <Card>
         <View style={styles.row}>
-          <View style={[styles.iconBox, { backgroundColor: `${colors.plum}20` }]}>
-            <Ionicons name="sunny-outline" size={21} color={colors.plum} />
+          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+            <Ionicons name="sunny-outline" size={21} color={colors.foreground} />
           </View>
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('appearance')}</Text>
             <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('appearanceDescription')}</Text>
           </View>
         </View>
-        <View style={styles.themeGrid}>
-          {([
-            { value: 'system', label: 'themeSystem', icon: 'phone-portrait-outline' },
-            { value: 'light', label: 'themeLight', icon: 'sunny-outline' },
-            { value: 'dark', label: 'themeDark', icon: 'moon-outline' },
-          ] as const).map((option) => {
-            const active = themePreference === option.value;
-            return <Pressable key={option.value} accessibilityRole="radio" accessibilityState={{ selected: active }} onPress={() => setThemePreference(option.value as ThemePreference)} style={({ pressed }) => [styles.themeOption, { backgroundColor: active ? colors.primary : colors.secondary, borderColor: active ? colors.primary : colors.border, opacity: pressed ? 0.72 : 1 }]}>
-              <Ionicons name={option.icon} size={18} color={active ? colors.primaryForeground : colors.foreground} />
-              <Text style={[styles.themeLabel, { color: active ? colors.primaryForeground : colors.foreground }]}>{t(option.label)}</Text>
-            </Pressable>;
-          })}
-        </View>
+        <SegmentedControl<ThemePreference>
+          value={themePreference}
+          onChange={setThemePreference}
+          options={[
+            { value: 'system', label: t('themeSystem'), icon: 'phone-portrait-outline' },
+            { value: 'light', label: t('themeLight'), icon: 'sunny-outline' },
+            { value: 'dark', label: t('themeDark'), icon: 'moon-outline' },
+          ]}
+        />
+      </Card>
+
+      <SectionTitle title={t('widgetSettingsTitle')} />
+      <Card>
+        <Pressable
+          accessibilityRole="button"
+          testID="settings-widget"
+          onPress={openWidgetOffer}
+          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
+        >
+          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+            <Ionicons name="phone-portrait-outline" size={21} color={colors.foreground} />
+          </View>
+          <View style={styles.rowCopy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('widgetSettingsTitle')}</Text>
+            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('widgetSettingsBody')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
+        </Pressable>
       </Card>
 
       <SectionTitle title={t('coachProfileCorrectionTitle')} />
@@ -175,8 +186,8 @@ export default function SettingsScreen() {
           onPress={() => router.push('/(tabs)/coach')}
           style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
-            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.primary} />
+          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.foreground} />
           </View>
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('coachProfileCorrectionTitle')}</Text>
@@ -197,19 +208,19 @@ export default function SettingsScreen() {
           })}
           style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
         >
-          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
-            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.primary} />
+          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.foreground} />
           </View>
           <View style={styles.rowCopy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('feedbackTitle')}</Text>
             <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('feedbackDescription')}</Text>
           </View>
-          <Ionicons name={feedbackOpen ? 'chevron-up' : 'chevron-forward'} size={19} color={colors.mutedForeground} />
+          <Chevron open={feedbackOpen} color={colors.mutedForeground} />
         </Pressable>
         {feedbackOpen ? (
           <View style={[styles.feedbackDetails, { borderTopColor: colors.border }]}>
             {feedbackSent ? (
-              <Animated.View style={[styles.feedbackSuccess, { opacity: feedbackSuccessProgress, transform: [{ scale: feedbackSuccessProgress.interpolate({ inputRange: [0, 1], outputRange: [0.82, 1] }) }] }]}>
+              <Animated.View style={[styles.feedbackSuccess, { opacity: feedbackSuccessProgress, transform: [{ scale: feedbackSuccessProgress.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) }] }]}>
                 <View style={[styles.feedbackSuccessIcon, { backgroundColor: `${colors.success}20` }]}>
                   <Ionicons name="checkmark-circle" size={46} color={colors.success} />
                 </View>
@@ -217,8 +228,8 @@ export default function SettingsScreen() {
                 <Text style={[styles.feedbackSuccessBody, { color: colors.mutedForeground }]}>{t('feedbackSentBody')}</Text>
               </Animated.View>
             ) : (
-              <>
-                <Text style={[styles.feedbackLabel, { color: colors.foreground }]}>{t('feedbackType')}</Text>
+              <Reveal>
+                <Text style={[styles.feedbackLabel, { color: colors.mutedForeground }]}>{t('feedbackType').toUpperCase()}</Text>
                 <View style={styles.feedbackTypeRow}>
                   {feedbackCategories.map((item) => {
                     const selected = feedbackCategory === item.value;
@@ -228,43 +239,56 @@ export default function SettingsScreen() {
                         accessibilityRole="radio"
                         accessibilityState={{ selected }}
                         onPress={() => setFeedbackCategory(item.value)}
-                        style={({ pressed }) => [styles.feedbackType, { backgroundColor: selected ? colors.primary : colors.secondary, borderColor: selected ? colors.primary : colors.border, opacity: pressed ? 0.72 : 1 }]}
+                        style={[styles.feedbackType, { backgroundColor: selected ? colors.primary : colors.card, borderColor: selected ? colors.primary : colors.border }]}
                       >
+                        <Ionicons name={item.icon} size={14} color={selected ? colors.primaryForeground : colors.mutedForeground} />
                         <Text style={[styles.feedbackTypeText, { color: selected ? colors.primaryForeground : colors.foreground }]}>{t(item.label)}</Text>
                       </Pressable>
                     );
                   })}
                 </View>
+                <Text style={[styles.feedbackLabel, styles.feedbackFieldLabel, { color: colors.mutedForeground }]}>{t('feedbackEmailLabel').toUpperCase()}</Text>
                 <TextInput
                   value={feedbackEmail}
                   onChangeText={setFeedbackEmail}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="email-address"
+                  textContentType="emailAddress"
                   placeholder={t('feedbackEmailPlaceholder')}
                   placeholderTextColor={colors.mutedForeground}
-                  style={[styles.feedbackEmailInput, { color: colors.foreground, backgroundColor: colors.secondary, borderColor: colors.border }]}
+                  style={[styles.feedbackEmailInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: focusedField === 'email' ? colors.foreground : colors.border }]}
                 />
                 <Text style={[styles.feedbackHint, { color: colors.mutedForeground }]}>{t('feedbackEmailHint')}</Text>
+                <Text style={[styles.feedbackLabel, styles.feedbackFieldLabel, { color: colors.mutedForeground }]}>{t('feedbackMessageLabel').toUpperCase()}</Text>
                 <TextInput
                   multiline
                   numberOfLines={5}
                   value={feedbackText}
                   onChangeText={setFeedbackText}
+                  onFocus={() => setFocusedField('message')}
+                  onBlur={() => setFocusedField(null)}
                   placeholder={t('feedbackPlaceholder')}
                   placeholderTextColor={colors.mutedForeground}
                   textAlignVertical="top"
-                  style={[styles.feedbackInput, { color: colors.foreground, backgroundColor: colors.secondary, borderColor: colors.border }]}
+                  style={[styles.feedbackInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: focusedField === 'message' ? colors.foreground : colors.border }]}
                 />
+                <Text style={[styles.feedbackCount, { color: colors.mutedForeground }]}>{feedbackText.trim().length}</Text>
                 <Pressable
                   accessibilityRole="button"
-                  disabled={!feedbackText.trim() || !feedbackEmail.trim() || feedbackSending}
+                  accessibilityState={{ disabled: !feedbackReady, busy: feedbackSending }}
+                  disabled={!feedbackReady}
                   onPress={submitFeedback}
-                  style={({ pressed }) => [styles.feedbackButton, { backgroundColor: colors.primary, opacity: !feedbackText.trim() || !feedbackEmail.trim() || feedbackSending ? 0.45 : pressed ? 0.75 : 1 }]}
+                  style={[styles.feedbackButton, { backgroundColor: feedbackReady || feedbackSending ? colors.primary : colors.secondary }]}
                 >
-                  <Text style={[styles.feedbackButtonText, { color: colors.primaryForeground }]}>{feedbackSending ? t('feedbackSending') : t('feedbackSend')}</Text>
+                  {feedbackSending
+                    ? <ActivityIndicator size="small" color={colors.primaryForeground} />
+                    : <Ionicons name="arrow-up" size={17} color={feedbackReady ? colors.primaryForeground : colors.mutedForeground} />}
+                  <Text style={[styles.feedbackButtonText, { color: feedbackReady || feedbackSending ? colors.primaryForeground : colors.mutedForeground }]}>{feedbackSending ? t('feedbackSending') : t('feedbackSend')}</Text>
                 </Pressable>
-              </>
+              </Reveal>
             )}
           </View>
         ) : null}
@@ -342,8 +366,8 @@ function LegalCard({
   return (
     <Card style={styles.legalCard}>
       <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={onPress} style={styles.legalHeader}>
-        <View style={[styles.iconBox, { backgroundColor: `${colors.blue}20` }]}>
-          <Ionicons name={icon} size={21} color={colors.blue} />
+        <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
+          <Ionicons name={icon} size={21} color={colors.foreground} />
         </View>
         <View style={styles.rowCopy}>
           <Text style={[styles.rowTitle, { color: colors.foreground }]}>{title}</Text>
@@ -374,17 +398,9 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   restartRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowCopy: { flex: 1 },
-  iconBox: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  iconBox: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   rowTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
   rowSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18, marginTop: 4 },
-  selectedLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 20, marginBottom: 9 },
-  languageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  languageOption: { minWidth: '30%', flexGrow: 1, borderWidth: 1, borderRadius: 15, paddingVertical: 10, paddingHorizontal: 8, alignItems: 'center' },
-  languageCode: { fontFamily: 'Inter_700Bold', fontSize: 12, letterSpacing: 0.6 },
-  languageName: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 3 },
-  themeGrid: { flexDirection: 'row', gap: 8, marginTop: 18 },
-  themeOption: { flex: 1, minHeight: 48, borderWidth: 1, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 8 },
-  themeLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   legalCard: { padding: 15 },
   legalHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   legalDetails: { borderTopWidth: 1, marginTop: 15, paddingTop: 14, gap: 12 },
@@ -393,18 +409,20 @@ const styles = StyleSheet.create({
   pointText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
   legalLink: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, paddingVertical: 4 },
   legalLinkText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  feedbackDetails: { borderTopWidth: 1, marginTop: 15, paddingTop: 14, gap: 12 },
-  feedbackLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  feedbackDetails: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 16, paddingTop: 18 },
+  feedbackLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 1, marginBottom: 10 },
   feedbackTypeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  feedbackType: { borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 9 },
-  feedbackTypeText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  feedbackEmailInput: { minHeight: 46, borderWidth: 1, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 11, fontFamily: 'Inter_400Regular', fontSize: 13 },
-  feedbackHint: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: -5 },
-  feedbackInput: { minHeight: 112, borderWidth: 1, borderRadius: 16, paddingHorizontal: 13, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19 },
-  feedbackButton: { minHeight: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  feedbackButtonText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  feedbackFieldLabel: { marginTop: 20 },
+  feedbackType: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 13, minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  feedbackTypeText: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
+  feedbackEmailInput: { minHeight: 50, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 15 },
+  feedbackHint: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 8 },
+  feedbackInput: { minHeight: 132, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 21 },
+  feedbackCount: { fontFamily: 'Inter_500Medium', fontSize: 11, textAlign: 'right', marginTop: 6, fontVariant: ['tabular-nums'] },
+  feedbackButton: { minHeight: 54, borderRadius: 27, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 18, marginTop: 16 },
+  feedbackButtonText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
   feedbackSuccess: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8 },
-  feedbackSuccessIcon: { width: 72, height: 72, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  feedbackSuccessIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   feedbackSuccessTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, textAlign: 'center' },
   feedbackSuccessBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 7, maxWidth: 285 },
 });

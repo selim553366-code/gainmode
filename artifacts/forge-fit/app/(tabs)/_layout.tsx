@@ -1,14 +1,19 @@
 import React from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
+import { EASE_IN_OUT, EASE_OUT, PressableScale as Pressable } from '@/components/Motion';
+import Reanimated, { FadeInDown, FadeOutUp, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { Feather, Ionicons } from '@/components/AppIcon';
 import { router, Tabs } from 'expo-router';
-import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
+import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { isDailyMoodDue } from '@/lib/dailyMood';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { dailyMoodPromptWindow, shouldShowDailyMoodPrompt } from '@/lib/dailyMood';
+import { PREMIUM_ENTITLEMENT_IDENTIFIER } from '@/lib/premiumAccess';
 import { localDateKey } from '@/lib/nutritionDates';
 
 const tabOrder = ['index', 'nutrition', 'coach', 'plan', 'progress'];
@@ -48,18 +53,57 @@ function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean;
       onPress={onPress}
       style={styles.coachTabItem}
     >
-      <View style={[styles.coachTabButton, { shadowColor: colors.primary }]}>
+      <View style={[styles.coachTabButton, { shadowColor: '#000000' }]}>
         <Animated.View style={{ transform: [{ scale: logoScale }] }}>
-          <Animated.View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: colors.primary, shadowColor: colors.primary }]}>
+          <Animated.View style={[styles.coachTabCircle, { backgroundColor: colors.secondary, borderColor: focused ? colors.accent : colors.card, shadowColor: '#000000' }]}>
             <Animated.Image source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, { opacity: thinkingTransition.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} />
             <Animated.Image source={require('@/assets/images/coach-thinking-custom.jpeg')} resizeMode="cover" style={[styles.coachTabImage, styles.coachThinkingImage, styles.coachThinkingOverlay, { opacity: thinkingTransition }]} />
           </Animated.View>
         </Animated.View>
-        <Text style={[styles.coachTabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
-        {focused ? <View style={[styles.coachTabDot, { backgroundColor: colors.primary }]} /> : null}
+        <Text style={[styles.coachTabLabel, { color: focused ? colors.foreground : colors.mutedForeground }]}>{label}</Text>
+        {focused ? <View style={[styles.coachTabDot, { backgroundColor: colors.accent }]} /> : null}
       </View>
     </Pressable>
   );
+}
+
+// Focused tab icon lifts slightly; 200ms ease-out keeps it under the threshold for something tapped all day.
+function TabIcon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
+  const progress = useSharedValue(focused ? 1 : 0);
+  React.useEffect(() => {
+    progress.set(withTiming(focused ? 1 : 0, { duration: 200, easing: EASE_OUT, reduceMotion: ReduceMotion.System }));
+  }, [focused, progress]);
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateY: -2 * progress.get() }, { scale: 1 + 0.08 * progress.get() }],
+  }));
+  return <Reanimated.View style={style}>{children}</Reanimated.View>;
+}
+
+type TabLayout = { x: number; width: number };
+
+// Pill that glides behind the active tab. Absolutely positioned and childless, so animating width is safe.
+function TabIndicator({ layout, visible, color }: { layout?: TabLayout; visible: boolean; color: string }) {
+  const x = useSharedValue(layout?.x ?? 0);
+  const width = useSharedValue(layout?.width ?? 0);
+  const opacity = useSharedValue(0);
+  const placed = React.useRef(false);
+  React.useEffect(() => {
+    if (!layout) return;
+    const config = { duration: 250, easing: EASE_IN_OUT, reduceMotion: ReduceMotion.System };
+    if (!placed.current) {
+      x.set(layout.x);
+      width.set(layout.width);
+      placed.current = true;
+    } else {
+      x.set(withTiming(layout.x, config));
+      width.set(withTiming(layout.width, config));
+    }
+  }, [layout, width, x]);
+  React.useEffect(() => {
+    opacity.set(withTiming(visible && layout ? 1 : 0, { duration: 180, easing: EASE_OUT }));
+  }, [layout, opacity, visible]);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.get(), width: width.get(), transform: [{ translateX: x.get() }] }));
+  return <Reanimated.View pointerEvents="none" style={[styles.tabIndicator, { backgroundColor: color }, style]} />;
 }
 
 function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
@@ -68,7 +112,10 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   const routes = tabOrder
     .map((name) => state.routes.find((route) => route.name === name))
     .filter((route): route is typeof state.routes[number] => Boolean(route));
+  const [layouts, setLayouts] = React.useState<Record<string, TabLayout>>({});
+  const focusedRoute = state.routes[state.index];
   const handlePress = (route: typeof routes[number]) => {
+    if (focusedRoute?.key !== route.key) Haptics.selectionAsync().catch(() => undefined);
     const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
     if (!event.defaultPrevented) navigation.navigate(route.name);
   };
@@ -82,12 +129,13 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
 
   return (
     <View pointerEvents="box-none" style={[styles.tabBarOverlay, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-       <View style={[styles.tabBar, { borderColor: colors.glassBorder, shadowColor: colors.primary }]}>
+       <View style={[styles.tabBar, { borderColor: colors.glassBorder, shadowColor: '#000000' }]}>
          <View pointerEvents="none" style={styles.tabBarGlassMask}>
            <BlurView intensity={42} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />
            <View style={[StyleSheet.absoluteFill, styles.tabBarGlassTint, { backgroundColor: colors.glass }]} />
          </View>
          <View style={styles.tabBarContent}>
+          <TabIndicator layout={focusedRoute ? layouts[focusedRoute.key] : undefined} visible={focusedRoute?.name !== 'coach'} color={`${colors.primary}10`} />
           {routes.map((route) => {
           const descriptor = descriptors[route.key];
           const focused = state.index === state.routes.findIndex((item) => item.key === route.key);
@@ -110,9 +158,13 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
               accessibilityState={{ selected: focused }}
               accessibilityLabel={label}
               onPress={() => handlePress(route)}
+              onLayout={(event) => {
+                const { x, width } = event.nativeEvent.layout;
+                setLayouts((current) => (current[route.key]?.x === x + 6 && current[route.key]?.width === width - 12 ? current : { ...current, [route.key]: { x: x + 6, width: width - 12 } }));
+              }}
               style={styles.tabItem}
             >
-               <Feather name={iconForRoute(route.name)} size={22} color={focused ? colors.primary : colors.mutedForeground} />
+               <TabIcon focused={focused}><Feather name={iconForRoute(route.name)} size={22} color={focused ? colors.primary : colors.mutedForeground} /></TabIcon>
                <Text style={[styles.tabLabel, { color: focused ? colors.primary : colors.mutedForeground }]}>{label}</Text>
             </Pressable>
           );
@@ -123,29 +175,48 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   );
 }
 
+const MOOD_PROMPT_HANDLED_KEY = 'gainmode-mood-prompt-handled-window';
+
+const moodPromptEntering = FadeInDown.duration(320).delay(400).easing(EASE_OUT).reduceMotion(ReduceMotion.System);
+const moodPromptExiting = FadeOutUp.duration(200).easing(EASE_OUT).reduceMotion(ReduceMotion.System);
+
 function DailyMoodPrompt() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { language, onboardingComplete, dailyMoodCompletedDate } = useFit();
+  const { language, onboardingComplete, dailyMoodCompletedDate, registeredAt } = useFit();
+  const { customerInfo } = useSubscription();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [dismissed, setDismissed] = React.useState(false);
-  const [due, setDue] = React.useState(isDailyMoodDue());
+  // Windows are counted from when the subscription started; the account's start is the fallback.
+  const subscribedAt = customerInfo?.entitlements.active[PREMIUM_ENTITLEMENT_IDENTIFIER]?.originalPurchaseDate ?? registeredAt;
+  const [now, setNow] = React.useState(Date.now());
+  // undefined while the stored value loads, so the banner never flashes for an already handled window.
+  const [handledWindow, setHandledWindow] = React.useState<number | null | undefined>(undefined);
 
   React.useEffect(() => {
-    const timer = setInterval(() => setDue(isDailyMoodDue()), 60000);
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    AsyncStorage.getItem(MOOD_PROMPT_HANDLED_KEY)
+      .then((stored) => setHandledWindow(stored !== null && Number.isFinite(Number(stored)) ? Number(stored) : null))
+      .catch(() => setHandledWindow(null));
     return () => clearInterval(timer);
   }, []);
 
-  if (!onboardingComplete || dismissed || !due || dailyMoodCompletedDate === localDateKey()) return null;
+  const promptWindow = dailyMoodPromptWindow(subscribedAt, now);
+  const markHandled = () => {
+    if (promptWindow === null) return;
+    setHandledWindow(promptWindow);
+    AsyncStorage.setItem(MOOD_PROMPT_HANDLED_KEY, String(promptWindow)).catch(() => undefined);
+  };
+
+  if (!onboardingComplete || handledWindow === undefined || !shouldShowDailyMoodPrompt(promptWindow, handledWindow) || dailyMoodCompletedDate === localDateKey()) return null;
 
   return (
     <View pointerEvents="box-none" style={[styles.moodPromptOverlay, { top: insets.top + 10 }]}>
-      <View style={[styles.moodPrompt, { backgroundColor: colors.card, borderColor: `${colors.primary}70`, shadowColor: colors.background }]}>
+      <Reanimated.View entering={moodPromptEntering} exiting={moodPromptExiting} style={[styles.moodPrompt, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000000' }]}>
         <View style={[styles.moodPromptIcon, { backgroundColor: `${colors.primary}1F` }]}><Ionicons name="analytics-outline" size={19} color={colors.primary} /></View>
         <View style={styles.moodPromptCopy}><Text style={[styles.moodPromptTitle, { color: colors.foreground }]}>{t('dailyMoodPromptTitle')}</Text><Text style={[styles.moodPromptBody, { color: colors.mutedForeground }]}>{t('dailyMoodPromptBody')}</Text></View>
-        <Pressable accessibilityRole="button" onPress={() => { setDismissed(true); router.push('/daily-mood'); }} style={({ pressed }) => [styles.moodPromptButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.moodPromptButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodOpen')}</Text></Pressable>
-        <Pressable accessibilityLabel={t('dailyMoodLater')} onPress={() => setDismissed(true)} hitSlop={8}><Ionicons name="close" size={18} color={colors.mutedForeground} /></Pressable>
-      </View>
+        <Pressable accessibilityRole="button" onPress={() => { markHandled(); router.push('/daily-mood'); }} style={({ pressed }) => [styles.moodPromptButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.moodPromptButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodOpen')}</Text></Pressable>
+        <Pressable accessibilityLabel={t('dailyMoodLater')} onPress={markHandled} hitSlop={8}><Ionicons name="close" size={18} color={colors.mutedForeground} /></Pressable>
+      </Reanimated.View>
     </View>
   );
 }
@@ -175,26 +246,27 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBarOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 12, zIndex: 10 },
-  tabBar: { height: 78, borderRadius: 28, borderWidth: 1, overflow: 'visible', backgroundColor: 'transparent', shadowOpacity: 0.32, shadowRadius: 18, shadowOffset: { width: 0, height: -5 }, elevation: 16 },
-  tabBarGlassMask: { ...StyleSheet.absoluteFill, borderRadius: 28, overflow: 'hidden' },
-  tabBarGlassTint: { borderRadius: 28 },
+  tabBar: { height: 76, borderRadius: 38, borderWidth: 1, overflow: 'visible', backgroundColor: 'transparent', shadowOpacity: 0.1, shadowRadius: 24, shadowOffset: { width: 0, height: 8 }, elevation: 12 },
+  tabBarGlassMask: { ...StyleSheet.absoluteFill, borderRadius: 38, overflow: 'hidden' },
+  tabBarGlassTint: { borderRadius: 38 },
   tabBarContent: { flex: 1, flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 4, zIndex: 1 },
   tabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 5, paddingBottom: 9, paddingTop: 12 },
-  tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
+  tabIndicator: { position: 'absolute', left: 0, top: 8, bottom: 8, borderRadius: 30 },
+  tabLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 10, letterSpacing: 0.1 },
   coachTabItem: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', overflow: 'visible' },
-  coachTabButton: { position: 'absolute', top: -34, alignItems: 'center', shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 4 }, elevation: 14 },
-  coachTabCircle: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 0 }, elevation: 11 },
+  coachTabButton: { position: 'absolute', top: -34, alignItems: 'center', shadowOpacity: 0.16, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 10 },
+  coachTabCircle: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
   coachTabImage: { width: 80, height: 80, borderRadius: 40 },
   coachThinkingImage: { width: 90, height: 90, transform: [{ translateY: 5 }] },
   coachThinkingOverlay: { position: 'absolute', left: -5, top: -5 },
-  coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 12, marginTop: 5, letterSpacing: 0.5 },
+  coachTabLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 5, letterSpacing: 0.2 },
   coachTabDot: { width: 4, height: 4, borderRadius: 2, marginTop: 2 },
   moodPromptOverlay: { position: 'absolute', left: 14, right: 14, zIndex: 20 },
-  moodPrompt: { borderRadius: 20, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 9, shadowOpacity: 0.28, shadowRadius: 15, shadowOffset: { width: 0, height: 7 }, elevation: 10 },
+  moodPrompt: { borderRadius: 24, borderWidth: 1, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, shadowOpacity: 0.12, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
   moodPromptIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   moodPromptCopy: { flex: 1, minWidth: 0 },
   moodPromptTitle: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   moodPromptBody: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 14, marginTop: 2 },
-  moodPromptButton: { borderRadius: 11, paddingHorizontal: 10, paddingVertical: 9 },
+  moodPromptButton: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9 },
   moodPromptButtonText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
 });
