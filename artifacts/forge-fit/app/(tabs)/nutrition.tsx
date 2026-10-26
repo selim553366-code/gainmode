@@ -18,9 +18,9 @@ import { AiAccessError, getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
 import { calculateNetCalories, calculateRemainingCalories } from '@/lib/nutritionCalories';
 import { estimateWorkoutCalories, getWorkoutForDate } from '@/lib/workoutPlan';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Apple, Bookmark, Camera, Flame, ImagePlus, Moon, Plus, ScanBarcode, Search, Sun, Sunrise, Trash2, Utensils, X } from 'lucide-react-native';
-import { MacroRing, ProgressRing } from '@/components/NutritionVisuals';
-import Svg, { Circle, Defs, RadialGradient, Stop } from 'react-native-svg';
+import { Apple, Bookmark, Camera, ImagePlus, Moon, Plus, ScanBarcode, Search, Sun, Sunrise, Trash2, Utensils, X } from 'lucide-react-native';
+import { WeekCalories } from '@/components/NutritionVisuals';
+import { calorieAdherence } from '@/lib/progressCharts';
 
 const formatNutrition = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
 
@@ -341,8 +341,6 @@ export default function NutritionScreen() {
   };
 
   const dateLabel = new Intl.DateTimeFormat(language, { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
-  const ringValue = calorieGoal ? netCalories / calorieGoal : 0;
-  const over = remainingCalories !== null && remainingCalories < 0;
   const mealGroups = (['breakfast', 'lunch', 'dinner', 'snack'] as const)
     .map((type) => ({ type, items: loggedMeals.filter((meal) => meal.type === type) }))
     .filter((group) => group.items.length > 0);
@@ -377,42 +375,7 @@ export default function NutritionScreen() {
   return <Screen>
     <Header eyebrow={dateLabel.toLocaleUpperCase(language)} title={t('nutritionTitle')} />
 
-    <LinearGradient colors={[colors.inkCardStart, colors.inkCardEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-      <Svg pointerEvents="none" width={320} height={320} style={styles.heroGlow}>
-        <Defs>
-          <RadialGradient id="nutritionGlow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0" stopColor={colors.accent} stopOpacity={0.45} />
-            <Stop offset="1" stopColor={colors.accent} stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
-        <Circle cx={160} cy={160} r={160} fill="url(#nutritionGlow)" />
-      </Svg>
-      <View style={styles.heroTop}>
-        <ProgressRing value={ringValue} size={164} stroke={13} color={over ? colors.destructive : '#7FA6FF'} gradientTo={over ? colors.orange : colors.accent} track={`${colors.inkCardForeground}1A`}>
-          <Text style={[styles.ringValue, { color: colors.inkCardForeground }]}>{remainingCalories === null ? '—' : Math.abs(remainingCalories).toLocaleString(language)}</Text>
-          <Text style={[styles.ringLabel, { color: `${colors.inkCardForeground}A6` }]}>{over ? '+ kcal' : `${t('remaining')} ${t('caloriesShort')}`}</Text>
-        </ProgressRing>
-        <View style={styles.heroStats}>
-          {[
-            { icon: Utensils, label: t('consumed'), value: calories, tint: '#7FA6FF' },
-            { icon: Flame, label: t('exerciseCalories'), value: exerciseCalories, tint: colors.orange },
-            { icon: Plus, label: t('netCalories'), value: netCalories, tint: colors.inkCardForeground },
-          ].map((stat) => <View key={stat.label} style={styles.heroStat}>
-            <View style={[styles.heroStatIcon, { backgroundColor: `${colors.inkCardForeground}14` }]}><stat.icon size={14} color={stat.tint} strokeWidth={2.2} /></View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text numberOfLines={1} style={[styles.heroStatLabel, { color: `${colors.inkCardForeground}99` }]}>{stat.label.charAt(0).toLocaleUpperCase(language) + stat.label.slice(1)}</Text>
-              <Text style={[styles.heroStatValue, { color: colors.inkCardForeground }]}>{stat.value.toLocaleString(language)}<Text style={styles.heroStatUnit}> {t('caloriesShort')}</Text></Text>
-            </View>
-          </View>)}
-        </View>
-      </View>
-      <View style={[styles.heroDivider, { backgroundColor: `${colors.inkCardForeground}14` }]} />
-      <View style={styles.macros}>
-        <MacroRing label={t('protein')} current={macros.protein} target={proteinGoal} color={colors.blue} track={`${colors.inkCardForeground}14`} ink={colors.inkCardForeground} muted={`${colors.inkCardForeground}99`} delay={120} />
-        <MacroRing label={t('carbs')} current={macros.carbs} target={carbsGoal} color={colors.orange} track={`${colors.inkCardForeground}14`} ink={colors.inkCardForeground} muted={`${colors.inkCardForeground}99`} delay={200} />
-        <MacroRing label={t('fat')} current={macros.fat} target={fatGoal} color={colors.plum} track={`${colors.inkCardForeground}14`} ink={colors.inkCardForeground} muted={`${colors.inkCardForeground}99`} delay={280} />
-      </View>
-    </LinearGradient>
+    <WeekCalories days={calorieAdherence(meals, calorieGoal, 7).series} goal={calorieGoal} language={language} colors={colors} />
 
     <View style={styles.actions}>
       <Pressable testID="camera-scan" accessibilityRole="button" onPress={openMealCamera} scaleTo={0.97} style={styles.cameraAction}>
