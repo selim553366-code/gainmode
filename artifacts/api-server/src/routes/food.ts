@@ -11,6 +11,11 @@ const OPEN_FOOD_FACTS_PRODUCT_URLS = [
   "https://world.openfoodfacts.org/api/v2/product",
 ];
 const USDA_SEARCH_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
+
+// A real key comes from the USDA_API_KEY secret. DEMO_KEY is shared and heavily rate limited, so it is only a fallback.
+function usdaApiKey() {
+  return process.env["USDA_API_KEY"]?.trim() || "DEMO_KEY";
+}
 const supportedLanguages = new Set(["tr", "en", "de", "fr", "es"]);
 
 type ProviderProduct = {
@@ -270,7 +275,7 @@ async function searchOpenFoodFactsBarcode(code: string, language: string): Promi
 
 async function searchUsda(query: string, limit: number): Promise<NormalizedFood[]> {
   const params = new URLSearchParams({
-    api_key: "DEMO_KEY",
+    api_key: usdaApiKey(),
     query,
     pageSize: String(Math.min(limit * 2, 20)),
     dataType: "Foundation,SR Legacy",

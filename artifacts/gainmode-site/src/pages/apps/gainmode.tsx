@@ -1,5 +1,5 @@
 import { type FormEvent, type ReactNode, useState } from 'react';
-import { ArrowDownRight, ArrowRight, ArrowUpRight, Check, ChevronDown, Dumbbell, Flame, HeartPulse, Languages, Menu, Play, Sparkles, Target, TrendingUp, X, Zap } from 'lucide-react';
+import { ArrowDownRight, ArrowRight, ArrowUpRight, Check, ChevronDown, Dumbbell, Flame, HeartPulse, Languages, Menu, MessageCircle, MessagesSquare, Play, Target, TrendingUp, X, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'wouter';
 import wordmark from '@/assets/forge-fit/gainmode-wordmark.png';
@@ -93,7 +93,7 @@ const translations = {
 type Lang = keyof typeof translations;
 type Copy = (typeof translations)[Lang];
 const featureImages = [aiCoach, liveForm, foodPhoto, workoutPlan, nutritionTargets, weeklyAi, profileChanges];
-const featureIconComponents = [Sparkles, HeartPulse, Flame, Dumbbell, Target, TrendingUp, Zap];
+const featureIconComponents = [MessagesSquare, HeartPulse, Flame, Dumbbell, Target, TrendingUp, Zap];
 const displayCopy = (value: string) => value.replace(/\\n/g, '\n');
 const joinErrorCopy: Record<Lang, string> = {
   en: 'We could not save your email right now. Please try again.',
@@ -188,7 +188,7 @@ export default function GainmodePage() {
               <div className="mt-11 flex items-center gap-3 text-xs font-semibold text-slate-500"><div className="flex -space-x-2">{['M', 'A', 'L'].map((letter) => <span key={letter} className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#d9effb] bg-slate-800 text-[10px] text-white">{letter}</span>)}</div><span>{t.heroNote}</span></div>
             </div>
             <div className="relative hidden min-h-[525px] lg:block">
-              <div className="float absolute right-0 top-4 h-[520px] w-[390px] overflow-hidden rounded-[42px] border-[10px] border-[#19283e] bg-slate-900 phone-shadow"><img src={coachTab} alt="FitBud coach visual" className="h-full w-full object-cover" width="1024" height="683" /><div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/25 bg-[#13243c]/80 p-4 text-white backdrop-blur"><div className="flex items-center gap-2 text-xs font-bold"><Sparkles size={14} className="text-cyan-300" /> FitBud AI</div><p className="mt-2 text-sm leading-5">“{micro.fitbud}”</p></div></div>
+              <div className="float absolute right-0 top-4 h-[520px] w-[390px] overflow-hidden rounded-[42px] border-[10px] border-[#19283e] bg-slate-900 phone-shadow"><img src={coachTab} alt="FitBud coach visual" className="h-full w-full object-cover" width="1024" height="683" /><div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/25 bg-[#13243c]/80 p-4 text-white backdrop-blur"><div className="flex items-center gap-2 text-xs font-bold"><MessageCircle size={14} className="text-cyan-300" /> FitBud AI</div><p className="mt-2 text-sm leading-5">“{micro.fitbud}”</p></div></div>
               <div className="absolute -left-4 top-24 rounded-2xl border border-white/80 bg-white/85 p-4 shadow-xl backdrop-blur"><div className="flex items-center gap-2 text-xs font-bold text-slate-600"><span className="h-2 w-2 rounded-full bg-emerald-400" /> {micro.form}</div><div className="mt-3 h-1.5 w-28 overflow-hidden rounded-full bg-slate-200"><div className="h-full w-4/5 rounded-full bg-cyan-500" /></div><div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">{micro.squat}</div></div>
               <div className="absolute -bottom-2 -left-8 rounded-2xl bg-[#17263c] p-4 text-white shadow-xl"><div className="flex items-end gap-1.5"><div className="h-7 w-2 rounded-t bg-cyan-300" /><div className="h-10 w-2 rounded-t bg-cyan-300" /><div className="h-5 w-2 rounded-t bg-purple-300" /><div className="h-14 w-2 rounded-t bg-cyan-300" /><div className="h-11 w-2 rounded-t bg-purple-300" /></div><div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-300">{globalT.yourRhythm}</div></div>
             </div>

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert, Animated, Dimensions, Easing, FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Dimensions, Easing, FlatList, Image, Modal, StyleSheet, Text, TextInput, View } from 'react-native';
+import { PressableScale as Pressable } from '@/components/Motion';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { fetch as expoFetch } from 'expo/fetch';
 import { Ionicons } from '@/components/AppIcon';
@@ -125,7 +126,8 @@ function CoachAtmosphereBackground({ colors, reveal, atmosphere }: { colors: Ret
     return () => animation.stop();
   }, [ambientMotion]);
 
-  if (atmosphere === 'night') {
+  // Dark mode always gets the night sky: a bright morning photo would glare against graphite surfaces.
+  if (atmosphere === 'night' || colors.colorScheme === 'dark') {
     return <View pointerEvents="none" style={styles.coachBackgroundLayer}>
       <Animated.View style={[styles.coachAtmosphereLayer, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]}>
         <LinearGradient
@@ -152,8 +154,9 @@ function CoachAtmosphereBackground({ colors, reveal, atmosphere }: { colors: Ret
       <Animated.Image
         source={require('@/assets/images/coach-background.jpeg')}
         resizeMode="cover"
-        style={[styles.coachBackground, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]}
+        style={[styles.coachBackground, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.06, 0.5, 0.7] }) }]}
       />
+      <LinearGradient colors={[`${colors.background}00`, `${colors.background}B3`, colors.background]} locations={[0, 0.45, 0.85]} style={StyleSheet.absoluteFill} />
     </View>
   </View>;
 }
@@ -232,7 +235,7 @@ function AppTourModal({ visible, onClose }: { visible: boolean; onClose: () => v
         <LinearGradient colors={[`${colors.primary}20`, colors.background, `${colors.plum}12`]} style={StyleSheet.absoluteFill} />
         <View style={[styles.tourHeader, { paddingTop: insets.top + 10 }]}>
           <View style={[styles.tourBrandPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Ionicons name="sparkles" size={15} color={colors.primary} />
+            <Ionicons name="compass-outline" size={15} color={colors.primary} />
             <Text style={[styles.tourBrandText, { color: colors.foreground }]}>{t('appTourTitle')}</Text>
           </View>
           <Pressable
@@ -603,7 +606,7 @@ export default function CoachScreen() {
       </View>
     </View>
     <View pointerEvents="none" style={styles.analysisFlightLayer}>
-      <Animated.View style={[styles.analysisFlightCard, { backgroundColor: colors.primaryForeground, opacity: weeklyCardReveal.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.9, 0] }), transform: [{ translateX: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 20 - (screenSize.width / 2 - 130)] }) }, { translateY: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, chatOriginY + 42 - (screenSize.height - 220)] }) }, { scale: weeklyCardReveal.interpolate({ inputRange: [0, 0.75, 1], outputRange: [1, 0.84, 0.68] }) }] }]}><Ionicons name="sparkles" size={16} color={colors.primary} /><Text style={[styles.analysisFlightText, { color: colors.primary }]}>{t('weeklyAnalysisReading')}</Text></Animated.View>
+      <Animated.View style={[styles.analysisFlightCard, { backgroundColor: colors.primaryForeground, opacity: weeklyCardReveal.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.9, 0] }), transform: [{ translateX: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 20 - (screenSize.width / 2 - 130)] }) }, { translateY: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, chatOriginY + 42 - (screenSize.height - 220)] }) }, { scale: weeklyCardReveal.interpolate({ inputRange: [0, 0.75, 1], outputRange: [1, 0.84, 0.68] }) }] }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /><Text style={[styles.analysisFlightText, { color: colors.primary }]}>{t('weeklyAnalysisReading')}</Text></Animated.View>
     </View>
     <KeyboardAvoidingView onLayout={({ nativeEvent }) => setChatOriginY(nativeEvent.layout.y)} style={styles.chatWrap} behavior="padding" keyboardVerticalOffset={0}>
       <FlatList
@@ -615,7 +618,7 @@ export default function CoachScreen() {
          >
             {item.from === 'coach' ? <View style={styles.messageAvatarShell}><Image accessibilityLabel={t('coachTitle')} source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={styles.messageAvatar} /></View> : null}
            <View style={styles.messageContent}>
-                  {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : <><View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text> : null}</View>{item.id === 'coach-welcome' || item.media === 'welcomeGif' ? <Pressable accessibilityRole="button" onPress={() => setAppTourVisible(true)} style={({ pressed }) => [styles.appTourButton, { backgroundColor: `${colors.primary}14`, borderColor: `${colors.primary}48`, opacity: pressed ? 0.68 : 1 }]}><Ionicons name="sparkles-outline" size={16} color={colors.primary} /><Text style={[styles.appTourButtonText, { color: colors.primary }]}>{t('appTourButton')}</Text><Ionicons name="arrow-forward" size={15} color={colors.primary} /></Pressable> : null}{item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: colors.card }]}><Image accessibilityLabel={t('coachWelcomeGifLabel')} source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} /></View> : null}</>}
+                  {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : <><View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text> : null}</View>{item.id === 'coach-welcome' || item.media === 'welcomeGif' ? <Pressable accessibilityRole="button" onPress={() => setAppTourVisible(true)} style={({ pressed }) => [styles.appTourButton, { backgroundColor: `${colors.primary}14`, borderColor: `${colors.primary}48`, opacity: pressed ? 0.68 : 1 }]}><Ionicons name="compass-outline" size={16} color={colors.primary} /><Text style={[styles.appTourButtonText, { color: colors.primary }]}>{t('appTourButton')}</Text><Ionicons name="arrow-forward" size={15} color={colors.primary} /></Pressable> : null}{item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: colors.card }]}><Image accessibilityLabel={t('coachWelcomeGifLabel')} source={require('@/assets/images/coach-welcome-animation.gif')} resizeMode="cover" style={styles.welcomeGif} /></View> : null}</>}
                  {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.actionTitle, { color: colors.foreground }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: colors.foreground }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: colors.border, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.foreground }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
                 {ratingLoaded && ratingTarget?.id === item.id && dailyRating === null ? <View style={[styles.ratingCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.ratingPrompt, { color: colors.foreground }]}>{t('coachRatingPrompt')}</Text><View style={styles.ratingStars}>{[1, 2, 3, 4, 5].map((value) => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} ${t('coachRatingStars')}`} disabled={ratingSending !== null} onPress={() => void rateCoachMessage(item, value)} style={({ pressed }) => [styles.ratingStar, { opacity: ratingSending !== null && ratingSending !== value ? 0.4 : pressed ? 0.65 : 1 }]}><Ionicons name="star" size={24} color={colors.orange} /></Pressable>)}</View>{ratingSending !== null ? <Text style={[styles.ratingStatus, { color: colors.mutedForeground }]}>{t('coachRatingSending')}</Text> : null}</View> : null}
                 {ratedMessageId === item.id ? <Text style={[styles.ratingThanks, { color: colors.success }]}>{t('coachRatingThanks')}</Text> : null}
