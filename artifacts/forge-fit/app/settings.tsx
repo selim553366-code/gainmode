@@ -10,6 +10,7 @@ import { legalDocumentUrl, type LegalDocument } from '@/lib/legalDocuments';
 import { useSubscription } from '@/lib/revenuecat';
 import { PREMIUM_ENTITLEMENT_IDENTIFIER, hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { getCurrentStreak } from '@/lib/streak';
+import { badges, badgeText, badgeUi } from '@/lib/badges';
 import { countEnabledNotifications } from '@/lib/notificationPreferences';
 import { Header, Screen } from '@/components/FitUI';
 import { Ionicons } from '@/components/AppIcon';
@@ -61,7 +62,7 @@ function ProfileCard({ onPress }: { onPress: () => void }) {
 export default function SettingsScreen() {
   const colors = useColors();
   const { preference: themePreference, setPreference: setThemePreference } = useTheme();
-  const { language, isPremium, notificationSettings, resetLocalUserData } = useFit();
+  const { language, isPremium, notificationSettings, resetLocalUserData, unlockedBadgeIds } = useFit();
   const { customerInfo, restore, isRestoring, isAvailable } = useSubscription();
   const t = (key: TranslationKey) => translate(language, key);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -119,6 +120,10 @@ export default function SettingsScreen() {
       <Header title={t('settingsTitle')} action="close-outline" onAction={() => router.back()} />
 
       <ProfileCard onPress={() => router.push('/update-preferences')} />
+
+      <SettingsGroup>
+        <SettingsRow testID="settings-badges" icon="badge-collection" title={badgeText(badgeUi.wall, language)} value={`${unlockedBadgeIds.length} / ${badges.length}`} onPress={() => router.push('/badge-wall')} />
+      </SettingsGroup>
 
       <SettingsGroup title={t('settingsGroupSubscription')}>
         <SettingsRow icon="trophy-outline" title={subscriptionTitle} detail={renewal} value={isPremium ? t('settingsSubscriptionActive') : undefined} />

@@ -8,7 +8,7 @@ import { restoreNotificationPreferences } from '@/lib/notificationPreferences';
 import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey, upsertTodayWeightLog } from '@/lib/nutritionDates';
 import { addStreakActivity, getCurrentStreak, normalizeStreakDates } from '@/lib/streak';
-import { badges, type BadgeMetric } from '@/lib/badges';
+import { badges, countOnTargetDays, type BadgeMetrics } from '@/lib/badges';
 import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, getWorkoutIntensity, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, estimateExerciseCalories, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
 import { clearLocalAiUsageIdentity } from '@/lib/aiUsage';
 import { logCompletedExercises, restoreActivityLog, unlogExercises, type ActivityEntry } from '@/lib/progressCharts';
@@ -128,6 +128,8 @@ type FitState = {
     weightLogs: number;
   };
   unlockedBadgeIds: string[];
+  /** When each badge was earned (ISO), engraved under it on the badge wall. */
+  badgeEarnedAt: Record<string, string>;
 };
 
 function createLocalAccountId() {
@@ -214,6 +216,7 @@ const initialState: FitState = {
   dailyMoodCompletedDate: null,
   achievementStats: { workouts: 0, minutes: 0, exercises: 0, meals: 0, weightLogs: 0 },
   unlockedBadgeIds: [],
+  badgeEarnedAt: {},
 };
 
 const FitContext = createContext<FitContextValue | null>(null);
@@ -231,6 +234,15 @@ function completedActivity(workout: Workout, exerciseIds: string[], profile: Pro
       minutes: minutesEach,
       calories: estimateExerciseCalories(workout, exercise, profile ?? undefined),
     }));
+}
+
+export function getBadgeMetrics(state: Pick<FitState, 'achievementStats' | 'streakDates' | 'meals' | 'calorieGoal'>): BadgeMetrics {
+  return {
+    ...state.achievementStats,
+    streak: getCurrentStreak(state.streakDates),
+    activeDays: state.streakDates.length,
+    onTargetDays: countOnTargetDays(state.meals, state.calorieGoal),
+  };
 }
 
 const recordStreakActivity = (current: FitState) => ({ ...current, streakDates: addStreakActivity(current.streakDates) });
@@ -353,6 +365,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
              savedMeals: Array.isArray(parsed.savedMeals) ? parsed.savedMeals : [],
              streakDates: normalizeStreakDates(Array.isArray(parsed.streakDates) ? parsed.streakDates : []),
              unlockedBadgeIds: Array.isArray(parsed.unlockedBadgeIds) ? parsed.unlockedBadgeIds : [],
+             badgeEarnedAt: parsed.badgeEarnedAt && typeof parsed.badgeEarnedAt === 'object' ? parsed.badgeEarnedAt : {},
              dumbbellWeightHistory: Array.isArray(parsed.dumbbellWeightHistory)
                ? parsed.dumbbellWeightHistory.filter((item): item is DumbbellWeightLog => (
                  Boolean(item)
@@ -443,19 +456,20 @@ export function FitProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     setState((current) => {
-      const metrics: Record<BadgeMetric, number> = {
-        ...current.achievementStats,
-        streak: getCurrentStreak(current.streakDates),
-        activeDays: current.streakDates.length,
-      };
+      const metrics = getBadgeMetrics(current);
       const unlocked = new Set(current.unlockedBadgeIds);
+      const badgeEarnedAt = { ...current.badgeEarnedAt };
+      const now = new Date().toISOString();
       badges.forEach((badge) => {
-        if (metrics[badge.metric] >= badge.target) unlocked.add(badge.id);
+        if (metrics[badge.metric] >= badge.target && !unlocked.has(badge.id)) {
+          unlocked.add(badge.id);
+          badgeEarnedAt[badge.id] = now;
+        }
       });
       const next = [...unlocked];
-      return next.length === current.unlockedBadgeIds.length ? current : { ...current, unlockedBadgeIds: next };
+      return next.length === current.unlockedBadgeIds.length ? current : { ...current, unlockedBadgeIds: next, badgeEarnedAt };
     });
-  }, [hydrated, state.achievementStats, state.streakDates, state.unlockedBadgeIds]);
+  }, [hydrated, state.achievementStats, state.streakDates, state.unlockedBadgeIds, state.meals, state.calorieGoal]);
 
   useEffect(() => {
     if (isSubscribed === undefined) return;
