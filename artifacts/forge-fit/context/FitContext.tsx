@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 import { Language, TranslationKey } from '@/lib/i18n';
 import { PREVIEW_SUBSCRIPTION_ACTIVE, useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
+import { restoreNotificationPreferences } from '@/lib/notificationPreferences';
 import { getCurrentMonthKey } from '@/lib/profileEdit';
 import { localDateKey, upsertTodayWeightLog } from '@/lib/nutritionDates';
 import { addStreakActivity, getCurrentStreak, normalizeStreakDates } from '@/lib/streak';
@@ -332,7 +333,7 @@ export function FitProvider({ children }: { children: ReactNode }) {
                 : null,
              // Preview access is web-only; native access still comes from RevenueCat.
              isPremium: PREVIEW_SUBSCRIPTION_ACTIVE,
-            notificationSettings: initialState.notificationSettings,
+            notificationSettings: restoreNotificationPreferences(parsed.notificationSettings, initialState.notificationSettings),
              savedMeals: Array.isArray(parsed.savedMeals) ? parsed.savedMeals : [],
              streakDates: normalizeStreakDates(Array.isArray(parsed.streakDates) ? parsed.streakDates : []),
              unlockedBadgeIds: Array.isArray(parsed.unlockedBadgeIds) ? parsed.unlockedBadgeIds : [],

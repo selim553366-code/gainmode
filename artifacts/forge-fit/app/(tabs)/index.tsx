@@ -157,11 +157,16 @@ export default function TodayScreen() {
                 <Text numberOfLines={1} style={[styles.heroBadgeHint, { color: colors.heroBadgeForeground }]}>{t('badgesClickToView')}</Text>
               </View>
             </Pressable>
-            <View style={[styles.heroStreakPill, { backgroundColor: colors.heroStreakBackground, borderColor: colors.heroStreakBorder }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${streak} ${t('streak')}`}
+              onPress={() => router.push('/streak')}
+              style={[styles.heroStreakPill, { backgroundColor: colors.heroStreakBackground, borderColor: colors.heroStreakBorder }]}
+            >
               <Ionicons name="flame" size={14} color={colors.heroStreakForeground} />
               <Text style={[styles.heroStreakValue, { color: colors.heroStreakForeground }]}>{streak}</Text>
               <Text style={[styles.heroStreakLabel, { color: colors.heroStreakForeground }]}>{t('streak')}</Text>
-            </View>
+            </Pressable>
           </View>
           <CalorieProgressFill progress={calorieProgress} color={heroInk} />
 
