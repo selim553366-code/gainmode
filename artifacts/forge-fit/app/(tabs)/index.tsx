@@ -7,12 +7,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { getCurrentStreak } from '@/lib/streak';
 import { getWorkoutForDate } from '@/lib/workoutPlan';
 import { badgeText, badgeUi } from '@/lib/badges';
-import { AnimatedNumber, Card, Header, Metric, PremiumAccessStatusModal, Screen, SectionTitle, triggerHaptic } from '@/components/FitUI';
+import { AnimatedNumber, Card, Header, Metric, Screen, SectionTitle, triggerHaptic } from '@/components/FitUI';
 import { TodayWeightBar } from '@/components/TodayWeightBar';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
@@ -83,10 +82,8 @@ export default function TodayScreen() {
     addWeight,
     profile,
     streakDates,
-    isPremium,
   } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [premiumStatusVisible, setPremiumStatusVisible] = React.useState(false);
   const todayMeals = getMealsForRange(meals, 'daily');
   const calories = todayMeals.reduce((sum, meal) => sum + meal.calories, 0);
   const streak = getCurrentStreak(streakDates);
@@ -112,17 +109,6 @@ export default function TodayScreen() {
         action="settings-outline"
         actionAvatar={(username?.trim()?.slice(0, 1) || '•').toLocaleUpperCase(language)}
         onAction={() => router.push('/settings')}
-        premiumLabel={SUBSCRIPTION_PURCHASE_ENABLED ? (isPremium ? t('premiumOwned') : t('premiumShort')) : undefined}
-        premiumIcon="trophy-outline"
-        premiumOwned={isPremium}
-        premiumAction={
-          SUBSCRIPTION_PURCHASE_ENABLED
-            ? () => {
-                if (isPremium) setPremiumStatusVisible(true);
-                else router.push('/');
-              }
-            : undefined
-        }
         brandMark
         showText={false}
       />
@@ -305,7 +291,6 @@ export default function TodayScreen() {
         />
       </View>
 
-      <PremiumAccessStatusModal visible={premiumStatusVisible} onClose={() => setPremiumStatusVisible(false)} />
     </Screen>
   );
 }
