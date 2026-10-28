@@ -120,7 +120,7 @@ const colors = {
     inkCardEnd: '#1F2C55',
     inkCardForeground: '#FFFFFF',
     segmentActive: '#30343C',
-    coachMorningGlow: '#14171C',
+    coachMorningGlow: '#173B56',
     coachNightPurple: '#1E2240',
     coachNightBlack: '#0A0B0D',
     coachNightDeep: '#0F1120',

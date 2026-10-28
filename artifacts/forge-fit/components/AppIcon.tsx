@@ -2,6 +2,8 @@ import React from 'react';
 import { useColors } from '@/hooks/useColors';
 import {
   Activity,
+  CloudSun,
+  MapPin,
   Apple,
   AlertCircle,
   Award,
@@ -171,6 +173,8 @@ export type IconName =
   | 'settings-outline'
   | 'phone-portrait-outline'
   | 'sunny-outline'
+  | 'weather-sun'
+  | 'map-pin'
   | 'moon-outline'
   | 'star'
   | 'shield-checkmark-outline'
@@ -270,6 +274,8 @@ const iconMap: Record<IconName, IconComponent> = {
   'settings-outline': Settings2,
   'phone-portrait-outline': Smartphone,
   'sunny-outline': Sun,
+  'weather-sun': CloudSun,
+  'map-pin': MapPin,
   'moon-outline': Moon,
   star: Star,
   'coach-outline': MessagesSquare,
