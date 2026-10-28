@@ -319,7 +319,7 @@ export default function CoachScreen() {
   const [ratedMessageId, setRatedMessageId] = useState<string | null>(null);
   const [appTourVisible, setAppTourVisible] = useState(false);
   const [chatOriginY, setChatOriginY] = React.useState(0);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ElementRef<typeof TextInput>>(null);
   const coachReveal = useRef(new Animated.Value(0)).current;
   const weeklyCardReveal = useRef(new Animated.Value(0)).current;
   const lastAnalysisId = useRef<string | undefined>(undefined);
@@ -709,7 +709,7 @@ export default function CoachScreen() {
                 {ratedMessageId === item.id ? <Text style={[styles.ratingThanks, { color: colors.success }]}>{t('coachRatingThanks')}</Text> : null}
            </View>
         </View>}
-         ListFooterComponent={loading && !isStreamingReply ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : null}
+          ListFooterComponent={loading && !isStreamingReply ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : undefined}
         contentContainerStyle={styles.messageList}
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"

@@ -22,10 +22,10 @@ type TabRoute = { key: string; name: string };
 type TabBarProps = {
   state: { index: number; routes: TabRoute[] };
   descriptors: Record<string, { options: { title?: string } }>;
-  navigation: {
+  emitter: {
     emit: (event: { type: 'tabPress'; target: string; canPreventDefault: true }) => { defaultPrevented?: boolean };
-    navigate: (name: string) => void;
   };
+  navigateToTab: (routeKey: string) => void;
 };
 
 function CoachTabButton({ focused, label, onPress, colors }: { focused: boolean; label: string; onPress: () => void; colors: ReturnType<typeof useColors> }) {
@@ -106,7 +106,7 @@ function TabIndicator({ layout, visible, color }: { layout?: TabLayout; visible:
   return <Reanimated.View pointerEvents="none" style={[styles.tabIndicator, { backgroundColor: color }, style]} />;
 }
 
-function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
+function FloatingTabBar({ state, descriptors, emitter, navigateToTab }: TabBarProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const routes = tabOrder
@@ -116,8 +116,8 @@ function FloatingTabBar({ state, descriptors, navigation }: TabBarProps) {
   const focusedRoute = state.routes[state.index];
   const handlePress = (route: typeof routes[number]) => {
     if (focusedRoute?.key !== route.key) Haptics.selectionAsync().catch(() => undefined);
-    const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-    if (!event.defaultPrevented) navigation.navigate(route.name);
+    const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (!event.defaultPrevented) navigateToTab(route.key);
   };
   const iconForRoute = (name: string): React.ComponentProps<typeof Feather>['name'] => {
     if (name === 'index') return 'home';
