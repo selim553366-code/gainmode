@@ -770,8 +770,8 @@ function OnboardingCTA({ label, onPress, disabled = false, testID }: { label: st
   const insets = useSafeAreaInsets();
   return <View style={[ui.ctaWrap, { paddingBottom: insets.bottom + 16 }]}>
     <Pressable testID={testID} accessibilityRole="button" disabled={disabled} onPress={() => { triggerHaptic(); onPress(); }} scaleTo={0.98} style={[ui.cta, { backgroundColor: colors.primary, opacity: disabled ? 0.6 : 1 }]}>
-      <Text style={ui.ctaText}>{label}</Text>
-      <View style={ui.ctaArrow}><Ionicons name="arrow-forward" size={18} color="#FFFFFF" /></View>
+      <Text style={[ui.ctaText, { color: colors.primaryForeground }]}>{label}</Text>
+      <View style={ui.ctaArrow}><Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /></View>
     </Pressable>
   </View>;
 }
@@ -1641,7 +1641,7 @@ const ui = StyleSheet.create({
   progressFill: { height: '100%', borderRadius: 2 },
   ctaWrap: { paddingHorizontal: 20, paddingTop: 10 },
   cta: { height: 60, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  ctaText: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.2, color: '#FFFFFF' },
+  ctaText: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.2 },
   ctaArrow: { alignItems: 'center', justifyContent: 'center' },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase' },
   title: { fontFamily: 'Inter_700Bold', fontSize: 32, lineHeight: 38, letterSpacing: -1.1, marginTop: 10 },
