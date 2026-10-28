@@ -21,6 +21,7 @@ import { COACH_MESSAGES_STORAGE_KEY, getCoachMessagesStorageKey, parseStoredCoac
 import { isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
 import { apiUrl } from '@/lib/api';
 import { localDateKey } from '@/lib/nutritionDates';
+import { getCoachAtmosphere, type CoachAtmosphere } from '@/lib/coachAtmosphere';
 
 type Message = CoachMessageRecord;
 type CoachApiResponse = { content?: string; actions?: unknown[] };
@@ -28,8 +29,6 @@ type CoachStreamEvent =
   | { type: 'delta'; text?: string }
   | { type: 'done'; actions?: unknown[] }
   | { type: 'error'; error?: string };
-type CoachAtmosphere = 'morning' | 'night';
-
 async function consumeCoachStream(response: Response, onEvent: (event: CoachStreamEvent) => void) {
   const reader = response.body?.getReader();
   if (!reader) return false;
@@ -83,11 +82,6 @@ const COACH_STARS = [
   { x: 96, y: 66, size: 2, delay: 1980 },
 ] as const;
 
-function getCoachAtmosphere(date = new Date()): CoachAtmosphere {
-  const hour = date.getHours();
-  return hour >= 20 || hour < 6 ? 'night' : 'morning';
-}
-
 function TwinklingStar({ star, color }: { star: (typeof COACH_STARS)[number]; color: string }) {
   const twinkle = React.useRef(new Animated.Value(0)).current;
 
@@ -126,8 +120,7 @@ function CoachAtmosphereBackground({ colors, reveal, atmosphere }: { colors: Ret
     return () => animation.stop();
   }, [ambientMotion]);
 
-  // Dark mode always gets the night sky: a bright morning photo would glare against graphite surfaces.
-  if (atmosphere === 'night' || colors.colorScheme === 'dark') {
+  if (atmosphere === 'night') {
     return <View pointerEvents="none" style={styles.coachBackgroundLayer}>
       <Animated.View style={[styles.coachAtmosphereLayer, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]}>
         <LinearGradient
@@ -154,9 +147,18 @@ function CoachAtmosphereBackground({ colors, reveal, atmosphere }: { colors: Ret
       <Animated.Image
         source={require('@/assets/images/coach-background.jpeg')}
         resizeMode="cover"
-        style={[styles.coachBackground, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.06, 0.5, 0.7] }) }]}
+        style={[styles.coachBackground, { opacity: reveal.interpolate({
+          inputRange: [0, 0.38, 0.78, 1],
+          outputRange: colors.colorScheme === 'dark' ? [0, 0.02, 0.12, 0.18] : [0, 0.06, 0.5, 0.7],
+        }) }]}
       />
-      <LinearGradient colors={[`${colors.background}00`, `${colors.background}B3`, colors.background]} locations={[0, 0.45, 0.85]} style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={colors.colorScheme === 'dark'
+          ? [`${colors.background}55`, `${colors.background}CC`, colors.background]
+          : [`${colors.background}00`, `${colors.background}B3`, colors.background]}
+        locations={[0, 0.45, 0.85]}
+        style={StyleSheet.absoluteFill}
+      />
     </View>
   </View>;
 }

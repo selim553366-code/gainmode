@@ -21,6 +21,12 @@ The full coach conversation is device-local and append-only; reopening the coach
 
 **How to apply:** Persist the ordered message list in AsyncStorage after hydration and after every message/action update; treat the welcome animation as UI content, not a reason to reset history.
 
+The coach's morning/night scene follows the device's local time independently of the selected color theme. Dark mode may soften the morning image, but it must not switch to the night sky or show stars before night.
+
+**Why:** The user reported that dark mode incorrectly showed the night scene during the morning.
+
+**How to apply:** Keep time-of-day selection separate from theme styling; use the theme only to tune contrast and image intensity.
+
 Native FitBud streaming must use Expo's fetch implementation rather than the global fetch, and the API must disable intermediary buffering for its SSE response.
 
 **Why:** Android's native response reader support is not guaranteed by the global fetch implementation, and proxy buffering can make a progressive reply appear all at once.
