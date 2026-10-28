@@ -14,7 +14,7 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="aurora -right-24 -top-24 h-72 w-72 opacity-60" style={{ background: product.accent }} />
       <div className="relative flex items-start justify-between">
         <img src={product.icon} alt="" className="h-14 w-14 rounded-2xl shadow-lg" />
-        <span className="grid h-11 w-11 place-items-center rounded-full border border-white/15 transition duration-500 group-hover:rotate-45 group-hover:bg-white group-hover:text-ink"><ArrowUpRight size={18} /></span>
+        <span className="grid h-11 w-11 place-items-center rounded-lg border border-white/15 transition duration-500 group-hover:rotate-45 group-hover:bg-white group-hover:text-ink"><ArrowUpRight size={18} /></span>
       </div>
       <div className="relative mt-6">
         {product.wordmark ? <img src={product.wordmark} alt={product.name} className="h-6 w-auto brightness-0 invert" /> : <h3 className="text-2xl font-bold">{product.name}</h3>}

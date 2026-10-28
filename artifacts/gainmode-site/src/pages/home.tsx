@@ -69,7 +69,7 @@ function FeaturedWork() {
           {product.wordmark ? <img src={product.wordmark} alt={product.name} className="mt-8 h-7 w-auto brightness-0 invert md:h-9" /> : <h3 className="mt-8 text-4xl font-bold">{product.name}</h3>}
           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-royal-200">{product.category[lang]}</p>
           <p className="mt-6 max-w-md text-lg leading-relaxed text-white/70">{product.summary[lang]}</p>
-          <span className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-ink transition group-hover:gap-3">{t.work.view}<ArrowRight size={16} /></span>
+          <span className="mt-8 inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-ink transition group-hover:gap-3">{t.work.view}<ArrowRight size={16} /></span>
         </div>
         <div className="relative flex h-[420px] items-center justify-center md:h-[520px]">
           <motion.div style={{ y: back }} className="absolute left-[4%] top-[12%] hidden -rotate-[8deg] sm:block"><Phone src={product.screens[1]} alt="" width={200} className="opacity-80" /></motion.div>
@@ -94,8 +94,8 @@ export default function Home() {
             <SplitTitle lines={t.home.title} delay={0.1} className="mt-6 font-display text-[24px] min-[400px]:text-[28px] font-extrabold uppercase leading-[0.98] tracking-[-0.035em] sm:text-5xl lg:text-[44px] xl:text-[50px]" />
             <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.5, ease: EASE }} className="mt-7 max-w-xl text-lg leading-relaxed text-white/65">{t.home.body}</motion.p>
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.65, ease: EASE }} className="mt-9 flex flex-wrap gap-3">
-              <Link href="/work" className="inline-flex h-13 items-center gap-2 rounded-full bg-royal-500 px-7 py-4 text-sm font-semibold shadow-[0_14px_40px_-10px_#2F5BFF] transition hover:bg-royal-400">{t.home.primary}<ArrowRight size={16} /></Link>
-              <Link href="/contact" className="inline-flex items-center gap-2 rounded-full border border-white/15 px-7 py-4 text-sm font-semibold text-white/90 transition hover:border-white/40">{t.home.secondary}</Link>
+              <Link href="/work" className="inline-flex h-13 items-center gap-2 rounded-lg bg-royal-500 px-7 py-4 text-sm font-semibold transition-colors hover:bg-royal-400">{t.home.primary}<ArrowRight size={16} /></Link>
+              <Link href="/contact" className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-7 py-4 text-sm font-semibold text-white/90 transition-colors hover:border-white/40">{t.home.secondary}</Link>
             </motion.div>
           </div>
           <HeroGlobe />
@@ -173,8 +173,8 @@ export function CtaBand({ fullBleed = false }: { fullBleed?: boolean }) {
           <h2 className="relative mx-auto mt-8 max-w-3xl font-display text-[24px] font-extrabold uppercase leading-[0.98] tracking-[-0.03em] sm:text-4xl md:text-5xl">{t.home.ctaTitle}</h2>
           <p className="relative mx-auto mt-5 max-w-lg text-white/80">{t.home.ctaBody}</p>
           <div className="relative mt-9 flex flex-wrap justify-center gap-3">
-            <Link href="/contact" className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-semibold text-royal-700 transition hover:scale-[1.03]">{t.home.ctaButton}<ArrowRight size={16} /></Link>
-            <a href={`mailto:${CONTACT_EMAIL}`} className="inline-flex items-center gap-2 rounded-full border border-white/40 px-7 py-4 text-sm font-semibold transition hover:bg-white/10">{CONTACT_EMAIL}</a>
+            <Link href="/contact" className="inline-flex items-center gap-2 rounded-lg bg-white px-7 py-4 text-sm font-semibold text-royal-700 transition-colors hover:bg-white/90">{t.home.ctaButton}<ArrowRight size={16} /></Link>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="inline-flex items-center gap-2 rounded-lg border border-white/40 px-7 py-4 text-sm font-semibold transition-colors hover:bg-white/10">{CONTACT_EMAIL}</a>
           </div>
         </div>
       </Reveal>
