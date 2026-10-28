@@ -76,9 +76,8 @@ export function Screen({ children, scroll = true, bottomPadding = 104, ambient =
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{backdrop}</ScrollView> : backdrop;
 }
 
-export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, actionDisabled = false, featureLabel, featureAction, premiumLabel, premiumAction, premiumIcon = 'trophy-outline', premiumOwned = false, streak, streakLabel, centered = false, lightBackground = false, showText = true, brandMark = false }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; actionDisabled?: boolean; featureLabel?: string; featureAction?: () => void; premiumLabel?: string; premiumAction?: () => void; premiumIcon?: IconName; premiumOwned?: boolean; streak?: number; streakLabel?: string; centered?: boolean; lightBackground?: boolean; showText?: boolean; brandMark?: boolean }) {
+export function Header({ eyebrow, title, subtitle, action, actionLogo = false, onAction, actionDisabled = false, featureLabel, featureAction, streak, streakLabel, centered = false, lightBackground = false, showText = true, brandMark = false, actionAvatar }: { eyebrow?: string; title: string; subtitle?: string; action?: IconName; actionLogo?: boolean; onAction?: () => void; actionDisabled?: boolean; featureLabel?: string; featureAction?: () => void; streak?: number; streakLabel?: string; centered?: boolean; lightBackground?: boolean; showText?: boolean; brandMark?: boolean; /** Shows a profile initial instead of the action icon. */ actionAvatar?: string }) {
   const colors = useColors();
-  const premiumColor = premiumOwned ? colors.success : colors.primary;
   const headingColor = lightBackground ? colors.primaryForeground : colors.foreground;
   const supportingColor = lightBackground ? `${colors.primaryForeground}B3` : colors.mutedForeground;
   return <View style={styles.header}>
@@ -91,8 +90,7 @@ export function Header({ eyebrow, title, subtitle, action, actionLogo = false, o
     <View style={[styles.headerActions, centered ? styles.headerActionsCentered : null]}>
       {streak !== undefined ? <View accessibilityLabel={`${streak} ${streakLabel ?? ''}`} style={[styles.streakPill, { backgroundColor: `${colors.orange}14`, borderColor: `${colors.orange}33` }]}><Ionicons name="flame" size={15} color={colors.orange} /><Text style={[styles.streakValue, { color: colors.orange }]}>{streak}</Text>{streakLabel ? <Text style={[styles.streakLabel, { color: colors.orange }]}>{streakLabel}</Text> : null}</View> : null}
       {featureLabel && featureAction ? <Pressable accessibilityRole="button" accessibilityLabel={featureLabel} onPress={() => { triggerHaptic(); featureAction(); }} style={({ pressed }) => [styles.featurePill, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.8 : 1 }]}><Ionicons name="grid-outline" size={14} color={colors.primary} /><Text style={[styles.featurePillText, { color: colors.primary }]}>{featureLabel}</Text></Pressable> : null}
-      {premiumAction ? <Pressable accessibilityLabel={premiumLabel} testID="header-premium" onPress={() => { triggerHaptic(Haptics.ImpactFeedbackStyle.Medium); premiumAction(); }} style={({ pressed }) => [styles.premiumPill, { backgroundColor: premiumColor, borderColor: premiumColor, opacity: pressed ? 0.85 : 1 }]}>{premiumOwned ? <Ionicons name="checkmark-circle" size={14} color={colors.primaryForeground} /> : <Ionicons name={premiumIcon} size={15} color={colors.primaryForeground} />}<Text style={[styles.premiumPillText, { color: colors.primaryForeground }]}>{premiumLabel}</Text></Pressable> : null}
-       {action && onAction ? <Pressable testID="header-action" accessibilityRole="button" accessibilityState={{ disabled: actionDisabled }} disabled={actionDisabled} onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: actionDisabled ? 0.48 : pressed ? 0.8 : 1 }]}>{actionLogo ? <ForgeFitMark size={27} /> : <Ionicons name={action} size={20} color={colors.foreground} />}</Pressable> : null}
+       {action && onAction ? <Pressable testID="header-action" accessibilityRole="button" accessibilityState={{ disabled: actionDisabled }} disabled={actionDisabled} onPress={() => { triggerHaptic(); onAction(); }} style={({ pressed }) => [styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border, opacity: actionDisabled ? 0.48 : pressed ? 0.8 : 1 }]}>{actionAvatar !== undefined ? <View style={[styles.headerAvatar, { backgroundColor: colors.primary }]}><Text style={[styles.headerAvatarText, { color: colors.primaryForeground }]}>{actionAvatar}</Text></View> : actionLogo ? <ForgeFitMark size={27} /> : <Ionicons name={action} size={20} color={colors.foreground} />}</Pressable> : null}
     </View>
   </View>;
 }
@@ -247,9 +245,6 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
   </>;
 }
 
-// The active-member sheet lives in its own module; re-exported so existing imports keep working.
-export { PremiumAccessStatusModal } from '@/components/PremiumAccessSheet';
-
 export const styles = StyleSheet.create({
   ambientBackdrop: { flex: 1, minHeight: '100%', overflow: 'hidden' },
   plainBackdrop: { flex: 1, minHeight: '100%' },
@@ -271,9 +266,9 @@ export const styles = StyleSheet.create({
   eyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 1.4, marginBottom: 10 },
   title: { fontFamily: 'Inter_700Bold', fontSize: 32, lineHeight: 36, letterSpacing: -1.2 },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, marginTop: 8 },
+  headerAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  headerAvatarText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
   iconButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  premiumPill: { minHeight: 40, borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  premiumPillText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 0.6 },
   card: { borderRadius: 22, borderWidth: 1, padding: 18, marginBottom: 14 },
   sectionTitle: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 14, marginBottom: 12 },
   sectionText: { fontFamily: 'Inter_700Bold', fontSize: 19, letterSpacing: -0.5 },

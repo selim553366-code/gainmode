@@ -7,12 +7,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFit } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { SUBSCRIPTION_PURCHASE_ENABLED } from '@/lib/revenuecat';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { getCurrentStreak } from '@/lib/streak';
 import { getWorkoutForDate } from '@/lib/workoutPlan';
-import { badgeText, badgeUi } from '@/lib/badges';
-import { AnimatedNumber, Card, Header, Metric, PremiumAccessStatusModal, Screen, SectionTitle, triggerHaptic } from '@/components/FitUI';
+import { badges, badgeText, badgeUi } from '@/lib/badges';
+import { BadgeMedal } from '@/components/BadgeMedal';
+import { AnimatedNumber, Card, Header, Metric, Screen, SectionTitle, triggerHaptic } from '@/components/FitUI';
 import { TodayWeightBar } from '@/components/TodayWeightBar';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
@@ -83,10 +83,10 @@ export default function TodayScreen() {
     addWeight,
     profile,
     streakDates,
-    isPremium,
+    unlockedBadgeIds,
   } = useFit();
+  const latestBadge = badges.find((badge) => badge.id === unlockedBadgeIds.at(-1)) ?? badges[0];
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [premiumStatusVisible, setPremiumStatusVisible] = React.useState(false);
   const todayMeals = getMealsForRange(meals, 'daily');
   const calories = todayMeals.reduce((sum, meal) => sum + meal.calories, 0);
   const streak = getCurrentStreak(streakDates);
@@ -110,18 +110,8 @@ export default function TodayScreen() {
         subtitle={t('ready')}
         centered
         action="settings-outline"
+        actionAvatar={(username?.trim()?.slice(0, 1) || '•').toLocaleUpperCase(language)}
         onAction={() => router.push('/settings')}
-        premiumLabel={SUBSCRIPTION_PURCHASE_ENABLED ? (isPremium ? t('premiumOwned') : t('premiumShort')) : undefined}
-        premiumIcon="trophy-outline"
-        premiumOwned={isPremium}
-        premiumAction={
-          SUBSCRIPTION_PURCHASE_ENABLED
-            ? () => {
-                if (isPremium) setPremiumStatusVisible(true);
-                else router.push('/');
-              }
-            : undefined
-        }
         brandMark
         showText={false}
       />
@@ -151,17 +141,23 @@ export default function TodayScreen() {
                 },
               ]}
             >
-              <Ionicons name="badge-master" size={16} color={colors.heroBadgeForeground} />
+              <BadgeMedal badge={latestBadge} size={26} locked={!unlockedBadgeIds.length} />
               <View style={styles.heroBadgeCopy}>
                 <Text numberOfLines={1} style={[styles.heroBadgeText, { color: colors.heroBadgeForeground }]}>{badgeText(badgeUi.title, language)}</Text>
-                <Text numberOfLines={1} style={[styles.heroBadgeHint, { color: colors.heroBadgeForeground }]}>{t('badgesClickToView')}</Text>
+                <Text numberOfLines={1} style={[styles.heroBadgeHint, { color: colors.heroBadgeForeground }]}>{unlockedBadgeIds.length} / {badges.length}</Text>
               </View>
+              <Ionicons name="chevron-forward" size={14} color={colors.heroBadgeForeground} />
             </Pressable>
-            <View style={[styles.heroStreakPill, { backgroundColor: colors.heroStreakBackground, borderColor: colors.heroStreakBorder }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${streak} ${t('streak')}`}
+              onPress={() => router.push('/streak')}
+              style={[styles.heroStreakPill, { backgroundColor: colors.heroStreakBackground, borderColor: colors.heroStreakBorder }]}
+            >
               <Ionicons name="flame" size={14} color={colors.heroStreakForeground} />
               <Text style={[styles.heroStreakValue, { color: colors.heroStreakForeground }]}>{streak}</Text>
               <Text style={[styles.heroStreakLabel, { color: colors.heroStreakForeground }]}>{t('streak')}</Text>
-            </View>
+            </Pressable>
           </View>
           <CalorieProgressFill progress={calorieProgress} color={heroInk} />
 
@@ -299,7 +295,6 @@ export default function TodayScreen() {
         />
       </View>
 
-      <PremiumAccessStatusModal visible={premiumStatusVisible} onClose={() => setPremiumStatusVisible(false)} />
     </Screen>
   );
 }
@@ -338,10 +333,11 @@ const styles = StyleSheet.create({
     minHeight: 40,
     borderRadius: 999,
     borderWidth: 1,
-    paddingHorizontal: 12,
+    paddingLeft: 7,
+    paddingRight: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
   },
   heroBadgeText: {
     fontFamily: 'Inter_700Bold',
@@ -358,8 +354,8 @@ const styles = StyleSheet.create({
   heroBadgeHint: {
     flexShrink: 1,
     fontFamily: 'Inter_500Medium',
-    fontSize: 8.5,
-    opacity: 0.86,
+    fontSize: 10,
+    opacity: 0.8,
   },
   heroStreakPill: {
     minHeight: 40,

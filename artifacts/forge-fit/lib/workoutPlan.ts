@@ -350,6 +350,24 @@ function selectCycleExercises(exercises: TranslationKey[], count: number, cycle:
   return Array.from({ length: count }, (_, index) => exercises[(offset + index) % exercises.length]);
 }
 
+/** One training day as the AI planner sees it: the muscle groups it covers and the moves it may pick from. */
+export type PlanSlot = { day: string; name: TranslationKey; areas: MuscleGroup[]; perArea: number; candidates: Partial<Record<MuscleGroup, TranslationKey[]>> };
+
+/** The week's skeleton with the exercises this profile's equipment allows, for the AI planner to fill. */
+export function buildPlanSlots(profile: Profile): PlanSlot[] {
+  const count = Math.min(Math.max(profile.trainingDays ?? 3, 2), 6);
+  const library = chooseLibrary(profile);
+  const days = preferredDayNames(profile, count);
+  const perArea = profile.sessionDuration && profile.sessionDuration >= 50 ? 3 : 2;
+  return splitAreas[count].map((areas, index) => ({
+    day: days[index],
+    name: splitNames[count]?.[index] ?? 'workoutFullBody',
+    areas,
+    perArea,
+    candidates: Object.fromEntries(areas.map((area) => [area, library[area]])),
+  }));
+}
+
 export function buildWorkoutPlanForCycle(profile: Profile, cycle: number): Workout[] {
   const count = Math.min(Math.max(profile.trainingDays ?? 3, 2), 6);
   const areasByDay = splitAreas[count];

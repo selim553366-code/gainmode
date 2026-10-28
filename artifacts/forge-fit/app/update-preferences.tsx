@@ -101,6 +101,19 @@ export default function UpdatePreferencesScreen() {
         <Text style={[styles.continueText, { color: colors.primaryForeground }]}>{t('editPreferencesContinue')}</Text>
         <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
       </Pressable>
+      <Pressable
+        testID="profile-tell-fitbud"
+        accessibilityRole="button"
+        onPress={() => router.push('/(tabs)/coach')}
+        style={({ pressed }) => [styles.fitbudButton, { borderColor: colors.border, backgroundColor: colors.card, opacity: pressed ? 0.85 : 1 }]}
+      >
+        <Ionicons name="coach-outline" size={18} color={colors.foreground} />
+        <View style={styles.fitbudCopy}>
+          <Text style={[styles.fitbudTitle, { color: colors.foreground }]}>{t('profileTellFitBud')}</Text>
+          <Text style={[styles.fitbudHint, { color: colors.mutedForeground }]}>{t('profileTellFitBudHint')}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={17} color={colors.mutedForeground} />
+      </Pressable>
     </Screen>
   );
 }
@@ -120,6 +133,10 @@ const styles = StyleSheet.create({
   optionCopy: { flex: 1, gap: 3 },
   optionTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   optionDescription: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16 },
-  continueButton: { minHeight: 52, borderRadius: 17, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 20 },
+  fitbudButton: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderRadius: 20, padding: 14, marginTop: 12 },
+  fitbudCopy: { flex: 1, minWidth: 0 },
+  fitbudTitle: { fontFamily: 'Inter_700Bold', fontSize: 15 },
+  fitbudHint: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 2 },
+  continueButton: { minHeight: 54, borderRadius: 27, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 20 },
   continueText: { fontFamily: 'Inter_700Bold', fontSize: 14 },
 });
