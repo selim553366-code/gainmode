@@ -35,6 +35,7 @@ import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
 import type { AiPlan } from '@/lib/aiPlan';
 import { requestAiPlan } from '@/lib/aiPlanRequest';
+import { isDesignPreview } from '@/lib/designPreview';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
@@ -266,6 +267,14 @@ function AgePicker({ value, inputValue, yearsLabel, onInputChange, onChange }: {
   </View>;
 }
 
+const PREVIEW_PAYWALL_KEY = 'gm-preview-paywall-done';
+function readPreviewFlag() {
+  try { return globalThis.localStorage?.getItem(PREVIEW_PAYWALL_KEY) === '1'; } catch { return false; }
+}
+function writePreviewFlag() {
+  try { globalThis.localStorage?.setItem(PREVIEW_PAYWALL_KEY, '1'); } catch { /* preview only */ }
+}
+
 export default function EntryScreen() {
   const colors = useColors();
   const { onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen } = useFit();
@@ -275,11 +284,18 @@ export default function EntryScreen() {
   const entryRoute = getEntryRoute({ onboardingComplete, introSeen, isPremium, subscriptionPurchaseEnabled: SUBSCRIPTION_PURCHASE_ENABLED, coachIntroPending });
   const [premiumCelebrationVisible, setPremiumCelebrationVisible] = React.useState(false);
   const purchasedRef = React.useRef(false);
+  // The web preview counts as subscribed, so show the plan picker once after onboarding there too.
+  const [previewPaywallDone, setPreviewPaywallDone] = React.useState(() => !isDesignPreview() || readPreviewFlag());
+  const previewPaywall = !editMode && !previewPaywallDone && onboardingComplete && introSeen;
+  const finishPreviewPaywall = () => {
+    writePreviewFlag();
+    setPreviewPaywallDone(true);
+  };
   React.useEffect(() => {
-    if (!editMode && !premiumCelebrationVisible && (entryRoute === 'tabs' || entryRoute === 'coach')) {
+    if (!editMode && !previewPaywall && !premiumCelebrationVisible && (entryRoute === 'tabs' || entryRoute === 'coach')) {
       router.replace(entryRoute === 'coach' ? '/(tabs)/coach' : '/(tabs)');
     }
-  }, [editMode, entryRoute, premiumCelebrationVisible]);
+  }, [editMode, entryRoute, premiumCelebrationVisible, previewPaywall]);
   if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
   if (entryRoute === 'onboarding') return <OnboardingQuestions />;
   if (entryRoute === 'intro') return <IntroScreen onDone={setIntroSeen} />;
@@ -291,6 +307,16 @@ export default function EntryScreen() {
         setPremiumCelebrationVisible(false);
         router.replace('/(tabs)/coach');
         if (purchasedRef.current) void offerWidgetAfterFirstPurchase();
+      }}
+    />;
+  }
+  if (previewPaywall) {
+    return <Paywall
+      previewMode
+      onUnlock={finishPreviewPaywall}
+      onPurchaseSuccess={() => {
+        setPremiumCelebrationVisible(true);
+        finishPreviewPaywall();
       }}
     />;
   }

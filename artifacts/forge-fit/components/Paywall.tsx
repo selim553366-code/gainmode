@@ -183,7 +183,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const insets = useSafeAreaInsets();
   const { language } = useFit();
   const t = (key: TranslationKey) => translate(language, key);
-  const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed: storeSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
+  const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed: storeSubscribed, purchase, refreshPackages, restore, isPurchasing, isRestoring } = useSubscription();
   // The web preview always counts as subscribed; the design preview should still show the buying path.
   const isSubscribed = previewMode ? false : storeSubscribed;
   const [plan, setPlan] = React.useState<Plan>('annual');
@@ -217,7 +217,11 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
       return;
     }
     if (checking) return;
-    const selectedPackage = plan === 'annual' ? annualPackage : monthlyPackage;
+    let selectedPackage = plan === 'annual' ? annualPackage : monthlyPackage;
+    if (isAvailable && !selectedPackage) {
+      const fresh = await refreshPackages().catch(() => ({ monthly: undefined, annual: undefined }));
+      selectedPackage = plan === 'annual' ? fresh.annual : fresh.monthly;
+    }
     if (!isAvailable || !selectedPackage) {
       setError(t('premiumStoreUnavailable'));
       return;
