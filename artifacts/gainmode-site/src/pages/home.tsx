@@ -1,14 +1,12 @@
 import { useRef } from 'react';
 import { Link } from 'wouter';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Code2, Globe2, PenTool, Smartphone, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Code2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { CONTACT_EMAIL, products } from '@/lib/products';
 import { LogoMark } from '@/components/site/brand';
 import { EASE, Kicker, Reveal, SplitTitle } from '@/components/site/motion';
 import { Phone } from '@/components/site/phone';
-
-const serviceIcons = [Smartphone, Globe2, PenTool, Sparkles];
 
 /** The hero mark: the logo with two orbits and moons turning around it. */
 function HeroGlobe() {
@@ -125,27 +123,7 @@ export default function Home() {
         </Reveal>
       </section>
 
-      <section className="relative overflow-hidden border-y border-white/[0.07] bg-ink-2/60 py-24 md:py-32">
-        <div className="aurora right-[-10%] top-[10%] h-[360px] w-[360px] bg-royal-500/20" />
-        <div className="relative mx-auto max-w-[1240px] px-5 md:px-8">
-          <Reveal><Kicker>{t.home.servicesKicker}</Kicker><h2 className="mt-4 max-w-3xl font-display text-[24px] font-extrabold uppercase leading-[0.98] tracking-[-0.03em] sm:text-4xl md:text-5xl">{t.home.servicesTitle}</h2></Reveal>
-          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {t.services.map((service, index) => {
-              const Icon = serviceIcons[index];
-              return (
-                <Reveal key={service.title} delay={index * 0.08}>
-                  <div className="group relative h-full overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition duration-500 hover:-translate-y-1 hover:border-royal-400/50">
-                    <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-royal-500/0 blur-3xl transition duration-500 group-hover:bg-royal-500/40" />
-                    <span className="relative grid h-12 w-12 place-items-center rounded-2xl bg-royal-500/15 text-royal-200 transition group-hover:bg-royal-500 group-hover:text-white"><Icon size={22} /></span>
-                    <h3 className="relative mt-8 text-xl font-semibold">{service.title}</h3>
-                    <p className="relative mt-3 text-sm leading-relaxed text-white/60">{service.body}</p>
-                  </div>
-                </Reveal>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <CtaBand fullBleed />
 
       <section className="mx-auto max-w-[1240px] px-5 py-24 md:px-8 md:py-32">
         <Reveal><Kicker>{t.home.processKicker}</Kicker><h2 className="mt-4 font-display text-[24px] font-extrabold uppercase leading-[0.98] tracking-[-0.03em] sm:text-4xl md:text-5xl">{t.home.processTitle}</h2></Reveal>
@@ -174,19 +152,21 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-      <CtaBand />
     </>
   );
 }
 
 /** Closing call to action shared by the home, services and about pages. */
-export function CtaBand() {
+export function CtaBand({ fullBleed = false }: { fullBleed?: boolean }) {
   const { t } = useI18n();
   return (
-    <section className="mx-auto max-w-[1240px] px-5 pb-24 md:px-8">
+    <section id={fullBleed ? 'home-contact-cta' : undefined} className={fullBleed
+      ? 'relative overflow-hidden bg-[linear-gradient(115deg,#668cff_0%,#315bff_55%,#4269ff_100%)]'
+      : 'mx-auto max-w-[1240px] px-5 pb-24 md:px-8'}>
       <Reveal>
-        <div className="grain relative overflow-hidden rounded-[40px] bg-royal-500 px-7 py-16 text-center md:px-16 md:py-24">
+        <div className={fullBleed
+          ? 'grain relative overflow-hidden px-5 py-20 text-center md:py-24'
+          : 'grain relative overflow-hidden rounded-[40px] bg-royal-500 px-7 py-16 text-center md:px-16 md:py-24'}>
           <div className="aurora -left-20 -top-24 h-[360px] w-[360px] bg-white/30" />
           <div className="aurora -bottom-32 -right-10 h-[360px] w-[360px] bg-royal-700" />
           <LogoMark size={64} light className="relative mx-auto" />
