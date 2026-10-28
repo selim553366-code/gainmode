@@ -72,8 +72,22 @@ const en = {
   legal: {
     privacyTitle: 'Privacy Policy',
     privacyBody: 'We only collect what our products need to work. We do not sell your data, and we protect it with industry-standard practices. Each app explains in its own privacy policy which data it uses and why.',
+    privacyUpdated: 'Last updated: October 28, 2026',
+    privacySections: [
+      { title: 'Information in GainMode', body: 'GainMode stores your profile, meals, weight logs, workout progress, app language and usage counters on your device by default. The app does not create a user account or send these local records to GainMode servers to create a profile. You can remove local records in the app settings or by clearing the app data or uninstalling the app.' },
+      { title: 'Location and weather features', body: 'GainMode requests foreground location access only when you choose to use weather-based chat backgrounds and approve the system permission prompt. Your current coordinates are sent directly from your device to Open-Meteo to retrieve current weather conditions for that location. GainMode does not use location for background tracking and does not store coordinates on its servers. You can revoke location access in your device settings or turn off the weather feature in the coach chat. Open-Meteo’s privacy terms apply to its processing of the weather request.' },
+      { title: 'Camera, AI and search', body: 'Live exercise pose analysis runs on your device; camera video is not sent to GainMode servers, recorded or shared. Messages sent to the FitBud coach and the context needed to personalize a response may be sent through the GainMode server to an AI provider. A meal photo you submit for analysis may also be sent to an AI provider to estimate nutrition. Food search text may be sent to third-party nutrition data services. Do not submit sensitive personal information. These providers may apply their own processing and retention terms.' },
+      { title: 'Subscriptions, choices and contact', body: 'RevenueCat and Apple App Store or Google Play may process subscription status and technical purchase information to provide Premium access. Payments are handled by the store; GainMode does not receive your payment card details. Hosting infrastructure may process limited technical logs for operation, security and troubleshooting. You can revoke camera or location permission in device settings, stop using AI and food-search features, and delete local app data in Settings. GainMode does not sell this data or use it to build advertising profiles. For privacy questions, contact globestudiosdev@gmail.com.' },
+    ],
     termsTitle: 'Terms of Service',
     termsBody: 'By using our products you agree to use them responsibly. Our software is provided as designed to help you; app-specific terms are shown inside each app.',
+    termsUpdated: 'Last updated: October 28, 2026',
+    termsSections: [
+      { title: 'Using GainMode', body: 'GainMode provides fitness planning, workout tracking, nutrition logging and general wellness information. Estimates for goals, calories and progress are approximate, vary by person and do not guarantee a particular result. AI-generated content can be inaccurate or incomplete; review it before relying on it.' },
+      { title: 'Health and safety', body: 'GainMode is not a medical device and does not diagnose, treat, cure or prevent disease. App content is not a substitute for medical advice, diagnosis or treatment. Ask a qualified healthcare professional about health concerns, symptoms or dietary changes. Stop exercising if you experience pain, dizziness or unusual symptoms; contact local emergency services in an emergency.' },
+      { title: 'Subscriptions and purchases', body: 'Premium purchases are processed by Apple App Store or Google Play and charged to your store account. The store displays the price, billing period, any trial duration and post-trial price before purchase confirmation. Subscriptions renew automatically unless cancelled under the store’s terms. Manage or cancel them in your store account settings before renewal. Deleting the app does not cancel a subscription. Use GainMode’s restore-purchases option to recognize eligible purchases again.' },
+      { title: 'Data and responsibility', body: 'Profile and progress records are stored on your device by default. When you use AI, weather or food-search features, information described in the Privacy Policy may be sent to the relevant service providers. You are responsible for using GainMode safely and in a way that is appropriate for your circumstances. For questions about these terms, contact globestudiosdev@gmail.com.' },
+    ],
     supportTitle: 'Support',
     supportBody: 'For help with any Globe Studios product, email us with the app name, your device and a short description of the issue.',
   },
@@ -193,8 +207,22 @@ const tr: Copy = {
   legal: {
     privacyTitle: 'Gizlilik Politikası',
     privacyBody: 'Ürünlerimizin çalışması için yalnızca gereken bilgileri topluyoruz. Verilerini satmıyoruz ve sektör standartlarında koruyoruz. Her uygulama hangi verileri neden kullandığını kendi gizlilik politikasında açıklar.',
+    privacyUpdated: 'Son güncelleme: 28 Ekim 2026',
+    privacySections: [
+      { title: 'GainMode’da işlenen bilgiler', body: 'GainMode; profilini, öğünlerini, kilo kayıtlarını, antrenman ilerlemeni, uygulama dilini ve kullanım sayaçlarını varsayılan olarak cihazında saklar. Uygulama kullanıcı hesabı oluşturmaz ve bu yerel kayıtları profil oluşturmak amacıyla GainMode sunucularına göndermez. Yerel kayıtlarını uygulama ayarlarından, uygulama verilerini temizleyerek veya uygulamayı kaldırarak silebilirsin.' },
+      { title: 'Konum ve hava durumu özellikleri', body: 'GainMode, yalnızca hava durumuna göre değişen sohbet arka planlarını kullanmayı seçtiğinde ve sistem izin penceresini onayladığında, uygulama kullanımdayken konum izni ister. Mevcut koordinatların, o konumdaki güncel hava durumunu almak için cihazından doğrudan Open-Meteo’ya gönderilir. GainMode konumu arka planda takip etmez ve koordinatları sunucularında saklamaz. Konum iznini cihaz ayarlarından kaldırabilir veya koç sohbetindeki hava durumu özelliğini kapatabilirsin. Open-Meteo’nun hava durumu isteğini işlemesi kendi gizlilik koşullarına tabidir.' },
+      { title: 'Kamera, yapay zekâ ve arama', body: 'Canlı egzersiz poz analizi cihazında çalışır; kamera videosu GainMode sunucularına gönderilmez, kaydedilmez veya paylaşılmaz. FitBud koçuna gönderdiğin mesajlar ve yanıtı kişiselleştirmek için gereken bağlam, GainMode sunucusu üzerinden bir yapay zekâ sağlayıcısına iletilebilir. Analiz için gönderdiğin yemek fotoğrafı da besin tahmini oluşturmak üzere yapay zekâ sağlayıcısına gönderilebilir. Yemek araması metni üçüncü taraf beslenme verisi hizmetlerine iletilebilir. Hassas kişisel bilgiler gönderme. Bu sağlayıcıların kendi işleme ve saklama koşulları geçerli olabilir.' },
+      { title: 'Abonelikler, seçeneklerin ve iletişim', body: 'Premium erişimi sağlamak için RevenueCat ile Apple App Store veya Google Play abonelik durumunu ve satın alımla ilgili teknik bilgileri işleyebilir. Ödemeler mağaza tarafından alınır; GainMode ödeme kartı bilgilerini almaz. Uygulamayı barındıran altyapı, çalıştırma, güvenlik ve hata ayıklama için sınırlı teknik kayıtları işleyebilir. Kamera veya konum iznini cihaz ayarlarından kaldırabilir, yapay zekâ ve yemek arama özelliklerini kullanmayabilir, uygulama ayarlarından cihazındaki verileri silebilirsin. GainMode bu verileri satmaz veya reklam profili oluşturmak için kullanmaz. Gizlilik soruları için globestudiosdev@gmail.com adresine yazabilirsin.' },
+    ],
     termsTitle: 'Kullanım Şartları',
     termsBody: 'Ürünlerimizi kullanarak onları sorumlu bir şekilde kullanmayı kabul edersin. Yazılımlarımız sana yardımcı olmak için tasarlandığı haliyle sunulur; uygulamaya özel şartlar her uygulamanın içinde gösterilir.',
+    termsUpdated: 'Son güncelleme: 28 Ekim 2026',
+    termsSections: [
+      { title: 'GainMode’un kullanımı', body: 'GainMode fitness planlama, antrenman takibi, beslenme kaydı ve genel sağlık bilgileri sunar. Hedef, kalori ve ilerleme tahminleri yaklaşık değerlerdir; kişiye göre değişir ve belirli bir sonucu garanti etmez. Yapay zekâ tarafından oluşturulan içerikler hatalı veya eksik olabilir; bunlara güvenmeden önce kontrol et.' },
+      { title: 'Sağlık ve güvenlik', body: 'GainMode tıbbi cihaz değildir; hastalıkları teşhis etmez, tedavi etmez, iyileştirmez veya önlemez. Uygulama içeriği tıbbi tavsiye, tanı ya da tedavinin yerine geçmez. Sağlığın, belirtilerin veya beslenme değişiklikleri hakkında yetkili bir sağlık uzmanına danış. Egzersiz sırasında ağrı, baş dönmesi veya olağan dışı belirtiler hissedersen dur; acil durumda yerel acil yardım hizmetlerine başvur.' },
+      { title: 'Abonelikler ve satın almalar', body: 'Premium satın alımları Apple App Store veya Google Play tarafından işlenir ve mağaza hesabına ücretlendirilir. Satın alma onayından önce mağaza fiyatı, faturalandırma dönemi, varsa deneme süresi ve deneme sonrası fiyatı gösterir. Abonelikler mağaza koşullarına göre iptal edilmedikçe otomatik yenilenir. Yenileme öncesinde mağaza hesabının ayarlarından yönetebilir veya iptal edebilirsin. Uygulamayı silmek aboneliği iptal etmez. Uygulamadaki satın alımları geri yükleme seçeneği uygun satın alımları yeniden tanır.' },
+      { title: 'Veriler ve sorumluluk', body: 'Profil ve ilerleme kayıtları varsayılan olarak cihazında tutulur. Yapay zekâ, hava durumu veya yemek arama özelliklerini kullandığında Gizlilik Politikası’nda açıklanan bilgiler ilgili hizmet sağlayıcılarına iletilebilir. GainMode’u kendi koşullarına uygun ve güvenli biçimde kullanmak senin sorumluluğundadır. Bu şartlarla ilgili sorular için globestudiosdev@gmail.com adresine yazabilirsin.' },
+    ],
     supportTitle: 'Destek',
     supportBody: 'Globe Studios ürünlerinden herhangi biriyle ilgili yardım için uygulamanın adını, cihazını ve sorunun kısa bir açıklamasını bize e-postayla gönder.',
   },
@@ -247,6 +275,10 @@ const copies: Record<Lang, Copy> = { en, tr };
 const STORAGE_KEY = 'globe-studios-lang';
 
 function initialLang(): Lang {
+  if (typeof window !== 'undefined') {
+    const requested = new URLSearchParams(window.location.search).get('lang');
+    if (requested) return requested === 'tr' ? 'tr' : 'en';
+  }
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'en' || stored === 'tr') return stored;

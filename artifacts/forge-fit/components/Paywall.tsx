@@ -347,11 +347,9 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
         <Pressable testID="paywall-restore" accessibilityRole="button" disabled={isRestoring} onPress={() => { void handleRestore(); }} hitSlop={8}>
           <Text style={[styles.link, { color: colors.foreground }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text>
         </Pressable>
-        <Text style={[styles.linkDot, { color: colors.mutedForeground }]}>·</Text>
         <Pressable accessibilityRole="link" onPress={() => openLegal('terms-of-service')} hitSlop={8}>
           <Text style={[styles.link, { color: colors.mutedForeground }]}>{t('termsOfService')}</Text>
         </Pressable>
-        <Text style={[styles.linkDot, { color: colors.mutedForeground }]}>·</Text>
         <Pressable accessibilityRole="link" onPress={() => openLegal('privacy-policy')} hitSlop={8}>
           <Text style={[styles.link, { color: colors.mutedForeground }]}>{t('privacyPolicy')}</Text>
         </Pressable>
@@ -413,7 +411,6 @@ const styles = StyleSheet.create({
   cta: { height: 58, borderRadius: 29, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   ctaText: { fontFamily: 'Inter_700Bold', fontSize: 16, letterSpacing: -0.2 },
   renew: { fontFamily: 'Inter_500Medium', fontSize: 12, textAlign: 'center', marginTop: 10, fontVariant: ['tabular-nums'] },
-  links: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10 },
-  link: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  linkDot: { fontSize: 12 },
+  links: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', columnGap: 14, rowGap: 8, marginTop: 10, paddingHorizontal: 8 },
+  link: { flexShrink: 1, textAlign: 'center', fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 16 },
 });

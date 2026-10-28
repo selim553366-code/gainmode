@@ -38,8 +38,8 @@ const policies = {
       {
         heading: '4. Konum ve hava durumu arka planları',
         paragraphs: [
-          'Hava durumuna göre değişen sohbet arka planlarını etkinleştirip cihazın konum izni penceresinde onay verdiğinizde, GainMode mevcut konumunuzu alır. Koordinatlar, o konumdaki güncel hava durumunu almak için cihazınızdan doğrudan Open-Meteo hava durumu API’sine gönderilir.',
-          'Konum arka plan takibi için kullanılmaz ve GainMode tarafından sunucularda saklanmaz. Bu özelliği telefonunuzun ayarlarından konum iznini kaldırarak veya koç sohbetindeki hava durumu kontrolünden kapatabilirsiniz. Open-Meteo’nun istekleri işlemesi kendi gizlilik koşullarına tabidir.',
+          'GainMode yalnızca hava durumuna göre değişen sohbet arka planlarını kullanmayı seçtiğinizde ve sistem izin penceresini onayladığınızda, uygulama kullanımdayken konum izni ister. Mevcut koordinatlar, o konumdaki güncel hava durumunu almak için cihazınızdan doğrudan Open-Meteo hava durumu API’sine gönderilir.',
+          'Konum arka planda takip edilmez ve GainMode sunucularında saklanmaz. İzin daha önce verildiyse hava durumu arka planı açıkken koç sohbeti ekranında güncel hava durumu yenilenebilir. Konum iznini cihaz ayarlarından kaldırabilir veya koç sohbetindeki hava durumu kontrolünden özelliği kapatabilirsiniz. Open-Meteo’nun istekleri işlemesi kendi gizlilik koşullarına tabidir.',
         ],
       },
       {
@@ -127,8 +127,8 @@ const policies = {
       {
         heading: '4. Location and weather backgrounds',
         paragraphs: [
-          'If you enable weather-based chat backgrounds and grant permission in the device location prompt, GainMode obtains your current location. The coordinates are sent directly from your device to the Open-Meteo weather API to retrieve current conditions for that location.',
-          'Location is not used for background tracking and is not stored on GainMode servers. You can revoke location permission in your device settings or turn off the feature using the weather control in the coach chat. Open-Meteo’s own privacy terms apply to its handling of API requests.',
+          'GainMode requests foreground location access only when you choose to use weather-based chat backgrounds and approve the system permission prompt. Your current coordinates are sent directly from your device to the Open-Meteo weather API to retrieve current conditions for that location.',
+          'Location is not tracked in the background and is not stored on GainMode servers. If permission was already granted, current weather may refresh while the coach chat screen is open and the weather background is enabled. You can revoke location permission in your device settings or turn off the feature using the weather control in the coach chat. Open-Meteo’s own privacy terms apply to its handling of API requests.',
         ],
       },
       {
@@ -216,8 +216,8 @@ const policies = {
       {
         heading: '4. Standort und Wetterhintergründe',
         paragraphs: [
-          'Wenn du wetterabhängige Chat-Hintergründe aktivierst und die Standortberechtigung im Systemdialog erteilst, ruft GainMode deinen aktuellen Standort ab. Die Koordinaten werden direkt von deinem Gerät an die Open-Meteo-Wetter-API gesendet, um das aktuelle Wetter an diesem Ort abzurufen.',
-          'Der Standort wird nicht zur Hintergrundortung verwendet und nicht auf GainMode-Servern gespeichert. Du kannst die Standortberechtigung in den Geräteeinstellungen widerrufen oder die Funktion über die Wettersteuerung im Coach-Chat ausschalten. Für die Verarbeitung der API-Anfragen durch Open-Meteo gelten deren eigene Datenschutzbedingungen.',
+          'GainMode fragt den Standortzugriff während der App-Nutzung nur an, wenn du wetterabhängige Chat-Hintergründe verwenden möchtest und dem Systemdialog zustimmst. Deine aktuellen Koordinaten werden direkt von deinem Gerät an die Open-Meteo-Wetter-API gesendet, um das aktuelle Wetter an diesem Ort abzurufen.',
+          'Der Standort wird nicht im Hintergrund verfolgt und nicht auf GainMode-Servern gespeichert. Wenn die Berechtigung bereits erteilt wurde, kann das aktuelle Wetter aktualisiert werden, solange der Coach-Chat geöffnet und der Wetterhintergrund aktiviert ist. Du kannst die Standortberechtigung in den Geräteeinstellungen widerrufen oder die Funktion über die Wettersteuerung im Coach-Chat ausschalten. Für die Verarbeitung der API-Anfragen durch Open-Meteo gelten deren eigene Datenschutzbedingungen.',
         ],
       },
       {
@@ -305,8 +305,8 @@ const policies = {
       {
         heading: '4. Localisation et arrière-plans météo',
         paragraphs: [
-          'Si vous activez les arrière-plans de chat selon la météo et accordez l’autorisation dans la fenêtre système, GainMode récupère votre position actuelle. Les coordonnées sont envoyées directement depuis votre appareil à l’API météo d’Open-Meteo pour obtenir les conditions actuelles à cet endroit.',
-          'La position n’est pas utilisée pour le suivi en arrière-plan et n’est pas stockée sur les serveurs GainMode. Vous pouvez retirer l’autorisation de localisation dans les réglages de votre appareil ou désactiver la fonction avec le contrôle météo du chat coach. Les propres conditions de confidentialité d’Open-Meteo s’appliquent au traitement de ses requêtes API.',
+          'GainMode demande l’accès à la localisation lorsque l’app est utilisée uniquement si vous choisissez les arrière-plans de chat selon la météo et acceptez la demande du système. Vos coordonnées actuelles sont envoyées directement depuis votre appareil à l’API météo d’Open-Meteo pour obtenir les conditions actuelles à cet endroit.',
+          'La position n’est pas suivie en arrière-plan et n’est pas stockée sur les serveurs GainMode. Si l’autorisation a déjà été accordée, la météo peut être actualisée lorsque le chat coach est ouvert et que l’arrière-plan météo est activé. Vous pouvez retirer l’autorisation de localisation dans les réglages de votre appareil ou désactiver la fonction avec le contrôle météo du chat coach. Les propres conditions de confidentialité d’Open-Meteo s’appliquent au traitement de ses requêtes API.',
         ],
       },
       {
@@ -394,8 +394,8 @@ const policies = {
       {
         heading: '4. Ubicación y fondos según el clima',
         paragraphs: [
-          'Si activas los fondos del chat según el clima y concedes el permiso en el aviso de ubicación del sistema, GainMode obtiene tu ubicación actual. Las coordenadas se envían directamente desde tu dispositivo a la API meteorológica de Open-Meteo para consultar las condiciones actuales de ese lugar.',
-          'La ubicación no se utiliza para el seguimiento en segundo plano y GainMode no la almacena en sus servidores. Puedes retirar el permiso de ubicación desde los ajustes del dispositivo o desactivar la función con el control del clima en el chat del coach. El tratamiento de las solicitudes API por parte de Open-Meteo se rige por sus propias condiciones de privacidad.',
+          'GainMode solicita acceso a la ubicación mientras la app está en uso solo cuando eliges los fondos del chat según el clima y aceptas el aviso del sistema. Las coordenadas actuales se envían directamente desde tu dispositivo a la API meteorológica de Open-Meteo para consultar las condiciones actuales de ese lugar.',
+          'La ubicación no se rastrea en segundo plano y GainMode no la almacena en sus servidores. Si ya concediste el permiso, el clima puede actualizarse mientras el chat del coach está abierto y el fondo meteorológico está activado. Puedes retirar el permiso de ubicación desde los ajustes del dispositivo o desactivar la función con el control del clima en el chat del coach. El tratamiento de las solicitudes API por parte de Open-Meteo se rige por sus propias condiciones de privacidad.',
         ],
       },
       {
