@@ -1,161 +1,276 @@
-import { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-export const languages = ['en', 'tr', 'de', 'fr', 'es'] as const;
-export type Lang = typeof languages[number];
+export type Lang = 'en' | 'tr';
+export const languages: Lang[] = ['en', 'tr'];
 
-export const dictionary = {
-  en: {
-    // Globe Studios
-    navApps: 'Apps',
-    navAbout: 'About',
-    navContact: 'Contact',
-    navSupport: 'Support',
-    navPrivacy: 'Privacy',
-    navTerms: 'Terms',
-    studioName: 'Globe Studios',
-    studioTagline: 'Building for real life.',
-    studioDescription: 'An independent product studio focused on utility, performance, and craft.',
-    viewProduct: 'View Product',
-    ourWork: 'Our Work',
-    aboutTitle: 'We build digital tools that respect your time and attention.',
-    aboutBody: 'Globe Studios is an independent product studio with a global mindset. We believe software should be fast, reliable, and beautifully crafted. We do not chase trends. We solve real problems with precision.',
-    contactTitle: 'Get in touch.',
-    contactBody: 'Whether you have a question about our products, need support, or want to discuss an opportunity, we are here to listen.',
-    contactEmail: 'globestudiosdev@gmail.com',
-    supportTitle: 'How can we help?',
-    supportBody: 'For issues with our products, please reach out with your account details and a description of the problem.',
+const en = {
+  nav: { work: 'Work', services: 'Services', about: 'About', contact: 'Contact', cta: 'Start a project', menu: 'Menu', close: 'Close', language: 'Language' },
+  home: {
+    eyebrow: 'App & web studio',
+    title: ['We build apps', 'and websites', 'people love to use.'],
+    body: 'Globe Studios designs and develops mobile apps and websites — from the first idea to the store listing, with care for every detail in between.',
+    primary: 'See our work',
+    secondary: 'Start a project',
+    marquee: ['iOS apps', 'Android apps', 'Websites', 'Product design', 'AI features', 'Brand identity'],
+    workKicker: 'Selected work',
+    workTitle: 'Products we build and ship.',
+    workAll: 'All work',
+    nextTitle: 'Next product in the works',
+    nextBody: 'We are already building what comes after GainMode. It will show up here first.',
+    servicesKicker: 'What we do',
+    servicesTitle: 'One team from idea to launch.',
+    processKicker: 'How we work',
+    processTitle: 'A clear path, step by step.',
+    principlesKicker: 'What we care about',
+    ctaTitle: 'Have an idea? Let’s build it together.',
+    ctaBody: 'Tell us what you want to make. We reply to every message.',
+    ctaButton: 'Get in touch',
+  },
+  services: [
+    { title: 'Mobile apps', body: 'Native-feeling iOS and Android apps with smooth motion, offline-friendly data and store-ready releases.' },
+    { title: 'Websites', body: 'Fast, responsive websites and landing pages that explain your product clearly and look great on every screen.' },
+    { title: 'Product design', body: 'Interfaces, flows and design systems shaped around how people actually use them.' },
+    { title: 'AI features', body: 'Practical AI inside your product: coaching, photo analysis, personal plans and smart assistants.' },
+  ],
+  process: [
+    { title: 'Discover', body: 'We learn the problem, the people and the goal before drawing a single screen.' },
+    { title: 'Design', body: 'Flows, interfaces and motion, tested early on real devices.' },
+    { title: 'Build', body: 'Clean, reliable code for mobile and web, delivered in small, visible steps.' },
+    { title: 'Launch & grow', body: 'Store submission, analytics and the updates that come after launch day.' },
+  ],
+  principles: [
+    { title: 'Craft over noise', body: 'Every screen, animation and word is there for a reason.' },
+    { title: 'Built to last', body: 'Fast, stable software that keeps working after the launch buzz fades.' },
+    { title: 'Global mindset', body: 'Products made for many languages and many places from day one.' },
+  ],
+  work: {
+    kicker: 'Our work',
+    title: 'Products by Globe Studios.',
+    body: 'Apps and websites we design, build and launch. More are on the way.',
+    view: 'View project',
+    soon: 'Coming soon',
+    live: 'Available now',
+  },
+  about: {
+    kicker: 'About',
+    title: 'A product studio for apps and the web.',
+    body: [
+      'Globe Studios is an independent studio that designs and develops mobile apps and websites. We build our own products and we partner with teams who want theirs made with the same care.',
+      'We keep things focused: clear interfaces, motion that helps, code that holds up, and products that respect people’s time.',
+    ],
+    valuesTitle: 'How we think',
+  },
+  contact: {
+    kicker: 'Contact',
+    title: 'Let’s talk about your project.',
+    body: 'Questions about our products, a new app or website, or a partnership — write to us and we will get back to you.',
+    emailLabel: 'Email',
+    supportLabel: 'Product support',
+    supportBody: 'Need help with one of our apps? Include the app name and a short description of the issue.',
+  },
+  footer: { line: 'Apps and websites, made with care.', legal: 'All rights reserved.', privacy: 'Privacy', terms: 'Terms', support: 'Support' },
+  legal: {
     privacyTitle: 'Privacy Policy',
-    privacyBody: 'We believe in collecting only what we need to make our products work. We do not sell your data. We protect it with industry-standard practices.',
+    privacyBody: 'We only collect what our products need to work. We do not sell your data, and we protect it with industry-standard practices. Each app explains in its own privacy policy which data it uses and why.',
     termsTitle: 'Terms of Service',
-    termsBody: 'By using our products, you agree to these simple terms. We provide software as-is, designed to help you, and we ask that you use it responsibly.',
-    footerLegal: '© 2025 Globe Studios. All rights reserved.',
-    
-    // GainMode Preserved
-    gmNav: ['The method', 'Inside GainMode', 'FitBud AI', 'FAQ'],
-    gmNavCta: 'Start your rhythm',
-    gmHeroKicker: 'Your training, with a smarter rhythm',
-    gmHeroTitle: 'Train with intent.\nGrow with proof.',
-    gmHeroBody: 'GainMode turns scattered effort into a clear practice — adaptive workouts, honest nutrition, and an AI coach that learns how you move.',
-    gmHeroPrimary: 'See how it works',
-    gmHeroSecondary: 'Meet FitBud',
-    gmHeroNote: 'Built for the days you show up — and the days you need a nudge.',
-    gmScroll: 'Explore the method',
-    gmSignal: 'A calmer way to get stronger',
-    gmSignalBody: 'No noisy dashboards. No guesswork disguised as confidence. Just the right next step, informed by your real life.',
-    gmMethodKicker: 'The GainMode method',
-    gmMethodTitle: 'Consistency is not a personality trait.\nIt is a system.',
-    gmMethodBody: 'Your plan adapts when life happens, so progress never depends on a perfect week.',
-    gmMethodItems: [
-      ['01', 'Start where you are', 'Set a goal, tell us your context, and get a plan that respects both.'],
-      ['02', 'Make every rep count', 'Live form cues keep technique clear when your attention is elsewhere.'],
-      ['03', 'Learn from the week', 'See what worked, what changed, and what deserves your energy next.'],
+    termsBody: 'By using our products you agree to use them responsibly. Our software is provided as designed to help you; app-specific terms are shown inside each app.',
+    supportTitle: 'Support',
+    supportBody: 'For help with any Globe Studios product, email us with the app name, your device and a short description of the issue.',
+  },
+  notFound: { title: 'Page not found', body: 'The page you are looking for does not exist.', back: 'Back to home' },
+  gm: {
+    back: 'All work',
+    kicker: 'Fitness · AI · iOS & Android',
+    title: 'Your AI fitness coach, in your pocket.',
+    body: 'GainMode builds your training and nutrition plan with AI, counts your reps with the camera, reads your meals from a photo and keeps you going with streaks and badges.',
+    soon: 'Coming soon',
+    appStore: 'App Store',
+    playStore: 'Google Play',
+    storeSoon: 'Soon on',
+    notifyTitle: 'Get notified at launch',
+    notifyPlaceholder: 'Your email',
+    notifyButton: 'Notify me',
+    notifyDone: 'You are on the list. We will email you at launch.',
+    notifyError: 'We could not save your email right now. Please try again.',
+    featuresKicker: 'Inside GainMode',
+    featuresTitle: 'Everything for a routine that lasts.',
+    features: [
+      { tag: 'AI plan', title: 'A plan written by AI, for you.', body: 'Answer a few questions about your goal, body, equipment and schedule. GainMode sends them to AI and builds your workouts and calorie targets while you watch.' },
+      { tag: 'Food scan', title: 'Snap a meal, get the macros.', body: 'Point the camera at your plate or a barcode. GainMode estimates calories, protein, carbs and fat and adds them to your day.' },
+      { tag: 'Live form', title: 'A coach that counts your reps.', body: 'Live form analysis tracks your skeleton through squats, push-ups and lunges, counts only clean reps and tells you what to fix.' },
+      { tag: 'Nutrition', title: 'Your week of eating, at a glance.', body: 'Daily rings for calories and macros, a weekly view against your goal, and meals grouped the way you eat them.' },
+      { tag: 'Training', title: 'Workouts that fit your week.', body: 'A weekly route of sessions built for your equipment and level, with exercises, sets and reps ready to go.' },
+      { tag: 'Progress', title: 'See the change, not just feel it.', body: 'Charts for body weight, lifted weight, training time, calorie consistency and calories burned since day one.' },
+      { tag: 'Motivation', title: 'Streaks and badges worth chasing.', body: 'A streak fire that grows at 10, 50 and 100 days, and 28 medals on a wooden wall — some of them very hard to earn.' },
     ],
-    gmInsideKicker: 'Inside GainMode',
-    gmInsideTitle: 'One intelligent loop for the whole you.',
-    gmInsideBody: 'Training, food, recovery, and momentum are not separate tabs in your life. GainMode keeps them in conversation.',
-    gmFeatureTitles: ['A coach with context', 'Form, without the fuss', 'Nutrition you can actually keep', 'Plans that move with you', 'Targets made practical', 'Your week, made legible', 'A profile that keeps evolving'],
-    gmFeatureBodies: [
-      'FitBud remembers your goals, your patterns, and the small details that make advice feel made for you.',
-      'Use your camera for real-time guidance on key movements. Less second-guessing, more control.',
-      'Snap a meal and get a useful estimate. Make a better next choice without turning dinner into homework.',
-      'Your plan adjusts to your schedule, energy, and equipment — not the other way around.',
-      'Clear calorie and macro targets that flex with your training and help you make decisions fast.',
-      'A weekly readout connects your sessions, habits, and progress so you know what to repeat.',
-      'Tune the experience around your body, preferences, and the version of strong you are building.',
+    coachTag: 'FitBud',
+    coachTitle: 'Meet FitBud, your AI training buddy.',
+    coachBody: 'FitBud knows your plan, your goals and your progress. Ask anything — it answers in your language and can update your plan for you.',
+    coachQuestion: 'When should I add weight to my squat?',
+    coachAnswer: 'When you hit 12 clean reps on every set, add 2.5 kg next session. You are 2 reps away — nice work.',
+    galleryKicker: 'Screens',
+    galleryTitle: 'Designed down to the last pixel.',
+    facts: [
+      { value: '5', label: 'languages' },
+      { value: '28', label: 'badges to earn' },
+      { value: '3', label: 'exercises with live form analysis' },
+      { value: 'iOS + Android', label: 'one experience' },
     ],
-    gmHowKicker: 'From first tap to next level',
-    gmHowTitle: 'Less planning.\nMore showing up.',
-    gmHowBody: 'GainMode turns the invisible work of staying consistent into a simple, satisfying daily ritual.',
-    gmHowSteps: ['Tell us what matters', 'Follow your adaptive session', 'Review the signal, then keep going'],
-    gmHowStepBodies: ['A few honest answers create a starting point that feels like yours.', 'Your coach meets you in the moment with the right session and a clear cue.', 'Small evidence compounds. See your progress, then make one smart adjustment.'],
-    gmQuote: 'I stopped restarting every Monday. GainMode gives me a plan I can actually live with.',
-    gmQuoteBy: 'Maya, strength training · 4 months in',
-    gmProofTitle: 'A stronger routine starts with one clear next step.',
-    gmProofBody: 'The app is being shaped with people who care about progress that lasts. Join the early list and we will let you know when GainMode is ready for your rhythm.',
-    gmEmailPlaceholder: 'Your email address',
-    gmJoin: 'Join the early list',
-    gmJoined: 'You are on the list.',
-    gmPrivacy: 'No noise. Only a note when GainMode is ready.',
-    gmFooterLine: 'Build a practice you can trust.',
-    gmFooterLinks: ['The method', 'Inside GainMode', 'FitBud AI'],
-    gmFooterLegal: '© 2025 GainMode. Made for real life.',
-    gmLanguages: { en: 'English', tr: 'Türkçe', de: 'Deutsch', fr: 'Français', es: 'Español' },
-    gmLangLabel: 'Language',
-    gmMenu: 'Menu',
-    gmClose: 'Close',
-    gmWatch: 'Watch the approach',
-    gmFaq: 'Questions, answered',
-    gmFaqItems: [
-      ['Is GainMode a workout library?', 'It is more personal than that. GainMode combines adaptive planning, live form guidance, nutrition context, and weekly insight around your goals.'],
-      ['Do I need gym equipment?', 'No. Tell GainMode what you have available and your plan can meet you at home, in a gym, or wherever you train.'],
-      ['What does FitBud remember?', 'Your goals, preferences, schedule patterns, and the feedback you give it — so each recommendation gets more useful over time.'],
-    ],
-    gmMicroForm: 'Live form check',
-    gmMicroSquat: 'Squat · 86% aligned',
-    gmMicroFitbud: 'Ready for one strong set? I am with you.',
-    gmMicroMethodNote: 'Designed around the next useful action',
-    gmMicroWeekly: 'Weekly signal',
-    gmMicroStrength: 'strength trend',
-    gmMicroRhythm: 'session rhythm',
-    gmMicroChart: 'A week you can read',
-    gmMicroFaqTitle: ['Clear answers.', 'No fine print.'],
-    gmJoinError: 'We could not save your email right now. Please try again.',
-    emailUs: 'Email us',
-    supportEmailLabel: 'Support Email',
-    notFoundTitle: '404',
-    notFoundBody: 'The page you are looking for does not exist.',
-    toggleMenu: 'Toggle menu',
-    backToGlobe: 'Back to Globe Studios',
-    navPrimary: 'Primary navigation',
-    navMobile: 'Mobile navigation',
-    gainmodeHome: 'GainMode home',
-    yourRhythm: 'Your rhythm',
-    statusLive: 'Live',
-    statusComingSoon: 'Coming Soon',
-
+    ctaTitle: 'GainMode is almost here.',
+    ctaBody: 'Leave your email and we will let you know the day it lands on the App Store and Google Play.',
+    madeBy: 'Designed and built by Globe Studios',
   },
-  tr: {
-    navApps: 'Uygulamalar', navAbout: 'Hakkımızda', navContact: 'İletişim', navSupport: 'Destek', navPrivacy: 'Gizlilik', navTerms: 'Şartlar', studioName: 'Globe Studios', studioTagline: 'Gerçek hayat için inşa ediyoruz.', studioDescription: 'Fayda, performans ve zanaata odaklanan bağımsız bir ürün stüdyosu.', viewProduct: 'Ürünü İncele', ourWork: 'Çalışmalarımız', aboutTitle: 'Zamanınıza ve dikkatinize saygı duyan dijital araçlar geliştiriyoruz.', aboutBody: 'Globe Studios, küresel bir vizyona sahip bağımsız bir ürün stüdyosudur. Yazılımın hızlı, güvenilir ve güzel hazırlanmış olması gerektiğine inanıyoruz. Trendleri takip etmiyoruz. Gerçek sorunları hassasiyetle çözüyoruz.', contactTitle: 'İletişime geçin.', contactBody: 'Ürünlerimiz hakkında bir sorunuz mu var, desteğe mi ihtiyacınız var veya bir fırsat mı konuşmak istiyorsunuz? Sizi dinlemeye buradayız.', contactEmail: 'globestudiosdev@gmail.com', supportTitle: 'Nasıl yardımcı olabiliriz?', supportBody: 'Ürünlerimizle ilgili sorunlar için lütfen hesap detaylarınız ve sorunun açıklamasıyla bize ulaşın.', privacyTitle: 'Gizlilik Politikası', privacyBody: 'Sadece ürünlerimizin çalışması için ihtiyacımız olanı topladığımıza inanıyoruz. Verilerinizi satmıyoruz. Onları endüstri standartlarında uygulamalarla koruyoruz.', termsTitle: 'Kullanım Şartları', termsBody: 'Ürünlerimizi kullanarak bu basit şartları kabul etmiş olursunuz. Yazılımı size yardımcı olması için tasarlandığı haliyle sunuyoruz ve sorumlu bir şekilde kullanmanızı rica ediyoruz.', footerLegal: '© 2025 Globe Studios. Tüm hakları saklıdır.',
-    gmNav: ['Yöntem', 'GainMode’un içi', 'FitBud AI', 'SSS'], gmNavCta: 'Ritmini başlat', gmHeroKicker: 'Daha akıllı bir ritimle antrenman yap', gmHeroTitle: 'Niyetle antrenman yap.\nKanıtla geliş.', gmHeroBody: 'GainMode dağınık çabayı net bir pratiğe dönüştürür — uyarlanabilir antrenmanlar, gerçekçi beslenme ve nasıl hareket ettiğini öğrenen bir AI koç.', gmHeroPrimary: 'Nasıl çalıştığını gör', gmHeroSecondary: 'FitBud ile tanış', gmHeroNote: 'Geldiğin günler ve küçük bir dürtüye ihtiyaç duyduğun günler için.', gmScroll: 'Yöntemi keşfet', gmSignal: 'Güçlenmenin daha sakin yolu', gmSignalBody: 'Gürültülü panolar yok. Güven gibi görünen tahminler yok. Sadece gerçek hayatından öğrenen doğru sonraki adım.', gmMethodKicker: 'GainMode yöntemi', gmMethodTitle: 'Tutarlılık bir kişilik özelliği değil.\nBir sistemdir.', gmMethodBody: 'Planın hayat olduğunda uyum sağlar; ilerleme artık kusursuz haftalara bağlı değildir.', gmMethodItems: [['01', 'Olduğun yerden başla', 'Hedefini ve koşullarını anlat, ikisine de saygı duyan bir plan al.'], ['02', 'Her tekrarı anlamlı kıl', 'Canlı form ipuçları, dikkatin dağıldığında tekniğini net tutar.'], ['03', 'Haftadan öğren', 'Ne işe yaradığını, neyin değiştiğini ve sırada neye enerji vermen gerektiğini gör.']], gmInsideKicker: 'GainMode’un içi', gmInsideTitle: 'Bütün sen için tek akıllı döngü.', gmInsideBody: 'Antrenman, yemek, toparlanma ve motivasyon hayatında ayrı sekmeler değil. GainMode onları konuşur hâle getirir.', gmFeatureTitles: ['Bağlamı olan bir koç', 'Zahmetsiz form', 'Sürdürülebilir beslenme', 'Seninle hareket eden planlar', 'Pratik hedefler', 'Anlaşılır haftan', 'Sürekli gelişen profil'], gmFeatureBodies: ['FitBud hedeflerini, kalıplarını ve tavsiyeyi sana özel yapan küçük detayları hatırlar.', 'Kameranla temel hareketlerde gerçek zamanlı yönlendirme al. Daha az şüphe, daha çok kontrol.', 'Bir öğünün fotoğrafını çek, işe yarar bir tahmin al. Akşam yemeğini ödeve çevirmeden daha iyi seçim yap.', 'Planın programına, enerjine ve ekipmanına uyum sağlar.', 'Antrenmanına göre esneyen, hızlı karar vermeni sağlayan net kalori ve makro hedefleri.', 'Haftalık özet seanslarını, alışkanlıklarını ve ilerlemeni bağlar.', 'Deneyimi bedenine ve tercihlerinle kurduğun güçlü hâle göre ayarla.'], gmHowKicker: 'İlk dokunuştan sonraki seviyeye', gmHowTitle: 'Daha az planla.\nDaha çok devam et.', gmHowBody: 'GainMode, tutarlı kalmanın görünmeyen işini basit ve tatmin edici bir günlük ritüele dönüştürür.', gmHowSteps: ['Senin için önemli olanı anlat', 'Uyarlanabilir seansını takip et', 'Sinyali değerlendir ve devam et'], gmHowStepBodies: ['Birkaç dürüst cevap, sana ait hissettiren bir başlangıç oluşturur.', 'Koçun, doğru seans ve net bir ipucuyla o anına eşlik eder.', 'Küçük kanıtlar birikir. İlerlemeni gör, sonra zekice bir ayar yap.'], gmQuote: 'Her pazartesi yeniden başlamayı bıraktım. GainMode gerçekten yaşayabileceğim bir plan veriyor.', gmQuoteBy: 'Maya, kuvvet antrenmanı · 4 ay', gmProofTitle: 'Daha güçlü bir rutin, net bir sonraki adımla başlar.', gmProofBody: 'GainMode kalıcı ilerlemeyi önemseyen insanlarla şekilleniyor. Erken listeye katıl, ritmin için hazır olduğunda haber verelim.', gmEmailPlaceholder: 'E-posta adresin', gmJoin: 'Erken listeye katıl', gmJoined: 'Listedesisin.', gmPrivacy: 'Gürültü yok. Sadece GainMode hazır olduğunda bir not.', gmFooterLine: 'Güvenebileceğin bir pratik kur.', gmFooterLinks: ['Yöntem', 'GainMode’un içi', 'FitBud AI'], gmFooterLegal: '© 2025 GainMode. Gerçek hayat için.', gmLanguages: { en: 'English', tr: 'Türkçe', de: 'Deutsch', fr: 'Français', es: 'Español' }, gmLangLabel: 'Dil', gmMenu: 'Menü', gmClose: 'Kapat', gmWatch: 'Yaklaşımı izle', gmFaq: 'Sorular, yanıtlar', gmFaqItems: [['GainMode bir antrenman kütüphanesi mi?', 'Daha kişisel bir şey. GainMode planlama, canlı form, beslenme bağlamı ve haftalık içgörüyü hedeflerin etrafında birleştirir.'], ['Ekipmana ihtiyacım var mı?', 'Hayır. Elindekileri söyle; GainMode evde, salonda veya antrenman yaptığın her yerde sana uyum sağlar.'], ['FitBud neyi hatırlar?', 'Hedeflerini, tercihlerini, programını ve verdiğin geri bildirimi. Böylece öneriler zamanla daha faydalı olur.']], gmMicroForm: 'Canlı form kontrolü', gmMicroSquat: 'Squat · %86 uyumlu', gmMicroFitbud: 'Bir güçlü set için hazır mısın? Yanındayım.', gmMicroMethodNote: 'Bir sonraki faydalı adıma göre tasarlandı', gmMicroWeekly: 'Haftalık sinyal', gmMicroStrength: 'güç trendi', gmMicroRhythm: 'seans ritmi', gmMicroChart: 'Okuyabileceğin bir hafta', gmMicroFaqTitle: ['Net yanıtlar.', 'Gizli koşul yok.'], gmJoinError: 'E-postanı şu anda kaydedemedik. Lütfen tekrar dene.', emailUs: 'Bize e-posta gönderin', supportEmailLabel: 'Destek E-postası', notFoundTitle: '404', notFoundBody: 'Aradığınız sayfa mevcut değil.', toggleMenu: 'Menüyü aç/kapat', backToGlobe: 'Globe Studios\'a dön', navPrimary: 'Ana menü', navMobile: 'Mobil menü', gainmodeHome: 'GainMode ana sayfa', yourRhythm: 'Senin ritmin', statusLive: 'Yayında', statusComingSoon: 'Yakında', 
-  },
-  de: {
-    navApps: 'Apps', navAbout: 'Über uns', navContact: 'Kontakt', navSupport: 'Support', navPrivacy: 'Datenschutz', navTerms: 'Bedingungen', studioName: 'Globe Studios', studioTagline: 'Für das echte Leben gebaut.', studioDescription: 'Ein unabhängiges Produktstudio mit Fokus auf Nutzen, Leistung und Handwerk.', viewProduct: 'Produkt ansehen', ourWork: 'Unsere Arbeit', aboutTitle: 'Wir bauen digitale Werkzeuge, die deine Zeit und Aufmerksamkeit respektieren.', aboutBody: 'Globe Studios ist ein unabhängiges Produktstudio mit globaler Denkweise. Wir glauben, dass Software schnell, zuverlässig und wunderschön gestaltet sein sollte. Wir jagen keinen Trends hinterher. Wir lösen echte Probleme mit Präzision.', contactTitle: 'Kontakt aufnehmen.', contactBody: 'Ob du eine Frage zu unseren Produkten hast, Support benötigst oder eine Möglichkeit besprechen möchtest, wir sind hier, um zuzuhören.', contactEmail: 'globestudiosdev@gmail.com', supportTitle: 'Wie können wir helfen?', supportBody: 'Bei Problemen mit unseren Produkten wende dich bitte mit deinen Kontodetails und einer Beschreibung des Problems an uns.', privacyTitle: 'Datenschutzrichtlinie', privacyBody: 'Wir glauben daran, nur das zu sammeln, was wir brauchen, damit unsere Produkte funktionieren. Wir verkaufen deine Daten nicht. Wir schützen sie mit branchenüblichen Praktiken.', termsTitle: 'Nutzungsbedingungen', termsBody: 'Durch die Nutzung unserer Produkte stimmst du diesen einfachen Bedingungen zu. Wir stellen Software so zur Verfügung, wie sie ist, entwickelt, um dir zu helfen, und wir bitten dich, sie verantwortungsvoll zu nutzen.', footerLegal: '© 2025 Globe Studios. Alle Rechte vorbehalten.',
-    gmNav: ['Die Methode', 'GainMode entdecken', 'FitBud AI', 'FAQ'], gmNavCta: 'Rhythmus starten', gmHeroKicker: 'Trainiere in deinem besseren Rhythmus', gmHeroTitle: 'Trainiere mit Absicht.\nWachse mit Beweisen.', gmHeroBody: 'GainMode macht aus verstreuter Anstrengung eine klare Praxis — adaptive Workouts, ehrliche Ernährung und ein KI-Coach, der lernt, wie du dich bewegst.', gmHeroPrimary: 'So funktioniert es', gmHeroSecondary: 'FitBud kennenlernen', gmHeroNote: 'Für die Tage, an denen du da bist — und die Tage, an denen du einen Schubs brauchst.', gmScroll: 'Methode entdecken', gmSignal: 'Der ruhigere Weg zu mehr Kraft', gmSignalBody: 'Keine lauten Dashboards. Kein Rätselraten. Nur der richtige nächste Schritt, aus deinem echten Leben gelernt.', gmMethodKicker: 'Die GainMode-Methode', gmMethodTitle: 'Konstanz ist kein Charakterzug.\nSie ist ein System.', gmMethodBody: 'Dein Plan passt sich an, wenn das Leben passiert — Fortschritt braucht keine perfekte Woche.', gmMethodItems: [['01', 'Beginne, wo du bist', 'Setze ein Ziel, teile deinen Kontext und erhalte einen Plan, der beides respektiert.'], ['02', 'Jede Wiederholung zählt', 'Live-Formhinweise geben dir Klarheit, wenn deine Aufmerksamkeit woanders ist.'], ['03', 'Lerne aus der Woche', 'Sieh, was funktioniert hat und was als Nächstes deine Energie verdient.']], gmInsideKicker: 'GainMode entdecken', gmInsideTitle: 'Ein intelligenter Kreislauf für dich.', gmInsideBody: 'Training, Essen, Erholung und Schwung sind in deinem Leben keine getrennten Tabs. GainMode bringt sie ins Gespräch.', gmFeatureTitles: ['Ein Coach mit Kontext', 'Form ohne Umstände', 'Ernährung, die bleibt', 'Pläne, die mitgehen', 'Praktische Ziele', 'Deine Woche verständlich', 'Ein Profil, das sich entwickelt'], gmFeatureBodies: ['FitBud kennt deine Ziele, Muster und die Details, die Ratschläge persönlich machen.', 'Nutze deine Kamera für Echtzeit-Hinweise bei wichtigen Bewegungen.', 'Fotografiere eine Mahlzeit und erhalte eine nützliche Schätzung — ohne Hausaufgaben beim Abendessen.', 'Dein Plan passt sich Zeit, Energie und Equipment an.', 'Klare Kalorien- und Makroziele, die mit deinem Training mitgehen.', 'Der Wochenblick verbindet Sessions, Gewohnheiten und Fortschritt.', 'Stimme die Erfahrung auf deinen Körper und deine Vorlieben ab.'], gmHowKicker: 'Vom ersten Tap zum nächsten Level', gmHowTitle: 'Weniger planen.\nMehr erscheinen.', gmHowBody: 'GainMode macht die unsichtbare Arbeit der Konstanz zu einem einfachen täglichen Ritual.', gmHowSteps: ['Sag, was zählt', 'Folge deiner Session', 'Lies das Signal und geh weiter'], gmHowStepBodies: ['Ein paar ehrliche Antworten schaffen einen Startpunkt, der sich nach dir anfühlt.', 'Dein Coach trifft dich im Moment mit der richtigen Session und einem klaren Hinweis.', 'Kleine Beweise summieren sich. Sieh deinen Fortschritt, dann mach eine kluge Anpassung.'], gmQuote: 'Ich habe aufgehört, jeden Montag neu anzufangen. GainMode gibt mir einen Plan, der in mein Leben passt.', gmQuoteBy: 'Maya, Krafttraining · seit 4 Monaten', gmProofTitle: 'Eine stärkere Routine beginnt mit einem klaren nächsten Schritt.', gmProofBody: 'GainMode entsteht mit Menschen, denen nachhaltiger Fortschritt wichtig ist. Trag dich ein und wir melden uns, wenn es für deinen Rhythmus bereit ist.', gmEmailPlaceholder: 'Deine E-Mail-Adresse', gmJoin: 'Auf die frühe Liste', gmJoined: 'Du bist dabei.', gmPrivacy: 'Kein Lärm. Nur eine Nachricht, wenn GainMode bereit ist.', gmFooterLine: 'Baue eine Praxis, der du vertraust.', gmFooterLinks: ['Die Methode', 'GainMode entdecken', 'FitBud AI'], gmFooterLegal: '© 2025 GainMode. Für das echte Leben.', gmLanguages: { en: 'English', tr: 'Türkçe', de: 'Deutsch', fr: 'Français', es: 'Español' }, gmLangLabel: 'Sprache', gmMenu: 'Menü', gmClose: 'Schließen', gmWatch: 'Ansatz ansehen', gmFaq: 'Fragen, beantwortet', gmFaqItems: [['Ist GainMode eine Workout-Bibliothek?', 'Es ist persönlicher: adaptive Planung, Formhilfe, Ernährungskontext und Wochen-Insights für deine Ziele.'], ['Brauche ich Equipment?', 'Nein. Dein Plan passt sich dem an, was du zu Hause, im Studio oder unterwegs hast.'], ['Was merkt sich FitBud?', 'Ziele, Vorlieben, Zeitmuster und dein Feedback — damit jede Empfehlung nützlicher wird.']], gmMicroForm: 'Live-Formcheck', gmMicroSquat: 'Kniebeuge · 86 % ausgerichtet', gmMicroFitbud: 'Bereit für einen starken Satz? Ich bin bei dir.', gmMicroMethodNote: 'Für den nächsten nützlichen Schritt', gmMicroWeekly: 'Wochen-Signal', gmMicroStrength: 'Krafttrend', gmMicroRhythm: 'Session-Rhythmus', gmMicroChart: 'Eine lesbare Woche', gmMicroFaqTitle: ['Klare Antworten.', 'Kein Kleingedrucktes.'], gmJoinError: 'Deine E-Mail konnte gerade nicht gespeichert werden. Bitte versuche es erneut.', emailUs: 'E-Mail senden', supportEmailLabel: 'Support-E-Mail', notFoundTitle: '404', notFoundBody: 'Die gesuchte Seite existiert nicht.', toggleMenu: 'Menü umschalten', backToGlobe: 'Zurück zu Globe Studios', navPrimary: 'Hauptnavigation', navMobile: 'Mobile Navigation', gainmodeHome: 'GainMode Startseite', yourRhythm: 'Dein Rhythmus', statusLive: 'Live', statusComingSoon: 'Demnächst', 
-  },
-  fr: {
-    navApps: 'Applications', navAbout: 'À propos', navContact: 'Contact', navSupport: 'Assistance', navPrivacy: 'Confidentialité', navTerms: 'Conditions', studioName: 'Globe Studios', studioTagline: 'Conçu pour la vraie vie.', studioDescription: 'Un studio de produits indépendant axé sur l’utilité, la performance et le savoir-faire.', viewProduct: 'Voir le produit', ourWork: 'Notre travail', aboutTitle: 'Nous créons des outils numériques qui respectent votre temps et votre attention.', aboutBody: 'Globe Studios est un studio de produits indépendant avec une vision mondiale. Nous croyons que les logiciels doivent être rapides, fiables et magnifiquement conçus. Nous ne suivons pas les tendances. Nous résolvons de vrais problèmes avec précision.', contactTitle: 'Contactez-nous.', contactBody: 'Que vous ayez une question sur nos produits, besoin d’aide ou souhaitiez discuter d’une opportunité, nous sommes là pour vous écouter.', contactEmail: 'globestudiosdev@gmail.com', supportTitle: 'Comment pouvons-nous vous aider ?', supportBody: 'Pour les problèmes avec nos produits, veuillez nous contacter avec les détails de votre compte et une description du problème.', privacyTitle: 'Politique de confidentialité', privacyBody: 'Nous croyons qu’il ne faut collecter que ce dont nous avons besoin pour faire fonctionner nos produits. Nous ne vendons pas vos données. Nous les protégeons avec les pratiques standard de l’industrie.', termsTitle: 'Conditions d’utilisation', termsBody: 'En utilisant nos produits, vous acceptez ces conditions simples. Nous fournissons des logiciels tels quels, conçus pour vous aider, et nous vous demandons de les utiliser de manière responsable.', footerLegal: '© 2025 Globe Studios. Tous droits réservés.',
-    gmNav: ['La méthode', 'Dans GainMode', 'FitBud AI', 'FAQ'], gmNavCta: 'Commencer mon rythme', gmHeroKicker: 'S’entraîner avec un rythme plus intelligent', gmHeroTitle: 'Entraîne-toi avec intention.\nProgresse avec des preuves.', gmHeroBody: 'GainMode transforme les efforts dispersés en une pratique claire : séances adaptatives, nutrition réaliste et coach IA qui apprend ta façon de bouger.', gmHeroPrimary: 'Voir comment ça marche', gmHeroSecondary: 'Rencontrer FitBud', gmHeroNote: 'Pour les jours où tu es là — et ceux où tu as besoin d’un petit élan.', gmScroll: 'Découvrir la méthode', gmSignal: 'La façon plus calme de devenir plus fort', gmSignalBody: 'Pas de tableaux bruyants. Pas de devinettes. Juste la prochaine étape, guidée par ta vraie vie.', gmMethodKicker: 'La méthode GainMode', gmMethodTitle: 'La régularité n’est pas un trait de caractère.\nC’est un système.', gmMethodBody: 'Ton plan s’adapte quand la vie bouge : le progrès ne dépend plus d’une semaine parfaite.', gmMethodItems: [['01', 'Commence où tu es', 'Fixe un objectif, donne ton contexte et reçois un plan qui respecte les deux.'], ['02', 'Chaque répétition compte', 'Les repères de forme en direct gardent ta technique claire.'], ['03', 'Apprends de ta semaine', 'Vois ce qui a fonctionné et ce qui mérite ton énergie ensuite.']], gmInsideKicker: 'Dans GainMode', gmInsideTitle: 'Une boucle intelligente pour tout ton quotidien.', gmInsideBody: 'Entraînement, alimentation et récupération ne sont pas des onglets séparés. GainMode les relie.', gmFeatureTitles: ['Un coach qui connaît le contexte', 'La forme, sans prise de tête', 'Une nutrition qui tient', 'Des plans qui évoluent', 'Des objectifs pratiques', 'Ta semaine en clair', 'Un profil qui évolue'], gmFeatureBodies: ['FitBud se souvient de tes objectifs et des détails qui rendent ses conseils personnels.', 'Utilise ta caméra pour des conseils en direct sur les mouvements clés.', 'Photographie ton repas et reçois une estimation utile, sans transformer le dîner en devoir.', 'Ton plan s’adapte à ton agenda, ton énergie et ton équipement.', 'Des objectifs calories et macros clairs qui suivent ton entraînement.', 'Un bilan hebdomadaire relie séances, habitudes et progrès.', 'Personnalise l’expérience autour de ton corps et de tes préférences.'], gmHowKicker: 'Du premier geste au niveau suivant', gmHowTitle: 'Moins planifier.\nPlus avancer.', gmHowBody: 'GainMode transforme le travail invisible de la régularité en un rituel quotidien simple.', gmHowSteps: ['Dis ce qui compte', 'Suis ta séance adaptative', 'Lis le signal, puis continue'], gmHowStepBodies: ['Quelques réponses honnêtes créent un point de départ qui te ressemble.', 'Ton coach t\'accompagne dans le moment avec la bonne séance et un repère clair.', 'Les petites preuves s\'accumulent. Vois tes progrès, puis fais un ajustement intelligent.'], gmQuote: 'J’ai arrêté de recommencer chaque lundi. GainMode me donne un plan qui tient dans ma vie.', gmQuoteBy: 'Maya, musculation · depuis 4 mois', gmProofTitle: 'Une routine plus forte commence par une prochaine étape claire.', gmProofBody: 'GainMode se construit avec des personnes qui veulent un progrès durable. Rejoins la liste et nous te préviendrons quand il sera prêt pour ton rythme.', gmEmailPlaceholder: 'Ton adresse e-mail', gmJoin: 'Rejoindre la liste', gmJoined: 'Tu es sur la liste.', gmPrivacy: 'Pas de bruit. Juste un message quand GainMode sera prêt.', gmFooterLine: 'Construis une pratique en laquelle tu peux croire.', gmFooterLinks: ['La méthode', 'Dans GainMode', 'FitBud AI'], gmFooterLegal: '© 2025 GainMode. Pour la vraie vie.', gmLanguages: { en: 'English', tr: 'Türkçe', de: 'Deutsch', fr: 'Français', es: 'Español' }, gmLangLabel: 'Langue', gmMenu: 'Menu', gmClose: 'Fermer', gmWatch: 'Voir l’approche', gmFaq: 'Les questions, simplement', gmFaqItems: [['GainMode est-il une bibliothèque de séances ?', 'C’est plus personnel : planification adaptative, conseils de forme, contexte nutritionnel et bilan hebdomadaire autour de tes objectifs.'], ['Faut-il du matériel ?', 'Non. Dis ce que tu as et le plan s’adapte à la maison, en salle ou ailleurs.'], ['Que retient FitBud ?', 'Tes objectifs, préférences, habitudes de planning et retours — pour rendre chaque conseil plus utile.']], gmMicroForm: 'Contrôle de forme en direct', gmMicroSquat: 'Squat · 86 % aligné', gmMicroFitbud: 'Prêt pour une série solide ? Je suis avec toi.', gmMicroMethodNote: 'Pensé autour de la prochaine action utile', gmMicroWeekly: 'Signal de la semaine', gmMicroStrength: 'tendance de force', gmMicroRhythm: 'rythme des séances', gmMicroChart: 'Une semaine lisible', gmMicroFaqTitle: ['Des réponses claires.', 'Aucune petite ligne.'], gmJoinError: 'Nous ne pouvons pas enregistrer ton e-mail pour le moment. Réessaie.', emailUs: 'Nous envoyer un e-mail', supportEmailLabel: 'E-mail d\'assistance', notFoundTitle: '404', notFoundBody: 'La page que vous recherchez n\'existe pas.', toggleMenu: 'Basculer le menu', backToGlobe: 'Retour à Globe Studios', navPrimary: 'Navigation principale', navMobile: 'Navigation mobile', gainmodeHome: 'Accueil GainMode', yourRhythm: 'Ton rythme', statusLive: 'En ligne', statusComingSoon: 'Bientôt', 
-  },
-  es: {
-    navApps: 'Aplicaciones', navAbout: 'Nosotros', navContact: 'Contacto', navSupport: 'Soporte', navPrivacy: 'Privacidad', navTerms: 'Términos', studioName: 'Globe Studios', studioTagline: 'Construyendo para la vida real.', studioDescription: 'Un estudio de productos independiente enfocado en la utilidad, el rendimiento y la artesanía.', viewProduct: 'Ver Producto', ourWork: 'Nuestro Trabajo', aboutTitle: 'Creamos herramientas digitales que respetan tu tiempo y atención.', aboutBody: 'Globe Studios es un estudio de productos independiente con mentalidad global. Creemos que el software debe ser rápido, confiable y estar bellamente diseñado. No seguimos tendencias. Resolvemos problemas reales con precisión.', contactTitle: 'Ponte en contacto.', contactBody: 'Ya sea que tengas una pregunta sobre nuestros productos, necesites soporte o quieras discutir una oportunidad, estamos aquí para escuchar.', contactEmail: 'globestudiosdev@gmail.com', supportTitle: '¿Cómo podemos ayudar?', supportBody: 'Para problemas con nuestros productos, comunícate con los detalles de tu cuenta y una descripción del problema.', privacyTitle: 'Política de Privacidad', privacyBody: 'Creemos en recopilar solo lo que necesitamos para que nuestros productos funcionen. No vendemos tus datos. Los protegemos con prácticas estándar de la industria.', termsTitle: 'Términos de Servicio', termsBody: 'Al usar nuestros productos, aceptas estos términos simples. Proporcionamos software tal cual, diseñado para ayudarte, y te pedimos que lo uses de manera responsable.', footerLegal: '© 2025 Globe Studios. Todos los derechos reservados.',
-    gmNav: ['El método', 'Dentro de GainMode', 'FitBud AI', 'FAQ'], gmNavCta: 'Empieza tu ritmo', gmHeroKicker: 'Entrena con un ritmo más inteligente', gmHeroTitle: 'Entrena con intención.\nCrece con pruebas.', gmHeroBody: 'GainMode convierte el esfuerzo disperso en una práctica clara: entrenamientos adaptativos, nutrición realista y un coach IA que aprende cómo te mueves.', gmHeroPrimary: 'Ver cómo funciona', gmHeroSecondary: 'Conoce a FitBud', gmHeroNote: 'Para los días en que apareces y para los días en que necesitas un pequeño empujón.', gmScroll: 'Descubre el método', gmSignal: 'La forma más tranquila de hacerte más fuerte', gmSignalBody: 'Sin paneles ruidosos. Sin adivinanzas. Solo el siguiente paso correcto, guiado por tu vida real.', gmMethodKicker: 'El método GainMode', gmMethodTitle: 'La constancia no es un rasgo.\nEs un sistema.', gmMethodBody: 'Tu plan se adapta cuando la vida cambia, así que el progreso no depende de una semana perfecta.', gmMethodItems: [['01', 'Empieza donde estás', 'Define un objetivo, cuéntanos tu contexto y recibe un plan que respeta ambos.'], ['02', 'Haz que cada repetición cuente', 'Las indicaciones de técnica en directo mantienen el movimiento claro.'], ['03', 'Aprende de la semana', 'Mira qué funcionó y qué merece tu energía después.']], gmInsideKicker: 'Dentro de GainMode', gmInsideTitle: 'Un ciclo inteligente para toda tu vida.', gmInsideBody: 'Entrenamiento, comida y recuperación no son pestañas separadas. GainMode las conecta.', gmFeatureTitles: ['Un coach con contexto', 'Técnica sin complicaciones', 'Nutrición que se mantiene', 'Planes que se adaptan', 'Objetivos prácticos', 'Tu semana, clara', 'Un perfil que evoluciona'], gmFeatureBodies: ['FitBud recuerda tus objetivos, patrones y los detalles que hacen personal cada consejo.', 'Usa tu cámara para recibir guía en directo en movimientos clave.', 'Fotografía una comida y obtén una estimación útil sin convertir la cena en tarea.', 'Tu plan se adapta a tu horario, energía y equipo.', 'Objetivos claros de calorías y macros que siguen tu entrenamiento.', 'Un resumen semanal conecta sesiones, hábitos y progreso.', 'Ajusta la experiencia a tu cuerpo, preferencias y versión fuerte.'], gmHowKicker: 'Del primer toque al siguiente nivel', gmHowTitle: 'Menos planear.\nMás aparecer.', gmHowBody: 'GainMode convierte el trabajo invisible de ser constante en un ritual diario sencillo.', gmHowSteps: ['Cuéntanos lo que importa', 'Sigue tu sesión adaptativa', 'Lee la señal y continúa'], gmHowStepBodies: ['Unas respuestas honestas crean un punto de partida que se siente tuyo.', 'Tu coach te acompaña en el momento con la sesión adecuada y una indicación clara.', 'Las pequeñas pruebas se acumulan. Mira tu progreso, luego haz un ajuste inteligente.'], gmQuote: 'Dejé de empezar de nuevo cada lunes. GainMode me da un plan que cabe en mi vida.', gmQuoteBy: 'Maya, fuerza · 4 meses', gmProofTitle: 'Una rutina más fuerte empieza con un siguiente paso claro.', gmProofBody: 'GainMode se está creando con personas que buscan un progreso duradero. Únete a la lista y te avisaremos cuando esté listo para tu ritmo.', gmEmailPlaceholder: 'Tu correo electrónico', gmJoin: 'Unirme a la lista', gmJoined: 'Ya estás en la lista.', gmPrivacy: 'Sin ruido. Solo un aviso cuando GainMode esté listo.', gmFooterLine: 'Construye una práctica en la que confíes.', gmFooterLinks: ['El método', 'Dentro de GainMode', 'FitBud AI'], gmFooterLegal: '© 2025 GainMode. Para la vida real.', gmLanguages: { en: 'English', tr: 'Türkçe', de: 'Deutsch', fr: 'Français', es: 'Español' }, gmLangLabel: 'Idioma', gmMenu: 'Menú', gmClose: 'Cerrar', gmWatch: 'Ver el enfoque', gmFaq: 'Preguntas, respondidas', gmFaqItems: [['¿GainMode es una biblioteca de entrenamientos?', 'Es más personal: planificación adaptativa, técnica en directo, contexto nutricional e información semanal alrededor de tus objetivos.'], ['¿Necesito equipamiento?', 'No. Cuéntanos con qué cuentas y tu plan se adaptará a casa, gimnasio o cualquier lugar.'], ['¿Qué recuerda FitBud?', 'Tus objetivos, preferencias, horarios y comentarios para que cada recomendación sea más útil.']], gmMicroForm: 'Control de técnica en directo', gmMicroSquat: 'Sentadilla · 86 % alineada', gmMicroFitbud: '¿Listo para una serie fuerte? Estoy contigo.', gmMicroMethodNote: 'Diseñado alrededor del siguiente paso útil', gmMicroWeekly: 'Señal semanal', gmMicroStrength: 'tendencia de fuerza', gmMicroRhythm: 'ritmo de sesiones', gmMicroChart: 'Una semana que puedes leer', gmMicroFaqTitle: ['Respuestas claras.', 'Sin letra pequeña.'], gmJoinError: 'No hemos podido guardar tu correo ahora. Inténtalo de nuevo.', emailUs: 'Envíanos un correo', supportEmailLabel: 'Correo de soporte', notFoundTitle: '404', notFoundBody: 'La página que buscas no existe.', toggleMenu: 'Alternar menú', backToGlobe: 'Volver a Globe Studios', navPrimary: 'Navegación principal', navMobile: 'Navegación móvil', gainmodeHome: 'Inicio de GainMode', yourRhythm: 'Tu ritmo', statusLive: 'En vivo', statusComingSoon: 'Próximamente', 
-  }
-}
-
-type I18nContextType = {
-  lang: Lang;
-  setLang: (lang: Lang) => void;
-  t: Record<keyof typeof dictionary['en'], any>;
 };
 
-const I18nContext = createContext<I18nContextType | null>(null);
+type Copy = typeof en;
+
+const tr: Copy = {
+  nav: { work: 'Çalışmalar', services: 'Hizmetler', about: 'Hakkımızda', contact: 'İletişim', cta: 'Proje başlat', menu: 'Menü', close: 'Kapat', language: 'Dil' },
+  home: {
+    eyebrow: 'Uygulama ve web stüdyosu',
+    title: ['İnsanların', 'kullanmayı sevdiği', 'uygulamalar yapıyoruz.'],
+    body: 'Globe Studios mobil uygulamalar ve web siteleri tasarlar ve geliştirir — ilk fikirden mağaza sayfasına kadar, aradaki her detaya özen göstererek.',
+    primary: 'Çalışmalarımız',
+    secondary: 'Proje başlat',
+    marquee: ['iOS uygulamaları', 'Android uygulamaları', 'Web siteleri', 'Ürün tasarımı', 'Yapay zekâ özellikleri', 'Marka kimliği'],
+    workKicker: 'Seçili işler',
+    workTitle: 'Geliştirip yayınladığımız ürünler.',
+    workAll: 'Tüm çalışmalar',
+    nextTitle: 'Sıradaki ürün yolda',
+    nextBody: 'GainMode’dan sonra gelecek ürün üzerinde çalışıyoruz. İlk burada görünecek.',
+    servicesKicker: 'Ne yapıyoruz',
+    servicesTitle: 'Fikirden yayına tek ekip.',
+    processKicker: 'Nasıl çalışıyoruz',
+    processTitle: 'Adım adım, net bir yol.',
+    principlesKicker: 'Neyi önemsiyoruz',
+    ctaTitle: 'Bir fikrin mi var? Birlikte yapalım.',
+    ctaBody: 'Ne yapmak istediğini anlat. Her mesaja dönüş yapıyoruz.',
+    ctaButton: 'İletişime geç',
+  },
+  services: [
+    { title: 'Mobil uygulamalar', body: 'Akıcı animasyonlu, çevrimdışı da çalışan, mağazaya hazır iOS ve Android uygulamaları.' },
+    { title: 'Web siteleri', body: 'Ürününü net anlatan, her ekranda güzel görünen hızlı ve duyarlı web siteleri ve tanıtım sayfaları.' },
+    { title: 'Ürün tasarımı', body: 'İnsanların gerçekte nasıl kullandığına göre şekillenen arayüzler, akışlar ve tasarım sistemleri.' },
+    { title: 'Yapay zekâ özellikleri', body: 'Ürününün içinde işe yarayan yapay zekâ: koçluk, fotoğraf analizi, kişisel planlar ve akıllı asistanlar.' },
+  ],
+  process: [
+    { title: 'Keşif', body: 'Tek bir ekran çizmeden önce sorunu, kullanıcıyı ve hedefi öğreniyoruz.' },
+    { title: 'Tasarım', body: 'Akışlar, arayüzler ve animasyonlar; erkenden gerçek cihazlarda test ediliyor.' },
+    { title: 'Geliştirme', body: 'Mobil ve web için temiz, güvenilir kod; küçük ve görünür adımlarla teslim.' },
+    { title: 'Yayın ve büyüme', body: 'Mağaza başvurusu, analizler ve yayından sonra gelen güncellemeler.' },
+  ],
+  principles: [
+    { title: 'Gürültü değil zanaat', body: 'Her ekran, her animasyon ve her kelime bir sebeple orada.' },
+    { title: 'Kalıcı olsun diye', body: 'Yayın heyecanı geçtikten sonra da çalışmaya devam eden hızlı ve sağlam yazılım.' },
+    { title: 'Küresel bakış', body: 'İlk günden birçok dil ve birçok ülke için yapılan ürünler.' },
+  ],
+  work: {
+    kicker: 'Çalışmalarımız',
+    title: 'Globe Studios ürünleri.',
+    body: 'Tasarlayıp geliştirdiğimiz ve yayınladığımız uygulamalar ve web siteleri. Yenileri yolda.',
+    view: 'Projeyi incele',
+    soon: 'Yakında',
+    live: 'Yayında',
+  },
+  about: {
+    kicker: 'Hakkımızda',
+    title: 'Uygulamalar ve web için bir ürün stüdyosu.',
+    body: [
+      'Globe Studios, mobil uygulamalar ve web siteleri tasarlayıp geliştiren bağımsız bir stüdyodur. Kendi ürünlerimizi geliştiriyor, kendi ürününün aynı özenle yapılmasını isteyen ekiplerle de çalışıyoruz.',
+      'Odağımız net: anlaşılır arayüzler, işe yarayan animasyonlar, sağlam kod ve insanların zamanına saygı duyan ürünler.',
+    ],
+    valuesTitle: 'Nasıl düşünüyoruz',
+  },
+  contact: {
+    kicker: 'İletişim',
+    title: 'Projeni konuşalım.',
+    body: 'Ürünlerimizle ilgili bir soru, yeni bir uygulama ya da web sitesi, veya bir iş birliği — bize yaz, sana dönüş yapalım.',
+    emailLabel: 'E-posta',
+    supportLabel: 'Ürün desteği',
+    supportBody: 'Uygulamalarımızdan biriyle ilgili yardıma mı ihtiyacın var? Uygulamanın adını ve sorunu kısaca yaz.',
+  },
+  footer: { line: 'Özenle yapılan uygulamalar ve web siteleri.', legal: 'Tüm hakları saklıdır.', privacy: 'Gizlilik', terms: 'Şartlar', support: 'Destek' },
+  legal: {
+    privacyTitle: 'Gizlilik Politikası',
+    privacyBody: 'Ürünlerimizin çalışması için yalnızca gereken bilgileri topluyoruz. Verilerini satmıyoruz ve sektör standartlarında koruyoruz. Her uygulama hangi verileri neden kullandığını kendi gizlilik politikasında açıklar.',
+    termsTitle: 'Kullanım Şartları',
+    termsBody: 'Ürünlerimizi kullanarak onları sorumlu bir şekilde kullanmayı kabul edersin. Yazılımlarımız sana yardımcı olmak için tasarlandığı haliyle sunulur; uygulamaya özel şartlar her uygulamanın içinde gösterilir.',
+    supportTitle: 'Destek',
+    supportBody: 'Globe Studios ürünlerinden herhangi biriyle ilgili yardım için uygulamanın adını, cihazını ve sorunun kısa bir açıklamasını bize e-postayla gönder.',
+  },
+  notFound: { title: 'Sayfa bulunamadı', body: 'Aradığın sayfa mevcut değil.', back: 'Ana sayfaya dön' },
+  gm: {
+    back: 'Tüm çalışmalar',
+    kicker: 'Fitness · Yapay zekâ · iOS ve Android',
+    title: 'Cebindeki yapay zekâ fitness koçu.',
+    body: 'GainMode antrenman ve beslenme planını yapay zekâyla hazırlar, tekrarlarını kamerayla sayar, öğününü fotoğraftan okur ve seri ile rozetlerle seni motive tutar.',
+    soon: 'Yakında',
+    appStore: 'App Store',
+    playStore: 'Google Play',
+    storeSoon: 'Yakında',
+    notifyTitle: 'Çıkınca haber verelim',
+    notifyPlaceholder: 'E-posta adresin',
+    notifyButton: 'Haber ver',
+    notifyDone: 'Listedesin. Çıktığı gün e-posta göndereceğiz.',
+    notifyError: 'E-postanı şu anda kaydedemedik. Lütfen tekrar dene.',
+    featuresKicker: 'GainMode’un içi',
+    featuresTitle: 'Kalıcı bir rutin için her şey.',
+    features: [
+      { tag: 'AI plan', title: 'Sana özel, yapay zekâyla yazılan plan.', body: 'Hedefin, vücudun, ekipmanın ve programınla ilgili birkaç soruyu cevapla. GainMode cevaplarını yapay zekâya gönderir; antrenmanların ve kalori hedeflerin gözünün önünde hazırlanır.' },
+      { tag: 'Yemek tarama', title: 'Fotoğrafını çek, makroları gör.', body: 'Kamerayı tabağına ya da bir barkoda tut. GainMode kaloriyi, proteini, karbonhidratı ve yağı hesaplayıp gününe ekler.' },
+      { tag: 'Canlı form', title: 'Tekrarlarını sayan bir koç.', body: 'Canlı form analizi squat, şınav ve lunge sırasında iskeletini takip eder, sadece doğru tekrarları sayar ve neyi düzeltmen gerektiğini söyler.' },
+      { tag: 'Beslenme', title: 'Haftalık beslenmen tek bakışta.', body: 'Kalori ve makrolar için günlük halkalar, hedefine göre haftalık görünüm ve senin yediğin düzende gruplanan öğünler.' },
+      { tag: 'Antrenman', title: 'Haftana uyan antrenmanlar.', body: 'Ekipmanına ve seviyene göre hazırlanmış haftalık bir rota; hareketler, setler ve tekrarlar hazır.' },
+      { tag: 'Gelişim', title: 'Değişimi sadece hissetme, gör.', body: 'İlk günden beri vücut ağırlığı, kaldırdığın ağırlık, antrenman süresi, kalori tutarlılığı ve yakılan kalori grafikleri.' },
+      { tag: 'Motivasyon', title: 'Peşinden koşmaya değer seriler ve rozetler.', body: '10, 50 ve 100. günlerde büyüyen bir seri ateşi ve ahşap bir duvarda 28 madalya — bazılarını kazanmak gerçekten zor.' },
+    ],
+    coachTag: 'FitBud',
+    coachTitle: 'Antrenman arkadaşın FitBud ile tanış.',
+    coachBody: 'FitBud planını, hedeflerini ve gelişimini bilir. Ne istersen sor — senin dilinde cevaplar ve planını senin için güncelleyebilir.',
+    coachQuestion: 'Squat’ta ne zaman ağırlık artırmalıyım?',
+    coachAnswer: 'Her sette 12 temiz tekrara ulaştığında bir sonraki antrenmanda 2,5 kg ekle. 2 tekrar kaldı — harika gidiyorsun.',
+    galleryKicker: 'Ekranlar',
+    galleryTitle: 'Son pikseline kadar tasarlandı.',
+    facts: [
+      { value: '5', label: 'dil' },
+      { value: '28', label: 'kazanılacak rozet' },
+      { value: '3', label: 'hareket için canlı form analizi' },
+      { value: 'iOS + Android', label: 'tek deneyim' },
+    ],
+    ctaTitle: 'GainMode çok yakında.',
+    ctaBody: 'E-postanı bırak, App Store ve Google Play’e çıktığı gün haber verelim.',
+    madeBy: 'Globe Studios tarafından tasarlandı ve geliştirildi',
+  },
+};
+
+const copies: Record<Lang, Copy> = { en, tr };
+const STORAGE_KEY = 'globe-studios-lang';
+
+function initialLang(): Lang {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === 'en' || stored === 'tr') return stored;
+  } catch {
+    // Storage can be unavailable; fall back to the browser language.
+  }
+  return typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+}
+
+const I18nContext = createContext<{ lang: Lang; setLang: (lang: Lang) => void; t: Copy } | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>('en');
-  
-  useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
-
-  return (
-    <I18nContext.Provider value={{ lang, setLang, t: dictionary[lang] }}>
-      {children}
-    </I18nContext.Provider>
-  );
+  const [lang, setLangState] = useState<Lang>(initialLang);
+  const setLang = useCallback((next: Lang) => {
+    setLangState(next);
+    try { localStorage.setItem(STORAGE_KEY, next); } catch { /* the choice still applies for this visit */ }
+  }, []);
+  useEffect(() => { document.documentElement.lang = lang; }, [lang]);
+  const value = useMemo(() => ({ lang, setLang, t: copies[lang] }), [lang, setLang]);
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
 
 export function useI18n() {
   const context = useContext(I18nContext);
-  if (!context) throw new Error('useI18n must be used within an I18nProvider');
+  if (!context) throw new Error('useI18n must be used inside I18nProvider');
   return context;
 }
