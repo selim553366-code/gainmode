@@ -12,6 +12,7 @@ import { badges, countOnTargetDays, type BadgeMetrics } from '@/lib/badges';
 import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getSharedWorkoutSets, getWorkoutIntensity, normalizeWorkoutSets, restoreWorkoutProgress, sanitizeWorkoutSplits, estimateExerciseCalories, workoutIsComplete, workoutsAreComplete, type MuscleGroup } from '@/lib/workoutPlan';
 import { clearLocalAiUsageIdentity } from '@/lib/aiUsage';
 import { logCompletedExercises, restoreActivityLog, unlogExercises, type ActivityEntry } from '@/lib/progressCharts';
+import { applyAiExercises, blendNutrition, type AiPlan } from '@/lib/aiPlan';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type SavedMeal = Omit<Meal, 'date'> & { savedAt: string };
@@ -152,7 +153,7 @@ type FitContextValue = FitState & {
   removeMeal: (id: string) => void;
   addSavedMeal: (meal: Omit<SavedMeal, 'id' | 'savedAt'>) => void;
   removeSavedMeal: (id: string) => void;
-  completeOnboarding: (profile: Profile, username: string, options?: { profileEdit?: boolean }) => void;
+  completeOnboarding: (profile: Profile, username: string, options?: { profileEdit?: boolean; ai?: AiPlan | null }) => void;
   markCoachIntroSeen: () => void;
   setIntroSeen: () => void;
   incrementCoachUsage: () => void;
@@ -572,7 +573,8 @@ export function FitProvider({ children }: { children: ReactNode }) {
        const fatRatio = profile.diet === 'vegan' ? 0.3 : profile.diet === 'vegetarian' ? 0.28 : isLossGoal ? (profile.goalRate === 'fast' ? 0.23 : 0.25) : isGainGoal ? 0.28 : 0.27;
       const fatGoal = Math.round((calorieGoal * fatRatio) / 9);
       const carbsGoal = Math.max(0, Math.round((calorieGoal - proteinGoal * 4 - fatGoal * 9) / 4));
-       const generatedWorkouts = buildWorkoutPlanForCycle(profile, 0);
+       const aiTargets = blendNutrition({ calories: calorieGoal, protein: proteinGoal, fat: fatGoal }, options?.ai?.nutrition ?? null, profile.age < 18 ? 1600 : 1200);
+       const generatedWorkouts = options?.ai ? applyAiExercises(buildWorkoutPlanForCycle(profile, 0), options.ai) : buildWorkoutPlanForCycle(profile, 0);
        const workouts = options?.profileEdit
          ? generatedWorkouts.map((workout) => {
            const previous = current.workouts.find((item) => item.id === workout.id);
@@ -589,17 +591,17 @@ export function FitProvider({ children }: { children: ReactNode }) {
            return { ...workout, exercises, completed: workoutIsComplete({ ...workout, exercises }) };
          })
          : generatedWorkouts;
-      const projection = createGoalProjection(profile, calorieGoal, workouts, targetWeight);
+      const projection = createGoalProjection(profile, aiTargets?.calories ?? calorieGoal, workouts, targetWeight);
        return recordStreakActivity({
         ...current,
         profile,
         username,
          registeredAt: current.registeredAt ?? new Date().toISOString(),
         weight: profile.weight,
-        calorieGoal,
-        proteinGoal,
-        carbsGoal,
-        fatGoal,
+        calorieGoal: aiTargets?.calories ?? calorieGoal,
+        proteinGoal: aiTargets?.protein ?? proteinGoal,
+        carbsGoal: aiTargets?.carbs ?? carbsGoal,
+        fatGoal: aiTargets?.fat ?? fatGoal,
         goalWeight: targetWeight,
         goalProjection: projection,
         workouts,

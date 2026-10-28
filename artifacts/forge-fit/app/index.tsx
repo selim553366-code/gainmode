@@ -33,6 +33,8 @@ import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
 import { Paywall } from '@/components/Paywall';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
+import type { AiPlan } from '@/lib/aiPlan';
+import { requestAiPlan } from '@/lib/aiPlanRequest';
 
 type CoachMotionVariant = 'wave' | 'write' | 'done';
 type MeasurementUnit = 'metric' | 'imperial';
@@ -467,9 +469,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     Animated.sequence([Animated.timing(slide, { toValue: 0, duration: 120, useNativeDriver: true }), Animated.timing(slide, { toValue: 1, duration: 220, useNativeDriver: true })]).start();
     setStep((current) => current + 1);
   };
-  const finish = () => {
-    const cleanUsername = username.trim().replace(/\s+/g, '').toLowerCase();
-    const profile: Profile = {
+  const buildProfile = (): Profile => ({
       equipment,
       equipmentDetails: equipment === 'home' ? equipmentDetails.trim() : undefined,
       gymLevel: equipment === 'gym' ? gymLevel : undefined,
@@ -490,8 +490,10 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
       experience,
       preferredDays,
       targetWeight: hasTargetWeightStep ? (targetWeight ?? recommendedTargetWeight) : recommendTargetWeight({ height, weight, age, goal, sex, activity, goalRate }),
-    };
-    completeOnboarding(profile, cleanUsername, { profileEdit: editMode });
+  });
+  const finish = (ai: AiPlan | null) => {
+    const cleanUsername = username.trim().replace(/\s+/g, '').toLowerCase();
+    completeOnboarding(buildProfile(), cleanUsername, { profileEdit: editMode, ai });
     if (editMode) {
       router.replace('/(tabs)');
       return;
@@ -610,7 +612,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
      if (!started) return <View style={styles.onboardingShell}><WelcomeScreen onStart={() => { slide.setValue(1); setStarted(true); }} /></View>;
      if (!growthSeen) return <View style={styles.onboardingShell}><GrowthComparisonScreen onContinue={() => setGrowthSeen(true)} /></View>;
     if (!editMode && activeStep === 'mode') return <OnboardingModeChoice onSelect={chooseMode} onBack={() => { setOnboardingMode(null); setStep(0); }} />;
-    if (buildingPlan) return <View style={styles.onboardingShell}><PlanBuildingScreen onComplete={finish} /></View>;
+    if (buildingPlan) return <View style={styles.onboardingShell}><PlanBuildingScreen request={() => requestAiPlan(buildProfile(), language)} onComplete={finish} /></View>;
     if (step === total && equipment === 'gym' && !overloadSeen) return <View style={styles.onboardingShell}><ProgressiveOverloadScreen onContinue={() => setOverloadSeen(true)} /></View>;
    if (step === total) return <View style={styles.onboardingShell}><CompletionScreen onContinue={() => setBuildingPlan(true)} /></View>;
     const numericStep = typeof activeStep === 'number' ? activeStep : 0;
@@ -1078,23 +1080,64 @@ function StairBar({ index, height, climb, accent, track }: { index: number; heig
   return <ReAnimated.View style={[ui.stair, { height: `${height * 100}%` }, style]} />;
 }
 
-function PlanBuildingScreen({ onComplete }: { onComplete: () => void }) {
+const planAiCopy: Record<string, { writing: string; ready: string; local: string; note: string }> = {
+  tr: { writing: 'Yapay zekâ planını cevaplarına göre yazıyor…', ready: 'Planın yapay zekâ ile hazırlandı', local: 'Planın cevaplarına göre hesaplandı', note: 'Koçunun notu' },
+  en: { writing: 'AI is writing your plan from your answers…', ready: 'Your plan was built with AI', local: 'Your plan was calculated from your answers', note: 'Note from your coach' },
+  de: { writing: 'Die KI schreibt deinen Plan aus deinen Antworten…', ready: 'Dein Plan wurde mit KI erstellt', local: 'Dein Plan wurde aus deinen Antworten berechnet', note: 'Notiz deines Coaches' },
+  fr: { writing: 'L’IA rédige ton plan à partir de tes réponses…', ready: 'Ton plan a été créé avec l’IA', local: 'Ton plan a été calculé à partir de tes réponses', note: 'Le mot de ton coach' },
+  es: { writing: 'La IA está escribiendo tu plan según tus respuestas…', ready: 'Tu plan se creó con IA', local: 'Tu plan se calculó según tus respuestas', note: 'Nota de tu coach' },
+};
+const PLAN_MIN_MS = 4500;
+const PLAN_NOTE_MS = 2600;
+
+/**
+ * Sends the answers to the AI planner and keeps the build animation running until it answers.
+ * The ring climbs quickly at first, then creeps toward 92% while waiting, and only fills to 100%
+ * once the plan is back (and at least a few seconds have passed so the steps can be read). An AI
+ * note is shown briefly before moving on; without the AI the locally calculated plan is used.
+ */
+function PlanBuildingScreen({ request, onComplete }: { request: () => Promise<AiPlan | null>; onComplete: (ai: AiPlan | null) => void }) {
   const colors = useColors();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
+  const copy = planAiCopy[language] ?? planAiCopy.en;
   const [percent, setPercent] = React.useState(0);
+  const [result, setResult] = React.useState<{ plan: AiPlan | null } | null>(null);
+  const [finished, setFinished] = React.useState(false);
   const phaseKeys = ['planBuildingStep1', 'planBuildingStep2', 'planBuildingStep3', 'planBuildingStep4'] as const;
+  const requestRef = React.useRef(request);
+  const completeRef = React.useRef(onComplete);
+  completeRef.current = onComplete;
 
   React.useEffect(() => {
+    let alive = true;
     const started = Date.now();
-    const ticker = setInterval(() => setPercent(Math.min(100, Math.round(((Date.now() - started) / 5600) * 100))), 60);
-    const completionTimer = setTimeout(onComplete, 6000);
-    return () => {
-      clearInterval(ticker);
-      clearTimeout(completionTimer);
-    };
-  }, [onComplete]);
+    let answer: { plan: AiPlan | null } | null = null;
+    let landedAt = 0;
+    requestRef.current().then((plan) => { answer = { plan }; }, () => { answer = { plan: null }; });
+    const ticker = setInterval(() => {
+      if (!alive) return;
+      const elapsed = Date.now() - started;
+      if (!answer || elapsed < PLAN_MIN_MS) {
+        const quick = Math.min(30, (elapsed / 1600) * 30);
+        const creep = elapsed > 1600 ? 62 * (1 - Math.exp(-(elapsed - 1600) / 9000)) : 0;
+        setPercent(Math.round(Math.min(92, quick + creep)));
+        return;
+      }
+      if (!landedAt) { landedAt = Date.now(); setResult(answer); }
+      const fill = Math.min(1, (Date.now() - landedAt) / 700);
+      setPercent((current) => Math.max(current, Math.round(current + (100 - current) * fill)));
+      if (fill >= 1) {
+        clearInterval(ticker);
+        setFinished(true);
+        const done = answer;
+        setTimeout(() => { if (alive) completeRef.current(done.plan); }, done.plan?.note ? PLAN_NOTE_MS : 700);
+      }
+    }, 60);
+    return () => { alive = false; clearInterval(ticker); };
+  }, []);
   const phase = Math.min(3, Math.floor(percent / 25));
+  const status = !result ? copy.writing : result.plan ? copy.ready : copy.local;
 
   return <View style={ui.page}>
     <OnboardingBackdrop />
@@ -1106,8 +1149,14 @@ function PlanBuildingScreen({ onComplete }: { onComplete: () => void }) {
         </ProgressRing>
       </GlowStage>
       <Text style={[ui.title, ui.centerText, { color: colors.foreground }]}>{t('planBuildingTitle')}</Text>
-      <Text style={[ui.subtitle, ui.centerText, { color: colors.mutedForeground }]}>{t('planBuildingBody')}</Text>
-      <View style={[ui.checklist, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[ui.aiStatus, { backgroundColor: `${result?.plan ? colors.success : colors.accent}16` }]}>
+        {result ? <Ionicons name={result.plan ? 'flash-outline' : 'checkmark-circle'} size={14} color={result.plan ? colors.success : colors.accent} /> : <AiTypingDots color={colors.accent} />}
+        <Text style={[ui.aiStatusText, { color: result?.plan ? colors.success : colors.accent }]}>{status}</Text>
+      </View>
+      {finished && result?.plan?.note ? <Rise style={{ alignSelf: 'stretch' }}><View style={[ui.aiNote, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Text style={[ui.aiNoteLabel, { color: colors.mutedForeground }]}>{copy.note}</Text>
+        <Text style={[ui.aiNoteText, { color: colors.foreground }]}>{result.plan.note}</Text>
+      </View></Rise> : <View style={[ui.checklist, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {phaseKeys.map((key, index) => {
           const done = index < phase || percent >= 100;
           const active = index === phase && percent < 100;
@@ -1118,9 +1167,27 @@ function PlanBuildingScreen({ onComplete }: { onComplete: () => void }) {
             <Text style={[ui.checkText, { color: done || active ? colors.foreground : colors.mutedForeground }]}>{t(key)}</Text>
           </View>;
         })}
-      </View>
+      </View>}
     </View>
   </View>;
+}
+
+/** Three dots that bounce in turn while the AI is working. */
+function AiTypingDots({ color }: { color: string }) {
+  const reduced = useReducedMotion();
+  const clock = useSharedValue(0);
+  React.useEffect(() => {
+    if (!reduced) clock.set(withRepeat(withTiming(1, { duration: 900, easing: ReEasing.linear }), -1));
+  }, [clock, reduced]);
+  return <View style={ui.aiDots}>{[0, 0.2, 0.4].map((phase) => <TypingDot key={phase} clock={clock} phase={phase} color={color} />)}</View>;
+}
+
+function TypingDot({ clock, phase, color }: { clock: SharedValue<number>; phase: number; color: string }) {
+  const style = useAnimatedStyle(() => {
+    const wave = Math.max(0, Math.sin((clock.get() - phase) * Math.PI * 2));
+    return { opacity: 0.35 + wave * 0.65, transform: [{ translateY: -wave * 3 }] };
+  });
+  return <ReAnimated.View style={[ui.aiDot, { backgroundColor: color }, style]} />;
 }
 
 function IntroScreen({ onDone }: { onDone: () => void }) {
@@ -1642,6 +1709,13 @@ const ui = StyleSheet.create({
   pulseText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   pulseWave: { flexDirection: 'row', alignItems: 'center', gap: 2.5, height: 16 },
   pulseBar: { width: 3, borderRadius: 2 },
+  aiStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, marginTop: 14, maxWidth: '100%' },
+  aiStatusText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12.5 },
+  aiDots: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 14 },
+  aiDot: { width: 5, height: 5, borderRadius: 3 },
+  aiNote: { borderRadius: 22, borderWidth: 1, padding: 18, marginTop: 20 },
+  aiNoteLabel: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 },
+  aiNoteText: { fontFamily: 'Inter_500Medium', fontSize: 15, lineHeight: 22 },
   brandTitle: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 5, rowGap: 4, marginTop: 12 },
   growthCardTitleText: { fontFamily: 'Inter_700Bold', fontSize: 14 },
   choiceIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
