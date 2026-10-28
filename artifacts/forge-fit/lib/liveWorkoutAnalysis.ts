@@ -331,8 +331,9 @@ function readPushup(pose: PoseLandmarks, previous: RepState): FrameReading {
   const headTop = settle(previous.headTop, nose.y);
   const shoulderDrop = (shoulderY - top) / width;
   const headDrop = (nose.y - headTop) / width;
-  const shoulderDepth = clamp01(shoulderDrop / 0.42);
-  const headDepth = clamp01(headDrop / 0.42);
+  // About a third of a shoulder width of travel is a full push-up seen from the floor in front.
+  const shoulderDepth = clamp01(shoulderDrop / 0.32);
+  const headDepth = clamp01(headDrop / 0.32);
   // The head has to come down with the shoulders; dropping only the hips or shoulders is not a rep.
   const depth = Math.min(shoulderDepth, headDepth);
 

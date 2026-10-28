@@ -94,6 +94,13 @@ function RigDemo({ kind, tone }: { kind: ExerciseKind; tone: string }) {
 }
 
 const PREVIEW_PERIOD_MS = 2800;
+const DIAL = 156;
+const DIAL_TICKS = 40;
+
+function formatElapsed(ms: number) {
+  const total = Math.floor(ms / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
 
 /** Web preview stand-in for the camera: a person doing clean reps, fed through the real analyser. */
 function SimulatedPoseSource({ kind, onPose }: { kind: ExerciseKind; onPose: (pose: PoseLandmarks, timestamp: number) => void }) {
@@ -103,7 +110,13 @@ function SimulatedPoseSource({ kind, onPose }: { kind: ExerciseKind; onPose: (po
     const started = Date.now();
     const timer = setInterval(() => {
       const elapsed = Date.now() - started;
-      handler.current(simulatedPose(kind, repDepthAt(elapsed, PREVIEW_PERIOD_MS), elapsed / 40), elapsed);
+      const pose = simulatedPose(kind, repDepthAt(elapsed, PREVIEW_PERIOD_MS), elapsed / 40);
+      // Fit the stand-in person into the space between the header and the dial.
+      (Object.keys(pose) as PoseJoint[]).forEach((joint) => {
+        const point = pose[joint]!;
+        pose[joint] = { ...point, x: 0.5 + (point.x - 0.5) * 0.78, y: 0.44 + (point.y - 0.5) * 0.78 };
+      });
+      handler.current(pose, elapsed);
     }, 33);
     return () => clearInterval(timer);
   }, [kind]);
@@ -184,6 +197,14 @@ function LiveSession({ kind, renderCamera, preview = false }: { kind: ExerciseKi
   const [isStarted, setIsStarted] = React.useState(false);
   const [startOptionsVisible, setStartOptionsVisible] = React.useState(false);
   const [countdown, setCountdown] = React.useState<number | null>(null);
+  const [countdownTotal, setCountdownTotal] = React.useState(0);
+  const [elapsed, setElapsed] = React.useState(0);
+  React.useEffect(() => {
+    if (!isStarted) return undefined;
+    const started = Date.now();
+    const timer = setInterval(() => setElapsed(Date.now() - started), 1000);
+    return () => clearInterval(timer);
+  }, [isStarted]);
   const [skeletonPose, setSkeletonPose] = React.useState<PoseLandmarks>({});
   const poseTrackRef = React.useRef(initialPoseTrackState);
   const stateRef = React.useRef<RepState>(initialRepState);
@@ -217,6 +238,7 @@ function LiveSession({ kind, renderCamera, preview = false }: { kind: ExerciseKi
     isStartedRef.current = false;
     setIsStarted(false);
     setStartOptionsVisible(false);
+    setCountdownTotal(seconds);
     setCountdown(seconds);
     let remaining = seconds;
     countdownTimerRef.current = setInterval(() => {
@@ -235,8 +257,12 @@ function LiveSession({ kind, renderCamera, preview = false }: { kind: ExerciseKi
 
   if (cameraError) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} />;
 
+  const dialFill = countdown !== null && countdownTotal ? 1 - (countdown - 1) / countdownTotal : isStarted ? analysis.depthPercent / 100 : 0;
+  const dialTone = countdown !== null ? '#FFFFFF' : analysis.depthPercent >= 100 ? '#3DD68C' : '#7FA6FF';
+  const timeLabel = ({ tr: 'Süre', en: 'Time', de: 'Zeit', fr: 'Temps', es: 'Tiempo' } as const)[language] ?? 'Time';
   const blocked = !['liveGoodForm', 'liveReachDepth', 'liveTempo', 'liveKneeAlignment', 'liveBalance', 'liveBackAngle', 'liveHeadDown', 'liveElbowPosition', 'liveHipPosition'].includes(analysis.warning);
   const rigTone = !isStarted || blocked ? '#E8EEF9' : analysis.warning === 'liveGoodForm' ? '#3DD68C' : '#FF9F43';
+  const toastTone = !isStarted ? '#7FA6FF' : blocked ? '#E8EEF9' : analysis.warning === 'liveGoodForm' ? '#3DD68C' : '#FF9F43';
   const title = kind === 'squat' ? t('liveSquat') : kind === 'pushup' ? t('livePushup') : t('liveLunge');
   const directionHint = kind === 'pushup' ? t('livePushupView') : kind === 'squat' ? t('liveSquatView') : t('liveLungeView');
   const handlePose = (currentPose: PoseLandmarks, timestamp: number) => {
@@ -269,59 +295,86 @@ function LiveSession({ kind, renderCamera, preview = false }: { kind: ExerciseKi
     {renderCamera(handlePose, skeletonOnly, () => setCameraError(true))}
       <RigOverlay pose={skeletonPose} width={width} height={height} tone={rigTone} body={preview} />
      {!skeletonOnly ? <View pointerEvents="none" style={styles.cameraShade} /> : null}
-     {!skeletonOnly ? <View pointerEvents="none" style={[styles.neonFrame, { borderColor: colors.accent, shadowColor: colors.accent }]} /> : null}
-    <View style={[styles.liveHeader, { paddingTop: insets.top + 14 }]}>
-      <View style={[styles.liveBadge, { backgroundColor: `${colors.destructive}D9` }]}><View style={styles.liveDot} /><Text style={styles.liveBadgeText}>{t('live')}</Text></View>
-      <View style={[styles.exerciseBadge, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.accent}65` }]}><Ionicons name="activity" size={15} color={colors.accent} /><Text style={[styles.exerciseBadgeText, { color: colors.foreground }]}>{title}</Text></View>
-       <Pressable testID="toggle-skeleton-mode" accessibilityRole="button" accessibilityLabel={skeletonOnly ? t('cameraMode') : t('skeletonOnlyMode')} onPress={() => setSkeletonOnly((value) => !value)} style={({ pressed }) => [styles.modeToggle, { backgroundColor: `${colors.background}D9`, borderColor: colors.border, opacity: pressed ? 0.72 : 1 }]}><Ionicons name={skeletonOnly ? 'camera-outline' : 'body-outline'} size={18} color={colors.accent} /></Pressable>
-      <Pressable accessibilityLabel={t('stopLiveWorkout')} onPress={() => router.back()} style={[styles.closeButton, { backgroundColor: `${colors.background}D9`, borderColor: colors.border }]}><Ionicons name="close" size={20} color={colors.foreground} /></Pressable>
+
+    <View style={[styles.hudTop, { paddingTop: insets.top + 10 }]}>
+      <Pressable accessibilityLabel={t('stopLiveWorkout')} onPress={() => router.back()} style={styles.glassCircle}>
+        <Ionicons name="close" size={20} color="#FFFFFF" />
+      </Pressable>
+      <View style={styles.titlePill}>
+        <View style={[styles.recDot, { opacity: isStarted ? 1 : 0.45 }]} />
+        <Text style={styles.titlePillLive}>{t('live')}</Text>
+        <View style={styles.titleDivider} />
+        <Text numberOfLines={1} style={styles.titlePillText}>{title}</Text>
+      </View>
+      <Pressable testID="toggle-skeleton-mode" accessibilityRole="button" accessibilityLabel={skeletonOnly ? t('cameraMode') : t('skeletonOnlyMode')} onPress={() => setSkeletonOnly((value) => !value)} style={styles.glassCircle}>
+        <Ionicons name={skeletonOnly ? 'camera-outline' : 'body-outline'} size={19} color="#FFFFFF" />
+      </Pressable>
     </View>
-       <View style={[styles.topStatusRow, { top: insets.top + 62 }]}>
-         <View testID="live-workout-reps-panel" style={[styles.topRepsCard, { backgroundColor: `${colors.background}E8`, borderColor: `${colors.accent}65` }]}>
-           <Text style={[styles.metricCaption, { color: colors.mutedForeground }]}>{t('reps').toUpperCase()}</Text>
-           <Animated.Text style={[styles.topRepNumber, { color: colors.foreground, transform: [{ scale: repPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2] }) }] }]}>{analysis.state.reps}</Animated.Text>
-         </View>
-         <View style={[styles.feedback, styles.topFeedback, { backgroundColor: analysis.warning === 'liveGoodForm' ? `${colors.success}E8` : `${colors.background}E8`, borderColor: analysis.warning === 'liveGoodForm' ? `${colors.success}55` : `${colors.orange}65` }]}>
-           <Ionicons name={analysis.warning === 'liveGoodForm' ? 'checkmark-circle' : 'alert-circle'} size={18} color={analysis.warning === 'liveGoodForm' ? colors.success : colors.orange} />
-           <Text numberOfLines={2} style={[styles.feedbackText, { color: colors.foreground }]}>{t(analysis.warning)}</Text>
-         </View>
+
+    <View pointerEvents="none" style={[styles.toastWrap, { top: insets.top + 66 }]}>
+      <View style={[styles.toast, { borderColor: `${toastTone}55` }]}>
+        <View style={[styles.toastDot, { backgroundColor: toastTone }]} />
+        <Text numberOfLines={3} style={styles.toastText}>{isStarted ? t(analysis.warning) : directionHint}</Text>
+      </View>
+    </View>
+
+    <LinearGradient pointerEvents="none" colors={['rgba(4,6,12,0)', 'rgba(4,6,12,0.75)']} style={styles.dockFade} />
+    <View style={[styles.dock, { paddingBottom: insets.bottom + 22 }]}>
+      {/* One fixed line above the dial, so the dial never shifts between states. */}
+      <Text style={styles.dockHint}>{countdown !== null ? t('liveStarting') : startOptionsVisible && !isStarted ? t('liveStartDelayTitle') : ' '}</Text>
+      <View style={styles.dockRow}>
+        <View style={styles.sideStat}>
+          {startOptionsVisible && !isStarted && countdown === null
+            ? <Pressable testID="start-live-5-seconds" accessibilityRole="button" onPress={() => beginCountdown(5)} style={styles.delayChip}><Text numberOfLines={1} style={styles.delayChipText}>{t('liveStartFiveSeconds')}</Text></Pressable>
+            : <>
+              <Text style={styles.sideValue}>{isStarted ? `${analysis.depthPercent}%` : '—'}</Text>
+              <Text style={styles.sideLabel}>{t('liveDepth').toLocaleUpperCase(language)}</Text>
+            </>}
         </View>
-       <View
-         accessibilityLabel={`${t('liveDepth')} ${analysis.depthPercent}%`}
-          style={[styles.depthSideRail, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.foreground}28` }]}
-       >
-         <Text style={[styles.depthSideCaption, { color: colors.mutedForeground }]}>{t('liveDepth').toUpperCase()}</Text>
-         <Text style={[styles.depthSidePercent, { color: analysis.depthPercent >= 100 ? colors.success : colors.foreground }]}>{analysis.depthPercent}%</Text>
-         <View style={[styles.depthTrack, { backgroundColor: `${colors.foreground}18`, borderColor: `${colors.foreground}28` }]}>
-           <View style={[styles.depthTargetLine, { backgroundColor: colors.success }]} />
-           <View style={[styles.depthFill, { height: `${analysis.depthPercent}%`, backgroundColor: analysis.depthPercent >= 100 ? colors.success : colors.accent }]} />
-         </View>
-         <Text style={[styles.depthSideTarget, { color: colors.success }]}>100%</Text>
-       </View>
-       {!showFormGuide && !isStarted && countdown === null ? <View style={[styles.startControls, { bottom: insets.bottom + 18 }]}>
-         {startOptionsVisible ? <View style={[styles.startOptionsCard, { backgroundColor: `${colors.background}F2`, borderColor: colors.border }]}>
-           <Text style={[styles.startOptionsTitle, { color: colors.foreground }]}>{t('liveStartDelayTitle')}</Text>
-           <View style={styles.startOptionsRow}>
-             <Pressable testID="start-live-5-seconds" accessibilityRole="button" onPress={() => beginCountdown(5)} style={({ pressed }) => [styles.startOption, { backgroundColor: `${colors.primary}20`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}>
-               <Text style={[styles.startOptionText, { color: colors.primary }]}>{t('liveStartFiveSeconds')}</Text>
-             </Pressable>
-             <Pressable testID="start-live-10-seconds" accessibilityRole="button" onPress={() => beginCountdown(10)} style={({ pressed }) => [styles.startOption, { backgroundColor: `${colors.primary}20`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}>
-               <Text style={[styles.startOptionText, { color: colors.primary }]}>{t('liveStartTenSeconds')}</Text>
-             </Pressable>
-           </View>
-           <Pressable accessibilityRole="button" onPress={() => setStartOptionsVisible(false)} style={styles.startCancelButton}>
-             <Text style={[styles.startCancelText, { color: colors.mutedForeground }]}>{t('liveStartCancel')}</Text>
-           </Pressable>
-         </View> : null}
-         {!startOptionsVisible ? <Pressable testID="start-live-countdown" accessibilityRole="button" onPress={() => setStartOptionsVisible(true)} style={({ pressed }) => [styles.startLiveButton, { backgroundColor: colors.primary, opacity: pressed ? 0.76 : 1 }]}>
-           <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
-           <Text style={[styles.startLiveButtonText, { color: colors.primaryForeground }]}>{t('liveStart')}</Text>
-         </Pressable> : null}
-       </View> : null}
-       {countdown !== null ? <View pointerEvents="none" style={styles.countdownOverlay}>
-         <Animated.Text style={[styles.countdownNumber, { color: colors.primaryForeground, opacity: countdownPulse.interpolate({ inputRange: [0, 1], outputRange: [0.68, 1] }), transform: [{ scale: countdownPulse.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1.08] }) }] }]}>{countdown}</Animated.Text>
-         <Text style={[styles.countdownLabel, { color: colors.primaryForeground }]}>{t('liveStarting')}</Text>
-       </View> : null}
+
+        <Pressable
+          testID={isStarted ? 'live-workout-reps-panel' : 'start-live-countdown'}
+          accessibilityRole="button"
+          accessibilityLabel={isStarted ? `${analysis.state.reps} ${t('reps')}` : t('liveStart')}
+          disabled={isStarted || countdown !== null || showFormGuide}
+          onPress={() => setStartOptionsVisible((value) => !value)}
+          scaleTo={0.95}
+          style={styles.dial}
+        >
+          <Svg width={DIAL} height={DIAL} style={StyleSheet.absoluteFill}>
+            {Array.from({ length: DIAL_TICKS }, (_, index) => {
+              const angleRad = (index / DIAL_TICKS) * Math.PI * 2 - Math.PI / 2;
+              const lit = dialFill * DIAL_TICKS > index;
+              const inner = DIAL / 2 - 12;
+              const outer = DIAL / 2 - 4;
+              return <Line key={index} x1={DIAL / 2 + Math.cos(angleRad) * inner} y1={DIAL / 2 + Math.sin(angleRad) * inner} x2={DIAL / 2 + Math.cos(angleRad) * outer} y2={DIAL / 2 + Math.sin(angleRad) * outer} stroke={lit ? dialTone : 'rgba(255,255,255,0.18)'} strokeWidth={3} strokeLinecap="round" />;
+            })}
+          </Svg>
+          <View style={[styles.dialCore, isStarted || countdown !== null ? null : styles.dialCoreIdle]}>
+            {countdown !== null
+              ? <Animated.Text style={[styles.dialNumber, { transform: [{ scale: countdownPulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.06] }) }] }]}>{countdown}</Animated.Text>
+              : isStarted
+                ? <>
+                  <Animated.Text style={[styles.dialNumber, { transform: [{ scale: repPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] }) }] }]}>{analysis.state.reps}</Animated.Text>
+                  <Text style={styles.dialLabel}>{t('reps').toLocaleUpperCase(language)}</Text>
+                </>
+                : <>
+                  <Ionicons name={startOptionsVisible ? 'close' : 'arrow-forward'} size={22} color="#0A0B0D" />
+                  <Text style={styles.dialStart}>{startOptionsVisible ? t('liveStartCancel') : t('liveStart')}</Text>
+                </>}
+          </View>
+        </Pressable>
+
+        <View style={styles.sideStat}>
+          {startOptionsVisible && !isStarted && countdown === null
+            ? <Pressable testID="start-live-10-seconds" accessibilityRole="button" onPress={() => beginCountdown(10)} style={styles.delayChip}><Text numberOfLines={1} style={styles.delayChipText}>{t('liveStartTenSeconds')}</Text></Pressable>
+            : <>
+              <Text style={styles.sideValue}>{formatElapsed(elapsed)}</Text>
+              <Text style={styles.sideLabel}>{timeLabel.toLocaleUpperCase(language)}</Text>
+            </>}
+        </View>
+      </View>
+    </View>
        {showFormGuide ? <View style={styles.guideBackdrop}>
          <View style={[styles.guideCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
            <View style={styles.guideHeader}>
@@ -367,7 +420,33 @@ export default function LiveWorkoutScreen() {
 const styles = StyleSheet.create({
   cameraRoot: { flex: 1, backgroundColor: '#020B18' },
   hiddenCamera: { opacity: 0 },
-  cameraShade: { ...StyleSheet.absoluteFill, backgroundColor: '#020B1830' },
+  cameraShade: { ...StyleSheet.absoluteFill, backgroundColor: '#020B1826' },
+  hudTop: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 8 },
+  glassCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(10,12,18,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
+  titlePill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderRadius: 22, paddingHorizontal: 16, backgroundColor: 'rgba(10,12,18,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', maxWidth: '60%' },
+  recDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF4D5E' },
+  titlePillLive: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.4, color: '#FF8A95' },
+  titleDivider: { width: 1, height: 14, backgroundColor: 'rgba(255,255,255,0.2)' },
+  titlePillText: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFFFFF', flexShrink: 1 },
+  toastWrap: { position: 'absolute', left: 20, right: 20, alignItems: 'center', zIndex: 7 },
+  toast: { flexDirection: 'row', alignItems: 'center', gap: 10, maxWidth: '100%', borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(10,12,18,0.62)' },
+  toastDot: { width: 8, height: 8, borderRadius: 4 },
+  toastText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18, color: '#FFFFFF' },
+  dock: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', zIndex: 9 },
+  dockFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 280, zIndex: 8 },
+  dockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  dockHint: { height: 18, fontFamily: 'Inter_600SemiBold', fontSize: 12, letterSpacing: 0.4, color: 'rgba(255,255,255,0.75)', marginBottom: 10 },
+  sideStat: { width: 96, alignItems: 'center' },
+  sideValue: { fontFamily: 'Inter_700Bold', fontSize: 20, letterSpacing: -0.4, color: '#FFFFFF' },
+  sideLabel: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1.3, color: 'rgba(255,255,255,0.55)', marginTop: 3 },
+  delayChip: { height: 44, minWidth: 92, borderRadius: 22, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
+  delayChipText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#FFFFFF' },
+  dial: { width: DIAL, height: DIAL, alignItems: 'center', justifyContent: 'center' },
+  dialCore: { width: DIAL - 40, height: DIAL - 40, borderRadius: (DIAL - 40) / 2, backgroundColor: 'rgba(10,12,18,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  dialCoreIdle: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
+  dialNumber: { fontFamily: 'Inter_700Bold', fontSize: 46, lineHeight: 50, letterSpacing: -1.5, color: '#FFFFFF' },
+  dialLabel: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1.6, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  dialStart: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#0A0B0D', marginTop: 4 },
   neonFrame: { ...StyleSheet.absoluteFill, margin: 18, borderWidth: 2, borderRadius: 30, shadowOpacity: 0.7, shadowRadius: 18 },
   liveHeader: { position: 'absolute', left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 8 },
   liveBadge: { height: 32, borderRadius: 12, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
