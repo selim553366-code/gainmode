@@ -35,6 +35,43 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - '@replit/*'
   - stripe-replit-sync
+  - '@types/react'
+  - '@types/react-dom'
+  - '@expo/image-utils'
+  - babel-preset-expo
+  - expo
+  - expo-asset
+  - expo-audio
+  - expo-camera
+  - expo-clipboard
+  - expo-location
+  - expo-notifications
+  - expo-blur
+  - expo-constants
+  - expo-font
+  - expo-glass-effect
+  - expo-haptics
+  - expo-image
+  - expo-image-picker
+  - expo-linear-gradient
+  - expo-linking
+  - expo-router
+  - expo-splash-screen
+  - expo-status-bar
+  - expo-symbols
+  - expo-system-ui
+  - expo-web-browser
+  - react
+  - react-dom
+  - react-native
+  - react-native-gesture-handler
+  - react-native-keyboard-controller
+  - react-native-reanimated
+  - react-native-safe-area-context
+  - react-native-screens
+  - react-native-svg
+  - react-native-web
+  - react-native-worklets
 
 onlyBuiltDependencies:
   - '@swc/core'
