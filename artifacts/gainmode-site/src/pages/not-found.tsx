@@ -1,17 +1,15 @@
-import { GlobeLayout } from '@/components/layout/globe-layout';
+import { Link } from 'wouter';
 import { useI18n } from '@/lib/i18n';
-import { motion } from 'framer-motion';
+import { LogoMark } from '@/components/site/brand';
 
 export default function NotFound() {
   const { t } = useI18n();
   return (
-    <GlobeLayout>
-      <div className="flex-1 flex items-center justify-center py-32">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center px-4">
-          <h1 className="text-6xl font-serif font-bold mb-4">{t.notFoundTitle}</h1>
-          <p className="text-xl text-muted-foreground">{t.notFoundBody}</p>
-        </motion.div>
-      </div>
-    </GlobeLayout>
+    <section className="flex min-h-[80vh] flex-col items-center justify-center px-5 pt-24 text-center">
+      <LogoMark size={96} animate />
+      <h1 className="mt-8 font-display text-5xl font-extrabold uppercase tracking-[-0.03em]">404</h1>
+      <p className="mt-3 text-white/60">{t.notFound.body}</p>
+      <Link href="/" className="mt-8 rounded-full bg-royal-500 px-6 py-3 text-sm font-semibold">{t.notFound.back}</Link>
+    </section>
   );
 }
