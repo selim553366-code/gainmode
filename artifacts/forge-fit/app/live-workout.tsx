@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Easing, Image, Linking, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Linking, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { router, useLocalSearchParams } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -7,7 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@/components/AppIcon';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
-import { apiUrl } from '@/lib/api';
+import { isDesignPreview } from '@/lib/designPreview';
+import { repDepthAt, simulatedPose } from '@/lib/livePoseSimulator';
+import { LinearGradient } from 'expo-linear-gradient';
 import { PoseCamera, useCameraPermission } from 'react-native-pose-detection';
 import type { PoseFrame } from 'react-native-pose-detection';
 import { liveTranslate, type LiveWorkoutCopyKey } from '@/lib/liveWorkoutCopy';
@@ -37,27 +39,75 @@ const skeletonConnections: Array<[PoseJoint, PoseJoint]> = [
   ['rightHip', 'rightKnee'], ['rightKnee', 'rightAnkle'],
 ];
 
-function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmarks; width: number; height: number; color: string }) {
-  const displayX = (normalizedX: number) => cameraDisplayX(normalizedX) * width;
+/**
+ * The rig drawn over the person: a soft glow under every bone, a crisp core line, ringed joints
+ * and a head circle sized from the shoulders. Green while the form is good, orange on a warning,
+ * white while it is still looking for the body. `body` adds a faint silhouette for the preview.
+ */
+function RigOverlay({ pose, width, height, tone, body = false, mirror = true }: { pose: PoseLandmarks; width: number; height: number; tone: string; body?: boolean; mirror?: boolean }) {
+  const x = (value: number) => (mirror ? cameraDisplayX(value) : value) * width;
+  const y = (value: number) => value * height;
+  const ls = pose.leftShoulder;
+  const rs = pose.rightShoulder;
+  const neckBase = ls && rs ? { x: (x(ls.x) + x(rs.x)) / 2, y: (y(ls.y) + y(rs.y)) / 2 } : null;
+  const hipMid = pose.leftHip && pose.rightHip ? { y: (y(pose.leftHip.y) + y(pose.rightHip.y)) / 2 } : null;
+  // Head size follows the shoulders when square to the camera and the torso when side-on.
+  const shoulderSpan = ls && rs ? Math.hypot(x(ls.x) - x(rs.x), y(ls.y) - y(rs.y)) : 0;
+  const torsoSpan = neckBase && hipMid ? Math.abs(hipMid.y - neckBase.y) : 0;
+  const headRadius = Math.max(14, shoulderSpan * 0.42, torsoSpan * 0.14);
+  const bones = skeletonConnections.filter(([from, to]) => from !== 'nose' && pose[from] && pose[to]);
+  const neck = pose.nose && neckBase && neckBase.y > y(pose.nose.y) + headRadius
+    ? { x1: x(pose.nose.x), y1: y(pose.nose.y) + headRadius, x2: neckBase.x, y2: neckBase.y }
+    : null;
   return <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 3 }]}>
-    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      {skeletonConnections.map(([from, to]) => {
-        const start = pose[from];
-        const end = pose[to];
-        if (!start || !end) return null;
-        return <Line key={`${from}-${to}`} x1={displayX(start.x)} y1={start.y * height} x2={displayX(end.x)} y2={end.y * height} stroke={color} strokeWidth={4} strokeLinecap="round" opacity={0.92} />;
-      })}
-      {(Object.entries(pose) as Array<[PoseJoint, PoseLandmarks[PoseJoint]]>).map(([joint, point]) => point
-        ? <Circle key={joint} cx={displayX(point.x)} cy={point.y * height} r={6} fill={color} opacity={0.98} />
+    <Svg width={width} height={height}>
+      {body ? bones.map(([from, to]) => <Line key={`b-${from}-${to}`} x1={x(pose[from]!.x)} y1={y(pose[from]!.y)} x2={x(pose[to]!.x)} y2={y(pose[to]!.y)} stroke="#FFFFFF" strokeOpacity={0.07} strokeWidth={to.includes('Hip') || from.includes('Hip') ? 46 : 30} strokeLinecap="round" />) : null}
+      {body && pose.nose ? <Circle cx={x(pose.nose.x)} cy={y(pose.nose.y)} r={headRadius * 1.2} fill="#FFFFFF" fillOpacity={0.07} /> : null}
+      {bones.map(([from, to]) => <Line key={`g-${from}-${to}`} x1={x(pose[from]!.x)} y1={y(pose[from]!.y)} x2={x(pose[to]!.x)} y2={y(pose[to]!.y)} stroke={tone} strokeOpacity={0.25} strokeWidth={14} strokeLinecap="round" />)}
+      {bones.map(([from, to]) => <Line key={`c-${from}-${to}`} x1={x(pose[from]!.x)} y1={y(pose[from]!.y)} x2={x(pose[to]!.x)} y2={y(pose[to]!.y)} stroke={tone} strokeWidth={4} strokeLinecap="round" />)}
+      {neck ? <Line {...neck} stroke={tone} strokeOpacity={0.25} strokeWidth={14} strokeLinecap="round" /> : null}
+      {neck ? <Line {...neck} stroke={tone} strokeWidth={4} strokeLinecap="round" /> : null}
+      {pose.nose ? <Circle cx={x(pose.nose.x)} cy={y(pose.nose.y)} r={headRadius} stroke={tone} strokeWidth={3.5} fill="none" /> : null}
+      {(Object.entries(pose) as Array<[PoseJoint, PoseLandmarks[PoseJoint]]>).map(([joint, point]) => point && joint !== 'nose'
+        ? <React.Fragment key={joint}>
+          <Circle cx={x(point.x)} cy={y(point.y)} r={9} fill={tone} fillOpacity={0.25} />
+          <Circle cx={x(point.x)} cy={y(point.y)} r={5} fill="#FFFFFF" stroke={tone} strokeWidth={2.5} />
+        </React.Fragment>
         : null)}
     </Svg>
   </View>;
 }
 
-function guideImageForKind(kind: ExerciseKind) {
-  if (kind === 'squat') return { uri: apiUrl('/api/app-assets/form-guides/live-guide-coach-squat-oblique-skeleton.png') };
-  if (kind === 'lunge') return { uri: apiUrl('/api/app-assets/form-guides/live-guide-coach-lunge-oblique-skeleton.png') };
-  return { uri: apiUrl('/api/app-assets/form-guides/live-guide-coach-pushup-oblique-skeleton.png') };
+/** A looping demonstration of how to stand for the exercise, using the same rig. */
+function RigDemo({ kind, tone }: { kind: ExerciseKind; tone: string }) {
+  const [size, setSize] = React.useState({ width: 0, height: 0 });
+  const [time, setTime] = React.useState(0);
+  React.useEffect(() => {
+    const started = Date.now();
+    const timer = setInterval(() => setTime(Date.now() - started), 40);
+    return () => clearInterval(timer);
+  }, []);
+  const pose = simulatedPose(kind, repDepthAt(time, 2400));
+  return <View onLayout={(event) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })} style={styles.guideImage}>
+    {size.width ? <RigOverlay pose={pose} width={size.width} height={size.height} tone={tone} body mirror={false} /> : null}
+  </View>;
+}
+
+const PREVIEW_PERIOD_MS = 2800;
+
+/** Web preview stand-in for the camera: a person doing clean reps, fed through the real analyser. */
+function SimulatedPoseSource({ kind, onPose }: { kind: ExerciseKind; onPose: (pose: PoseLandmarks, timestamp: number) => void }) {
+  const handler = React.useRef(onPose);
+  handler.current = onPose;
+  React.useEffect(() => {
+    const started = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - started;
+      handler.current(simulatedPose(kind, repDepthAt(elapsed, PREVIEW_PERIOD_MS), elapsed / 40), elapsed);
+    }, 33);
+    return () => clearInterval(timer);
+  }, [kind]);
+  return <LinearGradient colors={['#141A2A', '#0A0D16', '#05060A']} style={StyleSheet.absoluteFill} />;
 }
 
 function ActionButton({ label, icon, onPress, disabled = false }: { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void; disabled?: boolean }) {
@@ -95,12 +145,38 @@ function PermissionView({ onAllow, pending, canAskAgain }: { onAllow: () => void
   </View>;
 }
 
+type CameraRenderer = (onPose: (pose: PoseLandmarks, timestamp: number) => void, hidden: boolean, onError: () => void) => React.ReactNode;
+
 function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
+  const { language } = useFit();
+  const t = (key: LiveWorkoutCopyKey) => liveTranslate(language, key);
+  const permission = useCameraPermission();
+  const [cameraError, setCameraError] = React.useState(false);
+  if (cameraError || permission.error) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} />;
+  if (!permission.granted) return <PermissionView onAllow={() => { permission.request().catch(() => setCameraError(true)); }} pending={permission.pending} canAskAgain={permission.canAskAgain} />;
+  return <LiveSession kind={kind} renderCamera={(onPose, hidden, onError) => <PoseCamera
+    style={[StyleSheet.absoluteFill, hidden ? styles.hiddenCamera : null]}
+    facing="front"
+    profile="balanced"
+    resolution="720p"
+    analysisResolution="480p"
+    targetFps={30}
+    minConfidence={0.45}
+    smoothing={{ minCutoff: 1, beta: 4 }}
+    data={{ mode: 'live', landmarks: true }}
+    overlay={{ landmarks: false, connections: false, color: '#3DD68C', lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
+    onPose={(frame: PoseFrame) => onPose(poseFromFrame(frame), frame.timestamp)}
+    onReady={({ facing }) => { if (facing !== 'front') onError(); }}
+    onCameraChange={({ facing }) => { if (facing !== 'front') onError(); }}
+    onError={() => { onError(); setCameraError(true); }}
+  />} />;
+}
+
+function LiveSession({ kind, renderCamera, preview = false }: { kind: ExerciseKind; renderCamera: CameraRenderer; preview?: boolean }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { language } = useFit();
   const t = (key: LiveWorkoutCopyKey) => liveTranslate(language, key);
-  const permission = useCameraPermission();
   const [analysis, setAnalysis] = React.useState(() => ({ state: initialRepState, warning: 'liveLookingForBody' as LiveWarningKey, confidence: 0, metric: null as number | null, depthPercent: 0 }));
   const [cameraError, setCameraError] = React.useState(false);
   const [skeletonOnly, setSkeletonOnly] = React.useState(false);
@@ -158,19 +234,18 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   };
 
   if (cameraError) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} />;
-  if (permission.error) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} />;
-  if (!permission.granted) return <PermissionView onAllow={() => { permission.request().catch(() => setCameraError(true)); }} pending={permission.pending} canAskAgain={permission.canAskAgain} />;
 
+  const blocked = !['liveGoodForm', 'liveReachDepth', 'liveTempo', 'liveKneeAlignment', 'liveBalance', 'liveBackAngle', 'liveHeadDown', 'liveElbowPosition', 'liveHipPosition'].includes(analysis.warning);
+  const rigTone = !isStarted || blocked ? '#E8EEF9' : analysis.warning === 'liveGoodForm' ? '#3DD68C' : '#FF9F43';
   const title = kind === 'squat' ? t('liveSquat') : kind === 'pushup' ? t('livePushup') : t('liveLunge');
   const directionHint = kind === 'pushup' ? t('livePushupView') : kind === 'squat' ? t('liveSquatView') : t('liveLungeView');
-  const handlePose = (frame: PoseFrame) => {
+  const handlePose = (currentPose: PoseLandmarks, timestamp: number) => {
     const previousState = stateRef.current;
-    const currentPose = poseFromFrame(frame);
-    const trackedPose = stabilizePose(currentPose, poseTrackRef.current, frame.timestamp);
+    const trackedPose = stabilizePose(currentPose, poseTrackRef.current, timestamp);
     poseTrackRef.current = trackedPose.state;
     setSkeletonPose(trackedPose.pose);
     if (!isStartedRef.current) return;
-    const result = analyzePose(kind, currentPose, previousState, frame.timestamp);
+    const result = analyzePose(kind, currentPose, previousState, timestamp);
     stateRef.current = result.state;
     if (result.state.reps > previousState.reps) {
       repPulse.stopAnimation();
@@ -179,29 +254,20 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
         Animated.timing(repPulse, { toValue: 1, duration: 130, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
         Animated.spring(repPulse, { toValue: 0, friction: 5, tension: 90, useNativeDriver: true }),
       ]).start();
-      void repTone.seekTo(0).then(() => repTone.play()).catch(() => repTone.play());
+      try {
+        void repTone.seekTo(0).catch(() => undefined);
+        const played = repTone.play() as unknown;
+        if (played instanceof Promise) played.catch(() => undefined);
+      } catch {
+        // The tick is decoration; the counter still updates.
+      }
     }
     setAnalysis(result);
   };
 
   return <View testID="live-workout-compact-panel" style={[styles.cameraRoot, { backgroundColor: skeletonOnly ? colors.black : colors.background }]}>
-    <PoseCamera
-       style={[StyleSheet.absoluteFill, skeletonOnly ? styles.hiddenCamera : null]}
-      facing="front"
-       profile="balanced"
-      resolution="720p"
-       analysisResolution="480p"
-      targetFps={30}
-       minConfidence={0.45}
-       smoothing={{ minCutoff: 1, beta: 4 }}
-       data={{ mode: 'live', landmarks: true }}
-       overlay={{ landmarks: false, connections: false, color: colors.accent, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
-      onPose={handlePose}
-       onReady={({ facing }) => { if (facing !== 'front') setCameraError(true); }}
-       onCameraChange={({ facing }) => { if (facing !== 'front') setCameraError(true); }}
-      onError={() => setCameraError(true)}
-    />
-      <SkeletonOnlyOverlay pose={skeletonPose} width={width} height={height} color={colors.accent} />
+    {renderCamera(handlePose, skeletonOnly, () => setCameraError(true))}
+      <RigOverlay pose={skeletonPose} width={width} height={height} tone={rigTone} body={preview} />
      {!skeletonOnly ? <View pointerEvents="none" style={styles.cameraShade} /> : null}
      {!skeletonOnly ? <View pointerEvents="none" style={[styles.neonFrame, { borderColor: colors.accent, shadowColor: colors.accent }]} /> : null}
     <View style={[styles.liveHeader, { paddingTop: insets.top + 14 }]}>
@@ -272,7 +338,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
                <Ionicons name="close" size={18} color={colors.foreground} />
              </Pressable>
            </View>
-            <Image source={guideImageForKind(kind)} resizeMode="contain" style={styles.guideImage} />
+            <RigDemo kind={kind} tone="#3DD68C" />
            <Text style={[styles.guideBody, { color: colors.foreground }]}>{directionHint}</Text>
            <View style={[styles.guideTip, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}>
              <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
@@ -293,6 +359,7 @@ export default function LiveWorkoutScreen() {
   const t = (key: LiveWorkoutCopyKey) => liveTranslate(language, key);
   const kind = exerciseKindFromName(params.exercise ?? '') ?? 'squat';
 
+  if (Platform.OS === 'web' && isDesignPreview()) return <LiveSession kind={kind} preview renderCamera={(onPose) => <SimulatedPoseSource kind={kind} onPose={onPose} />} />;
   if (Platform.OS === 'web') return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('cameraUnavailableBody')} />;
   return <NativeLiveCamera kind={kind} />;
 }
@@ -363,7 +430,7 @@ const styles = StyleSheet.create({
   guideEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1, textTransform: 'uppercase' },
   guideTitle: { fontFamily: 'Inter_700Bold', fontSize: 20, lineHeight: 24, marginTop: 1 },
   guideClose: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  guideImage: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: '#0B0D0C' },
+  guideImage: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: '#0B0F1A', overflow: 'hidden' },
   guideBody: { fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18, marginTop: 11 },
   guideTip: { minHeight: 42, borderRadius: 12, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 7, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
   guideTipText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 14 },
