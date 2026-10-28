@@ -1,6 +1,6 @@
 import React from 'react';
 import { Animated, Easing, Image, PanResponder, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import ReAnimated, { Easing as ReEasing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSpring, withTiming } from 'react-native-reanimated';
+import ReAnimated, { Easing as ReEasing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import Svg, { Circle as SvgCircle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { ProgressRing } from '@/components/NutritionVisuals';
 import { PressableScale as Pressable } from '@/components/Motion';
@@ -92,36 +92,59 @@ function CoachMotion({ variant, large = false, onboarding = false }: { variant: 
   return <Image source={source} resizeMode="contain" style={[large ? styles.coachLarge : onboarding ? styles.coachOnboarding : styles.coachSmall, !large && variant === 'wave' ? styles.coachWaveQuestion : null]} />;
 }
 
-function AnswerAnalysisStatus() {
+const savedCopy: Record<string, string> = { tr: 'Cevabın kaydedildi', en: 'Answer saved', de: 'Antwort gespeichert', fr: 'Réponse enregistrée', es: 'Respuesta guardada' };
+
+/** One bar of the coach's listening wave, offset in phase from its neighbours. */
+function PulseBar({ clock, phase, color }: { clock: SharedValue<number>; phase: number; color: string }) {
+  const style = useAnimatedStyle(() => ({ height: 4 + 12 * Math.abs(Math.sin((clock.get() + phase) * Math.PI * 2)) }));
+  return <ReAnimated.View style={[ui.pulseBar, { backgroundColor: color }, style]} />;
+}
+
+/**
+ * The coach listening in, docked above the main button: the avatar sits in a turning arc and a
+ * small wave plays beside the text. Each new question first flashes a saved check for the
+ * previous answer, then goes back to listening.
+ */
+function CoachPulse({ step }: { step: number }) {
   const colors = useColors();
   const { language } = useFit();
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const progress = React.useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
+  const clock = useSharedValue(0);
+  const spin = useSharedValue(0);
+  const flash = useSharedValue(0);
+  const [saved, setSaved] = React.useState(false);
+  const first = React.useRef(true);
 
   React.useEffect(() => {
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(progress, { toValue: 1, duration: 1900, easing: Easing.inOut(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(progress, { toValue: 0, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.delay(320),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, [progress]);
+    if (reduced) return;
+    clock.set(withRepeat(withTiming(1, { duration: 1400, easing: ReEasing.linear }), -1));
+    spin.set(withRepeat(withTiming(1, { duration: 2400, easing: ReEasing.linear }), -1));
+  }, [clock, reduced, spin]);
 
-  const boxScale = progress.interpolate({ inputRange: [0, 0.12, 0.72, 0.87, 1], outputRange: [0.9, 1, 1, 0.84, 0.92] });
-  const boxOpacity = progress.interpolate({ inputRange: [0, 0.1, 0.78, 0.9, 1], outputRange: [0.7, 1, 1, 0.55, 0.72] });
-  const packetTranslate = progress.interpolate({ inputRange: [0, 0.12, 0.48, 0.7, 1], outputRange: [-12, -2, 5, 13, 13] });
-  const packetOpacity = progress.interpolate({ inputRange: [0, 0.08, 0.5, 0.7, 1], outputRange: [0, 1, 1, 0, 0] });
-  const packetScale = progress.interpolate({ inputRange: [0, 0.15, 0.7, 1], outputRange: [0.7, 1, 1, 0.8] });
+  React.useEffect(() => {
+    if (first.current) { first.current = false; return undefined; }
+    setSaved(true);
+    flash.set(0);
+    flash.set(withSequence(withTiming(1, { duration: 220 }), withDelay(900, withTiming(0, { duration: 260 }))));
+    const timer = setTimeout(() => setSaved(false), 1300);
+    return () => clearTimeout(timer);
+  }, [flash, step]);
 
-  return <View style={styles.answerAnalysisStatus}>
-    <Animated.View style={[styles.answerAnalysisBox, { borderColor: `${colors.primary}80`, backgroundColor: `${colors.primary}16`, opacity: boxOpacity, transform: [{ scale: boxScale }] }]}>
-      <Animated.View style={[styles.answerAnalysisPacket, styles.answerAnalysisPacketTop, { backgroundColor: colors.primary, opacity: packetOpacity, transform: [{ translateX: packetTranslate }, { scale: packetScale }] }]} />
-      <Animated.View style={[styles.answerAnalysisPacket, styles.answerAnalysisPacketMiddle, { backgroundColor: colors.primary, opacity: packetOpacity, transform: [{ translateX: packetTranslate }, { scale: packetScale }] }]} />
-      <Animated.View style={[styles.answerAnalysisPacket, styles.answerAnalysisPacketBottom, { backgroundColor: colors.primary, opacity: packetOpacity, transform: [{ translateX: packetTranslate }, { scale: packetScale }] }]} />
-      <Ionicons name="analytics-outline" size={17} color={colors.primary} />
-    </Animated.View>
-    <Text style={[styles.answerAnalysisLabel, { color: colors.mutedForeground }]}>{t('analyzingAnswers')}</Text>
+  const arcStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
+  const glowStyle = useAnimatedStyle(() => ({ opacity: flash.get() }));
+  const tone = saved ? colors.success : colors.accent;
+  return <View style={ui.pulseDock}>
+    <View style={[ui.pulse, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <ReAnimated.View pointerEvents="none" style={[StyleSheet.absoluteFill, ui.pulseFlash, { backgroundColor: `${colors.success}22`, borderColor: `${colors.success}66` }, glowStyle]} />
+      <View style={ui.pulseAvatar}>
+        <ReAnimated.View style={[StyleSheet.absoluteFill, arcStyle]}>
+          <Svg width={34} height={34}><SvgCircle cx={17} cy={17} r={15.5} stroke={tone} strokeWidth={2} strokeLinecap="round" strokeDasharray="28 70" fill="none" /></Svg>
+        </ReAnimated.View>
+        <View style={[ui.pulseFace, { backgroundColor: colors.secondary }]}><Image source={require('@/assets/images/coach-writing-no-bg.png')} resizeMode="contain" style={ui.pulseFaceImage} /></View>
+      </View>
+      <Text numberOfLines={1} style={[ui.pulseText, { color: colors.foreground }]}>{saved ? savedCopy[language] ?? savedCopy.en : translate(language, 'analyzingAnswers')}</Text>
+      {saved ? <Ionicons name="checkmark-circle" size={18} color={colors.success} /> : <View style={ui.pulseWave}>{[0, 0.15, 0.3, 0.45].map((phase) => <PulseBar key={phase} clock={clock} phase={phase} color={colors.accent} />)}</View>}
+    </View>
   </View>;
 }
 
@@ -206,7 +229,7 @@ function WeightPicker({ value, unit, inputValue, onInputChange, onChange }: { va
   return <View style={[styles.weightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
     <Pressable onPress={() => change(unit === 'metric' ? -0.5 : -1)} style={[styles.stepButton, { backgroundColor: colors.secondary }]}><Ionicons name="remove" size={22} color={colors.foreground} /></Pressable>
     <View style={styles.weightValue}><TextInput value={inputValue} onChangeText={onInputChange} keyboardType="decimal-pad" selectTextOnFocus style={[styles.weightNumberInput, { color: colors.foreground }]} /><Text style={[styles.rulerUnit, { color: colors.primary }]}>{unit === 'metric' ? 'kg' : 'lb'}</Text></View>
-    <Pressable onPress={() => change(unit === 'metric' ? 0.5 : 1)} style={[styles.stepButton, { backgroundColor: colors.primary }]}><Ionicons name="add" size={22} color={colors.primaryForeground} /></Pressable>
+    <Pressable onPress={() => change(unit === 'metric' ? 0.5 : 1)} style={[styles.stepButton, { backgroundColor: colors.accent }]}><Ionicons name="add" size={22} color="#FFFFFF" /></Pressable>
   </View>;
 }
 
@@ -221,7 +244,7 @@ function GoalWeightPicker({ valueKg, recommendedKg, unit, inputValue, recommende
     <View style={[styles.weightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <Pressable onPress={() => change(-1)} style={[styles.stepButton, { backgroundColor: colors.secondary }]}><Ionicons name="remove" size={22} color={colors.foreground} /></Pressable>
       <View style={styles.weightValue}><TextInput value={inputValue} onChangeText={onInputChange} keyboardType="decimal-pad" selectTextOnFocus style={[styles.weightNumberInput, { color: colors.foreground }]} /><Text style={[styles.rulerUnit, { color: colors.primary }]}>{unit}</Text></View>
-      <Pressable onPress={() => change(1)} style={[styles.stepButton, { backgroundColor: colors.primary }]}><Ionicons name="add" size={22} color={colors.primaryForeground} /></Pressable>
+      <Pressable onPress={() => change(1)} style={[styles.stepButton, { backgroundColor: colors.accent }]}><Ionicons name="add" size={22} color="#FFFFFF" /></Pressable>
     </View>
     <View style={[styles.recommendedTarget, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}>
       <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
@@ -237,7 +260,7 @@ function AgePicker({ value, inputValue, yearsLabel, onInputChange, onChange }: {
   return <View style={[styles.weightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
     <Pressable onPress={() => adjust(-1)} style={[styles.stepButton, { backgroundColor: colors.secondary }]}><Ionicons name="remove" size={22} color={colors.foreground} /></Pressable>
     <View style={styles.weightValue}><TextInput value={inputValue} onChangeText={onInputChange} keyboardType="number-pad" maxLength={2} selectTextOnFocus style={[styles.weightNumberInput, { color: colors.foreground }]} /><Text style={[styles.rulerUnit, { color: colors.primary }]}>{yearsLabel}</Text></View>
-    <Pressable onPress={() => adjust(1)} style={[styles.stepButton, { backgroundColor: colors.primary }]}><Ionicons name="add" size={22} color={colors.primaryForeground} /></Pressable>
+    <Pressable onPress={() => adjust(1)} style={[styles.stepButton, { backgroundColor: colors.accent }]}><Ionicons name="add" size={22} color="#FFFFFF" /></Pressable>
   </View>;
 }
 
@@ -555,7 +578,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   }); };
   const renderBody = () => {
     if (activeStep === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></>;
-       if (activeStep === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View> : null}</>;
+       if (activeStep === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><View style={styles.choiceList}><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View></View> : null}</>;
       if (activeStep === 2) return <View style={styles.measurementSection}>
        <UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} />
        <RulerPicker value={height} min={130} max={220} onChange={updateHeightFromCm} valueLabel={measurementUnit === 'metric' ? `${height} cm` : formatImperialHeightLabel(height)} minLabel={measurementUnit === 'metric' ? '130 cm' : formatImperialHeightLabel(130)} maxLabel={measurementUnit === 'metric' ? '220 cm' : formatImperialHeightLabel(220)} />
@@ -574,7 +597,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
      if (activeStep === 12) return <View style={styles.choiceList}><ChoiceButton label={t('proteinBalanced')} selected={proteinPreference === 'balanced'} onPress={() => setProteinPreference('balanced')} /><ChoiceButton label={t('proteinHigh')} selected={proteinPreference === 'high'} onPress={() => setProteinPreference('high')} /><ChoiceButton label={t('proteinLower')} selected={proteinPreference === 'lower'} onPress={() => setProteinPreference('lower')} /></View>;
      if (activeStep === 13) return <View style={styles.choiceList}><ChoiceButton label={t('experienceBeginner')} selected={experience === 'beginner'} onPress={() => setExperience('beginner')} /><ChoiceButton label={t('experienceIntermediate')} selected={experience === 'intermediate'} onPress={() => setExperience('intermediate')} /><ChoiceButton label={t('experienceAdvanced')} selected={experience === 'advanced'} onPress={() => setExperience('advanced')} /></View>;
       if (activeStep === targetStep && hasTargetWeightStep) return <><GoalWeightPicker valueKg={targetWeight ?? recommendedTargetWeight} recommendedKg={recommendedTargetWeight} unit={targetWeightUnit} inputValue={targetWeightText} recommendedLabel={t('recommendedTarget')} onInputChange={updateTargetWeightText} onChange={updateTargetWeightFromKg} onUnitChange={changeTargetWeightUnit} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('targetWeightHint')}</Text></>;
-    return <><View style={styles.dayGrid}>{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => <Pressable key={day} onPress={() => selectedDays(day)} style={[styles.dayButton, { backgroundColor: preferredDays.includes(day) ? colors.primary : colors.card, borderColor: preferredDays.includes(day) ? colors.primary : colors.border, opacity: !preferredDays.includes(day) && preferredDays.length >= trainingDays ? 0.45 : 1 }]}><Text style={[styles.dayText, { color: preferredDays.includes(day) ? colors.primaryForeground : colors.foreground }]}>{dayShort(day, language)}</Text></Pressable>)}</View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{preferredDays.length}/{trainingDays} · {t('preferredDaysQuestion')}</Text></>;
+    return <><View style={styles.dayGrid}>{['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map((day) => <Pressable key={day} onPress={() => selectedDays(day)} style={[styles.dayButton, { backgroundColor: preferredDays.includes(day) ? colors.accent : colors.card, borderColor: preferredDays.includes(day) ? colors.accent : colors.border, opacity: !preferredDays.includes(day) && preferredDays.length >= trainingDays ? 0.45 : 1 }]}><Text style={[styles.dayText, { color: preferredDays.includes(day) ? '#FFFFFF' : colors.foreground }]}>{dayShort(day, language)}</Text></Pressable>)}</View><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{preferredDays.length}/{trainingDays} · {t('preferredDaysQuestion')}</Text></>;
   };
 
   const chooseMode = (mode: OnboardingMode) => {
@@ -606,13 +629,13 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
           onScroll={({ nativeEvent }) => setQuestionScrollOffset(nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
         >
-          <View style={ui.coachRow}>
-            <View style={[ui.coachAvatar, { backgroundColor: colors.card, borderColor: colors.border }]}><Image source={require('@/assets/images/coach-writing-no-bg.png')} resizeMode="contain" style={ui.coachAvatarImage} /></View>
-            <View style={[ui.coachBubble, { backgroundColor: colors.card, borderColor: colors.border }]}><AnswerAnalysisStatus /></View>
-          </View>
           {editMode ? <View style={[styles.profileEditInfoBar, { backgroundColor: `${colors.blue}16`, borderColor: `${colors.blue}55` }]}><Ionicons name="information-circle-outline" size={18} color={colors.blue} /><Text style={[styles.profileEditInfoText, { color: colors.foreground }]}>{t('profileEditLimitBar')}</Text></View> : null}
           <View onLayout={({ nativeEvent }) => setQuestionAnswerBottom(nativeEvent.layout.y + nativeEvent.layout.height)}>
-            <Text style={[ui.eyebrow, { color: colors.mutedForeground }]}>{step + 1} / {total}{optional ? `  ·  ${t('optionalLabel')}` : ''}</Text>
+            <View style={ui.stepHeader}>
+              <Text style={[ui.stepNumber, { color: colors.accent }]}>{String(step + 1).padStart(2, '0')}</Text>
+              <Text style={[ui.stepTotal, { color: colors.mutedForeground }]}>/ {String(total).padStart(2, '0')}</Text>
+              {optional ? <View style={[ui.optionalTag, { borderColor: colors.border }]}><Text style={[ui.optionalText, { color: colors.mutedForeground }]}>{t('optionalLabel')}</Text></View> : null}
+            </View>
             <Text style={[ui.questionTitle, { color: colors.foreground }]}>{t(titleKey)}</Text>
             {renderBody()}
             {error ? <View style={[ui.errorBox, { backgroundColor: `${colors.destructive}14` }]}><Ionicons name="alert-circle" size={16} color={colors.destructive} /><Text style={[ui.errorText, { color: colors.destructive }]}>{error}</Text></View> : null}
@@ -620,6 +643,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
         </KeyboardAwareScrollViewCompat>
         <OnboardingScrollHint visible={scrollHintEligible && questionAnswerBottom > questionViewportHeight + 18 && questionScrollOffset < Math.max(0, questionAnswerBottom - questionViewportHeight - 18)} />
       </Animated.View>
+      <CoachPulse step={step} />
       <OnboardingCTA testID="onboarding-next" label={step === total - 1 ? t('continueToPlan') : t('continue')} onPress={next} />
     </View>;
 }
@@ -710,10 +734,24 @@ function OnboardingTopBar({ onBack, step, total }: { onBack?: () => void; step?:
 function OnboardingCTA({ label, onPress, disabled = false, testID }: { label: string; onPress: () => void; disabled?: boolean; testID?: string }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  return <View style={[ui.ctaWrap, { paddingBottom: insets.bottom + 18 }]}>
-    <Pressable testID={testID} accessibilityRole="button" disabled={disabled} onPress={() => { triggerHaptic(); onPress(); }} scaleTo={0.97} style={[ui.cta, { backgroundColor: colors.primary, opacity: disabled ? 0.6 : 1 }]}>
-      <Text style={[ui.ctaText, { color: colors.primaryForeground }]}>{label}</Text>
-      <View style={[ui.ctaArrow, { backgroundColor: colors.primaryForeground }]}><Ionicons name="arrow-forward" size={18} color={colors.primary} /></View>
+  const reduced = useReducedMotion();
+  const shine = useSharedValue(0);
+  const nudge = useSharedValue(0);
+  React.useEffect(() => {
+    if (reduced) return;
+    shine.set(withRepeat(withSequence(withTiming(1, { duration: 1300, easing: ReEasing.inOut(ReEasing.cubic) }), withDelay(1600, withTiming(0, { duration: 0 }))), -1));
+    nudge.set(withRepeat(withSequence(withTiming(1, { duration: 520, easing: ReEasing.out(ReEasing.cubic) }), withTiming(0, { duration: 520, easing: ReEasing.in(ReEasing.cubic) })), -1));
+  }, [nudge, reduced, shine]);
+  const shineStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -140 + shine.get() * 560 }, { skewX: '-20deg' }] }));
+  const arrowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: nudge.get() * 5 }] }));
+  return <View style={[ui.ctaWrap, { paddingBottom: insets.bottom + 16 }]}>
+    <Pressable testID={testID} accessibilityRole="button" disabled={disabled} onPress={() => { triggerHaptic(); onPress(); }} scaleTo={0.97} style={[ui.cta, { opacity: disabled ? 0.6 : 1, shadowColor: colors.accent }]}>
+      <LinearGradient colors={['#7FA6FF', colors.accent, '#2F5BD8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <ReAnimated.View pointerEvents="none" style={[ui.ctaShine, shineStyle]}>
+        <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+      </ReAnimated.View>
+      <Text style={ui.ctaText}>{label}</Text>
+      <ReAnimated.View style={[ui.ctaArrow, arrowStyle]}><Ionicons name="arrow-forward" size={18} color="#FFFFFF" /></ReAnimated.View>
     </Pressable>
   </View>;
 }
@@ -761,20 +799,34 @@ function Rise({ delay = 0, children, style }: { delay?: number; children: React.
   return <ReAnimated.View style={[style, animated]}>{children}</ReAnimated.View>;
 }
 
+/**
+ * An answer tile. Tiles sit two to a row and a lone last tile stretches across. Picking one fills
+ * it with the accent gradient, pops it slightly and springs a check into the corner badge.
+ */
 function ChoiceButton({ label, selected, onPress, icon }: { label: string; selected: boolean; onPress: () => void; icon?: React.ComponentProps<typeof Ionicons>['name'] }) {
   const colors = useColors();
   const pick = useSharedValue(selected ? 1 : 0);
+  const pop = useSharedValue(1);
   React.useEffect(() => {
     pick.set(withSpring(selected ? 1 : 0, { damping: 16, stiffness: 240 }));
-  }, [pick, selected]);
-  const dotStyle = useAnimatedStyle(() => ({ transform: [{ scale: pick.get() }], opacity: pick.get() }));
-  return <Pressable onPress={() => { triggerHaptic(); onPress(); }} scaleTo={0.98} style={[ui.choice, { backgroundColor: selected ? colors.foreground : colors.card, borderColor: selected ? colors.foreground : colors.border }]}>
-    {icon ? <View style={[ui.choiceIcon, { backgroundColor: selected ? `${colors.background}22` : colors.secondary }]}><Ionicons name={icon} size={19} color={selected ? colors.background : colors.foreground} /></View> : null}
-    <Text style={[ui.choiceText, { color: selected ? colors.background : colors.foreground }]}>{label}</Text>
-    <View style={[ui.radio, { borderColor: selected ? colors.background : colors.border }]}>
-      <ReAnimated.View style={[ui.radioDot, { backgroundColor: colors.background }, dotStyle]} />
-    </View>
-  </Pressable>;
+    if (selected) pop.set(withSequence(withTiming(1.035, { duration: 110 }), withSpring(1, { damping: 12, stiffness: 260 })));
+  }, [pick, pop, selected]);
+  const fillStyle = useAnimatedStyle(() => ({ opacity: pick.get() }));
+  const tileStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.get() }] }));
+  const checkStyle = useAnimatedStyle(() => ({ opacity: pick.get(), transform: [{ scale: 0.4 + pick.get() * 0.6 }, { rotate: `${(1 - pick.get()) * -40}deg` }] }));
+  const ink = selected ? '#FFFFFF' : colors.foreground;
+  return <ReAnimated.View style={[ui.choiceSlot, tileStyle]}>
+    <Pressable accessibilityRole="radio" accessibilityState={{ selected }} onPress={() => { triggerHaptic(); onPress(); }} scaleTo={0.96} style={[ui.choice, icon ? ui.choiceTall : null, { backgroundColor: colors.card, borderColor: selected ? colors.accent : colors.border }]}>
+      <ReAnimated.View pointerEvents="none" style={[StyleSheet.absoluteFill, fillStyle]}>
+        <LinearGradient colors={['#7FA6FF', colors.accent, '#2F5BD8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      </ReAnimated.View>
+      {icon ? <View style={[ui.choiceIcon, { backgroundColor: selected ? 'rgba(255,255,255,0.2)' : colors.secondary }]}><Ionicons name={icon} size={20} color={ink} /></View> : null}
+      <Text style={[ui.choiceText, { color: ink }]}>{label}</Text>
+      <View style={[ui.choiceBadge, { borderColor: selected ? 'transparent' : colors.border }]}>
+        <ReAnimated.View style={[ui.choiceBadgeFill, checkStyle]}><Ionicons name="checkmark" size={13} color={colors.accent} /></ReAnimated.View>
+      </View>
+    </Pressable>
+  </ReAnimated.View>;
 }
 
 function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: OnboardingMode) => void; onBack: () => void }) {
@@ -844,7 +896,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
     <ReAnimated.View style={[{ flex: 1 }, pageStyle]}>
       <OnboardingTopBar />
       <View style={ui.welcomeBody}>
-        <Rise style={ui.welcomeStage}>
+        <Rise style={ui.welcomeStage}><View style={{ width: stage, height: stage }}>
           <GlowStage size={stage}>
             <ReAnimated.View style={mascotStyle}>
               <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={{ width: stage * 0.78, height: stage * 0.78 }} />
@@ -852,7 +904,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
           </GlowStage>
           <View style={[ui.floatChip, { left: 6, top: stage * 0.2, backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="camera-outline" size={14} color={colors.foreground} /><Text style={[ui.floatChipText, { color: colors.foreground }]}>AI</Text></View>
           <View style={[ui.floatChip, { right: 6, top: stage * 0.55, backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="barbell-outline" size={14} color={colors.foreground} /><Ionicons name="flame" size={14} color={colors.orange} /></View>
-        </Rise>
+        </View></Rise>
         <View>
           {words.map((line, index) => <Rise key={line} delay={160 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.accent : colors.foreground }]}>{line}</Text></Rise>)}
           <Rise delay={360}><Text style={[ui.subtitle, { color: colors.mutedForeground }]}>{t('welcomeHeroSubtitle')}</Text></Rise>
@@ -860,6 +912,19 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
       </View>
       <Rise delay={460}><OnboardingCTA testID="onboarding-start" label={t('welcomeHeroStart')} onPress={start} disabled={leaving} /></Rise>
     </ReAnimated.View>
+  </View>;
+}
+
+const WORDMARK_RATIO = 2558 / 264;
+
+/** A card title where the brand name is drawn with the GainMode wordmark instead of plain text. */
+function BrandTitle({ text, color }: { text: string; color: string }) {
+  const parts = text.split('GainMode');
+  return <View style={ui.brandTitle}>
+    {parts.map((part, index) => <React.Fragment key={index}>
+      {part.trim() ? <Text style={[ui.growthCardTitleText, { color }]}>{part.trim()}</Text> : null}
+      {index < parts.length - 1 ? <Image accessibilityLabel="GainMode" source={require('@/assets/images/gainmode-wordmark.png')} resizeMode="contain" style={{ width: 11 * WORDMARK_RATIO, height: 11, tintColor: color }} /> : null}
+    </React.Fragment>)}
   </View>;
 }
 
@@ -926,7 +991,7 @@ function GrowthComparisonScreen({ onContinue }: { onContinue: () => void }) {
               <Text style={[ui.growthRate, { color: '#FFFFFF' }]}>{t('growthFastRate')}</Text>
             </Animated.View>
           </View>
-          <Text style={[ui.growthCardTitle, { color: colors.inkCardForeground }]}>{t('growthGainModeTitle')}</Text>
+          <BrandTitle text={t('growthGainModeTitle')} color={colors.inkCardForeground} />
           <Text style={[ui.growthCardBody, { color: `${colors.inkCardForeground}B3` }]}>{t('growthGainModeBody')}</Text>
         </LinearGradient>
       </View>
@@ -1266,7 +1331,7 @@ const styles = StyleSheet.create({
   modeChoiceCount: { fontFamily: 'Inter_700Bold', fontSize: 11, marginTop: 3 },
   modeChoiceBack: { minHeight: 38, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 7 },
   modeChoiceBackText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  choiceList: { gap: 10 },
+  choiceList: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   choice: { minHeight: 59, padding: 10, borderWidth: 1, borderRadius: 18, flexDirection: 'row', alignItems: 'center', gap: 11 },
   choiceIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   choiceText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 14 },
@@ -1490,9 +1555,10 @@ const ui = StyleSheet.create({
   progressTrack: { height: 4, borderRadius: 2, overflow: 'hidden', marginTop: 14 },
   progressFill: { height: '100%', borderRadius: 2 },
   ctaWrap: { paddingHorizontal: 20, paddingTop: 10 },
-  cta: { height: 62, borderRadius: 31, flexDirection: 'row', alignItems: 'center', paddingLeft: 26, paddingRight: 8 },
-  ctaText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 16 },
-  ctaArrow: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  cta: { height: 60, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
+  ctaShine: { position: 'absolute', top: -10, bottom: -10, width: 90 },
+  ctaText: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.2, color: '#FFFFFF' },
+  ctaArrow: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.22)' },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase' },
   title: { fontFamily: 'Inter_700Bold', fontSize: 32, lineHeight: 38, letterSpacing: -1.1, marginTop: 10 },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, marginTop: 10 },
@@ -1500,7 +1566,7 @@ const ui = StyleSheet.create({
   pill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 6 },
   pillText: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 0.6 },
   welcomeBody: { flex: 1, paddingHorizontal: 24, justifyContent: 'space-between', paddingBottom: 8 },
-  welcomeStage: { alignItems: 'center', marginTop: 4 },
+  welcomeStage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   welcomeTitle: { fontFamily: 'Inter_700Bold', fontSize: 38, lineHeight: 42, letterSpacing: -1.6 },
   floatChip: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 8, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
   floatChipText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
@@ -1557,9 +1623,29 @@ const ui = StyleSheet.create({
   coachAvatarImage: { width: 64, height: 64, marginBottom: -8 },
   coachBubble: { flex: 1, borderRadius: 20, borderTopLeftRadius: 6, borderWidth: 1, paddingVertical: 6, paddingHorizontal: 8 },
   questionTitle: { fontFamily: 'Inter_700Bold', fontSize: 30, lineHeight: 36, letterSpacing: -1, marginTop: 8, marginBottom: 20 },
-  choice: { minHeight: 62, borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  choiceSlot: { flexGrow: 1, flexBasis: '46%' },
+  choice: { minHeight: 74, borderRadius: 22, borderWidth: 1.5, padding: 14, paddingRight: 38, justifyContent: 'flex-end', overflow: 'hidden' },
+  choiceTall: { minHeight: 112, justifyContent: 'space-between' },
+  choiceBadge: { position: 'absolute', top: 12, right: 12, width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  choiceBadgeFill: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  stepHeader: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  stepNumber: { fontFamily: 'Inter_700Bold', fontSize: 40, lineHeight: 44, letterSpacing: -2 },
+  stepTotal: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
+  optionalTag: { marginLeft: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
+  optionalText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  pulseDock: { alignItems: 'center', paddingHorizontal: 20, paddingTop: 6 },
+  pulse: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 999, borderWidth: 1, paddingLeft: 5, paddingRight: 14, paddingVertical: 5, maxWidth: '100%', overflow: 'hidden' },
+  pulseFlash: { borderRadius: 999, borderWidth: 1 },
+  pulseAvatar: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  pulseFace: { width: 26, height: 26, borderRadius: 13, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
+  pulseFaceImage: { width: 30, height: 30, marginBottom: -5 },
+  pulseText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  pulseWave: { flexDirection: 'row', alignItems: 'center', gap: 2.5, height: 16 },
+  pulseBar: { width: 3, borderRadius: 2 },
+  brandTitle: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 5, rowGap: 4, marginTop: 12 },
+  growthCardTitleText: { fontFamily: 'Inter_700Bold', fontSize: 14 },
   choiceIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  choiceText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 15, lineHeight: 20 },
+  choiceText: { fontFamily: 'Inter_700Bold', fontSize: 15, lineHeight: 20, letterSpacing: -0.2 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 10, height: 10, borderRadius: 5 },
   errorBox: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, marginTop: 14 },
