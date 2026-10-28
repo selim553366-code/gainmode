@@ -66,9 +66,6 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           </nav>
           <div className="flex items-center gap-3">
             <LanguageSwitch className="hidden sm:flex" />
-            <Link href="/contact" className="hidden h-10 items-center gap-1.5 rounded-full bg-royal-500 px-5 text-sm font-semibold text-white shadow-[0_8px_30px_-8px_#2F5BFF] transition hover:bg-royal-400 lg:flex">
-              {t.nav.cta}<ArrowUpRight size={16} />
-            </Link>
             <button type="button" onClick={() => setOpen(true)} aria-label={t.nav.menu} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 md:hidden"><Menu size={18} /></button>
           </div>
         </div>
