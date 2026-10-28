@@ -359,6 +359,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const [age, setAge] = React.useState(25);
   const [ageText, setAgeText] = React.useState('25');
   const [username, setUsername] = React.useState('');
+  const [nameFocused, setNameFocused] = React.useState(false);
   const [sex, setSex] = React.useState<BiologicalSex>('preferNot');
   const [activity, setActivity] = React.useState<ActivityLevel>('light');
   const [trainingDays, setTrainingDays] = React.useState(3);
@@ -611,7 +612,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     return [...current, day];
   }); };
   const renderBody = () => {
-    if (activeStep === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></>;
+    if (activeStep === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} onFocus={() => setNameFocused(true)} onBlur={() => setNameFocused(false)} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} cursorColor={colors.foreground} selectionColor={`${colors.foreground}40`} style={[styles.textInput, styles.textInputNoOutline, { color: colors.foreground, backgroundColor: colors.card, borderColor: nameFocused ? colors.foreground : colors.border, borderWidth: nameFocused ? 1.5 : 1 }]} /></>;
        if (activeStep === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><View style={styles.choiceList}><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View></View> : null}</>;
       if (activeStep === 2) return <View style={styles.measurementSection}>
        <UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} />
@@ -1423,6 +1424,8 @@ const styles = StyleSheet.create({
   gymLevels: { gap: 8, marginTop: 16 },
   subLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 1 },
   textInput: { height: 64, borderRadius: 20, borderWidth: 1, paddingHorizontal: 20, fontFamily: 'Inter_600SemiBold', fontSize: 20 },
+  // The focus ring is drawn by the border itself, so drop the browser's own outline on web.
+  textInputNoOutline: Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {},
   rulerCard: { borderRadius: 26, borderWidth: 1, paddingHorizontal: 18, paddingVertical: 20 },
   rulerValue: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 7, marginBottom: 23 },
   rulerNumber: { fontFamily: 'Inter_700Bold', fontSize: 52, letterSpacing: -2, textAlign: 'center' },
