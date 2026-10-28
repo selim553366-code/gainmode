@@ -16,7 +16,6 @@ import { Header, Screen } from '@/components/FitUI';
 import { Ionicons } from '@/components/AppIcon';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { openWidgetOffer } from '@/components/WidgetOffer';
-import { FeedbackSheet } from '@/components/FeedbackSheet';
 import { ConfirmSheet, SegmentedControl, SettingsGroup, SettingsRow } from '@/components/SettingsControls';
 
 const goalLabels: Record<FitnessGoal, TranslationKey> = {
@@ -65,7 +64,6 @@ export default function SettingsScreen() {
   const { language, isPremium, notificationSettings, resetLocalUserData, unlockedBadgeIds } = useFit();
   const { customerInfo, restore, isRestoring, isAvailable } = useSubscription();
   const t = (key: TranslationKey) => translate(language, key);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
@@ -158,11 +156,6 @@ export default function SettingsScreen() {
         {Platform.OS !== 'web' ? <SettingsRow testID="settings-widget" icon="phone-portrait-outline" title={t('widgetSettingsTitle')} onPress={openWidgetOffer} /> : null}
       </SettingsGroup>
 
-      <SettingsGroup title={t('settingsGroupHelp')}>
-        <SettingsRow testID="settings-feedback" icon="chatbubble-ellipses-outline" title={t('feedbackTitle')} onPress={() => setFeedbackOpen(true)} />
-        <SettingsRow icon="grid-outline" title={t('settingsWhatItDoes')} onPress={() => router.push('/features')} />
-      </SettingsGroup>
-
       <SettingsGroup title={t('settingsGroupAbout')}>
         <SettingsRow icon="shield-checkmark-outline" title={t('privacyPolicy')} onPress={() => openLegal('privacy-policy')} />
         <SettingsRow icon="document-text-outline" title={t('termsOfService')} onPress={() => openLegal('terms-of-service')} />
@@ -174,7 +167,6 @@ export default function SettingsScreen() {
       </SettingsGroup>
     </Screen>
 
-    <FeedbackSheet visible={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     <ConfirmSheet
       visible={confirmDelete}
       busy={deleting}
