@@ -79,7 +79,7 @@ export default function App() {
   return (
     <MotionConfig reducedMotion="user">
       <I18nProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+        <WouterRouter base={import.meta.env.BASE_URL.startsWith('.') ? '' : import.meta.env.BASE_URL.replace(/\/$/, '')}>
           <PageMetadata />
           <SiteLayout><Router /></SiteLayout>
         </WouterRouter>
