@@ -1,0 +1,149 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap");
+
+.ledger-shell {
+  --ink: #11263b;
+  --muted: #758797;
+  --paper: #f2f6f6;
+  --line: #dce5e6;
+  --panel: #fbfdfc;
+  --navy: #102840;
+  --ice: #36a7c6;
+  --tangerine: #e58958;
+  --iris: #8d83cc;
+  background: var(--paper);
+  color: var(--ink);
+  height: 100dvh;
+  min-height: 740px;
+  width: 100%;
+  overflow: hidden;
+  font-family: "Manrope", "Trebuchet MS", sans-serif;
+  position: relative;
+}
+
+.ledger-shell * { box-sizing: border-box; }
+.ledger-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 18px 22px 100px;
+  scrollbar-width: none;
+}
+.ledger-scroll::-webkit-scrollbar { display: none; }
+.ledger-topbar { height: 40px; display: flex; justify-content: space-between; align-items: center; }
+.ledger-brand { display: flex; align-items: center; gap: 9px; }
+.ledger-mark { width: 30px; height: 30px; display: grid; place-items: center; color: #e5f5f7; background: var(--navy); border-radius: 10px; }
+.ledger-wordmark { font-size: 12px; line-height: 1; letter-spacing: 1.45px; font-weight: 800; }
+.ledger-wordmark span { color: #84939d; font-weight: 600; margin-left: 3px; }
+.ledger-icon-button, .weight-add, .modal-close { border: 1px solid var(--line); display: grid; place-items: center; color: #486174; background: #f9fbfa; cursor: pointer; }
+.ledger-icon-button { width: 36px; height: 36px; border-radius: 12px; }
+.ledger-intro { display: flex; align-items: flex-end; justify-content: space-between; margin: 22px 1px 19px; }
+.ledger-date, .ledger-kicker, .ledger-eyebrow, .weight-label, .foot-label, .macro-unit, .workout-tag {
+  font-family: "DM Mono", monospace;
+  letter-spacing: 1.15px;
+}
+.ledger-date { margin: 0 0 7px; font-size: 9px; color: #7d8e98; }
+.ledger-intro h1 { font-size: 27px; letter-spacing: -1.4px; line-height: 1.12; margin: 0; font-weight: 700; }
+.ledger-intro h1 span { font-weight: 500; color: #718493; }
+.ledger-streak { display: flex; align-items: center; gap: 5px; margin-bottom: 2px; color: #bc6942; }
+.streak-flame { display: grid; place-items: center; color: #d17e4e; }
+.ledger-streak strong { font-size: 18px; letter-spacing: -0.7px; }
+.ledger-streak > span:last-child { font-size: 8px; line-height: 1.2; text-transform: uppercase; letter-spacing: .7px; font-weight: 700; color: #8d837b; }
+
+.ledger-intake { background: var(--navy); color: #edf8f7; border-radius: 19px; padding: 16px 17px 14px; position: relative; overflow: hidden; box-shadow: 0 10px 24px #14334b20; }
+.ledger-intake::after { content: ""; position: absolute; width: 152px; height: 152px; border: 1px solid #9ce1e41a; border-radius: 50%; right: -70px; top: -85px; pointer-events: none; }
+.intake-heading { display: flex; justify-content: space-between; align-items: center; }
+.ledger-eyebrow { font-size: 8px; color: #aac3cb; display: flex; align-items: center; gap: 7px; }
+.eyebrow-dot { width: 6px; height: 6px; border-radius: 99px; background: #63c6c1; box-shadow: 0 0 0 3px #63c6c120; }
+.badge-chip { display: flex; align-items: center; gap: 5px; color: #f3c891; background: #d7a16219; border: 1px solid #d7a16236; padding: 5px 8px; border-radius: 99px; font: 600 9px "Manrope", sans-serif; cursor: pointer; }
+.intake-main { min-height: 120px; display: flex; align-items: center; justify-content: space-between; padding: 8px 4px 5px; }
+.intake-total { padding-top: 5px; }
+.intake-label { font-size: 10px; color: #a6bbc3; }
+.intake-number { font-size: 45px; line-height: 1.05; letter-spacing: -3.4px; font-weight: 700; margin-top: 4px; }
+.intake-target { margin-top: 3px; font-size: 10px; color: #98b0ba; }
+.intake-target b { font-weight: 600; color: #d4e4e5; }
+.calorie-orbit { width: 98px; height: 98px; position: relative; display: grid; place-items: center; margin-right: 2px; }
+.calorie-orbit svg { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.calorie-orbit circle { fill: none; stroke-width: 5px; }
+.orbit-track { stroke: #ffffff20; }
+.orbit-progress { stroke: #66c5c2; stroke-linecap: round; stroke-dasharray: 295.3; stroke-dashoffset: 115.2; }
+.orbit-copy { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.orbit-copy strong { font-size: 20px; letter-spacing: -.8px; }
+.orbit-copy span { font: 8px "DM Mono", monospace; letter-spacing: 1.2px; color: #9eb9c0; }
+.intake-foot { height: 43px; border-top: 1px solid #ffffff1c; display: flex; align-items: center; justify-content: space-between; }
+.intake-foot > div:first-child { display: flex; align-items: baseline; gap: 8px; }
+.foot-label { font-size: 8px; color: #91aab3; }
+.intake-foot strong { font-size: 13px; letter-spacing: -.2px; }
+.intake-foot small { color: #a8bbc1; font-size: 9px; font-weight: 500; }
+.intake-status { color: #a9cbc7; font-size: 9px; display: flex; align-items: center; gap: 6px; }
+.status-dot { width: 5px; height: 5px; border-radius: 50%; background: #63c6a9; }
+.meal-action { height: 39px; width: 100%; padding: 0 10px; display: flex; align-items: center; gap: 9px; border: 1px solid #c2e7e522; background: #b0e1df10; color: #c8e1e1; border-radius: 10px; text-align: left; font: 600 10px "Manrope", sans-serif; cursor: pointer; }
+.meal-action > span:nth-child(2) { flex: 1; }
+.meal-icon { display: grid; place-items: center; color: #75ccc8; }
+
+.macro-ledger { padding: 19px 3px 17px; border-bottom: 1px solid var(--line); }
+.section-heading { display: flex; align-items: end; justify-content: space-between; }
+.ledger-kicker { margin: 0 0 4px; font-size: 8px; color: #8898a1; }
+.section-heading h2 { margin: 0; font-size: 15px; letter-spacing: -.5px; font-weight: 700; }
+.macro-unit { font-size: 8px; color: #97a5ab; margin-bottom: 2px; }
+.macro-rows { margin-top: 13px; display: grid; gap: 10px; }
+.macro-row { display: grid; grid-template-columns: 67px 1fr 71px; gap: 10px; align-items: center; }
+.macro-name { font-size: 9px; color: #637784; display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.macro-key { width: 6px; height: 6px; border-radius: 2px; }
+.macro-track { height: 5px; background: #e1e8e8; overflow: hidden; border-radius: 9px; }
+.macro-track span { display: block; height: 100%; border-radius: inherit; }
+.macro-value { white-space: nowrap; text-align: right; font-size: 9px; color: #a0acb0; font-family: "DM Mono", monospace; }
+.macro-value b { color: #334b5e; font-weight: 500; }
+
+.workout-section { padding-top: 16px; }
+.workout-heading { margin: 0 1px 10px; }
+.view-plan { border: 0; background: transparent; color: #527889; font: 600 9px "Manrope", sans-serif; display: flex; gap: 2px; align-items: center; cursor: pointer; padding: 5px 0 2px; }
+.workout-card { min-height: 94px; position: relative; overflow: hidden; background: #fbfdfc; border: 1px solid #dce6e6; border-radius: 14px; display: flex; align-items: center; padding: 11px; gap: 11px; }
+.workout-art { width: 58px; height: 58px; flex: none; border-radius: 12px; position: relative; display: grid; place-items: center; color: #ccecee; background: #123d53; overflow: hidden; }
+.workout-art > svg { position: relative; z-index: 2; }
+.art-ring { position: absolute; border: 1px solid #76c2c244; border-radius: 50%; }
+.art-ring-one { width: 76px; height: 76px; right: -31px; top: -32px; }
+.art-ring-two { width: 53px; height: 53px; left: -25px; bottom: -22px; }
+.art-number { position: absolute; top: 5px; left: 7px; font: 7px "DM Mono", monospace; color: #84b8c0; }
+.art-number span { color: #eaa273; }
+.workout-info { flex: 1; min-width: 0; }
+.workout-tag { font-size: 7px; color: #76909a; }
+.workout-info h3 { margin: 3px 0 4px; font-size: 12px; letter-spacing: -.3px; }
+.workout-info p { margin: 0; color: #85949b; font-size: 8px; }
+.workout-info p i { display: inline-block; vertical-align: middle; margin: 0 4px; width: 3px; height: 3px; border-radius: 50%; background: #c38d66; }
+.workout-launch { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border: 0; border-radius: 11px; color: #f0fbf8; background: #1d5269; cursor: pointer; }
+.workout-launch.is-started { color: #123548; background: #8dd5c4; }
+.workout-progress { position: absolute; right: 10px; bottom: 3px; display: flex; gap: 5px; align-items: center; font: 7px "DM Mono", monospace; color: #3b9182; }
+.workout-progress b { font-weight: 500; }
+
+.weight-card { margin-top: 12px; position: relative; min-height: 57px; padding: 9px 10px; display: flex; align-items: center; gap: 10px; background: #e5eeed; border: 1px solid #d8e4e2; border-radius: 13px; }
+.weight-symbol { width: 34px; height: 34px; border-radius: 10px; background: #f5f9f7; color: #437f86; display: grid; place-items: center; }
+.weight-content { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.weight-label { font-size: 7px; color: #84969a; }
+.weight-content strong { font-size: 10px; font-weight: 700; color: #314c5b; }
+.weight-add { width: 30px; height: 30px; border-radius: 9px; border-color: #d2dfdd; background: #f4f8f6; color: #548b8d; }
+.weight-form { position: absolute; z-index: 3; left: 0; right: 0; top: calc(100% + 7px); background: #fbfdfc; border: 1px solid var(--line); border-radius: 12px; padding: 11px; box-shadow: 0 8px 22px #19374b18; }
+.weight-form label { display: block; color: #637985; font-size: 9px; margin-bottom: 6px; }
+.weight-form > div { display: flex; align-items: center; gap: 6px; }
+.weight-form input { min-width: 0; width: 100%; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); padding: 8px; font: 12px "Manrope", sans-serif; outline-color: #64acae; }
+.weight-form > div > span { color: #84959a; font-size: 9px; }
+.weight-form button { border: 0; border-radius: 8px; padding: 8px 12px; background: #194b62; color: white; font: 600 9px "Manrope", sans-serif; cursor: pointer; }
+.ledger-bottom-space { height: 12px; }
+
+.ledger-tabs { position: absolute; z-index: 5; bottom: 0; left: 0; right: 0; height: 72px; padding: 8px 13px calc(8px + env(safe-area-inset-bottom)); display: flex; justify-content: space-around; align-items: center; background: #fafcfb; border-top: 1px solid #dfe8e7; }
+.tab-item { min-width: 57px; display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: transparent; color: #9aa9ae; font: 600 8px "Manrope", sans-serif; cursor: pointer; padding: 3px 7px; }
+.tab-active { color: #1c6577; }
+.tab-active::before { content: ""; position: absolute; width: 24px; height: 2px; background: #58b4b1; border-radius: 3px; top: 0; }
+.ledger-toast { position: absolute; z-index: 8; bottom: 82px; left: 50%; transform: translateX(-50%); padding: 9px 14px; white-space: nowrap; border-radius: 9px; background: #14374e; color: #edf9f6; box-shadow: 0 6px 20px #0e2b4140; font-size: 10px; animation: ledger-in .2s ease-out both; }
+.ledger-modal-backdrop { position: absolute; z-index: 10; inset: 0; display: grid; place-items: center; padding: 24px; background: #0d2139a6; backdrop-filter: blur(3px); animation: ledger-in .18s ease-out both; }
+.ledger-modal { width: min(100%, 340px); position: relative; background: #f7faf8; border: 1px solid #d5e2e0; border-radius: 19px; padding: 22px; box-shadow: 0 20px 50px #091d3344; }
+.modal-close { position: absolute; right: 13px; top: 13px; width: 30px; height: 30px; border-radius: 9px; }
+.modal-emblem { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 13px; margin-bottom: 17px; color: #378797; background: #dfeeed; }
+.ledger-modal h2 { margin: 3px 0 8px; font-size: 22px; letter-spacing: -1px; }
+.ledger-modal > p:not(.ledger-kicker) { margin: 0; color: #71838e; font-size: 11px; line-height: 1.65; }
+.modal-primary { width: 100%; margin-top: 19px; height: 42px; border: 0; border-radius: 10px; background: #153e55; color: #eff9f7; display: flex; align-items: center; justify-content: center; gap: 8px; font: 700 10px "Manrope", sans-serif; cursor: pointer; }
+@keyframes ledger-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 360px) {
+  .ledger-scroll { padding-left: 17px; padding-right: 17px; }
+  .intake-number { font-size: 40px; }
+  .macro-row { grid-template-columns: 61px 1fr 66px; gap: 7px; }
+}

@@ -4,6 +4,7 @@ import { PressableScale as Pressable } from '@/components/Motion';
 import { router, useLocalSearchParams } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { Ionicons } from '@/components/AppIcon';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
@@ -414,6 +415,7 @@ export default function LiveWorkoutScreen() {
 
   if (Platform.OS === 'web' && isDesignPreview()) return <LiveSession kind={kind} preview renderCamera={(onPose) => <SimulatedPoseSource kind={kind} onPose={onPose} />} />;
   if (Platform.OS === 'web') return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('cameraUnavailableBody')} />;
+  if (Constants.executionEnvironment === 'storeClient') return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('cameraUnavailableBody')} />;
   return <NativeLiveCamera kind={kind} />;
 }
 

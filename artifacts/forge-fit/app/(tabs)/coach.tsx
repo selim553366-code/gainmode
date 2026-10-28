@@ -21,6 +21,15 @@ import { COACH_MESSAGES_STORAGE_KEY, getCoachMessagesStorageKey, parseStoredCoac
 import { isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
 import { apiUrl } from '@/lib/api';
 import { localDateKey } from '@/lib/nutritionDates';
+import { getCoachAtmosphere, type CoachAtmosphere } from '@/lib/coachAtmosphere';
+import * as Location from 'expo-location';
+import { WeatherBackground } from '@/components/WeatherBackground';
+import { classifyWeather, type WeatherKind } from '@/lib/weatherBackground';
+import { fetchCurrentWeather } from '@/lib/weatherService';
+import { getWeatherLabel } from '@/lib/weatherLabels';
+
+const WEATHER_ENABLED_KEY = 'gainmode-coach-weather-enabled-v1';
+const WEATHER_REFRESH_MS = 30 * 60_000;
 
 type Message = CoachMessageRecord;
 type CoachApiResponse = { content?: string; actions?: unknown[] };
@@ -28,8 +37,6 @@ type CoachStreamEvent =
   | { type: 'delta'; text?: string }
   | { type: 'done'; actions?: unknown[] }
   | { type: 'error'; error?: string };
-type CoachAtmosphere = 'morning' | 'night';
-
 async function consumeCoachStream(response: Response, onEvent: (event: CoachStreamEvent) => void) {
   const reader = response.body?.getReader();
   if (!reader) return false;
@@ -83,11 +90,6 @@ const COACH_STARS = [
   { x: 96, y: 66, size: 2, delay: 1980 },
 ] as const;
 
-function getCoachAtmosphere(date = new Date()): CoachAtmosphere {
-  const hour = date.getHours();
-  return hour >= 20 || hour < 6 ? 'night' : 'morning';
-}
-
 function TwinklingStar({ star, color }: { star: (typeof COACH_STARS)[number]; color: string }) {
   const twinkle = React.useRef(new Animated.Value(0)).current;
 
@@ -126,8 +128,7 @@ function CoachAtmosphereBackground({ colors, reveal, atmosphere }: { colors: Ret
     return () => animation.stop();
   }, [ambientMotion]);
 
-  // Dark mode always gets the night sky: a bright morning photo would glare against graphite surfaces.
-  if (atmosphere === 'night' || colors.colorScheme === 'dark') {
+  if (atmosphere === 'night') {
     return <View pointerEvents="none" style={styles.coachBackgroundLayer}>
       <Animated.View style={[styles.coachAtmosphereLayer, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.08, 0.72, 1] }) }]}>
         <LinearGradient
@@ -154,9 +155,18 @@ function CoachAtmosphereBackground({ colors, reveal, atmosphere }: { colors: Ret
       <Animated.Image
         source={require('@/assets/images/coach-background.jpeg')}
         resizeMode="cover"
-        style={[styles.coachBackground, { opacity: reveal.interpolate({ inputRange: [0, 0.38, 0.78, 1], outputRange: [0, 0.06, 0.5, 0.7] }) }]}
+        style={[styles.coachBackground, { opacity: reveal.interpolate({
+          inputRange: [0, 0.38, 0.78, 1],
+          outputRange: colors.colorScheme === 'dark' ? [0, 0.04, 0.32, 0.48] : [0, 0.06, 0.5, 0.7],
+        }) }]}
       />
-      <LinearGradient colors={[`${colors.background}00`, `${colors.background}B3`, colors.background]} locations={[0, 0.45, 0.85]} style={StyleSheet.absoluteFill} />
+      <LinearGradient
+        colors={colors.colorScheme === 'dark'
+          ? [`${colors.background}00`, `${colors.background}66`, colors.background]
+          : [`${colors.background}00`, `${colors.background}B3`, colors.background]}
+        locations={[0, 0.45, 0.85]}
+        style={StyleSheet.absoluteFill}
+      />
     </View>
   </View>;
 }
@@ -297,6 +307,9 @@ export default function CoachScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [messagesHydrated, setMessagesHydrated] = useState(false);
   const [atmosphere, setAtmosphere] = useState<CoachAtmosphere>(() => getCoachAtmosphere());
+  const [weather, setWeather] = useState<{ kind: WeatherKind; isDay: boolean } | null>(null);
+  const [weatherIntroVisible, setWeatherIntroVisible] = useState(false);
+  const [weatherLoading, setWeatherLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isStreamingReply, setIsStreamingReply] = useState(false);
   const [animatedPrompt, setAnimatedPrompt] = useState('');
@@ -306,7 +319,7 @@ export default function CoachScreen() {
   const [ratedMessageId, setRatedMessageId] = useState<string | null>(null);
   const [appTourVisible, setAppTourVisible] = useState(false);
   const [chatOriginY, setChatOriginY] = React.useState(0);
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<React.ElementRef<typeof TextInput>>(null);
   const coachReveal = useRef(new Animated.Value(0)).current;
   const weeklyCardReveal = useRef(new Animated.Value(0)).current;
   const lastAnalysisId = useRef<string | undefined>(undefined);
@@ -321,6 +334,56 @@ export default function CoachScreen() {
     const interval = setInterval(updateAtmosphere, 60_000);
     return () => clearInterval(interval);
   }, []);
+  const loadWeather = React.useCallback(async () => {
+    setWeatherLoading(true);
+    try {
+      const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+      const observation = await fetchCurrentWeather(position.coords.latitude, position.coords.longitude);
+      setWeather({ kind: classifyWeather(observation), isDay: observation.isDay });
+      await AsyncStorage.setItem(WEATHER_ENABLED_KEY, '1');
+      return true;
+    } catch {
+      Alert.alert(t('coachWeatherErrorTitle'), t('coachWeatherErrorBody'));
+      return false;
+    } finally {
+      setWeatherLoading(false);
+    }
+  }, [language]);
+  const acceptWeatherIntro = async () => {
+    setWeatherIntroVisible(false);
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (permission.status !== 'granted') {
+      Alert.alert(t('coachWeatherDeniedTitle'), t('coachWeatherDeniedBody'));
+      return;
+    }
+    await loadWeather();
+  };
+  const turnOffWeather = async () => {
+    setWeather(null);
+    await AsyncStorage.removeItem(WEATHER_ENABLED_KEY);
+  };
+  const openWeatherMenu = () => {
+    if (!weather) { setWeatherIntroVisible(true); return; }
+    Alert.alert(getWeatherLabel(language, weather.kind), undefined, [
+      { text: t('coachWeatherRefresh'), onPress: () => { void loadWeather(); } },
+      { text: t('coachWeatherTurnOff'), style: 'destructive', onPress: () => { void turnOffWeather(); } },
+      { text: t('coachWeatherClose'), style: 'cancel' },
+    ]);
+  };
+  // Restore the weather background when permission was already granted.
+  React.useEffect(() => {
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | undefined;
+    (async () => {
+      if (await AsyncStorage.getItem(WEATHER_ENABLED_KEY) !== '1') return;
+      const permission = await Location.getForegroundPermissionsAsync();
+      if (cancelled) return;
+      if (permission.status !== 'granted') { await AsyncStorage.removeItem(WEATHER_ENABLED_KEY); return; }
+      await loadWeather();
+      if (!cancelled) interval = setInterval(() => { void loadWeather(); }, WEATHER_REFRESH_MS);
+    })();
+    return () => { cancelled = true; if (interval) clearInterval(interval); };
+  }, [loadWeather]);
   // Keep the restored first-reply rating flow separate from the previous
   // latest-message flow, so an old rating cannot hide the restored prompt.
   const coachMessagesStorageKey = getCoachMessagesStorageKey(accountId);
@@ -596,15 +659,37 @@ export default function CoachScreen() {
     };
   }, [analysisId, weeklyAnalysis, weeklyAnalysisUnlocked]);
   return <View style={[styles.root, { backgroundColor: colors.background, paddingTop: insets.top + 16, paddingBottom: insets.bottom + 104 }]}>
-     <CoachAtmosphereBackground colors={colors} reveal={coachReveal} atmosphere={atmosphere} />
+     {weather
+       ? <WeatherBackground kind={weather.kind} isDay={weather.isDay} reveal={coachReveal} background={colors.background} dark={colors.colorScheme === 'dark'} />
+       : <CoachAtmosphereBackground colors={colors} reveal={coachReveal} atmosphere={atmosphere} />}
     <Animated.View pointerEvents="none" style={[styles.coachReveal, { backgroundColor: colors.secondary, opacity: coachReveal.interpolate({ inputRange: [0, 0.55, 0.86, 1], outputRange: [0.96, 0.92, 0.28, 0] }), transform: [{ scale: coachReveal.interpolate({ inputRange: [0, 0.68, 1], outputRange: [1, revealScale * 0.88, revealScale] }) }] }]} />
     <View style={styles.referenceHeader}>
       <View style={styles.referenceHeaderText}>
        <Text style={[styles.referenceEyebrow, { color: colors.foreground }]}>{t('coachEyebrow').toUpperCase()}</Text>
          <Text style={[styles.referenceTitle, { color: colors.foreground }]}>{t('coachTitle')}</Text>
          <Text style={[styles.referenceSubtitle, { color: colors.mutedForeground }]}>{t('coachSubtitle')}</Text>
+         <Pressable accessibilityRole="button" onPress={openWeatherMenu} disabled={weatherLoading} style={[styles.weatherButton, { backgroundColor: colors.glass, borderColor: colors.glassBorder }]}>
+           <Ionicons name={weather ? 'weather-sun' : 'map-pin'} size={15} color={colors.foreground} />
+           <Text style={[styles.weatherButtonText, { color: colors.foreground }]} numberOfLines={1}>{weatherLoading ? t('coachWeatherLoading') : weather ? getWeatherLabel(language, weather.kind) : t('coachWeatherButton')}</Text>
+         </Pressable>
       </View>
     </View>
+    <Modal visible={weatherIntroVisible} transparent animationType="fade" onRequestClose={() => setWeatherIntroVisible(false)}>
+      <View style={styles.weatherModalBackdrop}>
+        <View style={[styles.weatherModalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={[styles.weatherModalIcon, { backgroundColor: `${colors.accent}22` }]}><Ionicons name="weather-sun" size={28} color={colors.accent} /></View>
+          <Text style={[styles.weatherModalTitle, { color: colors.foreground }]}>{t('coachWeatherIntroTitle')}</Text>
+          <Text style={[styles.weatherModalBody, { color: colors.foreground }]}>{t('coachWeatherIntroBody')}</Text>
+          <Text style={[styles.weatherModalNote, { color: colors.mutedForeground }]}>{t('coachWeatherIntroNote')}</Text>
+          <Pressable accessibilityRole="button" onPress={() => { void acceptWeatherIntro(); }} style={[styles.weatherAccept, { backgroundColor: colors.primary }]}>
+            <Text style={[styles.weatherAcceptText, { color: colors.primaryForeground }]}>{t('coachWeatherAccept')}</Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => setWeatherIntroVisible(false)} style={styles.weatherDecline}>
+            <Text style={[styles.weatherDeclineText, { color: colors.mutedForeground }]}>{t('coachWeatherDecline')}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
     <View pointerEvents="none" style={styles.analysisFlightLayer}>
       <Animated.View style={[styles.analysisFlightCard, { backgroundColor: colors.primaryForeground, opacity: weeklyCardReveal.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.9, 0] }), transform: [{ translateX: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 20 - (screenSize.width / 2 - 130)] }) }, { translateY: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, chatOriginY + 42 - (screenSize.height - 220)] }) }, { scale: weeklyCardReveal.interpolate({ inputRange: [0, 0.75, 1], outputRange: [1, 0.84, 0.68] }) }] }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /><Text style={[styles.analysisFlightText, { color: colors.primary }]}>{t('weeklyAnalysisReading')}</Text></Animated.View>
     </View>
@@ -624,7 +709,7 @@ export default function CoachScreen() {
                 {ratedMessageId === item.id ? <Text style={[styles.ratingThanks, { color: colors.success }]}>{t('coachRatingThanks')}</Text> : null}
            </View>
         </View>}
-         ListFooterComponent={loading && !isStreamingReply ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : null}
+          ListFooterComponent={loading && !isStreamingReply ? <TypingIndicator label={t('coachTyping')} colors={colors} /> : undefined}
         contentContainerStyle={styles.messageList}
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
@@ -658,6 +743,18 @@ const styles = StyleSheet.create({
   referenceEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 2.4, lineHeight: 16 },
   referenceTitle: { fontFamily: 'Inter_700Bold', fontSize: 34, lineHeight: 40, marginTop: 8, letterSpacing: -1 },
   referenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 17, lineHeight: 23, marginTop: 2, maxWidth: 310 },
+  weatherButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12, maxWidth: '100%', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },
+  weatherButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, flexShrink: 1 },
+  weatherModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  weatherModalCard: { width: '100%', maxWidth: 380, borderRadius: 28, borderWidth: StyleSheet.hairlineWidth, padding: 24, alignItems: 'center' },
+  weatherModalIcon: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  weatherModalTitle: { fontFamily: 'Inter_700Bold', fontSize: 21, lineHeight: 27, textAlign: 'center' },
+  weatherModalBody: { fontFamily: 'Inter_400Regular', fontSize: 16, lineHeight: 23, textAlign: 'center', marginTop: 10 },
+  weatherModalNote: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 10 },
+  weatherAccept: { alignSelf: 'stretch', alignItems: 'center', borderRadius: 16, paddingVertical: 15, marginTop: 20 },
+  weatherAcceptText: { fontFamily: 'Inter_700Bold', fontSize: 16 },
+  weatherDecline: { paddingVertical: 12, marginTop: 4 },
+  weatherDeclineText: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   caption: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
   limit: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   limitNumber: { fontFamily: 'Inter_700Bold', fontSize: 18 },

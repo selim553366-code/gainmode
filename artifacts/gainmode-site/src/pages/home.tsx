@@ -1,14 +1,12 @@
 import { useRef } from 'react';
 import { Link } from 'wouter';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, ArrowUpRight, Code2, Globe2, PenTool, Smartphone, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Code2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { CONTACT_EMAIL, products } from '@/lib/products';
 import { LogoMark } from '@/components/site/brand';
 import { EASE, Kicker, Reveal, SplitTitle } from '@/components/site/motion';
 import { Phone } from '@/components/site/phone';
-
-const serviceIcons = [Smartphone, Globe2, PenTool, Sparkles];
 
 /** The hero mark: the logo with two orbits and moons turning around it. */
 function HeroGlobe() {
@@ -71,7 +69,7 @@ function FeaturedWork() {
           {product.wordmark ? <img src={product.wordmark} alt={product.name} className="mt-8 h-7 w-auto brightness-0 invert md:h-9" /> : <h3 className="mt-8 text-4xl font-bold">{product.name}</h3>}
           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-royal-200">{product.category[lang]}</p>
           <p className="mt-6 max-w-md text-lg leading-relaxed text-white/70">{product.summary[lang]}</p>
-          <span className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-ink transition group-hover:gap-3">{t.work.view}<ArrowRight size={16} /></span>
+          <span className="mt-8 inline-flex items-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-ink transition group-hover:gap-3">{t.work.view}<ArrowRight size={16} /></span>
         </div>
         <div className="relative flex h-[420px] items-center justify-center md:h-[520px]">
           <motion.div style={{ y: back }} className="absolute left-[4%] top-[12%] hidden -rotate-[8deg] sm:block"><Phone src={product.screens[1]} alt="" width={200} className="opacity-80" /></motion.div>
@@ -96,8 +94,8 @@ export default function Home() {
             <SplitTitle lines={t.home.title} delay={0.1} className="mt-6 font-display text-[24px] min-[400px]:text-[28px] font-extrabold uppercase leading-[0.98] tracking-[-0.035em] sm:text-5xl lg:text-[44px] xl:text-[50px]" />
             <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.5, ease: EASE }} className="mt-7 max-w-xl text-lg leading-relaxed text-white/65">{t.home.body}</motion.p>
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.65, ease: EASE }} className="mt-9 flex flex-wrap gap-3">
-              <Link href="/work" className="inline-flex h-13 items-center gap-2 rounded-full bg-royal-500 px-7 py-4 text-sm font-semibold shadow-[0_14px_40px_-10px_#2F5BFF] transition hover:bg-royal-400">{t.home.primary}<ArrowRight size={16} /></Link>
-              <Link href="/contact" className="inline-flex items-center gap-2 rounded-full border border-white/15 px-7 py-4 text-sm font-semibold text-white/90 transition hover:border-white/40">{t.home.secondary}</Link>
+              <Link href="/work" className="inline-flex h-13 items-center gap-2 rounded-lg bg-royal-500 px-7 py-4 text-sm font-semibold transition-colors hover:bg-royal-400">{t.home.primary}<ArrowRight size={16} /></Link>
+              <Link href="/contact" className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-7 py-4 text-sm font-semibold text-white/90 transition-colors hover:border-white/40">{t.home.secondary}</Link>
             </motion.div>
           </div>
           <HeroGlobe />
@@ -125,27 +123,7 @@ export default function Home() {
         </Reveal>
       </section>
 
-      <section className="relative overflow-hidden border-y border-white/[0.07] bg-ink-2/60 py-24 md:py-32">
-        <div className="aurora right-[-10%] top-[10%] h-[360px] w-[360px] bg-royal-500/20" />
-        <div className="relative mx-auto max-w-[1240px] px-5 md:px-8">
-          <Reveal><Kicker>{t.home.servicesKicker}</Kicker><h2 className="mt-4 max-w-3xl font-display text-[24px] font-extrabold uppercase leading-[0.98] tracking-[-0.03em] sm:text-4xl md:text-5xl">{t.home.servicesTitle}</h2></Reveal>
-          <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {t.services.map((service, index) => {
-              const Icon = serviceIcons[index];
-              return (
-                <Reveal key={service.title} delay={index * 0.08}>
-                  <div className="group relative h-full overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.03] p-7 transition duration-500 hover:-translate-y-1 hover:border-royal-400/50">
-                    <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-royal-500/0 blur-3xl transition duration-500 group-hover:bg-royal-500/40" />
-                    <span className="relative grid h-12 w-12 place-items-center rounded-2xl bg-royal-500/15 text-royal-200 transition group-hover:bg-royal-500 group-hover:text-white"><Icon size={22} /></span>
-                    <h3 className="relative mt-8 text-xl font-semibold">{service.title}</h3>
-                    <p className="relative mt-3 text-sm leading-relaxed text-white/60">{service.body}</p>
-                  </div>
-                </Reveal>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <CtaBand fullBleed />
 
       <section className="mx-auto max-w-[1240px] px-5 py-24 md:px-8 md:py-32">
         <Reveal><Kicker>{t.home.processKicker}</Kicker><h2 className="mt-4 font-display text-[24px] font-extrabold uppercase leading-[0.98] tracking-[-0.03em] sm:text-4xl md:text-5xl">{t.home.processTitle}</h2></Reveal>
@@ -174,27 +152,29 @@ export default function Home() {
           ))}
         </div>
       </section>
-
-      <CtaBand />
     </>
   );
 }
 
 /** Closing call to action shared by the home, services and about pages. */
-export function CtaBand() {
+export function CtaBand({ fullBleed = false }: { fullBleed?: boolean }) {
   const { t } = useI18n();
   return (
-    <section className="mx-auto max-w-[1240px] px-5 pb-24 md:px-8">
+    <section id={fullBleed ? 'home-contact-cta' : undefined} className={fullBleed
+      ? 'relative overflow-hidden bg-[linear-gradient(115deg,#668cff_0%,#315bff_55%,#4269ff_100%)]'
+      : 'mx-auto max-w-[1240px] px-5 pb-24 md:px-8'}>
       <Reveal>
-        <div className="grain relative overflow-hidden rounded-[40px] bg-royal-500 px-7 py-16 text-center md:px-16 md:py-24">
+        <div className={fullBleed
+          ? 'grain relative overflow-hidden px-5 py-20 text-center md:py-24'
+          : 'grain relative overflow-hidden rounded-[40px] bg-royal-500 px-7 py-16 text-center md:px-16 md:py-24'}>
           <div className="aurora -left-20 -top-24 h-[360px] w-[360px] bg-white/30" />
           <div className="aurora -bottom-32 -right-10 h-[360px] w-[360px] bg-royal-700" />
           <LogoMark size={64} light className="relative mx-auto" />
           <h2 className="relative mx-auto mt-8 max-w-3xl font-display text-[24px] font-extrabold uppercase leading-[0.98] tracking-[-0.03em] sm:text-4xl md:text-5xl">{t.home.ctaTitle}</h2>
           <p className="relative mx-auto mt-5 max-w-lg text-white/80">{t.home.ctaBody}</p>
           <div className="relative mt-9 flex flex-wrap justify-center gap-3">
-            <Link href="/contact" className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 text-sm font-semibold text-royal-700 transition hover:scale-[1.03]">{t.home.ctaButton}<ArrowRight size={16} /></Link>
-            <a href={`mailto:${CONTACT_EMAIL}`} className="inline-flex items-center gap-2 rounded-full border border-white/40 px-7 py-4 text-sm font-semibold transition hover:bg-white/10">{CONTACT_EMAIL}</a>
+            <Link href="/contact" className="inline-flex items-center gap-2 rounded-lg bg-white px-7 py-4 text-sm font-semibold text-royal-700 transition-colors hover:bg-white/90">{t.home.ctaButton}<ArrowRight size={16} /></Link>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="inline-flex items-center gap-2 rounded-lg border border-white/40 px-7 py-4 text-sm font-semibold transition-colors hover:bg-white/10">{CONTACT_EMAIL}</a>
           </div>
         </div>
       </Reveal>

@@ -24,7 +24,7 @@ const subscriptionAccessLabel: Record<Language, string> = {
   es: 'GainMode Access',
 };
 
-type PremiumCurrency = 'USD' | 'EUR' | 'GBP';
+type PremiumCurrency = 'USD' | 'EUR' | 'GBP' | 'TRY';
 
 const premiumPreviewPriceByLanguage: Record<Language, { locale: string; currency: PremiumCurrency }> = {
   tr: { locale: 'en-US', currency: 'USD' },
@@ -213,24 +213,32 @@ const streakUiTranslations: Record<Language, {
   es: { streakTitle: 'Racha diaria', streakSubtitle: 'Un poco más fuerte cada día.', currentStreak: 'Racha actual', streakDays: 'días', streakCalendarTitle: 'Últimos 7 días', streakToday: 'Hoy', streakCompleted: 'Completado', streakKeepGoing: 'Completa una actividad hoy para mantener vivo tu fuego.' },
 };
 
-export function getPremiumPreviewPrice(language: Language, amount = 7.99) {
+export function getPremiumPreviewProduct(language: Language, amount: number) {
   const selected = premiumPreviewPriceByLanguage[language];
   const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale.replace('_', '-').toLowerCase();
   const usesBritishEnglish = language === 'en' && deviceLocale.startsWith('en-gb');
   const locale = usesBritishEnglish ? 'en-GB' : selected.locale;
   const currency: PremiumCurrency = usesBritishEnglish ? 'GBP' : selected.currency;
 
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return {
+    price: amount,
+    currencyCode: currency,
+    priceString: new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount),
+  };
+}
+
+export function getPremiumPreviewPrice(language: Language, amount = 6.99) {
+  return getPremiumPreviewProduct(language, amount).priceString;
 }
 
 export function getPremiumPreviewPriceOptions(language: Language) {
   const labels = premiumPriceOptionLabels[language];
-  return `${labels.monthly} ${getPremiumPreviewPrice(language, 7.99)} • ${labels.annual} ${getPremiumPreviewPrice(language, 54.99)}`;
+  return `${labels.monthly} ${getPremiumPreviewPrice(language, 6.99)} • ${labels.annual} ${getPremiumPreviewPrice(language, 49.99)}`;
 }
 
 const profileEditTranslations = {
@@ -1593,30 +1601,100 @@ const coachAtmosphereTranslations = {
     coachAtmosphereDay: 'Gündüz',
     coachAtmosphereNormal: 'Normal',
     coachAtmosphereNight: 'Gece',
+    coachWeatherButton: 'Konuma izin ver',
+    coachWeatherIntroTitle: 'Hava durumuna göre sohbet arka planı',
+    coachWeatherIntroBody: 'Konumunuzdaki hava durumuna göre değişen interaktif chat arkaplanları.',
+    coachWeatherIntroNote: 'Konumun yalnızca güncel hava durumunu almak için kullanılır ve kaydedilmez.',
+    coachWeatherAccept: 'Kabul et',
+    coachWeatherDecline: 'Şimdi değil',
+    coachWeatherLoading: 'Hava durumu alınıyor',
+    coachWeatherRefresh: 'Yenile',
+    coachWeatherTurnOff: 'Arka planı kapat',
+    coachWeatherClose: 'Vazgeç',
+    coachWeatherDeniedTitle: 'Konum izni verilmedi',
+    coachWeatherDeniedBody: 'Hava durumu arka planı için konum izni gerekiyor. İstersen telefonunun ayarlarından izin verebilirsin.',
+    coachWeatherErrorTitle: 'Hava durumu alınamadı',
+    coachWeatherErrorBody: 'Konumundaki hava durumu şu anda alınamadı. Biraz sonra tekrar dene.',
   },
   en: {
     coachAtmospherePreview: 'Background preview',
     coachAtmosphereDay: 'Day',
     coachAtmosphereNormal: 'Normal',
     coachAtmosphereNight: 'Night',
+    coachWeatherButton: 'Allow location',
+    coachWeatherIntroTitle: 'Weather-based chat background',
+    coachWeatherIntroBody: 'Interactive chat backgrounds that change with the weather at your location.',
+    coachWeatherIntroNote: 'Your location is only used to fetch the current weather and is not stored.',
+    coachWeatherAccept: 'Accept',
+    coachWeatherDecline: 'Not now',
+    coachWeatherLoading: 'Fetching the weather',
+    coachWeatherRefresh: 'Refresh',
+    coachWeatherTurnOff: 'Turn off background',
+    coachWeatherClose: 'Cancel',
+    coachWeatherDeniedTitle: 'Location permission not granted',
+    coachWeatherDeniedBody: 'Location permission is needed for the weather background. You can allow it in your phone settings.',
+    coachWeatherErrorTitle: 'Weather unavailable',
+    coachWeatherErrorBody: 'The weather at your location could not be loaded right now. Please try again soon.',
   },
   de: {
     coachAtmospherePreview: 'Hintergrundvorschau',
     coachAtmosphereDay: 'Tag',
     coachAtmosphereNormal: 'Normal',
     coachAtmosphereNight: 'Nacht',
+    coachWeatherButton: 'Standort erlauben',
+    coachWeatherIntroTitle: 'Chat-Hintergrund nach Wetter',
+    coachWeatherIntroBody: 'Interaktive Chat-Hintergründe, die sich mit dem Wetter an deinem Standort verändern.',
+    coachWeatherIntroNote: 'Dein Standort wird nur zum Abrufen des aktuellen Wetters verwendet und nicht gespeichert.',
+    coachWeatherAccept: 'Akzeptieren',
+    coachWeatherDecline: 'Nicht jetzt',
+    coachWeatherLoading: 'Wetter wird abgerufen',
+    coachWeatherRefresh: 'Aktualisieren',
+    coachWeatherTurnOff: 'Hintergrund ausschalten',
+    coachWeatherClose: 'Abbrechen',
+    coachWeatherDeniedTitle: 'Standortberechtigung nicht erteilt',
+    coachWeatherDeniedBody: 'Für den Wetterhintergrund wird die Standortberechtigung benötigt. Du kannst sie in den Einstellungen deines Telefons erlauben.',
+    coachWeatherErrorTitle: 'Wetter nicht verfügbar',
+    coachWeatherErrorBody: 'Das Wetter an deinem Standort konnte gerade nicht geladen werden. Versuche es gleich noch einmal.',
   },
   fr: {
     coachAtmospherePreview: 'Aperçu de l’arrière-plan',
     coachAtmosphereDay: 'Jour',
     coachAtmosphereNormal: 'Normal',
     coachAtmosphereNight: 'Nuit',
+    coachWeatherButton: 'Autoriser la localisation',
+    coachWeatherIntroTitle: 'Arrière-plan du chat selon la météo',
+    coachWeatherIntroBody: 'Des arrière-plans de chat interactifs qui changent selon la météo à ta position.',
+    coachWeatherIntroNote: 'Ta position sert uniquement à récupérer la météo actuelle et n’est pas enregistrée.',
+    coachWeatherAccept: 'Accepter',
+    coachWeatherDecline: 'Pas maintenant',
+    coachWeatherLoading: 'Récupération de la météo',
+    coachWeatherRefresh: 'Actualiser',
+    coachWeatherTurnOff: 'Désactiver l’arrière-plan',
+    coachWeatherClose: 'Annuler',
+    coachWeatherDeniedTitle: 'Autorisation de localisation refusée',
+    coachWeatherDeniedBody: 'L’autorisation de localisation est nécessaire pour l’arrière-plan météo. Tu peux l’accorder dans les réglages de ton téléphone.',
+    coachWeatherErrorTitle: 'Météo indisponible',
+    coachWeatherErrorBody: 'La météo à ta position n’a pas pu être chargée pour le moment. Réessaie dans un instant.',
   },
   es: {
     coachAtmospherePreview: 'Vista previa del fondo',
     coachAtmosphereDay: 'Día',
     coachAtmosphereNormal: 'Normal',
     coachAtmosphereNight: 'Noche',
+    coachWeatherButton: 'Permitir ubicación',
+    coachWeatherIntroTitle: 'Fondo del chat según el clima',
+    coachWeatherIntroBody: 'Fondos de chat interactivos que cambian según el clima en tu ubicación.',
+    coachWeatherIntroNote: 'Tu ubicación solo se usa para obtener el clima actual y no se guarda.',
+    coachWeatherAccept: 'Aceptar',
+    coachWeatherDecline: 'Ahora no',
+    coachWeatherLoading: 'Obteniendo el clima',
+    coachWeatherRefresh: 'Actualizar',
+    coachWeatherTurnOff: 'Desactivar el fondo',
+    coachWeatherClose: 'Cancelar',
+    coachWeatherDeniedTitle: 'Permiso de ubicación no concedido',
+    coachWeatherDeniedBody: 'Se necesita el permiso de ubicación para el fondo del clima. Puedes permitirlo en los ajustes del teléfono.',
+    coachWeatherErrorTitle: 'Clima no disponible',
+    coachWeatherErrorBody: 'No se pudo cargar el clima de tu ubicación ahora. Inténtalo de nuevo en un momento.',
   },
 } as const;
 

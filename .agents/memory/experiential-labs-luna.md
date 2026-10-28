@@ -1,10 +1,10 @@
 ---
 name: Experiential Labs Luna gateway
-description: Provider-specific endpoint and availability behavior for the external Luna model gateway.
+description: Project decision for avoiding the external GPT-5.6 Luna model.
 ---
 
-The Experiential Labs gateway uses an OpenAI-compatible API at `https://api.experientiallabs.ai/v1` with model ID `gpt-5.6-luna`. Its organization review can return `429 org_under_review` even when an API key is active, so FitBud should retain an explicit provider fallback rather than failing all AI requests.
+Do not route GainMode coach or food-photo requests through GPT-5.6 Luna. Use the existing OpenAI-backed GPT-5 mini/nano model choices instead.
 
-**Why:** The provider dashboard can show an active key and model access while the organization is still blocked from inference.
+**Why:** The user explicitly asked not to use GPT-5.6 Luna.
 
-**How to apply:** Keep the Luna key in Replit Secrets and the base URL as a non-secret environment value. When Luna is unavailable, log the provider failure without exposing the key and use the configured OpenAI fallback; once review is cleared, Luna should be selected automatically.
+**How to apply:** Keep coach and food analysis on the configured OpenAI integration. Do not add a Luna primary route or fallback unless the user changes this instruction.

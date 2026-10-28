@@ -136,7 +136,10 @@ export default function RootLayout() {
       require('@/assets/images/coach-wave-direct.jpg'),
       require('@/assets/images/forge-fit-logo.jpeg'),
     ];
-    void Promise.allSettled(imageSources.map((source) => Image.prefetch(Image.resolveAssetSource(source).uri)));
+    void Promise.allSettled(imageSources.map((source) => {
+      const uri = Image.resolveAssetSource(source)?.uri;
+      return uri ? Image.prefetch(uri) : Promise.resolve(false);
+    }));
     return undefined;
   }, []);
 

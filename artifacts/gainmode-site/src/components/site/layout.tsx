@@ -10,16 +10,16 @@ function LanguageSwitch({ className = '' }: { className?: string }) {
   const { lang, setLang, t } = useI18n();
   const pillId = useId();
   return (
-    <div role="group" aria-label={t.nav.language} className={`relative flex rounded-full border border-white/10 bg-white/[0.04] p-1 ${className}`}>
+    <div role="group" aria-label={t.nav.language} className={`relative flex rounded-lg border border-white/10 bg-white/[0.04] p-1 ${className}`}>
       {languages.map((code) => (
         <button
           key={code}
           type="button"
           onClick={() => setLang(code)}
           aria-pressed={lang === code}
-          className={`relative z-10 h-7 w-10 rounded-full text-[11px] font-bold tracking-[0.12em] transition-colors ${lang === code ? 'text-[#06091A]' : 'text-white/55 hover:text-white'}`}
+          className={`relative z-10 h-7 w-10 rounded-md text-[11px] font-bold tracking-[0.12em] transition-colors ${lang === code ? 'text-[#06091A]' : 'text-white/55 hover:text-white'}`}
         >
-          {lang === code ? <motion.span layoutId={pillId} className="absolute inset-0 -z-10 rounded-full bg-white" transition={{ type: 'spring', stiffness: 500, damping: 34 }} /> : null}
+          {lang === code ? <motion.span layoutId={pillId} className="absolute inset-0 -z-10 rounded-md bg-white" transition={{ type: 'spring', stiffness: 500, damping: 34 }} /> : null}
           {code.toUpperCase()}
         </button>
       ))}
@@ -57,8 +57,8 @@ export function SiteLayout({ children }: { children: ReactNode }) {
             {links.map((link) => {
               const active = location === link.href || location.startsWith(`${link.href}/`);
               return (
-                <Link key={link.href} href={link.href} className={`relative rounded-full px-4 py-2 text-sm font-medium transition-colors ${active ? 'text-white' : 'text-white/60 hover:text-white'}`}>
-                  {active ? <motion.span layoutId="nav-pill" className="absolute inset-0 -z-10 rounded-full bg-white/[0.08]" transition={{ type: 'spring', stiffness: 400, damping: 34 }} /> : null}
+                <Link key={link.href} href={link.href} className={`relative rounded-md px-4 py-2 text-sm font-medium transition-colors ${active ? 'text-white' : 'text-white/60 hover:text-white'}`}>
+                  {active ? <motion.span layoutId="nav-pill" className="absolute inset-0 -z-10 rounded-md bg-white/[0.08]" transition={{ type: 'spring', stiffness: 400, damping: 34 }} /> : null}
                   {link.label}
                 </Link>
               );
@@ -66,10 +66,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           </nav>
           <div className="flex items-center gap-3">
             <LanguageSwitch className="hidden sm:flex" />
-            <Link href="/contact" className="hidden h-10 items-center gap-1.5 rounded-full bg-royal-500 px-5 text-sm font-semibold text-white shadow-[0_8px_30px_-8px_#2F5BFF] transition hover:bg-royal-400 lg:flex">
-              {t.nav.cta}<ArrowUpRight size={16} />
-            </Link>
-            <button type="button" onClick={() => setOpen(true)} aria-label={t.nav.menu} className="grid h-10 w-10 place-items-center rounded-full border border-white/10 md:hidden"><Menu size={18} /></button>
+            <button type="button" onClick={() => setOpen(true)} aria-label={t.nav.menu} className="grid h-10 w-10 place-items-center rounded-lg border border-white/10 md:hidden"><Menu size={18} /></button>
           </div>
         </div>
       </header>
@@ -79,7 +76,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           <motion.div className="fixed inset-0 z-[60] flex flex-col bg-ink px-5 pb-10 pt-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="flex items-center justify-between">
               <Logo />
-              <button type="button" onClick={() => setOpen(false)} aria-label={t.nav.close} className="grid h-10 w-10 place-items-center rounded-full border border-white/10"><X size={18} /></button>
+              <button type="button" onClick={() => setOpen(false)} aria-label={t.nav.close} className="grid h-10 w-10 place-items-center rounded-lg border border-white/10"><X size={18} /></button>
             </div>
             <nav className="mt-14 flex flex-col gap-2">
               {[{ href: '/', label: 'Globe Studios' }, ...links].map((link, index) => (

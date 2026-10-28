@@ -3,7 +3,7 @@ import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import { requestPinWidget } from 'react-native-android-widget';
+import Constants from 'expo-constants';
 import Animated, { ReduceMotion, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
@@ -60,7 +60,7 @@ export function WidgetOfferHost() {
 
   React.useEffect(() => {
     const show = () => {
-      setManualSteps(Platform.OS !== 'android');
+      setManualSteps(Platform.OS !== 'android' || Constants.executionEnvironment === 'storeClient');
       setVisible(true);
     };
     listeners.add(show);
@@ -80,6 +80,7 @@ export function WidgetOfferHost() {
   const addToHomeScreen = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
     // Android shows the launcher's own "Add to home screen" dialog; false means this launcher can't pin.
+    const { requestPinWidget } = await import('react-native-android-widget');
     const accepted = await requestPinWidget({ widgetName: MOTIVATION_WIDGET_NAME }).catch(() => false);
     if (accepted) close();
     else setManualSteps(true);

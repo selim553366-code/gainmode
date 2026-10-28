@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, type PressableProps, type PressableStateCallbackType, type StyleProp, type View, type ViewStyle } from 'react-native';
+import { Pressable, type PressableProps, type PressableStateCallbackType, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, {
   Easing,
   ReduceMotion,
@@ -27,18 +27,19 @@ type PressableScaleProps = Omit<PressableProps, 'style'> & {
  * Drop-in Pressable with near-imperceptible press feedback: scales to 0.97 on press-in in 120ms and
  * springs back on release. Runs on the UI thread; respects the system reduced-motion setting.
  */
-export const PressableScale = React.forwardRef<View, PressableScaleProps>(function PressableScale(
-  { style, scaleTo = 0.97, onPressIn, onPressOut, pressRetentionOffset = 16, disabled, ...rest },
+export const PressableScale = React.forwardRef<React.ElementRef<typeof Pressable>, PressableScaleProps>(function PressableScale(
+  { style, scaleTo = 0.97, onPressIn, onPressOut, onHoverIn, onHoverOut, pressRetentionOffset = 16, disabled, ...rest },
   ref,
 ) {
   const reduced = useReducedMotion();
   const [pressed, setPressed] = React.useState(false);
+  const [hovered, setHovered] = React.useState(false);
   const progress = useSharedValue(0);
   const target = reduced || disabled ? 1 : scaleTo;
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(progress.get(), [0, 1], [1, target]) }],
   }));
-  const resolvedStyle = typeof style === 'function' ? style({ pressed }) : style;
+  const resolvedStyle = typeof style === 'function' ? style({ pressed, hovered }) : style;
 
   return (
     <AnimatedPressable
@@ -55,6 +56,14 @@ export const PressableScale = React.forwardRef<View, PressableScaleProps>(functi
         setPressed(false);
         progress.set(withTiming(0, { duration: 220, easing: EASE_OUT }));
         onPressOut?.(event);
+      }}
+      onHoverIn={(event) => {
+        setHovered(true);
+        onHoverIn?.(event);
+      }}
+      onHoverOut={(event) => {
+        setHovered(false);
+        onHoverOut?.(event);
       }}
       style={target === 1 ? resolvedStyle : [resolvedStyle, animatedStyle]}
     />

@@ -34,8 +34,8 @@ function StoreButton({ store }: { store: 'appStore' | 'playStore' }) {
     : <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true"><path fill="#00D7FE" d="M3.6 2.3 13.3 12l-9.7 9.7c-.4-.2-.6-.7-.6-1.2V3.5c0-.5.2-1 .6-1.2z" /><path fill="#FFCE00" d="m16.6 15.3-3.3-3.3 3.3-3.3 3.8 2.2c1 .6 1 1.6 0 2.2z" /><path fill="#FF3A44" d="M16.6 15.3 13.3 12l-9.7 9.7c.4.2.9.2 1.4-.1z" /><path fill="#00F076" d="M16.6 8.7 5 2.4c-.5-.3-1-.3-1.4-.1l9.7 9.7z" /></svg>;
   const body = <>{icon}<span className="text-left leading-tight"><span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-white/60">{url ? (store === 'appStore' ? 'Download on the' : 'Get it on') : t.gm.storeSoon}</span><span className="block text-base font-semibold">{label}</span></span></>;
   return url
-    ? <a href={url} target="_blank" rel="noreferrer" className="flex h-14 items-center gap-3 rounded-2xl border border-white/20 bg-black px-5 transition hover:border-white/50">{body}</a>
-    : <span aria-disabled="true" className="flex h-14 cursor-default items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-5 text-white/70">{body}</span>;
+    ? <a href={url} target="_blank" rel="noreferrer" className="flex h-14 items-center gap-3 rounded-lg border border-white/20 bg-black px-5 transition-colors hover:border-white/50">{body}</a>
+    : <span aria-disabled="true" className="flex h-14 cursor-default items-center gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-5 text-white/70">{body}</span>;
 }
 
 /** Email signup that posts to the API's early list; shows a check once saved. */
@@ -63,7 +63,7 @@ function NotifyForm({ center = false }: { center?: boolean }) {
         ) : (
           <motion.div key="form" exit={{ opacity: 0 }} className="flex gap-2 rounded-2xl border border-white/15 bg-white/[0.04] p-1.5 focus-within:border-royal-400">
             <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t.gm.notifyPlaceholder} aria-label={t.gm.notifyPlaceholder} className="min-w-0 flex-1 bg-transparent px-4 text-sm text-white outline-none placeholder:text-white/40" />
-            <button type="submit" disabled={state === 'sending'} className="shrink-0 rounded-xl bg-royal-500 px-5 py-3 text-sm font-semibold transition hover:bg-royal-400 disabled:opacity-60">{t.gm.notifyButton}</button>
+            <button type="submit" disabled={state === 'sending'} className="shrink-0 rounded-md bg-royal-500 px-5 py-3 text-sm font-semibold transition-colors hover:bg-royal-400 disabled:opacity-60">{t.gm.notifyButton}</button>
           </motion.div>
         )}
       </AnimatePresence>

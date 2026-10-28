@@ -19,7 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
-import { translate, type TranslationKey } from '@/lib/i18n';
+import { getPremiumPreviewProduct, translate, type TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
@@ -30,10 +30,6 @@ import { EASE_OUT, PressableScale as Pressable } from '@/components/Motion';
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type Plan = 'monthly' | 'annual';
 type DisplayProduct = { price: number; currencyCode: string; priceString: string };
-
-// The web preview has no store, so it shows the launch prices; real devices always show the store's own prices.
-const PREVIEW_MONTHLY: DisplayProduct = { price: 3.99, currencyCode: 'USD', priceString: '$3.99' };
-const PREVIEW_ANNUAL: DisplayProduct = { price: 24.99, currencyCode: 'USD', priceString: '$24.99' };
 
 function formatPrice(value: number, currencyCode: string) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode }).format(value);
@@ -190,8 +186,9 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const [previewBusy, setPreviewBusy] = React.useState(false);
 
   const usePreviewPrices = previewMode || Platform.OS === 'web';
-  const monthly: DisplayProduct | undefined = monthlyPackage?.product ?? (usePreviewPrices ? PREVIEW_MONTHLY : undefined);
-  const annual: DisplayProduct | undefined = annualPackage?.product ?? (usePreviewPrices ? PREVIEW_ANNUAL : undefined);
+  // Preview prices are illustrative; real purchases always use localized store products.
+  const monthly: DisplayProduct | undefined = monthlyPackage?.product ?? (usePreviewPrices ? getPremiumPreviewProduct(language, 6.99) : undefined);
+  const annual: DisplayProduct | undefined = annualPackage?.product ?? (usePreviewPrices ? getPremiumPreviewProduct(language, 49.99) : undefined);
   const savings = calculateAnnualSavingsPercent(monthly, annual);
   const annualPerMonth = formatAnnualMonthlyPrice(annual);
   const yearOfMonthly = monthly && annual && monthly.currencyCode === annual.currencyCode ? formatPrice(monthly.price * 12, monthly.currencyCode) : null;
@@ -350,11 +347,9 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
         <Pressable testID="paywall-restore" accessibilityRole="button" disabled={isRestoring} onPress={() => { void handleRestore(); }} hitSlop={8}>
           <Text style={[styles.link, { color: colors.foreground }]}>{isRestoring ? t('premiumLoading') : t('premiumRestore')}</Text>
         </Pressable>
-        <Text style={[styles.linkDot, { color: colors.mutedForeground }]}>·</Text>
         <Pressable accessibilityRole="link" onPress={() => openLegal('terms-of-service')} hitSlop={8}>
           <Text style={[styles.link, { color: colors.mutedForeground }]}>{t('termsOfService')}</Text>
         </Pressable>
-        <Text style={[styles.linkDot, { color: colors.mutedForeground }]}>·</Text>
         <Pressable accessibilityRole="link" onPress={() => openLegal('privacy-policy')} hitSlop={8}>
           <Text style={[styles.link, { color: colors.mutedForeground }]}>{t('privacyPolicy')}</Text>
         </Pressable>
@@ -416,7 +411,6 @@ const styles = StyleSheet.create({
   cta: { height: 58, borderRadius: 29, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   ctaText: { fontFamily: 'Inter_700Bold', fontSize: 16, letterSpacing: -0.2 },
   renew: { fontFamily: 'Inter_500Medium', fontSize: 12, textAlign: 'center', marginTop: 10, fontVariant: ['tabular-nums'] },
-  links: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10 },
-  link: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  linkDot: { fontSize: 12 },
+  links: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', columnGap: 14, rowGap: 8, marginTop: 10, paddingHorizontal: 8 },
+  link: { flexShrink: 1, textAlign: 'center', fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 16 },
 });

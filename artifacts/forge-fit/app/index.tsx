@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Easing, Image, PanResponder, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Image, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import ReAnimated, { Easing as ReEasing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import Svg, { Circle as SvgCircle, Defs, RadialGradient, Stop } from 'react-native-svg';
 import { ProgressRing } from '@/components/NutritionVisuals';
@@ -278,8 +278,9 @@ function writePreviewFlag() {
 export default function EntryScreen() {
   const colors = useColors();
   const { onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen } = useFit();
-  const params = useLocalSearchParams<{ edit?: string; fields?: string }>();
+  const params = useLocalSearchParams<{ edit?: string; fields?: string; preview?: string }>();
   const editMode = params.edit === '1';
+  const previewHome = Platform.OS === 'web' && params.preview === 'home';
   const selectedFields = React.useMemo(() => parseProfileEditFields(params.fields), [params.fields]);
   const entryRoute = getEntryRoute({ onboardingComplete, introSeen, isPremium, subscriptionPurchaseEnabled: SUBSCRIPTION_PURCHASE_ENABLED, coachIntroPending });
   const [premiumCelebrationVisible, setPremiumCelebrationVisible] = React.useState(false);
@@ -292,10 +293,15 @@ export default function EntryScreen() {
     setPreviewPaywallDone(true);
   };
   React.useEffect(() => {
+    if (previewHome) {
+      router.replace('/(tabs)');
+      return;
+    }
     if (!editMode && !previewPaywall && !premiumCelebrationVisible && (entryRoute === 'tabs' || entryRoute === 'coach')) {
       router.replace(entryRoute === 'coach' ? '/(tabs)/coach' : '/(tabs)');
     }
-  }, [editMode, entryRoute, premiumCelebrationVisible, previewPaywall]);
+  }, [editMode, entryRoute, premiumCelebrationVisible, previewHome, previewPaywall]);
+  if (previewHome) return <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
   if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
   if (entryRoute === 'onboarding') return <OnboardingQuestions />;
   if (entryRoute === 'intro') return <IntroScreen onDone={setIntroSeen} />;
@@ -762,24 +768,10 @@ function OnboardingTopBar({ onBack, step, total }: { onBack?: () => void; step?:
 function OnboardingCTA({ label, onPress, disabled = false, testID }: { label: string; onPress: () => void; disabled?: boolean; testID?: string }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const reduced = useReducedMotion();
-  const shine = useSharedValue(0);
-  const nudge = useSharedValue(0);
-  React.useEffect(() => {
-    if (reduced) return;
-    shine.set(withRepeat(withSequence(withTiming(1, { duration: 1300, easing: ReEasing.inOut(ReEasing.cubic) }), withDelay(1600, withTiming(0, { duration: 0 }))), -1));
-    nudge.set(withRepeat(withSequence(withTiming(1, { duration: 520, easing: ReEasing.out(ReEasing.cubic) }), withTiming(0, { duration: 520, easing: ReEasing.in(ReEasing.cubic) })), -1));
-  }, [nudge, reduced, shine]);
-  const shineStyle = useAnimatedStyle(() => ({ transform: [{ translateX: -140 + shine.get() * 560 }, { skewX: '-20deg' }] }));
-  const arrowStyle = useAnimatedStyle(() => ({ transform: [{ translateX: nudge.get() * 5 }] }));
   return <View style={[ui.ctaWrap, { paddingBottom: insets.bottom + 16 }]}>
-    <Pressable testID={testID} accessibilityRole="button" disabled={disabled} onPress={() => { triggerHaptic(); onPress(); }} scaleTo={0.97} style={[ui.cta, { opacity: disabled ? 0.6 : 1, shadowColor: colors.accent }]}>
-      <LinearGradient colors={['#7FA6FF', colors.accent, '#2F5BD8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <ReAnimated.View pointerEvents="none" style={[ui.ctaShine, shineStyle]}>
-        <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
-      </ReAnimated.View>
+    <Pressable testID={testID} accessibilityRole="button" disabled={disabled} onPress={() => { triggerHaptic(); onPress(); }} scaleTo={0.98} style={[ui.cta, { backgroundColor: colors.primary, opacity: disabled ? 0.6 : 1 }]}>
       <Text style={ui.ctaText}>{label}</Text>
-      <ReAnimated.View style={[ui.ctaArrow, arrowStyle]}><Ionicons name="arrow-forward" size={18} color="#FFFFFF" /></ReAnimated.View>
+      <View style={ui.ctaArrow}><Ionicons name="arrow-forward" size={18} color="#FFFFFF" /></View>
     </Pressable>
   </View>;
 }
@@ -934,7 +926,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
           <View style={[ui.floatChip, { right: 6, top: stage * 0.55, backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="barbell-outline" size={14} color={colors.foreground} /><Ionicons name="flame" size={14} color={colors.orange} /></View>
         </View></Rise>
         <View>
-          {words.map((line, index) => <Rise key={line} delay={160 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.accent : colors.foreground }]}>{line}</Text></Rise>)}
+          {words.map((line, index) => <Rise key={line} delay={160 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.primary : colors.foreground }]}>{line}</Text></Rise>)}
           <Rise delay={360}><Text style={[ui.subtitle, { color: colors.mutedForeground }]}>{t('welcomeHeroSubtitle')}</Text></Rise>
         </View>
       </View>
@@ -1648,10 +1640,9 @@ const ui = StyleSheet.create({
   progressTrack: { height: 4, borderRadius: 2, overflow: 'hidden', marginTop: 14 },
   progressFill: { height: '100%', borderRadius: 2 },
   ctaWrap: { paddingHorizontal: 20, paddingTop: 10 },
-  cta: { height: 60, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden', shadowOpacity: 0.35, shadowRadius: 18, shadowOffset: { width: 0, height: 8 } },
-  ctaShine: { position: 'absolute', top: -10, bottom: -10, width: 90 },
+  cta: { height: 60, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   ctaText: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.2, color: '#FFFFFF' },
-  ctaArrow: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.22)' },
+  ctaArrow: { alignItems: 'center', justifyContent: 'center' },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase' },
   title: { fontFamily: 'Inter_700Bold', fontSize: 32, lineHeight: 38, letterSpacing: -1.1, marginTop: 10 },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, marginTop: 10 },

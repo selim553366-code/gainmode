@@ -27,6 +27,7 @@ packages = ["eas-cli"]
 
 [userenv.shared]
 GAINMODE_FEEDBACK_RECIPIENT = "selim553366@gmail.com"
+"USDA_APİKEY" = "hgwTdP9JGmC8B9Trtmbqd8TPm8mNRq9BgrwCk76f"
 
 [userenv.production]
 EXPO_PUBLIC_DOMAIN = "unfolded-superior-webpages.replit.app"
@@ -43,6 +44,7 @@ externalPort = 80
 [[ports]]
 localPort = 8082
 externalPort = 3000
+exposeLocalhost = true
 
 [[ports]]
 localPort = 24941

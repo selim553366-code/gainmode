@@ -1,5 +1,5 @@
 - [Forge Fit AI and access model](forge-fit-ai.md) — local-first user state with server-side GPT-5 mini and premium usage gates.
-- [Experiential Labs Luna gateway](experiential-labs-luna.md) — use its OpenAI-compatible v1 endpoint when available, but keep an explicit fallback while organization review can block requests.
+- [GPT-5.6 Luna exclusion](experiential-labs-luna.md) — do not route GainMode coach or food analysis through Luna; retain GPT-5 mini/nano via OpenAI.
 - [Forge Fit onboarding personalization](forge-fit-onboarding.md) — required profile first, optional refinements second, with native-friendly transparent coach media.
 - [Food search provider resilience](food-search-providers.md) — Open Food Facts may rate-limit the .org endpoint; keep the alternate .net source available and combine USDA for generic foods.
 - [Forge Fit nutrition date ranges](forge-fit-nutrition-dates.md) — daily totals use the local calendar day while historical meals remain available for weekly/monthly views.
@@ -19,6 +19,7 @@
 - [Forge Fit muscle map masks](forge-fit-muscle-maps.md) — anatomy highlights must use full-canvas masks aligned to the source image, not approximate UI shapes.
 - [Video artifact metadata](video-artifact-metadata.md) — preserve immutable artifact metadata and repair missing services through verified TOML replacement.
 - [PNPM patched dependencies](pnpm-patched-dependencies.md) — patched dependency edits require a valid unified diff and a regenerated lockfile hash.
+- [Unpatched Expo dependency advisories](expo-unpatched-advisories.md) — don't force incompatible overrides for Expo transitive advisories before upstream publishes a safe version.
 - [Workspace package removal](workspace-package-removal.md) — verify artifact-scoped dependency removals; use pnpm filters if the generic helper misses a workspace package.
 - [Expo SDK React alignment](expo-sdk-react-alignment.md) — multi-Expo workspaces must pin React per artifact when SDK-required versions differ.
 - [Forge Fit visual language](forge-fit-visual-language.md) — keep the app light, spacious, blue-white, and premium with restrained glass controls and soft elevated cards.
@@ -26,3 +27,5 @@
 - [GainMode mocked load testing](forge-fit-load-testing.md) — use an isolated API and mocked AI upstream for high-volume tests without provider charges.
 - [Resend feedback delivery](resend-feedback-delivery.md) — test-mode recipients must be provider-verified, and delivery failures must not consume user rate limits.
 - [Production root artifact](production-root-artifact.md) — Globe Studios web owns the root route; keep Forge Fit under its dedicated artifact path.
+- [Weather chat background](forge-fit-weather-background.md) — opt-in location flow, Open-Meteo, 32 animated scenes; tornado preview-only.
+- [PNPM release-age policy](pnpm-release-age.md) — same-day Expo SDK updates may need narrow, temporary allowlisting during lockfile refresh.
