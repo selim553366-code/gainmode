@@ -1,10 +1,13 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { clientKey, createAiAccessToken, getAiRateLimitKey, requireAiAccess } from "../lib/security";
+import { clientKey, createAiAccessToken, enforcePublicRateLimit, getAiRateLimitKey, requireAiAccess } from "../lib/security";
 
 const router: IRouter = Router();
 const COACH_MODEL = "gpt-5-mini";
 const SIMPLE_COACH_MODEL = "gpt-5-nano";
 const FOOD_ANALYSIS_MODEL = "gpt-5-mini";
+const ONBOARDING_PLAN_MODEL = "gpt-5-mini";
+const ONBOARDING_PLANS_PER_HOUR = 6;
+const MAX_PLAN_REQUEST_LENGTH = 24_000;
 const MODEL_PRICING_USD_PER_MILLION: Record<string, { input: number; output: number }> = {
   "gpt-5-mini": { input: 0.25, output: 2 },
   "gpt-5-nano": { input: 0.05, output: 0.4 },
@@ -401,6 +404,71 @@ Supported profile fields are equipment, equipmentDetails, gymLevel, height, weig
   } catch (error) {
     req.log?.error?.({ errorMessage: error instanceof Error ? error.message : String(error) }, "Coach request failed");
     return res.status(502).json({ error: "AI coach unavailable." });
+  }
+});
+
+type PlanDay = { day: string; perArea: number; areas: { area: string; options: { id: string; name: string }[] }[] };
+
+const profileFields = ["goal", "sex", "age", "height", "weight", "targetWeight", "activity", "trainingDays", "sessionDuration", "goalRate", "diet", "proteinPreference", "experience", "equipment", "gymLevel", "equipmentDetails"];
+const shortText = (value: unknown, max: number) => (typeof value === "string" ? value.slice(0, max) : null);
+
+/** Keep only the onboarding answers and exercise lists the planner needs, in bounded sizes. */
+function normalizePlanRequest(body: unknown) {
+  const input = (body ?? {}) as { profile?: Record<string, unknown>; days?: unknown };
+  const profile: Record<string, string | number> = {};
+  for (const field of profileFields) {
+    const value = input.profile?.[field];
+    if (typeof value === "number" && Number.isFinite(value)) profile[field] = value;
+    else if (typeof value === "string" && value.trim()) profile[field] = value.slice(0, field === "equipmentDetails" ? 300 : 40);
+  }
+  if (!Array.isArray(input.days) || input.days.length < 1 || input.days.length > 7) return null;
+  const days: PlanDay[] = [];
+  for (const raw of input.days as Record<string, unknown>[]) {
+    if (!raw || !Array.isArray(raw.areas) || raw.areas.length > 8) return null;
+    const areas = (raw.areas as Record<string, unknown>[]).map((entry) => ({
+      area: shortText(entry?.area, 20) ?? "",
+      options: Array.isArray(entry?.options)
+        ? (entry.options as Record<string, unknown>[]).slice(0, 30).map((option) => ({ id: shortText(option?.id, 60) ?? "", name: shortText(option?.name, 80) ?? "" })).filter((option) => option.id && option.name)
+        : [],
+    })).filter((entry) => entry.area && entry.options.length);
+    const perArea = typeof raw.perArea === "number" ? Math.min(3, Math.max(1, Math.round(raw.perArea))) : 2;
+    days.push({ day: shortText(raw.day, 3) ?? "", perArea, areas });
+  }
+  return { profile, days };
+}
+
+/**
+ * Personalises the onboarding plan. The app sends the answers and, for each training day, the
+ * exercises its equipment allows; the model picks from those lists and sets nutrition targets.
+ * The app checks everything again and falls back to its own calculation on any problem. It runs
+ * before a subscription exists, so it is limited per IP instead of by AI access token.
+ */
+router.post("/ai/onboarding-plan", async (req, res) => {
+  if (!enforcePublicRateLimit(req, res, "onboarding-plan", ONBOARDING_PLANS_PER_HOUR, AI_WINDOW_MS)) return;
+  try {
+    const { language, clientId } = req.body as { language?: string; clientId?: string };
+    const selectedLanguage = normalizeLanguage(language) ?? "en";
+    const plan = normalizePlanRequest(req.body);
+    if (!plan) return res.status(400).json({ error: "A valid onboarding profile is required." });
+    const payload = JSON.stringify(plan);
+    if (payload.length > MAX_PLAN_REQUEST_LENGTH) return res.status(413).json({ error: "Plan request is too large." });
+    const response = await askOpenAiWithOptions([
+      { role: "system", content: `You are GainMode's head coach building a new user's first week from their onboarding answers. Weights are kg, heights cm, sessionDuration minutes.
+Choose exercises ONLY by copying ids from each area's options list, exactly perArea different ids per area, ordered from compound to isolation and suited to the user's experience, goal and equipment details. Prefer variety across days that train the same area.
+Set daily nutrition targets with Mifflin-St Jeor, the activity level, the goal and goalRate, the diet and protein preference. Never go below 1200 kcal (1600 if under 18).
+Pick one sets value (1-3) and one reps value (5-20) for the whole plan.
+Write note: one warm, specific sentence in ${languageNames[selectedLanguage]} (max 30 words) that tells the user why this plan fits them. No medical claims.
+Return ONLY valid JSON: {"nutrition":{"calories":int,"protein":int,"fat":int},"sets":int,"reps":int,"days":[{"exercises":{"<area>":["<id>", ...]}}],"note":"..."} with one days entry per input day, in the same order.` },
+      { role: "user", content: payload },
+    ], { model: ONBOARDING_PLAN_MODEL, maxCompletionTokens: 8192 });
+    logAiUsage(req, "onboarding-plan", typeof clientId === "string" ? clientId.slice(0, 80) : null, response);
+    const normalized = response.content.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+    const result = JSON.parse(normalized) as Record<string, unknown>;
+    if (!result || typeof result !== "object" || !Array.isArray(result.days)) return res.status(502).json({ error: "AI plan was incomplete." });
+    return res.json({ nutrition: result.nutrition, sets: result.sets, reps: result.reps, days: result.days.slice(0, plan.days.length), note: result.note });
+  } catch (error) {
+    req.log?.error?.({ errorMessage: error instanceof Error ? error.message : String(error) }, "Onboarding plan failed");
+    return res.status(502).json({ error: "AI plan unavailable." });
   }
 });
 

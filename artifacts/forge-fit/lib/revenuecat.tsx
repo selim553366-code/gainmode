@@ -36,6 +36,8 @@ type SubscriptionContextValue = {
   isLoading: boolean;
   isSubscribed: boolean | undefined;
   purchase: (packageToPurchase: PurchasesPackage) => Promise<CustomerInfo>;
+  /** Fetch the store offerings again, e.g. when they were not loaded yet at purchase time. */
+  refreshPackages: () => Promise<{ monthly?: PurchasesPackage; annual?: PurchasesPackage }>;
   restore: () => Promise<CustomerInfo>;
   isPurchasing: boolean;
   isRestoring: boolean;
@@ -105,6 +107,12 @@ function useSubscriptionContext(): SubscriptionContextValue {
           ? hasActivePremiumEntitlement(customerInfoQuery.data)
           : undefined,
       purchase: purchaseMutation.mutateAsync,
+      refreshPackages: async () => {
+        if (!isAvailable) return {};
+        const result = await offeringsQuery.refetch();
+        const offering = result.data?.current;
+        return { monthly: offering?.monthly ?? undefined, annual: offering?.annual ?? undefined };
+      },
       restore: restoreMutation.mutateAsync,
       isPurchasing: purchaseMutation.isPending,
       isRestoring: restoreMutation.isPending,
@@ -116,6 +124,7 @@ function useSubscriptionContext(): SubscriptionContextValue {
     customerInfoQuery.isLoading,
     offeringsQuery.data,
     offeringsQuery.isLoading,
+    offeringsQuery.refetch,
     isAvailable,
     purchaseMutation.mutateAsync,
     purchaseMutation.isPending,

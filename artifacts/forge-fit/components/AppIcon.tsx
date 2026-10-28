@@ -10,10 +10,13 @@ import {
   BadgeX,
   ArrowLeft,
   ArrowRight,
+  ArrowDown,
   ArrowUp,
   Bell,
   Building2,
   CalendarDays,
+  Clock3,
+  Crosshair,
   Camera,
   Check,
   ChartArea,
@@ -62,6 +65,8 @@ import {
   Plus,
   Rocket,
   MessagesSquare,
+  RotateCcw,
+  Send,
   Lightbulb,
   Brain,
   Compass,
@@ -102,6 +107,8 @@ import {
 export type IconName =
   | 'activity'
   | 'coach-outline'
+  | 'restore-outline'
+  | 'send-outline'
   | 'bulb-outline'
   | 'gem-outline'
   | 'brain-outline'
@@ -114,6 +121,7 @@ export type IconName =
   | 'alert-circle'
   | 'arrow-back'
   | 'arrow-forward'
+  | 'arrow-down'
   | 'arrow-up'
   | 'barbell-outline'
   | 'body-outline'
@@ -188,6 +196,9 @@ export type IconName =
   | 'badge-week'
   | 'badge-unstoppable'
   | 'badge-calendar'
+  | 'time-outline'
+  | 'calendar-outline'
+  | 'target'
   | 'badge-meal'
   | 'badge-rhythm'
   | 'badge-master'
@@ -209,6 +220,7 @@ const iconMap: Record<IconName, IconComponent> = {
   'alert-circle': AlertCircle,
   'arrow-back': ArrowLeft,
   'arrow-forward': ArrowRight,
+  'arrow-down': ArrowDown,
   'arrow-up': ArrowUp,
   'barbell-outline': Dumbbell,
   'body-outline': PersonStanding,
@@ -261,6 +273,8 @@ const iconMap: Record<IconName, IconComponent> = {
   'moon-outline': Moon,
   star: Star,
   'coach-outline': MessagesSquare,
+  'restore-outline': RotateCcw,
+  'send-outline': Send,
   'bulb-outline': Lightbulb,
   'gem-outline': Gem,
   'brain-outline': Brain,
@@ -275,6 +289,9 @@ const iconMap: Record<IconName, IconComponent> = {
   'trophy-outline': Trophy,
   users: Users,
   'scale-outline': Scale,
+  'time-outline': Clock3,
+  'calendar-outline': CalendarDays,
+  'target': Crosshair,
   x: BadgeX,
   'analytics-outline': ChartNoAxesCombined,
   'badge-collection': Medal,

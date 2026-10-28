@@ -28,7 +28,13 @@ export type LiveWarningKey =
   | 'liveElbowPosition'
   | 'liveBalance'
   | 'liveTempo'
-  | 'liveGoodForm';
+  | 'liveGoodForm'
+  | 'liveFaceCamera'
+  | 'liveTurnSideways'
+  | 'liveHeadForward'
+  | 'liveHeadDown'
+  | 'liveGetInPlank'
+  | 'liveSplitStance';
 
 export type RepState = {
   reps: number;
@@ -40,6 +46,14 @@ export type RepState = {
   lastTrackedAt: number;
   cycleArmed: boolean;
   activeSide?: 'left' | 'right';
+  /** Deepest point (0–1) reached in the current repetition. */
+  repDepth: number;
+  /** A form fault seen during the current repetition; it will not be counted. */
+  repFault: LiveWarningKey | null;
+  /** Push-up only: shoulder height at the top of the movement, the zero point for depth. */
+  topLevel: number | null;
+  /** Push-up only: nose height at the top of the movement. */
+  headTop: number | null;
 };
 
 export type AnalysisResult = {
@@ -69,6 +83,10 @@ export const initialRepState: RepState = {
   lastWarningAt: 0,
   lastTrackedAt: 0,
   cycleArmed: false,
+  repDepth: 0,
+  repFault: null,
+  topLevel: null,
+  headTop: null,
 };
 
 export type PoseTrackState = {
@@ -223,259 +241,222 @@ export function stabilizePose(current: PoseLandmarks, previous: PoseTrackState, 
   };
 }
 
-function sideVisibility(pose: PoseLandmarks, side: 'left' | 'right') {
-  const prefix = side === 'left' ? 'left' : 'right';
-  return visibilityFor(pose, [
-    `${prefix}Shoulder` as PoseJoint,
-    `${prefix}Hip` as PoseJoint,
-    `${prefix}Knee` as PoseJoint,
-    `${prefix}Ankle` as PoseJoint,
-  ]);
+const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
+const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+
+/** All listed joints present with at least this visibility. */
+function has(pose: PoseLandmarks, joints: PoseJoint[], minVisibility = 0.4) {
+  return joints.every((joint) => (point(pose, joint)?.visibility ?? 0) >= minVisibility);
 }
 
-function selectSide(pose: PoseLandmarks, preferred?: 'left' | 'right') {
-  const left = sideVisibility(pose, 'left');
-  const right = sideVisibility(pose, 'right');
-  if (preferred && (preferred === 'left' ? left : right) >= 0.36) return preferred;
-  return left >= right ? 'left' : 'right';
-}
-
-function sideConfidence(pose: PoseLandmarks, side: 'left' | 'right') {
-  const prefix = side === 'left' ? 'left' : 'right';
-  return visibilityFor(pose, [
-    `${prefix}Shoulder` as PoseJoint,
-    `${prefix}Hip` as PoseJoint,
-    `${prefix}Knee` as PoseJoint,
-    `${prefix}Ankle` as PoseJoint,
-  ]);
-}
-
-function squatConfidence(pose: PoseLandmarks) {
-  return visibilityFor(pose, [
-    'nose',
-    'leftShoulder',
-    'rightShoulder',
-    'leftHip',
-    'rightHip',
-    'leftKnee',
-    'rightKnee',
-    'leftAnkle',
-    'rightAnkle',
-  ]);
-}
-
-function pushupConfidence(pose: PoseLandmarks) {
-  const leftArm = visibilityFor(pose, ['leftShoulder', 'leftElbow', 'leftWrist']);
-  const rightArm = visibilityFor(pose, ['rightShoulder', 'rightElbow', 'rightWrist']);
-  const bestArm = Math.max(leftArm, rightArm);
-  const shoulders = centerPoint(pose, 'leftShoulder', 'rightShoulder');
-  const hips = centerPoint(pose, 'leftHip', 'rightHip');
-  const head = point(pose, 'nose');
-  return average([bestArm, shoulders?.visibility ?? 0, hips?.visibility ?? 0, head?.visibility ?? 0]) ?? 0;
-}
-
-function bodyLength(pose: PoseLandmarks) {
-  const shoulders = centerPoint(pose, 'leftShoulder', 'rightShoulder');
-  const ankles = centerPoint(pose, 'leftAnkle', 'rightAnkle');
-  if (!shoulders || !ankles) return null;
-  return Math.hypot(ankles.x - shoulders.x, ankles.y - shoulders.y);
-}
-
-function baseWarning(kind: ExerciseKind, pose: PoseLandmarks, confidence: number, side: 'left' | 'right'): LiveWarningKey {
-  if (confidence < 0.42) return 'liveLookingForBody';
-
-  const shoulders = centerPoint(pose, 'leftShoulder', 'rightShoulder');
-  const hips = centerPoint(pose, 'leftHip', 'rightHip');
-  const ankles = centerPoint(pose, 'leftAnkle', 'rightAnkle');
-  if (!shoulders || !hips || !ankles) return 'liveLookingForBody';
-  if (kind === 'squat' && squatConfidence(pose) < 0.42) return 'liveLookingForBody';
-
-  const length = bodyLength(pose);
-  if (length !== null && length < 0.34) return 'liveStepBack';
-  if (length !== null && length > 1.25) return 'liveMoveCloser';
-
-  if (kind === 'lunge') {
-    const prefix = side === 'left' ? 'left' : 'right';
-    const backAngle = angle(
-      point(pose, `${prefix}Shoulder` as PoseJoint),
-      point(pose, `${prefix}Hip` as PoseJoint),
-      point(pose, `${prefix}Ankle` as PoseJoint),
-    );
-    if (backAngle !== null && backAngle < 112) return 'liveBackAngle';
-  }
-
-  if (kind === 'pushup') {
-    const leftElbow = point(pose, 'leftElbow');
-    const rightElbow = point(pose, 'rightElbow');
-    const frontView = (point(pose, 'nose')?.visibility ?? 0) >= 0.55
-      && shoulders.visibility >= 0.55
-      && (point(pose, 'leftShoulder')?.visibility ?? 0) >= 0.5
-      && (point(pose, 'rightShoulder')?.visibility ?? 0) >= 0.5;
-    const elbowSpreadLimit = frontView ? 0.48 : 0.34;
-    if (leftElbow && Math.abs(leftElbow.x - shoulders.x) > elbowSpreadLimit) return 'liveElbowPosition';
-    if (rightElbow && Math.abs(rightElbow.x - shoulders.x) > elbowSpreadLimit) return 'liveElbowPosition';
-    const bodyAngle = angle(shoulders, hips, ankles);
-    if (bodyAngle !== null && bodyAngle < 148) return 'liveHipPosition';
-  }
-
-  return 'liveGoodForm';
-}
-
-function kneeIsAligned(pose: PoseLandmarks, side: 'left' | 'right') {
-  const prefix = side === 'left' ? 'left' : 'right';
-  const knee = point(pose, `${prefix}Knee` as PoseJoint);
-  const ankle = point(pose, `${prefix}Ankle` as PoseJoint);
-  if (!knee || !ankle) return false;
-  return Math.abs(knee.x - ankle.x) <= 0.18;
-}
-
-function formIsCountable(kind: ExerciseKind, pose: PoseLandmarks, side: 'left' | 'right') {
-  if (kind === 'squat') {
-    const frontView = squatConfidence(pose) >= 0.42;
-    return frontView && kneeIsAligned(pose, 'left') && kneeIsAligned(pose, 'right');
-  }
-
-  if (kind === 'lunge') {
-    const otherSide = side === 'left' ? 'right' : 'left';
-    const activeKnee = kneeMetric(pose, side);
-    const otherKnee = kneeMetric(pose, otherSide);
-    if (activeKnee === null || otherKnee === null || !kneeIsAligned(pose, side) || !kneeIsAligned(pose, otherSide)) return false;
-    const prefix = side === 'left' ? 'left' : 'right';
-    const backAngle = angle(
-      point(pose, `${prefix}Shoulder` as PoseJoint),
-      point(pose, `${prefix}Hip` as PoseJoint),
-      point(pose, `${prefix}Ankle` as PoseJoint),
-    );
-    const lowerKnee = Math.min(activeKnee, otherKnee);
-    const higherKnee = Math.max(activeKnee, otherKnee);
-    return (backAngle === null || backAngle >= 112) && higherKnee <= 180 && (lowerKnee > 125 || higherKnee <= 168);
-  }
-
-  const shoulders = centerPoint(pose, 'leftShoulder', 'rightShoulder');
-  const hips = centerPoint(pose, 'leftHip', 'rightHip');
-  const ankles = centerPoint(pose, 'leftAnkle', 'rightAnkle');
-  const bodyAngle = angle(shoulders, hips, ankles);
-  if (bodyAngle !== null && bodyAngle < 128) return false;
-
-  const leftElbow = point(pose, 'leftElbow');
-  const rightElbow = point(pose, 'rightElbow');
-  const frontView = (point(pose, 'nose')?.visibility ?? 0) >= 0.55
-    && (point(pose, 'leftShoulder')?.visibility ?? 0) >= 0.55
-    && (point(pose, 'rightShoulder')?.visibility ?? 0) >= 0.55;
-  const elbowSpreadLimit = frontView ? 0.48 : 0.34;
-  if (leftElbow && shoulders && Math.abs(leftElbow.x - shoulders.x) > elbowSpreadLimit) return false;
-  if (rightElbow && shoulders && Math.abs(rightElbow.x - shoulders.x) > elbowSpreadLimit) return false;
-  return true;
-}
-
-function kneeMetric(pose: PoseLandmarks, side: 'left' | 'right') {
-  const prefix = side === 'left' ? 'left' : 'right';
-  return angle(
-    point(pose, `${prefix}Hip` as PoseJoint),
-    point(pose, `${prefix}Knee` as PoseJoint),
-    point(pose, `${prefix}Ankle` as PoseJoint),
-  );
-}
-
-function squatMetric(pose: PoseLandmarks, side: 'left' | 'right') {
-  return average([kneeMetric(pose, 'left'), kneeMetric(pose, 'right')]) ?? kneeMetric(pose, side);
-}
-
-function pushupMetric(pose: PoseLandmarks) {
-  return average([
-    angle(point(pose, 'leftShoulder'), point(pose, 'leftElbow'), point(pose, 'leftWrist')),
-    angle(point(pose, 'rightShoulder'), point(pose, 'rightElbow'), point(pose, 'rightWrist')),
-  ]);
-}
-
-function pushupHeadDrop(pose: PoseLandmarks) {
-  const nose = point(pose, 'nose');
-  const shoulders = centerPoint(pose, 'leftShoulder', 'rightShoulder');
-  if (!nose || !shoulders) return null;
-  return nose.y - shoulders.y;
-}
-
-function lungeMetric(pose: PoseLandmarks, side: 'left' | 'right') {
-  const active = kneeMetric(pose, side);
-  const other = kneeMetric(pose, side === 'left' ? 'right' : 'left');
-  if (active === null) return other;
-  if (other === null) return active;
-  return Math.min(active, other);
-}
-
-const depthThresholds: Record<ExerciseKind, { standing: number; fullDepth: number }> = {
-  squat: { standing: 165, fullDepth: 120 },
-  pushup: { standing: 160, fullDepth: 125 },
-  lunge: { standing: 160, fullDepth: 120 },
+/**
+ * What one frame says about a repetition: whether the person is set up the way the exercise
+ * needs to be seen, how deep they are (0 = start position, 1 = full depth), and any form fault.
+ */
+type FrameReading = {
+  /** Null when the body is visible and oriented correctly; otherwise why counting is paused. */
+  blocker: LiveWarningKey | null;
+  depth: number;
+  fault: LiveWarningKey | null;
+  metric: number | null;
+  confidence: number;
+  topLevel?: number | null;
+  headTop?: number | null;
 };
 
-export function depthPercentForMetric(kind: ExerciseKind, metric: number | null) {
-  if (metric === null) return 0;
-  const { standing, fullDepth } = depthThresholds[kind];
-  const percent = ((standing - metric) / (standing - fullDepth)) * 100;
-  return Math.max(0, Math.min(100, Math.round(percent)));
+/**
+ * Squat, seen from the front. Both legs must be visible and the shoulders square to the camera.
+ * Depth comes from how far the hips sink toward the knees (thigh length shrinks in a front view),
+ * which is far steadier than a 2D knee angle when the thigh points at the lens.
+ */
+function readSquat(pose: PoseLandmarks): FrameReading {
+  const legs: PoseJoint[] = ['leftHip', 'rightHip', 'leftKnee', 'rightKnee', 'leftAnkle', 'rightAnkle'];
+  const confidence = visibilityFor(pose, ['leftShoulder', 'rightShoulder', ...legs]);
+  if (!has(pose, ['leftShoulder', 'rightShoulder', ...legs])) return { blocker: 'liveLookingForBody', depth: 0, fault: null, metric: null, confidence };
+  const ls = pose.leftShoulder!; const rs = pose.rightShoulder!;
+  const shoulders = midpoint(ls, rs)!;
+  const hips = midpoint(pose.leftHip, pose.rightHip)!;
+  const ankles = midpoint(pose.leftAnkle, pose.rightAnkle)!;
+  const torso = Math.max(0.05, distance(shoulders, hips));
+  if (Math.abs(ls.x - rs.x) < torso * 0.45) return { blocker: 'liveFaceCamera', depth: 0, fault: null, metric: null, confidence };
+  const height = ankles.y - shoulders.y;
+  if (height < 0.3) return { blocker: 'liveMoveCloser', depth: 0, fault: null, metric: null, confidence };
+  if (height > 0.95) return { blocker: 'liveStepBack', depth: 0, fault: null, metric: null, confidence };
+
+  const legRatio = (side: 'left' | 'right') => {
+    const hip = pose[`${side}Hip`]!; const knee = pose[`${side}Knee`]!; const ankle = pose[`${side}Ankle`]!;
+    return (knee.y - hip.y) / Math.max(0.02, ankle.y - knee.y);
+  };
+  const left = legRatio('left');
+  const right = legRatio('right');
+  const ratio = (left + right) / 2;
+  // Standing: thigh about as long as the shin (ratio ~1). Parallel or lower: ~0.3 or less.
+  const depth = clamp01((0.92 - ratio) / (0.92 - 0.32));
+
+  let fault: LiveWarningKey | null = null;
+  const kneeSpread = Math.abs(pose.leftKnee!.x - pose.rightKnee!.x);
+  const ankleSpread = Math.abs(pose.leftAnkle!.x - pose.rightAnkle!.x);
+  if (depth > 0.35 && kneeSpread < ankleSpread * 0.72) fault = 'liveKneeAlignment';
+  else if (depth > 0.35 && Math.abs(left - right) > 0.38) fault = 'liveBalance';
+  return { blocker: null, depth, fault, metric: Math.round(ratio * 100) / 100, confidence };
 }
 
+/**
+ * Push-up, seen from the front with the camera on the floor and the head toward it. A repetition
+ * is the head and both shoulders travelling down together and back up. Depth is measured in
+ * shoulder widths below the top position, so it works at any distance from the phone.
+ */
+function readPushup(pose: PoseLandmarks, previous: RepState): FrameReading {
+  const confidence = visibilityFor(pose, ['nose', 'leftShoulder', 'rightShoulder']);
+  if (!has(pose, ['nose', 'leftShoulder', 'rightShoulder'])) return { blocker: 'liveLookingForBody', depth: 0, fault: null, metric: null, confidence, topLevel: previous.topLevel };
+  const ls = pose.leftShoulder!; const rs = pose.rightShoulder!; const nose = pose.nose!;
+  const width = Math.abs(ls.x - rs.x);
+  if (width < 0.1) return { blocker: 'liveMoveCloser', depth: 0, fault: null, metric: null, confidence, topLevel: previous.topLevel };
+  const minX = Math.min(ls.x, rs.x); const maxX = Math.max(ls.x, rs.x);
+  // Head forward: the face sits between the shoulders, not off to one side.
+  if (nose.x < minX + width * 0.18 || nose.x > maxX - width * 0.18) return { blocker: 'liveHeadForward', depth: 0, fault: null, metric: null, confidence, topLevel: previous.topLevel };
+  const shoulderY = (ls.y + rs.y) / 2;
+  // Standing up: ankles show far below the shoulders. In a plank facing the camera they are hidden or level.
+  const ankles = centerPoint(pose, 'leftAnkle', 'rightAnkle');
+  if (ankles && ankles.visibility >= 0.5 && ankles.y - shoulderY > width * 2.6) return { blocker: 'liveGetInPlank', depth: 0, fault: null, metric: null, confidence, topLevel: null, headTop: null };
+
+  // The top of the movement is the highest the shoulders have been while resting at the start.
+  // Both reference heights creep down slowly while resting at the top, so a shifted phone recovers.
+  const settle = (current: number | null, value: number) => {
+    const base = current ?? value;
+    if (value < base) return value;
+    return previous.phase === 'ready' ? base + (value - base) * 0.05 : base;
+  };
+  const top = settle(previous.topLevel, shoulderY);
+  const headTop = settle(previous.headTop, nose.y);
+  const shoulderDrop = (shoulderY - top) / width;
+  const headDrop = (nose.y - headTop) / width;
+  // About a third of a shoulder width of travel is a full push-up seen from the floor in front.
+  const shoulderDepth = clamp01(shoulderDrop / 0.32);
+  const headDepth = clamp01(headDrop / 0.32);
+  // The head has to come down with the shoulders; dropping only the hips or shoulders is not a rep.
+  const depth = Math.min(shoulderDepth, headDepth);
+
+  let fault: LiveWarningKey | null = null;
+  if (shoulderDepth > 0.5 && headDepth < shoulderDepth * 0.55) fault = 'liveHeadDown';
+  const le = pose.leftElbow; const re = pose.rightElbow;
+  if (!fault && shoulderDepth > 0.4 && le && re && le.visibility > 0.5 && re.visibility > 0.5 && Math.abs(le.x - re.x) > width * 2.4) fault = 'liveElbowPosition';
+  return { blocker: null, depth, fault, metric: Math.round(shoulderDrop * 100) / 100, confidence, topLevel: top, headTop };
+}
+
+/**
+ * Lunge, seen from the side. The body must be turned sideways (shoulders and hips stacked), feet
+ * split front and back, and a repetition needs both knees to bend: the depth follows the
+ * straighter of the two knees, so bending only the front leg is not enough.
+ */
+function readLunge(pose: PoseLandmarks): FrameReading {
+  const legs: PoseJoint[] = ['leftHip', 'rightHip', 'leftKnee', 'rightKnee', 'leftAnkle', 'rightAnkle'];
+  const confidence = visibilityFor(pose, legs);
+  if (!has(pose, legs, 0.3) || !(pose.leftShoulder || pose.rightShoulder)) return { blocker: 'liveLookingForBody', depth: 0, fault: null, metric: null, confidence };
+  const shoulders = centerPoint(pose, 'leftShoulder', 'rightShoulder')!;
+  const hips = midpoint(pose.leftHip, pose.rightHip)!;
+  const torso = Math.max(0.05, distance(shoulders, hips));
+  const shoulderWidth = pose.leftShoulder && pose.rightShoulder ? Math.abs(pose.leftShoulder.x - pose.rightShoulder.x) : 0;
+  const hipWidth = Math.abs(pose.leftHip!.x - pose.rightHip!.x);
+  if (shoulderWidth > torso * 0.5 || hipWidth > torso * 0.45) return { blocker: 'liveTurnSideways', depth: 0, fault: null, metric: null, confidence };
+  if (Math.abs(pose.leftAnkle!.x - pose.rightAnkle!.x) < torso * 0.55) return { blocker: 'liveSplitStance', depth: 0, fault: null, metric: null, confidence };
+
+  const left = angle(pose.leftHip, pose.leftKnee, pose.leftAnkle) ?? 180;
+  const right = angle(pose.rightHip, pose.rightKnee, pose.rightAnkle) ?? 180;
+  const straighter = Math.max(left, right);
+  // In 2D a back knee near the floor reads about 110–120°, so 120° counts as full depth.
+  const depth = clamp01((165 - straighter) / (165 - 120));
+
+  let fault: LiveWarningKey | null = null;
+  const facing = Math.sign((pose.leftAnkle!.x + pose.rightAnkle!.x) / 2 - hips.x) || 1;
+  const front = (facing > 0) === (pose.leftAnkle!.x > pose.rightAnkle!.x) ? 'left' : 'right';
+  const frontKnee = pose[`${front}Knee`]!; const frontAnkle = pose[`${front}Ankle`]!;
+  if (depth > 0.4 && (frontKnee.x - frontAnkle.x) * facing > torso * 0.38) fault = 'liveKneeAlignment';
+  const lean = Math.abs(Math.atan2(shoulders.x - hips.x, hips.y - shoulders.y)) * 180 / Math.PI;
+  if (!fault && lean > 30) fault = 'liveBackAngle';
+  return { blocker: null, depth, fault, metric: straighter, confidence };
+}
+
+export function depthPercentForMetric(depth: number) {
+  return Math.round(clamp01(depth) * 100);
+}
+
+const TOP = 0.18;
+const BOTTOM = 0.92;
+const RETURN = 0.15;
+const MIN_REP_MS = 600;
+
+/**
+ * Turns frame readings into repetitions. A rep is counted only when the person starts at the top,
+ * reaches full depth, and comes back up, with the body seen the right way the whole time and no
+ * form fault along the way. Shallow reps and faulty reps are not counted and say why.
+ */
 export function analyzePose(kind: ExerciseKind, pose: PoseLandmarks, previous: RepState, timestamp: number): AnalysisResult {
-  const side = selectSide(pose, previous.activeSide);
-  const confidence = kind === 'pushup' ? pushupConfidence(pose) : kind === 'squat' ? squatConfidence(pose) : sideConfidence(pose, side);
-  let warning = baseWarning(kind, pose, confidence, side);
-  const metric = kind === 'squat' ? squatMetric(pose, side) : kind === 'pushup' ? pushupMetric(pose) : lungeMetric(pose, side);
-  const depthPercent = depthPercentForMetric(kind, metric);
+  const reading = kind === 'squat' ? readSquat(pose) : kind === 'pushup' ? readPushup(pose, previous) : readLunge(pose);
   const next: RepState = {
     ...previous,
-    activeSide: kind === 'pushup' ? undefined : side,
-    lastWarning: warning,
-    lastWarningAt: warning === previous.lastWarning ? previous.lastWarningAt : timestamp,
+    topLevel: reading.topLevel === undefined ? previous.topLevel : reading.topLevel,
+    headTop: reading.headTop === undefined ? previous.headTop : reading.headTop,
+  };
+  const depthPercent = depthPercentForMetric(reading.depth);
+  const finish = (warning: LiveWarningKey): AnalysisResult => {
+    next.lastWarningAt = warning === previous.lastWarning ? previous.lastWarningAt : timestamp;
+    next.lastWarning = warning;
+    return { state: next, warning, metric: reading.metric, depthPercent: reading.blocker ? 0 : depthPercent, confidence: reading.confidence };
   };
 
-  if (metric === null || confidence < 0.42) {
-    if (next.lastTrackedAt && timestamp - next.lastTrackedAt > 500) {
+  if (reading.blocker) {
+    // A short dropout keeps the rep alive; a longer one starts over from the top.
+    if (!next.lastTrackedAt || timestamp - next.lastTrackedAt > 600) {
       next.phase = 'ready';
       next.cycleArmed = false;
+      next.repDepth = 0;
+      next.repFault = null;
       next.phaseStartedAt = timestamp;
     }
-    return { state: next, warning, metric, depthPercent, confidence };
+    return finish(reading.blocker);
   }
-
   next.lastTrackedAt = timestamp;
-  const countableForm = formIsCountable(kind, pose, side);
-  if (!countableForm) {
-    warning = kind === 'pushup' ? 'liveHipPosition' : kind === 'lunge' ? 'liveBackAngle' : 'liveKneeAlignment';
-    next.phase = 'ready';
-    next.cycleArmed = false;
-    next.phaseStartedAt = timestamp;
-    next.lastWarning = warning;
-    next.lastWarningAt = warning === previous.lastWarning ? previous.lastWarningAt : timestamp;
-    return { state: next, warning, metric, depthPercent, confidence };
-  }
+  const depth = reading.depth;
+  if (next.phase !== 'ready' && reading.fault) next.repFault = next.repFault ?? reading.fault;
+  next.repDepth = Math.max(next.repDepth, depth);
 
-  const { fullDepth: downThreshold, standing: startThreshold } = depthThresholds[kind];
-  const upThreshold = kind === 'pushup' ? 155 : 160;
-  const ascentThreshold = downThreshold + (kind === 'squat' ? 12 : kind === 'lunge' ? 10 : 18);
-  const pushupDepthReady = kind !== 'pushup' || (pushupHeadDrop(pose) ?? 0) >= -0.08;
-  const fullDepthReached = depthPercent >= 100;
-
-  const previousPhase = next.phase;
-  if (next.phase === 'ready' && metric >= startThreshold) next.cycleArmed = true;
-  if (next.phase === 'ready' && next.cycleArmed && fullDepthReached && pushupDepthReady) next.phase = 'bottom';
-  else if (next.phase === 'ready' && next.cycleArmed && metric < startThreshold) next.phase = 'descending';
-  else if (next.phase === 'descending' && fullDepthReached && pushupDepthReady) next.phase = 'bottom';
-  else if (next.phase === 'bottom' && metric >= ascentThreshold) next.phase = 'ascending';
-  else if (next.phase === 'ascending' && metric > upThreshold) {
-    if (next.cycleArmed && timestamp - next.lastRepAt > 450) {
-      next.reps += 1;
-      next.lastRepAt = timestamp;
+  let warning: LiveWarningKey = reading.fault ?? 'liveGoodForm';
+  const phase = next.phase;
+  if (phase === 'ready') {
+    if (depth <= TOP) next.cycleArmed = true;
+    if (next.cycleArmed && depth > TOP) {
+      next.phase = 'descending';
+      next.phaseStartedAt = timestamp;
+      next.repDepth = depth;
+      next.repFault = reading.fault;
     }
-    next.phase = 'ready';
-    next.cycleArmed = false;
+  } else if (phase === 'descending') {
+    if (depth >= BOTTOM) { next.phase = 'bottom'; next.phaseStartedAt = timestamp; }
+    else if (depth <= RETURN) {
+      // Came back up without reaching depth.
+      warning = 'liveReachDepth';
+      next.phase = 'ready';
+      next.phaseStartedAt = timestamp;
+    }
+  } else if (phase === 'bottom') {
+    if (depth < BOTTOM - 0.12) { next.phase = 'ascending'; next.phaseStartedAt = timestamp; }
+  } else if (phase === 'ascending') {
+    if (depth >= BOTTOM) next.phase = 'bottom';
+    else if (depth <= RETURN) {
+      if (next.repFault) warning = next.repFault;
+      else if (timestamp - next.lastRepAt < MIN_REP_MS) warning = 'liveTempo';
+      else {
+        next.reps += 1;
+        next.lastRepAt = timestamp;
+      }
+      next.phase = 'ready';
+      next.cycleArmed = true;
+      next.repDepth = 0;
+      next.repFault = null;
+      next.phaseStartedAt = timestamp;
+    }
   }
-  if (next.phase !== previousPhase) {
-    if (next.phase === 'descending' && previousPhase === 'ready' && metric > downThreshold + 12) warning = 'liveReachDepth';
-    if (next.phase === 'bottom' && timestamp - next.phaseStartedAt < 240) warning = 'liveTempo';
-    next.phaseStartedAt = timestamp;
-  }
-  next.lastWarning = warning;
-
-  return { state: next, warning, metric, depthPercent, confidence };
+  if (warning === 'liveGoodForm' && next.repFault) warning = next.repFault;
+  return finish(warning);
 }

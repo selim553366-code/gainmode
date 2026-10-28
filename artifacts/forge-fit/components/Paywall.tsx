@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
@@ -53,25 +53,22 @@ function useEntrance(delay: number, distance = 14) {
   }));
 }
 
-function GlassChip({ icon, label, delay, style }: { icon: IconName; label: string; delay: number; style: object }) {
+function GlassChip({ icon, label, delay, style }: { icon: IconName; label: string; delay: number; style: object | object[] }) {
   const entrance = useEntrance(delay, 10);
   return <Animated.View style={[styles.chip, style, entrance]}>
-    <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
     <View style={styles.chipTint} />
     <Ionicons name={icon} size={13} color="#FFFFFF" />
     <Text style={styles.chipText}>{label}</Text>
   </Animated.View>;
 }
 
-function FeatureRow({ icon, title, body, delay }: { icon: IconName; title: string; body: string; delay: number }) {
+/** One benefit as a compact tile: icon and title, with the longer line kept for screen readers. */
+function FeatureTile({ icon, title, body, delay }: { icon: IconName; title: string; body: string; delay: number }) {
   const colors = useColors();
   const entrance = useEntrance(delay, 8);
-  return <Animated.View style={[styles.feature, entrance]}>
-    <View style={[styles.featureIcon, { backgroundColor: colors.secondary }]}><Ionicons name={icon} size={18} color={colors.foreground} /></View>
-    <View style={styles.featureCopy}>
-      <Text style={[styles.featureTitle, { color: colors.foreground }]}>{title}</Text>
-      <Text style={[styles.featureBody, { color: colors.mutedForeground }]}>{body}</Text>
-    </View>
+  return <Animated.View accessible accessibilityLabel={`${title}. ${body}`} style={[styles.feature, { backgroundColor: colors.card, borderColor: colors.border }, entrance]}>
+    <View style={[styles.featureIcon, { backgroundColor: colors.secondary }]}><Ionicons name={icon} size={15} color={colors.foreground} /></View>
+    <Text numberOfLines={2} style={[styles.featureTitle, { color: colors.foreground }]}>{title}</Text>
   </Animated.View>;
 }
 
@@ -181,9 +178,11 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  // On short phones the hero shrinks and the intro line goes, so both plans still show without scrolling.
+  const compact = useWindowDimensions().height < 740;
   const { language } = useFit();
   const t = (key: TranslationKey) => translate(language, key);
-  const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed: storeSubscribed, purchase, restore, isPurchasing, isRestoring } = useSubscription();
+  const { monthlyPackage, annualPackage, isAvailable, isLoading, isSubscribed: storeSubscribed, purchase, refreshPackages, restore, isPurchasing, isRestoring } = useSubscription();
   // The web preview always counts as subscribed; the design preview should still show the buying path.
   const isSubscribed = previewMode ? false : storeSubscribed;
   const [plan, setPlan] = React.useState<Plan>('annual');
@@ -202,7 +201,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
 
   const heroEntrance = useEntrance(0, 18);
   const titleEntrance = useEntrance(120, 12);
-  const plansEntrance = useEntrance(420, 12);
+  const plansEntrance = useEntrance(260, 12);
 
   const handlePurchase = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
@@ -217,7 +216,11 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
       return;
     }
     if (checking) return;
-    const selectedPackage = plan === 'annual' ? annualPackage : monthlyPackage;
+    let selectedPackage = plan === 'annual' ? annualPackage : monthlyPackage;
+    if (isAvailable && !selectedPackage) {
+      const fresh = await refreshPackages().catch(() => ({ monthly: undefined, annual: undefined }));
+      selectedPackage = plan === 'annual' ? fresh.annual : fresh.monthly;
+    }
     if (!isAvailable || !selectedPackage) {
       setError(t('premiumStoreUnavailable'));
       return;
@@ -264,13 +267,13 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   return <View style={[styles.root, { backgroundColor: colors.background }]}>
     <ScrollView contentContainerStyle={{ paddingBottom: 230 + insets.bottom }} showsVerticalScrollIndicator={false} bounces={false}>
       <Animated.View style={heroEntrance}>
-        <LinearGradient colors={[colors.heroBackgroundStart, colors.heroBackgroundEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, { paddingTop: insets.top + 18 }]}>
+        <LinearGradient colors={[colors.heroBackgroundStart, colors.heroBackgroundEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, compact ? styles.heroCompact : null, { paddingTop: insets.top + 18 }]}>
           <View style={styles.heroRingLarge} />
           <View style={styles.heroRingSmall} />
-          <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={styles.mascot} />
-          <GlassChip icon="chatbubble-ellipses-outline" label={t('paywallChipCoach')} delay={260} style={styles.chipLeft} />
-          <GlassChip icon="camera-outline" label={t('paywallChipPhoto')} delay={340} style={styles.chipRight} />
-          <GlassChip icon="analytics-outline" label={t('paywallChipWeekly')} delay={420} style={styles.chipBottom} />
+          <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={[styles.mascot, compact ? styles.mascotCompact : null]} />
+          <GlassChip icon="chatbubble-ellipses-outline" label={t('paywallChipCoach')} delay={260} style={[styles.chipLeft, compact ? { top: 86 } : null]} />
+          <GlassChip icon="camera-outline" label={t('paywallChipPhoto')} delay={340} style={[styles.chipRight, compact ? { top: 52 } : null]} />
+          <GlassChip icon="analytics-outline" label={t('paywallChipWeekly')} delay={420} style={[styles.chipBottom, compact ? { top: 112 } : null]} />
           <LinearGradient colors={[`${colors.background}00`, colors.background]} style={styles.heroFade} />
         </LinearGradient>
       </Animated.View>
@@ -283,15 +286,9 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
         <Animated.View style={titleEntrance}>
           <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>{t('paywallEyebrow')}</Text>
           <Text style={[styles.title, { color: colors.foreground }]}>{t('paywallTitle')}</Text>
-          <Text style={[styles.body, { color: colors.mutedForeground }]}>{t('paywallBody')}</Text>
+          {compact ? null : <Text numberOfLines={2} style={[styles.body, { color: colors.mutedForeground }]}>{t('paywallBody')}</Text>}
         </Animated.View>
 
-        <View style={[styles.features, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <FeatureRow icon="coach-outline" title={t('paywallFeature1Title')} body={t('paywallFeature1Body')} delay={220} />
-          <FeatureRow icon="camera-outline" title={t('paywallFeature2Title')} body={t('paywallFeature2Body')} delay={280} />
-          <FeatureRow icon="barbell-outline" title={t('paywallFeature3Title')} body={t('paywallFeature3Body')} delay={340} />
-          <FeatureRow icon="analytics-outline" title={t('paywallFeature4Title')} body={t('paywallFeature4Body')} delay={400} />
-        </View>
 
         <Animated.View style={plansEntrance}>
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallChoosePlan')}</Text>
@@ -320,6 +317,12 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               glow={['#2563EB', '#38BDF8']}
             /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
+          </View>
+          <View style={styles.features}>
+            <FeatureTile icon="coach-outline" title={t('paywallFeature1Title')} body={t('paywallFeature1Body')} delay={520} />
+            <FeatureTile icon="camera-outline" title={t('paywallFeature2Title')} body={t('paywallFeature2Body')} delay={570} />
+            <FeatureTile icon="barbell-outline" title={t('paywallFeature3Title')} body={t('paywallFeature3Body')} delay={620} />
+            <FeatureTile icon="analytics-outline" title={t('paywallFeature4Title')} body={t('paywallFeature4Body')} delay={670} />
           </View>
           <Text style={[styles.disclosure, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
         </Animated.View>
@@ -362,31 +365,31 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  hero: { height: 360, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  heroRingLarge: { position: 'absolute', width: 360, height: 360, borderRadius: 180, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', top: 20 },
-  heroRingSmall: { position: 'absolute', width: 250, height: 250, borderRadius: 125, backgroundColor: 'rgba(255,255,255,0.08)', top: 75 },
-  mascot: { width: 210, height: 230, marginTop: 30 },
-  heroFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 90 },
+  hero: { height: 236, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  heroRingLarge: { position: 'absolute', width: 250, height: 250, borderRadius: 125, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', top: 10 },
+  heroRingSmall: { position: 'absolute', width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(255,255,255,0.08)', top: 50 },
+  mascot: { width: 140, height: 152, marginTop: 34 },
+  heroCompact: { height: 176 },
+  mascotCompact: { width: 104, height: 112, marginTop: 20 },
+  heroFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 70 },
   chip: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
   chipTint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(255,255,255,0.14)' },
   chipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#FFFFFF' },
-  chipLeft: { left: 18, top: 150 },
-  chipRight: { right: 18, top: 110 },
-  chipBottom: { right: 30, top: 240 },
+  chipLeft: { left: 16, top: 112 },
+  chipRight: { right: 16, top: 70 },
+  chipBottom: { right: 22, top: 150 },
   close: { position: 'absolute', right: 16, width: 36, height: 36, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
-  content: { paddingHorizontal: 20, marginTop: -24 },
+  content: { paddingHorizontal: 20, marginTop: -18 },
   eyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 1.4 },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 34, lineHeight: 38, letterSpacing: -1.3, marginTop: 8 },
-  body: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, marginTop: 10 },
-  features: { borderRadius: 24, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 6, marginTop: 22 },
-  feature: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 12 },
-  featureIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  featureCopy: { flex: 1, minWidth: 0 },
-  featureTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, letterSpacing: -0.2 },
-  featureBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 18, marginTop: 3 },
-  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 19, letterSpacing: -0.5, marginTop: 28, marginBottom: 12 },
+  title: { fontFamily: 'Inter_700Bold', fontSize: 30, lineHeight: 34, letterSpacing: -1.2, marginTop: 6 },
+  body: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, marginTop: 6 },
+  features: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  feature: { flexGrow: 1, flexBasis: '46%', flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 16, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 10 },
+  featureIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  featureTitle: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12.5, lineHeight: 16, letterSpacing: -0.1 },
+  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.4, marginTop: 18, marginBottom: 14 },
   plans: { gap: 12 },
-  plan: { borderRadius: 22, borderWidth: 2, paddingHorizontal: 16, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  plan: { borderRadius: 22, borderWidth: 2, paddingHorizontal: 16, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', gap: 12 },
   glowLayer: { ...StyleSheet.absoluteFill, borderRadius: 20, overflow: 'hidden' },
   glowBlobA: { position: 'absolute', width: 150, height: 150, borderRadius: 75, right: 70, top: -40 },
   glowBlobB: { position: 'absolute', width: 170, height: 170, borderRadius: 85, right: -40, bottom: -70 },

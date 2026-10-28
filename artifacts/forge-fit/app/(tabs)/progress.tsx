@@ -9,8 +9,9 @@ import { translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
 import { getWeeklySummary, type WeightOutcome } from '@/lib/weeklyAnalysis';
 import { daysUntilWeeklyAnalysis, isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
-import { AnimatedNumber, Card, Header, Screen } from '@/components/FitUI';
+import { Header, Screen } from '@/components/FitUI';
 import { TodayWeightBar } from '@/components/TodayWeightBar';
+import { ProgressChartsButton } from '@/components/ProgressChartsSection';
 
 function formatChange(value: number | null) {
   if (value === null) return '—';
@@ -25,15 +26,6 @@ function outcomeCopy(outcome: WeightOutcome, t: (key: Parameters<typeof translat
   return t('weeklyWeightMissing');
 }
 
-function StatTile({ icon, value, label }: { icon: React.ComponentProps<typeof Ionicons>['name']; value: React.ReactNode; label: string }) {
-  const colors = useColors();
-  return <View style={[styles.statTile, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <View style={[styles.statIcon, { backgroundColor: colors.secondary }]}><Ionicons name={icon} size={17} color={colors.foreground} /></View>
-    <Text style={[styles.statValue, { color: colors.foreground }]}>{value}</Text>
-    <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{label}</Text>
-  </View>;
-}
-
 export default function ProgressScreen() {
   const colors = useColors();
   const { language, weight, weightLogs, addWeight, profile, calorieGoal, meals, workouts, dumbbellWeightHistory, registeredAt } = useFit();
@@ -44,10 +36,6 @@ export default function ProgressScreen() {
   const weeklyAnalysisUnlocked = isWeeklyAnalysisUnlocked(registeredAt);
   const weeklyAnalysisDays = daysUntilWeeklyAnalysis(registeredAt);
   const summary = getWeeklySummary({ weight, weightLogs, meals, workouts, calorieGoal, goal: profile?.goal, profile: profile ?? undefined, dumbbellWeightHistory });
-  const points = weightLogs.filter((item) => item.date >= summary.weekStart).slice(-7);
-  const maxPoint = Math.max(...points.map((item) => item.value), summary.currentWeightKg ?? 0, 1);
-  const minPoint = Math.min(...points.map((item) => item.value), summary.currentWeightKg ?? maxPoint, maxPoint);
-  const pointRange = Math.max(maxPoint - minPoint, 1);
 
   const requestAnalysis = () => {
     if (launching || !weeklyAnalysisUnlocked) return;
@@ -83,27 +71,7 @@ export default function ProgressScreen() {
       </LinearGradient>
     </Animated.View>
 
-    <View style={styles.sectionHeading}><Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('weeklyStatsTitle')}</Text><Text style={[styles.sectionCaption, { color: colors.mutedForeground }]}>{t('weeklyStatsSubtitle')}</Text></View>
-    <View style={styles.statsGrid}>
-      <StatTile icon="activity" value={<><AnimatedNumber value={summary.workoutMinutes} /> <Text style={styles.inlineUnit}>{t('minutesShort')}</Text></>} label={t('weeklyWorkoutMinutes')} />
-      <StatTile icon="barbell-outline" value={<AnimatedNumber value={summary.totalSets} />} label={t('weeklyTotalSets')} />
-      <StatTile icon="activity" value={<AnimatedNumber value={summary.totalExercises} />} label={t('weeklyTotalExercises')} />
-      <StatTile icon="flame-outline" value={summary.calorieConsistency === null ? '—' : `${summary.calorieConsistency}%`} label={t('weeklyCalorieConsistency')} />
-    </View>
-     <Card style={styles.consistencyCard}>
-      <View style={styles.consistencyHeader}><View style={[styles.consistencyIcon, { backgroundColor: `${colors.success}18` }]}><Ionicons name="checkmark-circle-outline" size={19} color={colors.success} /></View><View style={{ flex: 1 }}><Text style={[styles.consistencyTitle, { color: colors.foreground }]}>{t('weeklyCalorieTitle')}</Text><Text style={[styles.consistencySubtitle, { color: colors.mutedForeground }]}>{summary.trackedCalorieDays > 0 ? `${summary.onTargetCalorieDays}/${summary.trackedCalorieDays} ${t('weeklyCalorieDays')}` : t('weeklyCalorieNoData')}</Text></View><Text style={[styles.consistencyValue, { color: colors.success }]}>{summary.calorieConsistency === null ? '—' : `${summary.calorieConsistency}%`}</Text></View>
-      <View style={[styles.track, { backgroundColor: colors.secondary }]}><View style={[styles.fill, { width: `${summary.calorieConsistency ?? 0}%`, backgroundColor: colors.success }]} /></View>
-       <View style={[styles.loadRow, { borderTopColor: colors.border }]}>
-         <View style={[styles.loadIcon, { backgroundColor: `${colors.orange}18` }]}><Ionicons name="barbell-outline" size={18} color={colors.orange} /></View>
-          <View style={styles.loadCopy}><Text style={[styles.loadTitle, { color: colors.foreground }]}>{summary.dumbbellWeightKg !== null ? t('weeklyDumbbellLoad') : t('weeklyWorkoutCalories')}</Text><Text style={[styles.loadHint, { color: colors.mutedForeground }]}>{summary.dumbbellWeightKg !== null ? t('weeklyDumbbellLoadHint') : t('weeklyWorkoutCaloriesHint')}</Text></View>
-          {summary.dumbbellWeightKg !== null ? <View style={styles.loadValueColumn}><Text style={[styles.loadValue, { color: colors.orange }]}>{summary.dumbbellWeightKg} kg</Text><Text style={[styles.loadIncrease, { color: colors.success }]}>{t('dumbbellProgressIncrease')}: {summary.dumbbellWeightIncreaseKg === null ? '—' : `+${summary.dumbbellWeightIncreaseKg} kg`}</Text></View> : <Text style={[styles.loadValue, { color: colors.orange }]}>{summary.workoutCalories} {t('caloriesShort')}</Text>}
-       </View>
-    </Card>
-
-    {tracksWeight ? <Card style={styles.chartCard}>
-      <View style={styles.chartHeader}><View><Text style={[styles.chartEyebrow, { color: colors.mutedForeground }]}>{t('weeklyWeightChart')}</Text><Text style={[styles.chartWeight, { color: colors.foreground }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View><View style={[styles.changePill, { backgroundColor: `${colors.primary}14` }]}><Ionicons name="analytics-outline" size={14} color={colors.primary} /><Text style={[styles.changePillText, { color: colors.primary }]}>{formatChange(summary.weightChangeKg)}</Text></View></View>
-      <View style={styles.chart}>{points.length > 0 ? points.map((point) => <View key={point.id} style={styles.chartColumn}><View style={[styles.bar, { height: 20 + ((point.value - minPoint) / pointRange) * 78, backgroundColor: point.id === points.at(-1)?.id ? colors.primary : `${colors.primary}42` }]} /></View>) : <Text style={[styles.chartEmpty, { color: colors.mutedForeground }]}>{t('weeklyWeightNoData')}</Text>}</View>
-    </Card> : null}
+    <ProgressChartsButton />
 
      <TodayWeightBar language={language} tracksWeight={tracksWeight} onSave={addWeight} testID="progress-add-today-weight" />
   </Screen>;
@@ -133,39 +101,4 @@ const styles = StyleSheet.create({
   analysisButton: { minHeight: 51, borderRadius: 17, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, marginTop: 22 },
   analysisButtonIcon: { width: 31, height: 31, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   analysisButtonText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 12 },
-  sectionHeading: { marginBottom: 12 },
-  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, letterSpacing: -0.3 },
-  sectionCaption: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 3 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 16 },
-  statTile: { width: '48.5%', minHeight: 113, borderRadius: 20, borderWidth: 1, padding: 13 },
-  statIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  statValue: { fontFamily: 'Inter_700Bold', fontSize: 22, marginTop: 12 },
-  statLabel: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: 4 },
-  inlineUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-   loadRow: { borderTopWidth: 1, marginTop: 15, paddingTop: 13, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  loadIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  loadCopy: { flex: 1 },
-  loadTitle: { fontFamily: 'Inter_700Bold', fontSize: 13 },
-  loadHint: { fontFamily: 'Inter_400Regular', fontSize: 10, lineHeight: 15, marginTop: 3 },
-   loadValueColumn: { alignItems: 'flex-end', gap: 2 },
-   loadValue: { fontFamily: 'Inter_700Bold', fontSize: 14 },
-   loadIncrease: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
-  consistencyCard: { padding: 16, marginBottom: 16 },
-  consistencyHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  consistencyIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  consistencyTitle: { fontFamily: 'Inter_700Bold', fontSize: 13 },
-  consistencySubtitle: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 3 },
-  consistencyValue: { fontFamily: 'Inter_700Bold', fontSize: 18 },
-  track: { height: 8, borderRadius: 5, overflow: 'hidden', marginTop: 15 },
-  fill: { height: '100%', borderRadius: 5 },
-  chartCard: { padding: 18, marginBottom: 16 },
-  chartHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  chartEyebrow: { fontFamily: 'Inter_500Medium', fontSize: 10 },
-  chartWeight: { fontFamily: 'Inter_700Bold', fontSize: 28, letterSpacing: -1, marginTop: 4 },
-  changePill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 11, paddingHorizontal: 9, paddingVertical: 6 },
-  changePillText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
-  chart: { height: 120, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', marginTop: 16 },
-  chartColumn: { height: 106, width: 20, justifyContent: 'flex-end', alignItems: 'center' },
-  bar: { width: 13, borderRadius: 7 },
-  chartEmpty: { fontFamily: 'Inter_400Regular', fontSize: 11, marginBottom: 45 },
 });

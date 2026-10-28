@@ -1,428 +1,202 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Animated, Linking, StyleSheet, Text, TextInput, View } from 'react-native';
-import ReAnimated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { EASE_OUT, PressableScale as Pressable, Reveal } from '@/components/Motion';
-import { Ionicons } from '@/components/AppIcon';
+import { Alert, Linking, Platform, StyleSheet, Text, View } from 'react-native';
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { useFit } from '@/context/FitContext';
-import { languageLabels, Language, translate } from '@/lib/i18n';
-import { useColors } from '@/hooks/useColors';
-import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
-import { openWidgetOffer } from '@/components/WidgetOffer';
-import { LanguageList, SegmentedControl } from '@/components/SettingsControls';
+import { useFit, type FitnessGoal } from '@/context/FitContext';
 import { useTheme, type ThemePreference } from '@/context/ThemeContext';
-import { apiUrl } from '@/lib/api';
+import { useColors } from '@/hooks/useColors';
+import { languageLabels, translate, type TranslationKey } from '@/lib/i18n';
 import { legalDocumentUrl, type LegalDocument } from '@/lib/legalDocuments';
+import { useSubscription } from '@/lib/revenuecat';
+import { PREMIUM_ENTITLEMENT_IDENTIFIER, hasActivePremiumEntitlement } from '@/lib/premiumAccess';
+import { getCurrentStreak } from '@/lib/streak';
+import { badges, badgeText, badgeUi } from '@/lib/badges';
+import { countEnabledNotifications } from '@/lib/notificationPreferences';
+import { Header, Screen } from '@/components/FitUI';
+import { Ionicons } from '@/components/AppIcon';
+import { PressableScale as Pressable } from '@/components/Motion';
+import { openWidgetOffer } from '@/components/WidgetOffer';
+import { FeedbackSheet } from '@/components/FeedbackSheet';
+import { ConfirmSheet, SegmentedControl, SettingsGroup, SettingsRow } from '@/components/SettingsControls';
 
-type LegalSection = 'privacy' | 'terms' | null;
-type FeedbackCategory = 'bug' | 'suggestion' | 'subscription' | 'payment' | 'notifications' | 'other';
+const goalLabels: Record<FitnessGoal, TranslationKey> = {
+  muscle: 'goalMuscle',
+  weightGain: 'goalWeightGain',
+  weightLoss: 'goalWeightLoss',
+  fatLoss: 'goalFatLoss',
+  maintain: 'goalMaintain',
+};
 
-const feedbackCategories = [
-  { value: 'bug', label: 'feedbackBug', icon: 'alert-circle' },
-  { value: 'suggestion', label: 'feedbackSuggestion', icon: 'bulb-outline' },
-  { value: 'subscription', label: 'feedbackSubscription', icon: 'trophy-outline' },
-  { value: 'payment', label: 'feedbackPayment', icon: 'ticket-outline' },
-  { value: 'notifications', label: 'feedbackNotifications', icon: 'notifications-outline' },
-  { value: 'other', label: 'feedbackOther', icon: 'ellipsis-horizontal' },
-] as const;
+// Where each store lets people manage a subscription when RevenueCat has no management link.
+const storeSubscriptionsUrl = Platform.OS === 'ios'
+  ? 'https://apps.apple.com/account/subscriptions'
+  : 'https://play.google.com/store/account/subscriptions';
 
-// Disclosure chevron: rotates a quarter turn toward the content it reveals (200ms ease-out).
-function Chevron({ open, color }: { open: boolean; color: string }) {
-  const turn = useSharedValue(open ? 1 : 0);
-  React.useEffect(() => {
-    turn.set(withTiming(open ? 1 : 0, { duration: 200, easing: EASE_OUT }));
-  }, [open, turn]);
-  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.get() * 90}deg` }] }));
-  return <ReAnimated.View style={style}><Ionicons name="chevron-forward" size={19} color={color} /></ReAnimated.View>;
+/** Profile summary at the top of Settings: who you are, what you are working toward, your streak. */
+function ProfileCard({ onPress }: { onPress: () => void }) {
+  const colors = useColors();
+  const { language, username, profile, weight, goalWeight, streakDates } = useFit();
+  const t = (key: TranslationKey) => translate(language, key);
+  const name = username?.trim() || t('settingsProfileFallback');
+  const streak = getCurrentStreak(streakDates);
+  const goal = profile?.goal ? t(goalLabels[profile.goal]) : null;
+  const weights = weight ? (goalWeight && goalWeight !== weight ? `${weight} kg → ${goalWeight} kg` : `${weight} kg`) : null;
+  const summary = [goal, weights].filter(Boolean).join(' · ') || t('settingsProfileHint');
+
+  return <Pressable testID="settings-profile" accessibilityRole="button" accessibilityHint={t('settingsProfileHint')} onPress={onPress} style={[styles.profile, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+      <Text style={[styles.avatarText, { color: colors.primaryForeground }]}>{name.slice(0, 1).toLocaleUpperCase(language)}</Text>
+    </View>
+    <View style={styles.profileCopy}>
+      <Text numberOfLines={1} style={[styles.profileName, { color: colors.foreground }]}>{name}</Text>
+      <Text numberOfLines={1} style={[styles.profileSummary, { color: colors.mutedForeground }]}>{summary}</Text>
+      {streak > 0 ? <View style={[styles.profileStreak, { backgroundColor: `${colors.orange}14` }]}>
+        <Ionicons name="flame" size={12} color={colors.orange} />
+        <Text style={[styles.profileStreakText, { color: colors.orange }]}>{t('settingsStreakDays').replace('{count}', String(streak))}</Text>
+      </View> : null}
+    </View>
+    <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+  </Pressable>;
 }
 
 export default function SettingsScreen() {
   const colors = useColors();
   const { preference: themePreference, setPreference: setThemePreference } = useTheme();
-  const {
-    language,
-    setLanguage,
-    resetLocalUserData,
-  } = useFit();
-  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
-  const [expanded, setExpanded] = useState<LegalSection>(null);
+  const { language, isPremium, notificationSettings, resetLocalUserData, unlockedBadgeIds } = useFit();
+  const { customerInfo, restore, isRestoring, isAvailable } = useSubscription();
+  const t = (key: TranslationKey) => translate(language, key);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackCategory, setFeedbackCategory] = useState<FeedbackCategory>('suggestion');
-  const [feedbackText, setFeedbackText] = useState('');
-  const [feedbackEmail, setFeedbackEmail] = useState('');
-  const [feedbackSent, setFeedbackSent] = useState(false);
-  const [feedbackSending, setFeedbackSending] = useState(false);
-  const [focusedField, setFocusedField] = useState<'email' | 'message' | null>(null);
-  const feedbackSuccessProgress = React.useRef(new Animated.Value(0)).current;
-  const languages = Object.keys(languageLabels) as Language[];
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
 
-  const openLegalDocument = async (document: LegalDocument) => {
-    try {
-      await Linking.openURL(legalDocumentUrl(document, language));
-    } catch {
-      Alert.alert(t('legalLinkErrorTitle'), t('legalLinkErrorBody'));
-    }
+  const entitlement = customerInfo?.entitlements.active[PREMIUM_ENTITLEMENT_IDENTIFIER];
+  const formatDate = (iso: string) => new Intl.DateTimeFormat(language, { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(iso));
+  const planName = entitlement?.productIdentifier
+    ? t(/annual|year|yearly/i.test(entitlement.productIdentifier) ? 'premiumAnnualPlan' : 'premiumMonthlyPlan')
+    : null;
+  const renewal = entitlement?.expirationDate
+    ? t(entitlement.willRenew ? 'settingsSubscriptionRenews' : 'settingsSubscriptionEnds').replace('{date}', formatDate(entitlement.expirationDate))
+    : undefined;
+  const subscriptionTitle = isPremium ? ['GainMode Access', planName].filter(Boolean).join(' · ') : t('settingsSubscriptionInactive');
+  const enabledReminders = countEnabledNotifications(notificationSettings);
+  const version = Constants.expoConfig?.version;
+
+  const openUrl = (url: string) => {
+    Linking.openURL(url).catch(() => Alert.alert(t('legalLinkErrorTitle'), t('legalLinkErrorBody')));
   };
+  const openLegal = (document: LegalDocument) => openUrl(legalDocumentUrl(document, language));
 
-  const confirmLocalDataDeletion = () => {
-    Alert.alert(t('deleteLocalDataConfirmTitle'), t('deleteLocalDataConfirmBody'), [
-      { text: t('deleteLocalDataCancel'), style: 'cancel' },
-      {
-        text: t('deleteLocalDataConfirmAction'),
-        style: 'destructive',
-        onPress: () => {
-          void resetLocalUserData().then(() => {
-            Alert.alert(t('deleteLocalDataDoneTitle'), t('deleteLocalDataDoneBody'), [
-              { text: t('deleteLocalDataOkay'), onPress: () => router.replace('/') },
-            ]);
-          }).catch(() => {
-            Alert.alert(t('deleteLocalDataErrorTitle'), t('deleteLocalDataErrorBody'));
-          });
-        },
-      },
-    ]);
-  };
-
-  React.useEffect(() => {
-    if (!feedbackSent) return undefined;
-    feedbackSuccessProgress.setValue(0);
-    const animation = Animated.spring(feedbackSuccessProgress, { toValue: 1, friction: 7, tension: 80, useNativeDriver: true });
-    animation.start();
-    return () => animation.stop();
-  }, [feedbackSent, feedbackSuccessProgress]);
-
-  const feedbackReady = Boolean(feedbackText.trim() && feedbackEmail.trim()) && !feedbackSending;
-
-  const submitFeedback = async () => {
-    const message = feedbackText.trim();
-    const replyTo = feedbackEmail.trim().toLowerCase();
-    if (!message || !replyTo || feedbackSending) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo)) {
-      Alert.alert(t('feedbackErrorTitle'), t('feedbackEmailInvalid'));
+  const restorePurchases = async () => {
+    setNotice(null);
+    if (!isAvailable) {
+      setNotice({ tone: 'error', text: t('premiumStoreUnavailable') });
       return;
     }
-    setFeedbackSending(true);
     try {
-      const response = await fetch(apiUrl('/api/feedback'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, category: feedbackCategory, language, screen: 'settings', replyTo }),
-      });
-      if (!response.ok) throw new Error('feedback request failed');
-      setFeedbackText('');
-      setFeedbackEmail('');
-      setFeedbackSent(true);
+      const info = await restore();
+      setNotice(hasActivePremiumEntitlement(info) ? { tone: 'ok', text: t('settingsRestoreDone') } : { tone: 'error', text: t('premiumRestoreNoPurchase') });
     } catch {
-      Alert.alert(t('feedbackErrorTitle'), t('feedbackErrorBody'));
-    } finally {
-      setFeedbackSending(false);
+      setNotice({ tone: 'error', text: t('premiumRestoreError') });
     }
   };
 
-  return (
-    <>
+  const deleteLocalData = async () => {
+    setDeleting(true);
+    try {
+      await resetLocalUserData();
+      setConfirmDelete(false);
+      router.replace('/');
+    } catch {
+      setConfirmDelete(false);
+      setNotice({ tone: 'error', text: t('deleteLocalDataErrorBody') });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return <>
     <Screen>
-      <Header eyebrow={t('settingsEyebrow')} title={t('settingsTitle')} subtitle={t('settingsSubtitle')} action="close-outline" onAction={() => router.back()} />
+      <Header title={t('settingsTitle')} action="close-outline" onAction={() => router.back()} />
 
-      <SectionTitle title={t('preferences')} />
-      <Card>
-        <View style={styles.row}>
-          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
-            <Ionicons name="language-outline" size={21} color={colors.foreground} />
-          </View>
-          <View style={styles.rowCopy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('appLanguage')}</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('languageDescription')}</Text>
-          </View>
-        </View>
-        <LanguageList value={language} onChange={setLanguage} />
-      </Card>
+      <ProfileCard onPress={() => router.push('/update-preferences')} />
 
-      <SectionTitle title={t('appearance')} />
-      <Card>
-        <View style={styles.row}>
-          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
-            <Ionicons name="sunny-outline" size={21} color={colors.foreground} />
-          </View>
-          <View style={styles.rowCopy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('appearance')}</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('appearanceDescription')}</Text>
-          </View>
-        </View>
-        <SegmentedControl<ThemePreference>
-          value={themePreference}
-          onChange={setThemePreference}
-          options={[
-            { value: 'system', label: t('themeSystem'), icon: 'phone-portrait-outline' },
-            { value: 'light', label: t('themeLight'), icon: 'sunny-outline' },
-            { value: 'dark', label: t('themeDark'), icon: 'moon-outline' },
-          ]}
+      <SettingsGroup>
+        <SettingsRow testID="settings-badges" icon="badge-collection" title={badgeText(badgeUi.wall, language)} value={`${unlockedBadgeIds.length} / ${badges.length}`} onPress={() => router.push('/badge-wall')} />
+      </SettingsGroup>
+
+      <SettingsGroup title={t('settingsGroupSubscription')}>
+        <SettingsRow icon="trophy-outline" title={subscriptionTitle} detail={renewal} value={isPremium ? t('settingsSubscriptionActive') : undefined} />
+        {isPremium && Platform.OS !== 'web' ? <SettingsRow testID="settings-manage-subscription" icon="ticket-outline" title={t('settingsManageSubscription')} onPress={() => openUrl(customerInfo?.managementURL ?? storeSubscriptionsUrl)} /> : null}
+        <SettingsRow testID="settings-restore" icon="restore-outline" title={isRestoring ? t('premiumLoading') : t('premiumRestore')} onPress={() => { void restorePurchases(); }} chevron={false} />
+      </SettingsGroup>
+      {notice ? <View accessibilityRole="alert" style={[styles.notice, { backgroundColor: `${notice.tone === 'ok' ? colors.success : colors.destructive}12`, borderColor: `${notice.tone === 'ok' ? colors.success : colors.destructive}40` }]}>
+        <Ionicons name={notice.tone === 'ok' ? 'checkmark-circle' : 'alert-circle'} size={16} color={notice.tone === 'ok' ? colors.success : colors.destructive} />
+        <Text style={[styles.noticeText, { color: notice.tone === 'ok' ? colors.success : colors.destructive }]}>{notice.text}</Text>
+      </View> : null}
+
+      <SettingsGroup title={t('settingsGroupGeneral')}>
+        <SettingsRow testID="settings-language" icon="language-outline" title={t('appLanguage')} value={languageLabels[language]} onPress={() => router.push('/settings-language')} />
+        <SettingsRow icon="sunny-outline" title={t('appearance')}>
+          <SegmentedControl<ThemePreference>
+            value={themePreference}
+            onChange={setThemePreference}
+            options={[
+              { value: 'system', label: t('themeSystem'), icon: 'phone-portrait-outline' },
+              { value: 'light', label: t('themeLight'), icon: 'sunny-outline' },
+              { value: 'dark', label: t('themeDark'), icon: 'moon-outline' },
+            ]}
+          />
+        </SettingsRow>
+        <SettingsRow
+          testID="settings-notifications"
+          icon="notifications-outline"
+          title={t('notifications')}
+          value={enabledReminders ? t('settingsNotificationsCount').replace('{count}', String(enabledReminders)) : t('settingsNotificationsNone')}
+          onPress={() => router.push('/settings-notifications')}
         />
-      </Card>
+        {Platform.OS !== 'web' ? <SettingsRow testID="settings-widget" icon="phone-portrait-outline" title={t('widgetSettingsTitle')} onPress={openWidgetOffer} /> : null}
+      </SettingsGroup>
 
-      <SectionTitle title={t('widgetSettingsTitle')} />
-      <Card>
-        <Pressable
-          accessibilityRole="button"
-          testID="settings-widget"
-          onPress={openWidgetOffer}
-          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
-        >
-          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
-            <Ionicons name="phone-portrait-outline" size={21} color={colors.foreground} />
-          </View>
-          <View style={styles.rowCopy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('widgetSettingsTitle')}</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('widgetSettingsBody')}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
-        </Pressable>
-      </Card>
+      <SettingsGroup title={t('settingsGroupHelp')}>
+        <SettingsRow testID="settings-feedback" icon="chatbubble-ellipses-outline" title={t('feedbackTitle')} onPress={() => setFeedbackOpen(true)} />
+        <SettingsRow icon="grid-outline" title={t('settingsWhatItDoes')} onPress={() => router.push('/features')} />
+      </SettingsGroup>
 
-      <SectionTitle title={t('coachProfileCorrectionTitle')} />
-      <Card>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.push('/(tabs)/coach')}
-          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
-        >
-          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
-            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.foreground} />
-          </View>
-          <View style={styles.rowCopy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('coachProfileCorrectionTitle')}</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('coachProfileCorrectionDescription')}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
-        </Pressable>
-      </Card>
+      <SettingsGroup title={t('settingsGroupAbout')}>
+        <SettingsRow icon="shield-checkmark-outline" title={t('privacyPolicy')} onPress={() => openLegal('privacy-policy')} />
+        <SettingsRow icon="document-text-outline" title={t('termsOfService')} onPress={() => openLegal('terms-of-service')} />
+        {version ? <SettingsRow icon="information-circle-outline" title={t('settingsVersion')} value={version} /> : null}
+      </SettingsGroup>
 
-      <SectionTitle title={t('feedbackTitle')} />
-      <Card>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: feedbackOpen }}
-          onPress={() => setFeedbackOpen((current) => {
-            if (current) setFeedbackSent(false);
-            return !current;
-          })}
-          style={({ pressed }) => [styles.restartRow, { opacity: pressed ? 0.7 : 1 }]}
-        >
-          <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
-            <Ionicons name="chatbubble-ellipses-outline" size={21} color={colors.foreground} />
-          </View>
-          <View style={styles.rowCopy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('feedbackTitle')}</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('feedbackDescription')}</Text>
-          </View>
-          <Chevron open={feedbackOpen} color={colors.mutedForeground} />
-        </Pressable>
-        {feedbackOpen ? (
-          <View style={[styles.feedbackDetails, { borderTopColor: colors.border }]}>
-            {feedbackSent ? (
-              <Animated.View style={[styles.feedbackSuccess, { opacity: feedbackSuccessProgress, transform: [{ scale: feedbackSuccessProgress.interpolate({ inputRange: [0, 1], outputRange: [0.95, 1] }) }] }]}>
-                <View style={[styles.feedbackSuccessIcon, { backgroundColor: `${colors.success}20` }]}>
-                  <Ionicons name="checkmark-circle" size={46} color={colors.success} />
-                </View>
-                <Text style={[styles.feedbackSuccessTitle, { color: colors.foreground }]}>{t('feedbackSentTitle')}</Text>
-                <Text style={[styles.feedbackSuccessBody, { color: colors.mutedForeground }]}>{t('feedbackSentBody')}</Text>
-              </Animated.View>
-            ) : (
-              <Reveal>
-                <Text style={[styles.feedbackLabel, { color: colors.mutedForeground }]}>{t('feedbackType').toUpperCase()}</Text>
-                <View style={styles.feedbackTypeRow}>
-                  {feedbackCategories.map((item) => {
-                    const selected = feedbackCategory === item.value;
-                    return (
-                      <Pressable
-                        key={item.value}
-                        accessibilityRole="radio"
-                        accessibilityState={{ selected }}
-                        onPress={() => setFeedbackCategory(item.value)}
-                        style={[styles.feedbackType, { backgroundColor: selected ? colors.primary : colors.card, borderColor: selected ? colors.primary : colors.border }]}
-                      >
-                        <Ionicons name={item.icon} size={14} color={selected ? colors.primaryForeground : colors.mutedForeground} />
-                        <Text style={[styles.feedbackTypeText, { color: selected ? colors.primaryForeground : colors.foreground }]}>{t(item.label)}</Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-                <Text style={[styles.feedbackLabel, styles.feedbackFieldLabel, { color: colors.mutedForeground }]}>{t('feedbackEmailLabel').toUpperCase()}</Text>
-                <TextInput
-                  value={feedbackEmail}
-                  onChangeText={setFeedbackEmail}
-                  onFocus={() => setFocusedField('email')}
-                  onBlur={() => setFocusedField(null)}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
-                  placeholder={t('feedbackEmailPlaceholder')}
-                  placeholderTextColor={colors.mutedForeground}
-                  style={[styles.feedbackEmailInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: focusedField === 'email' ? colors.foreground : colors.border }]}
-                />
-                <Text style={[styles.feedbackHint, { color: colors.mutedForeground }]}>{t('feedbackEmailHint')}</Text>
-                <Text style={[styles.feedbackLabel, styles.feedbackFieldLabel, { color: colors.mutedForeground }]}>{t('feedbackMessageLabel').toUpperCase()}</Text>
-                <TextInput
-                  multiline
-                  numberOfLines={5}
-                  value={feedbackText}
-                  onChangeText={setFeedbackText}
-                  onFocus={() => setFocusedField('message')}
-                  onBlur={() => setFocusedField(null)}
-                  placeholder={t('feedbackPlaceholder')}
-                  placeholderTextColor={colors.mutedForeground}
-                  textAlignVertical="top"
-                  style={[styles.feedbackInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: focusedField === 'message' ? colors.foreground : colors.border }]}
-                />
-                <Text style={[styles.feedbackCount, { color: colors.mutedForeground }]}>{feedbackText.trim().length}</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: !feedbackReady, busy: feedbackSending }}
-                  disabled={!feedbackReady}
-                  onPress={submitFeedback}
-                  style={[styles.feedbackButton, { backgroundColor: feedbackReady || feedbackSending ? colors.primary : colors.secondary }]}
-                >
-                  {feedbackSending
-                    ? <ActivityIndicator size="small" color={colors.primaryForeground} />
-                    : <Ionicons name="arrow-up" size={17} color={feedbackReady ? colors.primaryForeground : colors.mutedForeground} />}
-                  <Text style={[styles.feedbackButtonText, { color: feedbackReady || feedbackSending ? colors.primaryForeground : colors.mutedForeground }]}>{feedbackSending ? t('feedbackSending') : t('feedbackSend')}</Text>
-                </Pressable>
-              </Reveal>
-            )}
-          </View>
-        ) : null}
-      </Card>
+      <SettingsGroup footer={t('deleteLocalDataSummary')}>
+        <SettingsRow testID="delete-local-data" icon="trash-outline" title={t('deleteLocalData')} destructive chevron={false} onPress={() => setConfirmDelete(true)} />
+      </SettingsGroup>
+    </Screen>
 
-      <SectionTitle title={t('legal')} />
-      <LegalCard
-        icon="shield-checkmark-outline"
-        title={t('privacyPolicy')}
-        summary={t('privacyPolicySummary')}
-        expanded={expanded === 'privacy'}
-        onPress={() => setExpanded(expanded === 'privacy' ? null : 'privacy')}
-        body={t('privacyPolicyBody')}
-        points={[t('privacyPoint1'), t('privacyPoint2'), t('privacyPoint3')]}
-        openFullLabel={t('openFullPrivacy')}
-        onOpenFull={() => { void openLegalDocument('privacy-policy'); }}
-      />
-      <LegalCard
-        icon="document-text-outline"
-        title={t('termsOfService')}
-        summary={t('termsSummary')}
-        expanded={expanded === 'terms'}
-        onPress={() => setExpanded(expanded === 'terms' ? null : 'terms')}
-        body={t('termsBody')}
-        points={[t('termsPoint1'), t('termsPoint2'), t('termsPoint3')]}
-        openFullLabel={t('openFullTerms')}
-        onOpenFull={() => { void openLegalDocument('terms-of-service'); }}
-      />
-      <SectionTitle title={t('localDataSectionTitle')} />
-      <Card>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityHint={t('deleteLocalDataSummary')}
-          testID="delete-local-data"
-          onPress={confirmLocalDataDeletion}
-          style={({ pressed }) => [styles.row, { opacity: pressed ? 0.72 : 1 }]}
-        >
-          <View style={[styles.iconBox, { backgroundColor: `${colors.destructive}18` }]}>
-            <Ionicons name="trash-outline" size={21} color={colors.destructive} />
-          </View>
-          <View style={styles.rowCopy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>{t('deleteLocalData')}</Text>
-            <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{t('deleteLocalDataSummary')}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={19} color={colors.mutedForeground} />
-        </Pressable>
-      </Card>
-      </Screen>
-    </>
-  );
-}
-
-function LegalCard({
-  icon,
-  title,
-  summary,
-  expanded,
-  onPress,
-  body,
-  points,
-  openFullLabel,
-  onOpenFull,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  title: string;
-  summary: string;
-  expanded: boolean;
-  onPress: () => void;
-  body: string;
-  points: string[];
-  openFullLabel: string;
-  onOpenFull: () => void;
-}) {
-  const colors = useColors();
-  return (
-    <Card style={styles.legalCard}>
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={onPress} style={styles.legalHeader}>
-        <View style={[styles.iconBox, { backgroundColor: colors.secondary }]}>
-          <Ionicons name={icon} size={21} color={colors.foreground} />
-        </View>
-        <View style={styles.rowCopy}>
-          <Text style={[styles.rowTitle, { color: colors.foreground }]}>{title}</Text>
-          <Text style={[styles.rowSubtitle, { color: colors.mutedForeground }]}>{summary}</Text>
-        </View>
-        <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={19} color={colors.mutedForeground} />
-      </Pressable>
-      {expanded ? (
-        <View style={[styles.legalDetails, { borderTopColor: colors.border }]}>
-          <Text style={[styles.body, { color: colors.foreground }]}>{body}</Text>
-          {points.map((point) => (
-            <View key={point} style={styles.point}>
-              <Ionicons name="checkmark-circle" size={17} color={colors.primary} />
-              <Text style={[styles.pointText, { color: colors.mutedForeground }]}>{point}</Text>
-            </View>
-          ))}
-          <Pressable accessibilityRole="link" onPress={onOpenFull} style={styles.legalLink}>
-            <Text style={[styles.legalLinkText, { color: colors.primary }]}>{openFullLabel}</Text>
-            <Ionicons name="arrow-forward" size={15} color={colors.primary} />
-          </Pressable>
-        </View>
-      ) : null}
-    </Card>
-  );
+    <FeedbackSheet visible={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+    <ConfirmSheet
+      visible={confirmDelete}
+      busy={deleting}
+      title={t('deleteLocalDataConfirmTitle')}
+      body={t('deleteLocalDataConfirmBody')}
+      confirmLabel={t('deleteLocalDataConfirmAction')}
+      cancelLabel={t('deleteLocalDataCancel')}
+      onConfirm={() => { void deleteLocalData(); }}
+      onCancel={() => setConfirmDelete(false)}
+    />
+  </>;
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  restartRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rowCopy: { flex: 1 },
-  iconBox: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  rowTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
-  rowSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18, marginTop: 4 },
-  legalCard: { padding: 15 },
-  legalHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  legalDetails: { borderTopWidth: 1, marginTop: 15, paddingTop: 14, gap: 12 },
-  body: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 20 },
-  point: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  pointText: { flex: 1, fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18 },
-  legalLink: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, paddingVertical: 4 },
-  legalLinkText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  feedbackDetails: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 16, paddingTop: 18 },
-  feedbackLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 1, marginBottom: 10 },
-  feedbackTypeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  feedbackFieldLabel: { marginTop: 20 },
-  feedbackType: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 13, minHeight: 38, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  feedbackTypeText: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
-  feedbackEmailInput: { minHeight: 50, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontFamily: 'Inter_400Regular', fontSize: 15 },
-  feedbackHint: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 8 },
-  feedbackInput: { minHeight: 132, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12, fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 21 },
-  feedbackCount: { fontFamily: 'Inter_500Medium', fontSize: 11, textAlign: 'right', marginTop: 6, fontVariant: ['tabular-nums'] },
-  feedbackButton: { minHeight: 54, borderRadius: 27, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 18, marginTop: 16 },
-  feedbackButtonText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
-  feedbackSuccess: { alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8 },
-  feedbackSuccessIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  feedbackSuccessTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, textAlign: 'center' },
-  feedbackSuccessBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 7, maxWidth: 285 },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 22, borderWidth: 1, padding: 16, marginBottom: 26 },
+  avatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontFamily: 'Inter_700Bold', fontSize: 22 },
+  profileCopy: { flex: 1, minWidth: 0 },
+  profileName: { fontFamily: 'Inter_700Bold', fontSize: 19, letterSpacing: -0.4 },
+  profileSummary: { fontFamily: 'Inter_400Regular', fontSize: 13, marginTop: 3 },
+  profileStreak: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, marginTop: 8 },
+  profileStreakText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, marginTop: -12, marginBottom: 24 },
+  noticeText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 13, lineHeight: 18 },
 });

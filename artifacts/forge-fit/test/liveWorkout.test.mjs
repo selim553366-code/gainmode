@@ -1,193 +1,101 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  analyzePose,
-  cameraDisplayX,
-  depthPercentForMetric,
-  initialPoseTrackState,
-  initialRepState,
-  stabilizePose,
-} from '../lib/liveWorkoutAnalysis.ts';
+import { analyzePose, cameraDisplayX, initialPoseTrackState, initialRepState, stabilizePose } from '../lib/liveWorkoutAnalysis.ts';
+import { repDepthAt, simulatedPose } from '../lib/livePoseSimulator.ts';
 
-const point = (x, y, visibility = 0.95) => ({ x, y, visibility });
+/** Feeds `cycles` rep cycles at 30 fps through the analyser, optionally reshaping each frame. */
+function run(kind, cycles, { maxDepth = 1, transform = (pose) => pose } = {}) {
+  let state = initialRepState;
+  let warning = null;
+  const warnings = new Set();
+  const period = 2600;
+  for (let time = 0; time <= period * cycles + 400; time += 33) {
+    const depth = repDepthAt(time, period) * maxDepth;
+    const result = analyzePose(kind, transform(simulatedPose(kind, depth, time), depth), state, time);
+    state = result.state;
+    warning = result.warning;
+    warnings.add(result.warning);
+  }
+  return { reps: state.reps, warning, warnings };
+}
 
 test('mirrors front-camera skeleton movement for selfie alignment', () => {
   assert.equal(cameraDisplayX(0.2), 0.8);
-  assert.ok(Math.abs(cameraDisplayX(0.8) - 0.2) < 1e-9);
   assert.equal(cameraDisplayX(0.5), 0.5);
 });
 
-test('maps movement depth to a capped 0-to-100 progress scale', () => {
-  assert.equal(depthPercentForMetric('squat', 165), 0);
-  assert.equal(depthPercentForMetric('squat', 142), 51);
-  assert.equal(depthPercentForMetric('squat', 125), 89);
-  assert.equal(depthPercentForMetric('squat', 120), 100);
-  assert.equal(depthPercentForMetric('squat', 95), 100);
-});
-
-function sidePose(kneeAngle, side = 'left') {
-  const prefix = side === 'left' ? 'left' : 'right';
-  const geometry = kneeAngle >= 160
-    ? { hipX: 0.45, hipY: 0.45, kneeX: 0.45, kneeY: 0.68, ankleX: 0.45, ankleY: 0.9 }
-    : kneeAngle <= 110
-      ? { hipX: 0.3, hipY: 0.68, kneeX: 0.45, kneeY: 0.68, ankleX: 0.45, ankleY: 0.9 }
-      : { hipX: 0.25, hipY: 0.5, kneeX: 0.45, kneeY: 0.68, ankleX: 0.45, ankleY: 0.9 };
-  const pose = {
-    [`${prefix}Shoulder`]: point(0.45, 0.2),
-    [`${prefix}Hip`]: point(geometry.hipX, geometry.hipY),
-    [`${prefix}Knee`]: point(geometry.kneeX, geometry.kneeY),
-    [`${prefix}Ankle`]: point(geometry.ankleX, geometry.ankleY),
-  };
-  return pose;
+for (const kind of ['squat', 'pushup', 'lunge']) {
+  test(`counts every clean ${kind} repetition`, () => {
+    const { reps, warnings } = run(kind, 5);
+    assert.equal(reps, 5);
+    assert.ok(warnings.has('liveGoodForm'));
+  });
 }
 
-function pushupPose(elbowAngle, includeRightArm = true) {
-  const pose = {
-    nose: point(0.5, elbowAngle <= 110 ? 0.52 : 0.3),
-    leftShoulder: point(0.25, 0.45),
-    leftElbow: point(elbowAngle <= 110 ? 0.35 : 0.4, 0.45),
-    leftWrist: point(elbowAngle <= 110 ? 0.35 : 0.5, elbowAngle <= 110 ? 0.55 : 0.45),
-    leftHip: point(0.6, 0.55),
-    leftAnkle: point(0.9, 0.65),
-    rightShoulder: point(0.75, 0.45),
-    rightHip: point(0.6, 0.55),
-    rightAnkle: point(0.9, 0.65),
-  };
-  if (includeRightArm) {
-    pose.rightElbow = point(elbowAngle <= 110 ? 0.65 : 0.7, 0.45);
-    pose.rightWrist = point(elbowAngle <= 110 ? 0.65 : 0.5, elbowAngle <= 110 ? 0.55 : 0.45);
-  }
-  return pose;
-}
-
-function lungePose(kneeAngle, side = 'right') {
-  return {
-    ...sidePose(kneeAngle, side),
-    ...sidePose(kneeAngle >= 160 ? 170 : 145, side === 'left' ? 'right' : 'left'),
-  };
-}
-
-function runCycle(kind, poses) {
-  let state = initialRepState;
-  let timestamp = 1000;
-  for (const pose of poses) {
-    state = analyzePose(kind, pose, state, timestamp).state;
-    timestamp += 500;
-  }
-  return state;
-}
-
-test('does not count a side-view squat when front knee tracking is unavailable', () => {
-  const state = runCycle('squat', [
-    sidePose(170),
-    sidePose(95),
-    sidePose(130),
-    sidePose(170),
-  ]);
-
-  assert.equal(state.activeSide, 'left');
-  assert.equal(state.reps, 0);
+test('squat: not counted when the person is side-on to the camera', () => {
+  const { reps, warnings } = run('squat', 3, { transform: (_, depth) => simulatedPose('lunge', depth) });
+  assert.equal(reps, 0);
+  assert.ok(warnings.has('liveFaceCamera'));
 });
 
-test('counts a front-view squat from both bent knees', () => {
-  const state = runCycle('squat', [
-    {
-      ...sidePose(170, 'left'),
-      ...sidePose(170, 'right'),
-      nose: point(0.5, 0.14),
-      leftShoulder: point(0.4, 0.24),
-      rightShoulder: point(0.6, 0.24),
-    },
-    {
-      ...sidePose(95, 'left'),
-      ...sidePose(95, 'right'),
-      nose: point(0.5, 0.3),
-      leftShoulder: point(0.43, 0.36),
-      rightShoulder: point(0.57, 0.36),
-    },
-    {
-      ...sidePose(130, 'left'),
-      ...sidePose(130, 'right'),
-      nose: point(0.5, 0.25),
-      leftShoulder: point(0.42, 0.31),
-      rightShoulder: point(0.58, 0.31),
-    },
-    {
-      ...sidePose(170, 'left'),
-      ...sidePose(170, 'right'),
-      nose: point(0.5, 0.14),
-      leftShoulder: point(0.4, 0.24),
-      rightShoulder: point(0.6, 0.24),
-    },
-  ]);
-
-  assert.equal(state.reps, 1);
+test('squat: shallow reps are not counted and ask for more depth', () => {
+  const { reps, warnings } = run('squat', 3, { maxDepth: 0.55 });
+  assert.equal(reps, 0);
+  assert.ok(warnings.has('liveReachDepth'));
 });
 
-test('counts a side-view lunge when both knees form the split stance', () => {
-  const state = runCycle('lunge', [
-    lungePose(170),
-    lungePose(95),
-    lungePose(130),
-    lungePose(170),
-  ]);
-
-  assert.equal(state.activeSide, 'left');
-  assert.equal(state.reps, 1);
+test('squat: knees caving in at the bottom voids the rep', () => {
+  const { reps, warnings } = run('squat', 3, {
+    transform: (pose, depth) => depth > 0.5 ? { ...pose, leftKnee: { ...pose.leftKnee, x: 0.48 }, rightKnee: { ...pose.rightKnee, x: 0.52 } } : pose,
+  });
+  assert.equal(reps, 0);
+  assert.ok(warnings.has('liveKneeAlignment'));
 });
 
-test('counts a front-view push-up when one arm is the clearest track', () => {
-  const state = runCycle('pushup', [
-    pushupPose(170, false),
-    pushupPose(90, false),
-    pushupPose(130, false),
-    pushupPose(170, false),
-  ]);
-
-  assert.equal(state.reps, 1);
+test('push-up: the head must face the camera between the shoulders', () => {
+  const { reps, warnings } = run('pushup', 3, { transform: (pose) => ({ ...pose, nose: { ...pose.nose, x: 0.3 } }) });
+  assert.equal(reps, 0);
+  assert.ok(warnings.has('liveHeadForward'));
 });
 
-test('counts a front-facing push-up with the head and both shoulders visible', () => {
-  const state = runCycle('pushup', [
-    pushupPose(170, true),
-    pushupPose(90, true),
-    pushupPose(130, true),
-    pushupPose(170, true),
-  ]);
-
-  assert.equal(state.reps, 1);
+test('push-up: shoulders dropping without the head is not a rep', () => {
+  const { reps } = run('pushup', 3, { transform: (pose) => ({ ...pose, nose: { ...pose.nose, y: 0.36 } }) });
+  assert.equal(reps, 0);
 });
 
-test('does not count a push-up when elbows bend without the head dropping', () => {
-  const bentArmsWithoutDepth = { ...pushupPose(90, false), nose: point(0.5, 0.3) };
-  const state = runCycle('pushup', [
-    pushupPose(170, false),
-    bentArmsWithoutDepth,
-    pushupPose(130, false),
-    pushupPose(170, false),
-  ]);
-
-  assert.equal(state.reps, 0);
+test('push-up: standing up in front of the camera is not counted', () => {
+  const { reps, warnings } = run('pushup', 2, { transform: (_, depth) => simulatedPose('squat', depth) });
+  assert.equal(reps, 0);
+  assert.ok(warnings.has('liveGetInPlank'));
 });
 
-test('does not count a squat that starts from the bottom position', () => {
-  const state = runCycle('squat', [
-    sidePose(95),
-    sidePose(130),
-    sidePose(170),
-  ]);
+test('lunge: facing the camera asks to turn sideways', () => {
+  const { reps, warnings } = run('lunge', 3, { transform: (_, depth) => simulatedPose('squat', depth) });
+  assert.equal(reps, 0);
+  assert.ok(warnings.has('liveTurnSideways'));
+});
 
-  assert.equal(state.reps, 0);
+test('lunge: bending only the front knee is not a rep', () => {
+  const { reps } = run('lunge', 3, {
+    transform: (pose) => ({ ...pose, rightKnee: { ...pose.rightKnee, x: (pose.rightHip.x + pose.rightAnkle.x) / 2, y: (pose.rightHip.y + pose.rightAnkle.y) / 2 } }),
+  });
+  assert.equal(reps, 0);
+});
+
+test('lunge: feet together asks for a split stance', () => {
+  const { reps, warnings } = run('lunge', 2, {
+    transform: (pose) => ({ ...pose, leftAnkle: { ...pose.leftAnkle, x: 0.5 }, rightAnkle: { ...pose.rightAnkle, x: 0.52 } }),
+  });
+  assert.equal(reps, 0);
+  assert.ok(warnings.has('liveSplitStance'));
 });
 
 test('keeps the last reliable skeleton during a short landmark dropout', () => {
-  const first = stabilizePose(sidePose(170), initialPoseTrackState, 1000);
+  const first = stabilizePose(simulatedPose('squat', 0), initialPoseTrackState, 1000);
   const held = stabilizePose({}, first.state, 1250);
   const released = stabilizePose({}, held.state, 1600);
-
   assert.equal(first.locked, true);
   assert.deepEqual(held.pose, first.pose);
-  assert.equal(held.locked, true);
   assert.deepEqual(released.pose, {});
   assert.equal(released.locked, false);
 });

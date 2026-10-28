@@ -1,59 +1,55 @@
 import React from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
-import { PressableScale as Pressable } from '@/components/Motion';
+import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
 import { Card, Header, Screen, SectionTitle } from '@/components/FitUI';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
-import { translate } from '@/lib/i18n';
+import { translate, type TranslationKey } from '@/lib/i18n';
+import { daysToNextFire, fireTier, FIRE_MILESTONES, type FireTier } from '@/lib/streakFire';
+import { StreakFire } from '@/components/StreakFire';
 import { getCurrentStreak, getStreakCalendar } from '@/lib/streak';
 import { getStreakPrompt, STREAK_PROMPT_COUNT } from '@/lib/streakPrompts';
 
-function Campfire({ day }: { day: number }) {
+const tierLabels: Record<Exclude<FireTier, 'none'>, TranslationKey> = {
+  spark: 'streakTierSpark',
+  blaze: 'streakTierBlaze',
+  inferno: 'streakTierInferno',
+  legend: 'streakTierLegend',
+};
+
+/** Tier name, and how far the fire is from growing again at the next milestone. */
+function FireTierRow({ days }: { days: number }) {
   const colors = useColors();
-  const flicker = React.useRef(new Animated.Value(0)).current;
-  const strength = day <= 0 ? 0 : 0.34 + Math.min(day, STREAK_PROMPT_COUNT) / STREAK_PROMPT_COUNT * 0.66;
-  const flameSize = 68 + strength * 82;
-
-  React.useEffect(() => {
-    if (day <= 0) return undefined;
-    const animation = Animated.loop(Animated.sequence([
-      Animated.timing(flicker, { toValue: 1, duration: 640, useNativeDriver: true }),
-      Animated.timing(flicker, { toValue: 0.18, duration: 460, useNativeDriver: true }),
-      Animated.timing(flicker, { toValue: 0.72, duration: 520, useNativeDriver: true }),
-    ]));
-    animation.start();
-    return () => animation.stop();
-  }, [day, flicker]);
-
-  const pulseOpacity = flicker.interpolate({ inputRange: [0, 1], outputRange: [0.76, 1] });
-  const pulseScale = flicker.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.06] });
-  const innerScale = flicker.interpolate({ inputRange: [0, 1], outputRange: [0.84, 1.1] });
-
-  return (
-    <View style={[styles.fireStage, { backgroundColor: `${colors.background}B8`, borderColor: colors.border }]}>
-      <View style={[styles.fireGlow, { backgroundColor: day > 0 ? `${colors.orange}14` : 'transparent' }]} />
-      <View style={styles.logs}>
-        <View style={[styles.log, styles.logBack, { backgroundColor: colors.mutedForeground, borderColor: colors.border }]} />
-        <View style={[styles.log, styles.logFront, { backgroundColor: colors.mutedForeground, borderColor: colors.border }]} />
-        <View style={[styles.log, styles.logCross, { backgroundColor: colors.mutedForeground, borderColor: colors.border }]} />
+  const { language } = useFit();
+  const t = (key: TranslationKey) => translate(language, key);
+  const tier = fireTier(days);
+  if (tier === 'none') return null;
+  const remaining = daysToNextFire(days);
+  const milestone = (FIRE_MILESTONES as readonly number[]).includes(days);
+  return <View style={styles.tierRow}>
+    <View style={styles.tierHeader}>
+      <View style={[styles.tierChip, { backgroundColor: colors.secondary }]}>
+        <Ionicons name="flame" size={12} color={colors.foreground} />
+        <Text style={[styles.tierChipText, { color: colors.foreground }]}>{t(tierLabels[tier])}</Text>
       </View>
-      {day > 0 ? (
-        <Animated.View style={[styles.flameWrap, { opacity: pulseOpacity, transform: [{ scale: pulseScale }] }]}>
-          <Animated.View style={{ transform: [{ scale: innerScale }] }}>
-            <Ionicons name="flame" size={flameSize} color={colors.orange} />
-          </Animated.View>
-          <Animated.View style={[styles.innerFlame, { opacity: 0.9 * strength, transform: [{ scale: innerScale }] }]}>
-            <Ionicons name="flame" size={flameSize * 0.58} color={colors.primary} />
-          </Animated.View>
-          {strength > 0.5 ? <Animated.View style={[styles.spark, styles.sparkLeft, { backgroundColor: colors.orange, opacity: pulseOpacity }]} /> : null}
-          {strength > 0.7 ? <Animated.View style={[styles.spark, styles.sparkRight, { backgroundColor: colors.primary, opacity: pulseOpacity }]} /> : null}
-          {strength > 0.85 ? <Animated.View style={[styles.spark, styles.sparkTop, { backgroundColor: colors.orange, opacity: pulseOpacity }]} /> : null}
-        </Animated.View>
-      ) : null}
+      <Text style={[styles.tierHint, { color: colors.mutedForeground }]}>
+        {milestone ? t('streakTierUnlocked') : remaining === null ? t('streakTierMax') : t('streakNextTier').replace('{days}', String(remaining))}
+      </Text>
     </View>
-  );
+    <View style={styles.tierTrack}>
+      {FIRE_MILESTONES.map((value, index) => {
+        const from = index === 0 ? 0 : FIRE_MILESTONES[index - 1];
+        const fill = Math.max(0, Math.min(1, (days - from) / (value - from)));
+        return <View key={value} style={[styles.tierSegment, { backgroundColor: colors.secondary }]}>
+          <View style={[styles.tierFill, { width: `${fill * 100}%`, backgroundColor: colors.orange }]} />
+        </View>;
+      })}
+    </View>
+    <View style={styles.tierLabels}>
+      {FIRE_MILESTONES.map((value) => <Text key={value} style={[styles.tierLabel, { color: days >= value ? colors.foreground : colors.mutedForeground }]}>{value}</Text>)}
+    </View>
+  </View>;
 }
 
 export default function StreakScreen() {
@@ -76,7 +72,8 @@ export default function StreakScreen() {
       />
 
       <Card style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <Campfire day={streak} />
+        <StreakFire days={streak} />
+        <FireTierRow days={streak} />
         <View style={styles.heroCopy}>
           <Text style={[styles.kicker, { color: colors.orange }]}>{t('currentStreak').toUpperCase()}</Text>
           <View style={styles.countLine}>
@@ -117,19 +114,16 @@ export default function StreakScreen() {
 
 const styles = StyleSheet.create({
   heroCard: { padding: 14, borderWidth: 1, borderRadius: 26 },
-  fireStage: { height: 236, borderRadius: 20, borderWidth: 1, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 28 },
-  fireGlow: { position: 'absolute', width: 230, height: 120, borderRadius: 120, bottom: 14 },
-  logs: { width: 128, height: 48, position: 'relative', alignItems: 'center', justifyContent: 'center' },
-  log: { position: 'absolute', width: 112, height: 15, borderRadius: 12, borderWidth: 1 },
-  logBack: { transform: [{ rotate: '-12deg' }], top: 9, left: 4 },
-  logFront: { transform: [{ rotate: '12deg' }], top: 25, left: 7 },
-  logCross: { width: 94, transform: [{ rotate: '0deg' }], top: 17, left: 15 },
-  flameWrap: { position: 'absolute', bottom: 43, alignItems: 'center', justifyContent: 'center' },
-  innerFlame: { position: 'absolute', bottom: 0, alignItems: 'center' },
-  spark: { position: 'absolute', width: 5, height: 5, borderRadius: 3 },
-  sparkLeft: { left: -22, top: 34 },
-  sparkRight: { right: -19, top: 58 },
-  sparkTop: { right: 4, top: 0 },
+  tierRow: { paddingHorizontal: 8, paddingTop: 16 },
+  tierHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  tierChip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  tierChipText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
+  tierHint: { flex: 1, textAlign: 'right', fontFamily: 'Inter_500Medium', fontSize: 11 },
+  tierTrack: { flexDirection: 'row', gap: 4, marginTop: 12 },
+  tierSegment: { flex: 1, height: 5, borderRadius: 3, overflow: 'hidden' },
+  tierFill: { height: '100%', borderRadius: 3 },
+  tierLabels: { flexDirection: 'row', marginTop: 6 },
+  tierLabel: { flex: 1, textAlign: 'right', fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   heroCopy: { paddingHorizontal: 8, paddingTop: 20, paddingBottom: 8 },
   kicker: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1 },
   countLine: { flexDirection: 'row', alignItems: 'baseline', gap: 7, marginTop: 3 },

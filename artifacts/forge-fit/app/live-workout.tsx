@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, Easing, Image, Linking, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Linking, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { router, useLocalSearchParams } from 'expo-router';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -7,7 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@/components/AppIcon';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
-import { apiUrl } from '@/lib/api';
+import { isDesignPreview } from '@/lib/designPreview';
+import { repDepthAt, simulatedPose } from '@/lib/livePoseSimulator';
+import { LinearGradient } from 'expo-linear-gradient';
 import { PoseCamera, useCameraPermission } from 'react-native-pose-detection';
 import type { PoseFrame } from 'react-native-pose-detection';
 import { liveTranslate, type LiveWorkoutCopyKey } from '@/lib/liveWorkoutCopy';
@@ -37,27 +39,88 @@ const skeletonConnections: Array<[PoseJoint, PoseJoint]> = [
   ['rightHip', 'rightKnee'], ['rightKnee', 'rightAnkle'],
 ];
 
-function SkeletonOnlyOverlay({ pose, width, height, color }: { pose: PoseLandmarks; width: number; height: number; color: string }) {
-  const displayX = (normalizedX: number) => cameraDisplayX(normalizedX) * width;
+/**
+ * The rig drawn over the person: a soft glow under every bone, a crisp core line, ringed joints
+ * and a head circle sized from the shoulders. Green while the form is good, orange on a warning,
+ * white while it is still looking for the body. `body` adds a faint silhouette for the preview.
+ */
+function RigOverlay({ pose, width, height, tone, body = false, mirror = true }: { pose: PoseLandmarks; width: number; height: number; tone: string; body?: boolean; mirror?: boolean }) {
+  const x = (value: number) => (mirror ? cameraDisplayX(value) : value) * width;
+  const y = (value: number) => value * height;
+  const ls = pose.leftShoulder;
+  const rs = pose.rightShoulder;
+  const neckBase = ls && rs ? { x: (x(ls.x) + x(rs.x)) / 2, y: (y(ls.y) + y(rs.y)) / 2 } : null;
+  const hipMid = pose.leftHip && pose.rightHip ? { y: (y(pose.leftHip.y) + y(pose.rightHip.y)) / 2 } : null;
+  // Head size follows the shoulders when square to the camera and the torso when side-on.
+  const shoulderSpan = ls && rs ? Math.hypot(x(ls.x) - x(rs.x), y(ls.y) - y(rs.y)) : 0;
+  const torsoSpan = neckBase && hipMid ? Math.abs(hipMid.y - neckBase.y) : 0;
+  const headRadius = Math.max(14, shoulderSpan * 0.42, torsoSpan * 0.14);
+  const bones = skeletonConnections.filter(([from, to]) => from !== 'nose' && pose[from] && pose[to]);
+  const neck = pose.nose && neckBase && neckBase.y > y(pose.nose.y) + headRadius
+    ? { x1: x(pose.nose.x), y1: y(pose.nose.y) + headRadius, x2: neckBase.x, y2: neckBase.y }
+    : null;
   return <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 3 }]}>
-    <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      {skeletonConnections.map(([from, to]) => {
-        const start = pose[from];
-        const end = pose[to];
-        if (!start || !end) return null;
-        return <Line key={`${from}-${to}`} x1={displayX(start.x)} y1={start.y * height} x2={displayX(end.x)} y2={end.y * height} stroke={color} strokeWidth={4} strokeLinecap="round" opacity={0.92} />;
-      })}
-      {(Object.entries(pose) as Array<[PoseJoint, PoseLandmarks[PoseJoint]]>).map(([joint, point]) => point
-        ? <Circle key={joint} cx={displayX(point.x)} cy={point.y * height} r={6} fill={color} opacity={0.98} />
+    <Svg width={width} height={height}>
+      {body ? bones.map(([from, to]) => <Line key={`b-${from}-${to}`} x1={x(pose[from]!.x)} y1={y(pose[from]!.y)} x2={x(pose[to]!.x)} y2={y(pose[to]!.y)} stroke="#FFFFFF" strokeOpacity={0.07} strokeWidth={to.includes('Hip') || from.includes('Hip') ? 46 : 30} strokeLinecap="round" />) : null}
+      {body && pose.nose ? <Circle cx={x(pose.nose.x)} cy={y(pose.nose.y)} r={headRadius * 1.2} fill="#FFFFFF" fillOpacity={0.07} /> : null}
+      {bones.map(([from, to]) => <Line key={`g-${from}-${to}`} x1={x(pose[from]!.x)} y1={y(pose[from]!.y)} x2={x(pose[to]!.x)} y2={y(pose[to]!.y)} stroke={tone} strokeOpacity={0.25} strokeWidth={14} strokeLinecap="round" />)}
+      {bones.map(([from, to]) => <Line key={`c-${from}-${to}`} x1={x(pose[from]!.x)} y1={y(pose[from]!.y)} x2={x(pose[to]!.x)} y2={y(pose[to]!.y)} stroke={tone} strokeWidth={4} strokeLinecap="round" />)}
+      {neck ? <Line {...neck} stroke={tone} strokeOpacity={0.25} strokeWidth={14} strokeLinecap="round" /> : null}
+      {neck ? <Line {...neck} stroke={tone} strokeWidth={4} strokeLinecap="round" /> : null}
+      {pose.nose ? <Circle cx={x(pose.nose.x)} cy={y(pose.nose.y)} r={headRadius} stroke={tone} strokeWidth={3.5} fill="none" /> : null}
+      {(Object.entries(pose) as Array<[PoseJoint, PoseLandmarks[PoseJoint]]>).map(([joint, point]) => point && joint !== 'nose'
+        ? <React.Fragment key={joint}>
+          <Circle cx={x(point.x)} cy={y(point.y)} r={9} fill={tone} fillOpacity={0.25} />
+          <Circle cx={x(point.x)} cy={y(point.y)} r={5} fill="#FFFFFF" stroke={tone} strokeWidth={2.5} />
+        </React.Fragment>
         : null)}
     </Svg>
   </View>;
 }
 
-function guideImageForKind(kind: ExerciseKind) {
-  if (kind === 'squat') return { uri: apiUrl('/api/app-assets/form-guides/live-guide-coach-squat-oblique-skeleton.png') };
-  if (kind === 'lunge') return { uri: apiUrl('/api/app-assets/form-guides/live-guide-coach-lunge-oblique-skeleton.png') };
-  return { uri: apiUrl('/api/app-assets/form-guides/live-guide-coach-pushup-oblique-skeleton.png') };
+/** A looping demonstration of how to stand for the exercise, using the same rig. */
+function RigDemo({ kind, tone }: { kind: ExerciseKind; tone: string }) {
+  const [size, setSize] = React.useState({ width: 0, height: 0 });
+  const [time, setTime] = React.useState(0);
+  React.useEffect(() => {
+    const started = Date.now();
+    const timer = setInterval(() => setTime(Date.now() - started), 40);
+    return () => clearInterval(timer);
+  }, []);
+  const pose = simulatedPose(kind, repDepthAt(time, 2400));
+  return <View onLayout={(event) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })} style={styles.guideImage}>
+    {size.width ? <RigOverlay pose={pose} width={size.width} height={size.height} tone={tone} body mirror={false} /> : null}
+  </View>;
+}
+
+const PREVIEW_PERIOD_MS = 2800;
+const DIAL = 156;
+const DIAL_TICKS = 40;
+
+function formatElapsed(ms: number) {
+  const total = Math.floor(ms / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
+/** Web preview stand-in for the camera: a person doing clean reps, fed through the real analyser. */
+function SimulatedPoseSource({ kind, onPose }: { kind: ExerciseKind; onPose: (pose: PoseLandmarks, timestamp: number) => void }) {
+  const handler = React.useRef(onPose);
+  handler.current = onPose;
+  React.useEffect(() => {
+    const started = Date.now();
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - started;
+      const pose = simulatedPose(kind, repDepthAt(elapsed, PREVIEW_PERIOD_MS), elapsed / 40);
+      // Fit the stand-in person into the space between the header and the dial.
+      (Object.keys(pose) as PoseJoint[]).forEach((joint) => {
+        const point = pose[joint]!;
+        pose[joint] = { ...point, x: 0.5 + (point.x - 0.5) * 0.78, y: 0.44 + (point.y - 0.5) * 0.78 };
+      });
+      handler.current(pose, elapsed);
+    }, 33);
+    return () => clearInterval(timer);
+  }, [kind]);
+  return <LinearGradient colors={['#141A2A', '#0A0D16', '#05060A']} style={StyleSheet.absoluteFill} />;
 }
 
 function ActionButton({ label, icon, onPress, disabled = false }: { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void; disabled?: boolean }) {
@@ -95,12 +158,38 @@ function PermissionView({ onAllow, pending, canAskAgain }: { onAllow: () => void
   </View>;
 }
 
+type CameraRenderer = (onPose: (pose: PoseLandmarks, timestamp: number) => void, hidden: boolean, onError: () => void) => React.ReactNode;
+
 function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
+  const { language } = useFit();
+  const t = (key: LiveWorkoutCopyKey) => liveTranslate(language, key);
+  const permission = useCameraPermission();
+  const [cameraError, setCameraError] = React.useState(false);
+  if (cameraError || permission.error) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} />;
+  if (!permission.granted) return <PermissionView onAllow={() => { permission.request().catch(() => setCameraError(true)); }} pending={permission.pending} canAskAgain={permission.canAskAgain} />;
+  return <LiveSession kind={kind} renderCamera={(onPose, hidden, onError) => <PoseCamera
+    style={[StyleSheet.absoluteFill, hidden ? styles.hiddenCamera : null]}
+    facing="front"
+    profile="balanced"
+    resolution="720p"
+    analysisResolution="480p"
+    targetFps={30}
+    minConfidence={0.45}
+    smoothing={{ minCutoff: 1, beta: 4 }}
+    data={{ mode: 'live', landmarks: true }}
+    overlay={{ landmarks: false, connections: false, color: '#3DD68C', lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
+    onPose={(frame: PoseFrame) => onPose(poseFromFrame(frame), frame.timestamp)}
+    onReady={({ facing }) => { if (facing !== 'front') onError(); }}
+    onCameraChange={({ facing }) => { if (facing !== 'front') onError(); }}
+    onError={() => { onError(); setCameraError(true); }}
+  />} />;
+}
+
+function LiveSession({ kind, renderCamera, preview = false }: { kind: ExerciseKind; renderCamera: CameraRenderer; preview?: boolean }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { language } = useFit();
   const t = (key: LiveWorkoutCopyKey) => liveTranslate(language, key);
-  const permission = useCameraPermission();
   const [analysis, setAnalysis] = React.useState(() => ({ state: initialRepState, warning: 'liveLookingForBody' as LiveWarningKey, confidence: 0, metric: null as number | null, depthPercent: 0 }));
   const [cameraError, setCameraError] = React.useState(false);
   const [skeletonOnly, setSkeletonOnly] = React.useState(false);
@@ -108,6 +197,14 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const [isStarted, setIsStarted] = React.useState(false);
   const [startOptionsVisible, setStartOptionsVisible] = React.useState(false);
   const [countdown, setCountdown] = React.useState<number | null>(null);
+  const [countdownTotal, setCountdownTotal] = React.useState(0);
+  const [elapsed, setElapsed] = React.useState(0);
+  React.useEffect(() => {
+    if (!isStarted) return undefined;
+    const started = Date.now();
+    const timer = setInterval(() => setElapsed(Date.now() - started), 1000);
+    return () => clearInterval(timer);
+  }, [isStarted]);
   const [skeletonPose, setSkeletonPose] = React.useState<PoseLandmarks>({});
   const poseTrackRef = React.useRef(initialPoseTrackState);
   const stateRef = React.useRef<RepState>(initialRepState);
@@ -141,6 +238,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
     isStartedRef.current = false;
     setIsStarted(false);
     setStartOptionsVisible(false);
+    setCountdownTotal(seconds);
     setCountdown(seconds);
     let remaining = seconds;
     countdownTimerRef.current = setInterval(() => {
@@ -158,19 +256,22 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   };
 
   if (cameraError) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} />;
-  if (permission.error) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} />;
-  if (!permission.granted) return <PermissionView onAllow={() => { permission.request().catch(() => setCameraError(true)); }} pending={permission.pending} canAskAgain={permission.canAskAgain} />;
 
+  const dialFill = countdown !== null && countdownTotal ? 1 - (countdown - 1) / countdownTotal : isStarted ? analysis.depthPercent / 100 : 0;
+  const dialTone = countdown !== null ? '#FFFFFF' : analysis.depthPercent >= 100 ? '#3DD68C' : '#7FA6FF';
+  const timeLabel = ({ tr: 'Süre', en: 'Time', de: 'Zeit', fr: 'Temps', es: 'Tiempo' } as const)[language] ?? 'Time';
+  const blocked = !['liveGoodForm', 'liveReachDepth', 'liveTempo', 'liveKneeAlignment', 'liveBalance', 'liveBackAngle', 'liveHeadDown', 'liveElbowPosition', 'liveHipPosition'].includes(analysis.warning);
+  const rigTone = !isStarted || blocked ? '#E8EEF9' : analysis.warning === 'liveGoodForm' ? '#3DD68C' : '#FF9F43';
+  const toastTone = !isStarted ? '#7FA6FF' : blocked ? '#E8EEF9' : analysis.warning === 'liveGoodForm' ? '#3DD68C' : '#FF9F43';
   const title = kind === 'squat' ? t('liveSquat') : kind === 'pushup' ? t('livePushup') : t('liveLunge');
   const directionHint = kind === 'pushup' ? t('livePushupView') : kind === 'squat' ? t('liveSquatView') : t('liveLungeView');
-  const handlePose = (frame: PoseFrame) => {
+  const handlePose = (currentPose: PoseLandmarks, timestamp: number) => {
     const previousState = stateRef.current;
-    const currentPose = poseFromFrame(frame);
-    const trackedPose = stabilizePose(currentPose, poseTrackRef.current, frame.timestamp);
+    const trackedPose = stabilizePose(currentPose, poseTrackRef.current, timestamp);
     poseTrackRef.current = trackedPose.state;
     setSkeletonPose(trackedPose.pose);
     if (!isStartedRef.current) return;
-    const result = analyzePose(kind, currentPose, previousState, frame.timestamp);
+    const result = analyzePose(kind, currentPose, previousState, timestamp);
     stateRef.current = result.state;
     if (result.state.reps > previousState.reps) {
       repPulse.stopAnimation();
@@ -179,83 +280,101 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
         Animated.timing(repPulse, { toValue: 1, duration: 130, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
         Animated.spring(repPulse, { toValue: 0, friction: 5, tension: 90, useNativeDriver: true }),
       ]).start();
-      void repTone.seekTo(0).then(() => repTone.play()).catch(() => repTone.play());
+      try {
+        void repTone.seekTo(0).catch(() => undefined);
+        const played = repTone.play() as unknown;
+        if (played instanceof Promise) played.catch(() => undefined);
+      } catch {
+        // The tick is decoration; the counter still updates.
+      }
     }
     setAnalysis(result);
   };
 
   return <View testID="live-workout-compact-panel" style={[styles.cameraRoot, { backgroundColor: skeletonOnly ? colors.black : colors.background }]}>
-    <PoseCamera
-       style={[StyleSheet.absoluteFill, skeletonOnly ? styles.hiddenCamera : null]}
-      facing="front"
-       profile="balanced"
-      resolution="720p"
-       analysisResolution="480p"
-      targetFps={30}
-       minConfidence={0.45}
-       smoothing={{ minCutoff: 1, beta: 4 }}
-       data={{ mode: 'live', landmarks: true }}
-       overlay={{ landmarks: false, connections: false, color: colors.accent, lineWidth: 4, pointRadius: 6, minVisibility: 0.25 }}
-      onPose={handlePose}
-       onReady={({ facing }) => { if (facing !== 'front') setCameraError(true); }}
-       onCameraChange={({ facing }) => { if (facing !== 'front') setCameraError(true); }}
-      onError={() => setCameraError(true)}
-    />
-      <SkeletonOnlyOverlay pose={skeletonPose} width={width} height={height} color={colors.accent} />
+    {renderCamera(handlePose, skeletonOnly, () => setCameraError(true))}
+      <RigOverlay pose={skeletonPose} width={width} height={height} tone={rigTone} body={preview} />
      {!skeletonOnly ? <View pointerEvents="none" style={styles.cameraShade} /> : null}
-     {!skeletonOnly ? <View pointerEvents="none" style={[styles.neonFrame, { borderColor: colors.accent, shadowColor: colors.accent }]} /> : null}
-    <View style={[styles.liveHeader, { paddingTop: insets.top + 14 }]}>
-      <View style={[styles.liveBadge, { backgroundColor: `${colors.destructive}D9` }]}><View style={styles.liveDot} /><Text style={styles.liveBadgeText}>{t('live')}</Text></View>
-      <View style={[styles.exerciseBadge, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.accent}65` }]}><Ionicons name="activity" size={15} color={colors.accent} /><Text style={[styles.exerciseBadgeText, { color: colors.foreground }]}>{title}</Text></View>
-       <Pressable testID="toggle-skeleton-mode" accessibilityRole="button" accessibilityLabel={skeletonOnly ? t('cameraMode') : t('skeletonOnlyMode')} onPress={() => setSkeletonOnly((value) => !value)} style={({ pressed }) => [styles.modeToggle, { backgroundColor: `${colors.background}D9`, borderColor: colors.border, opacity: pressed ? 0.72 : 1 }]}><Ionicons name={skeletonOnly ? 'camera-outline' : 'body-outline'} size={18} color={colors.accent} /></Pressable>
-      <Pressable accessibilityLabel={t('stopLiveWorkout')} onPress={() => router.back()} style={[styles.closeButton, { backgroundColor: `${colors.background}D9`, borderColor: colors.border }]}><Ionicons name="close" size={20} color={colors.foreground} /></Pressable>
+
+    <View style={[styles.hudTop, { paddingTop: insets.top + 10 }]}>
+      <Pressable accessibilityLabel={t('stopLiveWorkout')} onPress={() => router.back()} style={styles.glassCircle}>
+        <Ionicons name="close" size={20} color="#FFFFFF" />
+      </Pressable>
+      <View style={styles.titlePill}>
+        <View style={[styles.recDot, { opacity: isStarted ? 1 : 0.45 }]} />
+        <Text style={styles.titlePillLive}>{t('live')}</Text>
+        <View style={styles.titleDivider} />
+        <Text numberOfLines={1} style={styles.titlePillText}>{title}</Text>
+      </View>
+      <Pressable testID="toggle-skeleton-mode" accessibilityRole="button" accessibilityLabel={skeletonOnly ? t('cameraMode') : t('skeletonOnlyMode')} onPress={() => setSkeletonOnly((value) => !value)} style={styles.glassCircle}>
+        <Ionicons name={skeletonOnly ? 'camera-outline' : 'body-outline'} size={19} color="#FFFFFF" />
+      </Pressable>
     </View>
-       <View style={[styles.topStatusRow, { top: insets.top + 62 }]}>
-         <View testID="live-workout-reps-panel" style={[styles.topRepsCard, { backgroundColor: `${colors.background}E8`, borderColor: `${colors.accent}65` }]}>
-           <Text style={[styles.metricCaption, { color: colors.mutedForeground }]}>{t('reps').toUpperCase()}</Text>
-           <Animated.Text style={[styles.topRepNumber, { color: colors.foreground, transform: [{ scale: repPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2] }) }] }]}>{analysis.state.reps}</Animated.Text>
-         </View>
-         <View style={[styles.feedback, styles.topFeedback, { backgroundColor: analysis.warning === 'liveGoodForm' ? `${colors.success}E8` : `${colors.background}E8`, borderColor: analysis.warning === 'liveGoodForm' ? `${colors.success}55` : `${colors.orange}65` }]}>
-           <Ionicons name={analysis.warning === 'liveGoodForm' ? 'checkmark-circle' : 'alert-circle'} size={18} color={analysis.warning === 'liveGoodForm' ? colors.success : colors.orange} />
-           <Text numberOfLines={2} style={[styles.feedbackText, { color: colors.foreground }]}>{t(analysis.warning)}</Text>
-         </View>
+
+    <View pointerEvents="none" style={[styles.toastWrap, { top: insets.top + 66 }]}>
+      <View style={[styles.toast, { borderColor: `${toastTone}55` }]}>
+        <View style={[styles.toastDot, { backgroundColor: toastTone }]} />
+        <Text numberOfLines={3} style={styles.toastText}>{isStarted ? t(analysis.warning) : directionHint}</Text>
+      </View>
+    </View>
+
+    <LinearGradient pointerEvents="none" colors={['rgba(4,6,12,0)', 'rgba(4,6,12,0.75)']} style={styles.dockFade} />
+    <View style={[styles.dock, { paddingBottom: insets.bottom + 22 }]}>
+      {/* One fixed line above the dial, so the dial never shifts between states. */}
+      <Text style={styles.dockHint}>{countdown !== null ? t('liveStarting') : startOptionsVisible && !isStarted ? t('liveStartDelayTitle') : ' '}</Text>
+      <View style={styles.dockRow}>
+        <View style={styles.sideStat}>
+          {startOptionsVisible && !isStarted && countdown === null
+            ? <Pressable testID="start-live-5-seconds" accessibilityRole="button" onPress={() => beginCountdown(5)} style={styles.delayChip}><Text numberOfLines={1} style={styles.delayChipText}>{t('liveStartFiveSeconds')}</Text></Pressable>
+            : <>
+              <Text style={styles.sideValue}>{isStarted ? `${analysis.depthPercent}%` : '—'}</Text>
+              <Text style={styles.sideLabel}>{t('liveDepth').toLocaleUpperCase(language)}</Text>
+            </>}
         </View>
-       <View
-         accessibilityLabel={`${t('liveDepth')} ${analysis.depthPercent}%`}
-          style={[styles.depthSideRail, { backgroundColor: `${colors.background}D9`, borderColor: `${colors.foreground}28` }]}
-       >
-         <Text style={[styles.depthSideCaption, { color: colors.mutedForeground }]}>{t('liveDepth').toUpperCase()}</Text>
-         <Text style={[styles.depthSidePercent, { color: analysis.depthPercent >= 100 ? colors.success : colors.foreground }]}>{analysis.depthPercent}%</Text>
-         <View style={[styles.depthTrack, { backgroundColor: `${colors.foreground}18`, borderColor: `${colors.foreground}28` }]}>
-           <View style={[styles.depthTargetLine, { backgroundColor: colors.success }]} />
-           <View style={[styles.depthFill, { height: `${analysis.depthPercent}%`, backgroundColor: analysis.depthPercent >= 100 ? colors.success : colors.accent }]} />
-         </View>
-         <Text style={[styles.depthSideTarget, { color: colors.success }]}>100%</Text>
-       </View>
-       {!showFormGuide && !isStarted && countdown === null ? <View style={[styles.startControls, { bottom: insets.bottom + 18 }]}>
-         {startOptionsVisible ? <View style={[styles.startOptionsCard, { backgroundColor: `${colors.background}F2`, borderColor: colors.border }]}>
-           <Text style={[styles.startOptionsTitle, { color: colors.foreground }]}>{t('liveStartDelayTitle')}</Text>
-           <View style={styles.startOptionsRow}>
-             <Pressable testID="start-live-5-seconds" accessibilityRole="button" onPress={() => beginCountdown(5)} style={({ pressed }) => [styles.startOption, { backgroundColor: `${colors.primary}20`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}>
-               <Text style={[styles.startOptionText, { color: colors.primary }]}>{t('liveStartFiveSeconds')}</Text>
-             </Pressable>
-             <Pressable testID="start-live-10-seconds" accessibilityRole="button" onPress={() => beginCountdown(10)} style={({ pressed }) => [styles.startOption, { backgroundColor: `${colors.primary}20`, borderColor: `${colors.primary}55`, opacity: pressed ? 0.7 : 1 }]}>
-               <Text style={[styles.startOptionText, { color: colors.primary }]}>{t('liveStartTenSeconds')}</Text>
-             </Pressable>
-           </View>
-           <Pressable accessibilityRole="button" onPress={() => setStartOptionsVisible(false)} style={styles.startCancelButton}>
-             <Text style={[styles.startCancelText, { color: colors.mutedForeground }]}>{t('liveStartCancel')}</Text>
-           </Pressable>
-         </View> : null}
-         {!startOptionsVisible ? <Pressable testID="start-live-countdown" accessibilityRole="button" onPress={() => setStartOptionsVisible(true)} style={({ pressed }) => [styles.startLiveButton, { backgroundColor: colors.primary, opacity: pressed ? 0.76 : 1 }]}>
-           <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
-           <Text style={[styles.startLiveButtonText, { color: colors.primaryForeground }]}>{t('liveStart')}</Text>
-         </Pressable> : null}
-       </View> : null}
-       {countdown !== null ? <View pointerEvents="none" style={styles.countdownOverlay}>
-         <Animated.Text style={[styles.countdownNumber, { color: colors.primaryForeground, opacity: countdownPulse.interpolate({ inputRange: [0, 1], outputRange: [0.68, 1] }), transform: [{ scale: countdownPulse.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1.08] }) }] }]}>{countdown}</Animated.Text>
-         <Text style={[styles.countdownLabel, { color: colors.primaryForeground }]}>{t('liveStarting')}</Text>
-       </View> : null}
+
+        <Pressable
+          testID={isStarted ? 'live-workout-reps-panel' : 'start-live-countdown'}
+          accessibilityRole="button"
+          accessibilityLabel={isStarted ? `${analysis.state.reps} ${t('reps')}` : t('liveStart')}
+          disabled={isStarted || countdown !== null || showFormGuide}
+          onPress={() => setStartOptionsVisible((value) => !value)}
+          scaleTo={0.95}
+          style={styles.dial}
+        >
+          <Svg width={DIAL} height={DIAL} style={StyleSheet.absoluteFill}>
+            {Array.from({ length: DIAL_TICKS }, (_, index) => {
+              const angleRad = (index / DIAL_TICKS) * Math.PI * 2 - Math.PI / 2;
+              const lit = dialFill * DIAL_TICKS > index;
+              const inner = DIAL / 2 - 12;
+              const outer = DIAL / 2 - 4;
+              return <Line key={index} x1={DIAL / 2 + Math.cos(angleRad) * inner} y1={DIAL / 2 + Math.sin(angleRad) * inner} x2={DIAL / 2 + Math.cos(angleRad) * outer} y2={DIAL / 2 + Math.sin(angleRad) * outer} stroke={lit ? dialTone : 'rgba(255,255,255,0.18)'} strokeWidth={3} strokeLinecap="round" />;
+            })}
+          </Svg>
+          <View style={[styles.dialCore, isStarted || countdown !== null ? null : styles.dialCoreIdle]}>
+            {countdown !== null
+              ? <Animated.Text style={[styles.dialNumber, { transform: [{ scale: countdownPulse.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1.06] }) }] }]}>{countdown}</Animated.Text>
+              : isStarted
+                ? <>
+                  <Animated.Text style={[styles.dialNumber, { transform: [{ scale: repPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] }) }] }]}>{analysis.state.reps}</Animated.Text>
+                  <Text style={styles.dialLabel}>{t('reps').toLocaleUpperCase(language)}</Text>
+                </>
+                : <>
+                  <Ionicons name={startOptionsVisible ? 'close' : 'arrow-forward'} size={22} color="#0A0B0D" />
+                  <Text style={styles.dialStart}>{startOptionsVisible ? t('liveStartCancel') : t('liveStart')}</Text>
+                </>}
+          </View>
+        </Pressable>
+
+        <View style={styles.sideStat}>
+          {startOptionsVisible && !isStarted && countdown === null
+            ? <Pressable testID="start-live-10-seconds" accessibilityRole="button" onPress={() => beginCountdown(10)} style={styles.delayChip}><Text numberOfLines={1} style={styles.delayChipText}>{t('liveStartTenSeconds')}</Text></Pressable>
+            : <>
+              <Text style={styles.sideValue}>{formatElapsed(elapsed)}</Text>
+              <Text style={styles.sideLabel}>{timeLabel.toLocaleUpperCase(language)}</Text>
+            </>}
+        </View>
+      </View>
+    </View>
        {showFormGuide ? <View style={styles.guideBackdrop}>
          <View style={[styles.guideCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
            <View style={styles.guideHeader}>
@@ -272,7 +391,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
                <Ionicons name="close" size={18} color={colors.foreground} />
              </Pressable>
            </View>
-            <Image source={guideImageForKind(kind)} resizeMode="contain" style={styles.guideImage} />
+            <RigDemo kind={kind} tone="#3DD68C" />
            <Text style={[styles.guideBody, { color: colors.foreground }]}>{directionHint}</Text>
            <View style={[styles.guideTip, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}>
              <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
@@ -293,6 +412,7 @@ export default function LiveWorkoutScreen() {
   const t = (key: LiveWorkoutCopyKey) => liveTranslate(language, key);
   const kind = exerciseKindFromName(params.exercise ?? '') ?? 'squat';
 
+  if (Platform.OS === 'web' && isDesignPreview()) return <LiveSession kind={kind} preview renderCamera={(onPose) => <SimulatedPoseSource kind={kind} onPose={onPose} />} />;
   if (Platform.OS === 'web') return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('cameraUnavailableBody')} />;
   return <NativeLiveCamera kind={kind} />;
 }
@@ -300,7 +420,33 @@ export default function LiveWorkoutScreen() {
 const styles = StyleSheet.create({
   cameraRoot: { flex: 1, backgroundColor: '#020B18' },
   hiddenCamera: { opacity: 0 },
-  cameraShade: { ...StyleSheet.absoluteFill, backgroundColor: '#020B1830' },
+  cameraShade: { ...StyleSheet.absoluteFill, backgroundColor: '#020B1826' },
+  hudTop: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 8 },
+  glassCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(10,12,18,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
+  titlePill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderRadius: 22, paddingHorizontal: 16, backgroundColor: 'rgba(10,12,18,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', maxWidth: '60%' },
+  recDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF4D5E' },
+  titlePillLive: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.4, color: '#FF8A95' },
+  titleDivider: { width: 1, height: 14, backgroundColor: 'rgba(255,255,255,0.2)' },
+  titlePillText: { fontFamily: 'Inter_700Bold', fontSize: 15, color: '#FFFFFF', flexShrink: 1 },
+  toastWrap: { position: 'absolute', left: 20, right: 20, alignItems: 'center', zIndex: 7 },
+  toast: { flexDirection: 'row', alignItems: 'center', gap: 10, maxWidth: '100%', borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(10,12,18,0.62)' },
+  toastDot: { width: 8, height: 8, borderRadius: 4 },
+  toastText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18, color: '#FFFFFF' },
+  dock: { position: 'absolute', left: 0, right: 0, bottom: 0, alignItems: 'center', zIndex: 9 },
+  dockFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 280, zIndex: 8 },
+  dockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  dockHint: { height: 18, fontFamily: 'Inter_600SemiBold', fontSize: 12, letterSpacing: 0.4, color: 'rgba(255,255,255,0.75)', marginBottom: 10 },
+  sideStat: { width: 96, alignItems: 'center' },
+  sideValue: { fontFamily: 'Inter_700Bold', fontSize: 20, letterSpacing: -0.4, color: '#FFFFFF' },
+  sideLabel: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1.3, color: 'rgba(255,255,255,0.55)', marginTop: 3 },
+  delayChip: { height: 44, minWidth: 92, borderRadius: 22, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.14)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' },
+  delayChipText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#FFFFFF' },
+  dial: { width: DIAL, height: DIAL, alignItems: 'center', justifyContent: 'center' },
+  dialCore: { width: DIAL - 40, height: DIAL - 40, borderRadius: (DIAL - 40) / 2, backgroundColor: 'rgba(10,12,18,0.72)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  dialCoreIdle: { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' },
+  dialNumber: { fontFamily: 'Inter_700Bold', fontSize: 46, lineHeight: 50, letterSpacing: -1.5, color: '#FFFFFF' },
+  dialLabel: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1.6, color: 'rgba(255,255,255,0.6)', marginTop: 2 },
+  dialStart: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#0A0B0D', marginTop: 4 },
   neonFrame: { ...StyleSheet.absoluteFill, margin: 18, borderWidth: 2, borderRadius: 30, shadowOpacity: 0.7, shadowRadius: 18 },
   liveHeader: { position: 'absolute', left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 8 },
   liveBadge: { height: 32, borderRadius: 12, paddingHorizontal: 10, flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -363,7 +509,7 @@ const styles = StyleSheet.create({
   guideEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1, textTransform: 'uppercase' },
   guideTitle: { fontFamily: 'Inter_700Bold', fontSize: 20, lineHeight: 24, marginTop: 1 },
   guideClose: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  guideImage: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: '#0B0D0C' },
+  guideImage: { width: '100%', aspectRatio: 1, borderRadius: 16, backgroundColor: '#0B0F1A', overflow: 'hidden' },
   guideBody: { fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18, marginTop: 11 },
   guideTip: { minHeight: 42, borderRadius: 12, borderWidth: 1, paddingHorizontal: 9, paddingVertical: 7, marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 7 },
   guideTipText: { flex: 1, fontFamily: 'Inter_500Medium', fontSize: 10, lineHeight: 14 },
