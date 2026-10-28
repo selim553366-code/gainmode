@@ -434,3 +434,31 @@ mtime_ms = 1790428818051
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/4c23d34b-fe60-4d75-b95c-81085d197909/bc2edb01-b94a-429c-a920-9769de45862f"
 storage_version_token = "1790428838467625"
 content_type = "image/png"
+
+[[outputs]]
+id = "CvmaIFRX9pIkuR0vfLJl4"
+uri = "file://generated-artifacts/weather-backgrounds/weather-backgrounds-overview.png"
+type = "image"
+title = "32 hava durumu arka planı"
+description = "Uygulamadaki 32 hava durumu kategorisinin statik görsel önizlemesi."
+logical_id = "871a5804-6d56-40a4-b100-b0c16b8001da"
+content_hash = "sha256:9d29ee803f017828912260d87205f2d387657090b6d7e06f5ebc656a4b07e20c"
+size = 5945794
+mtime_ms = 1793200458867
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/871a5804-6d56-40a4-b100-b0c16b8001da/7f721d26-b49a-4b27-b45b-06b19327625d"
+storage_version_token = "1793200498090570"
+content_type = "image/png"
+
+[[outputs]]
+id = "dc3PiTaL0bzzVFMQPhAfk"
+uri = "file://generated-artifacts/weather-backgrounds.zip"
+type = "unspecified"
+title = "32 ayrı hava durumu görseli"
+description = "Her arka plan ayrı PNG dosyası olarak ve önizleme sayfasıyla ZIP içinde."
+logical_id = "984a7ab9-aee1-46fc-b0ea-ebfb52102d7e"
+content_hash = "sha256:3510a12f830a290587e4f95553756645c056d3f72ecaa52e58f2d3beb5ed117c"
+size = 7617194
+mtime_ms = 1793200459255
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/984a7ab9-aee1-46fc-b0ea-ebfb52102d7e/57677961-f842-4622-9266-53c04d346653"
+storage_version_token = "1793200499669337"
+content_type = "application/octet-stream"
