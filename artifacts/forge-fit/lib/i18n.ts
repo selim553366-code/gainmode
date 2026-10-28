@@ -24,7 +24,7 @@ const subscriptionAccessLabel: Record<Language, string> = {
   es: 'GainMode Access',
 };
 
-type PremiumCurrency = 'USD' | 'EUR' | 'GBP';
+type PremiumCurrency = 'USD' | 'EUR' | 'GBP' | 'TRY';
 
 const premiumPreviewPriceByLanguage: Record<Language, { locale: string; currency: PremiumCurrency }> = {
   tr: { locale: 'en-US', currency: 'USD' },
@@ -213,24 +213,32 @@ const streakUiTranslations: Record<Language, {
   es: { streakTitle: 'Racha diaria', streakSubtitle: 'Un poco más fuerte cada día.', currentStreak: 'Racha actual', streakDays: 'días', streakCalendarTitle: 'Últimos 7 días', streakToday: 'Hoy', streakCompleted: 'Completado', streakKeepGoing: 'Completa una actividad hoy para mantener vivo tu fuego.' },
 };
 
-export function getPremiumPreviewPrice(language: Language, amount = 7.99) {
+export function getPremiumPreviewProduct(language: Language, amount: number) {
   const selected = premiumPreviewPriceByLanguage[language];
   const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale.replace('_', '-').toLowerCase();
   const usesBritishEnglish = language === 'en' && deviceLocale.startsWith('en-gb');
   const locale = usesBritishEnglish ? 'en-GB' : selected.locale;
   const currency: PremiumCurrency = usesBritishEnglish ? 'GBP' : selected.currency;
 
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return {
+    price: amount,
+    currencyCode: currency,
+    priceString: new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount),
+  };
+}
+
+export function getPremiumPreviewPrice(language: Language, amount = 6.99) {
+  return getPremiumPreviewProduct(language, amount).priceString;
 }
 
 export function getPremiumPreviewPriceOptions(language: Language) {
   const labels = premiumPriceOptionLabels[language];
-  return `${labels.monthly} ${getPremiumPreviewPrice(language, 7.99)} • ${labels.annual} ${getPremiumPreviewPrice(language, 54.99)}`;
+  return `${labels.monthly} ${getPremiumPreviewPrice(language, 6.99)} • ${labels.annual} ${getPremiumPreviewPrice(language, 49.99)}`;
 }
 
 const profileEditTranslations = {

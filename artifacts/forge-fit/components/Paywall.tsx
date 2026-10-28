@@ -19,7 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
-import { translate, type TranslationKey } from '@/lib/i18n';
+import { getPremiumPreviewProduct, translate, type TranslationKey } from '@/lib/i18n';
 import { useSubscription } from '@/lib/revenuecat';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
@@ -30,10 +30,6 @@ import { EASE_OUT, PressableScale as Pressable } from '@/components/Motion';
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type Plan = 'monthly' | 'annual';
 type DisplayProduct = { price: number; currencyCode: string; priceString: string };
-
-// The web preview has no store, so it shows the launch prices; real devices always show the store's own prices.
-const PREVIEW_MONTHLY: DisplayProduct = { price: 3.99, currencyCode: 'USD', priceString: '$3.99' };
-const PREVIEW_ANNUAL: DisplayProduct = { price: 24.99, currencyCode: 'USD', priceString: '$24.99' };
 
 function formatPrice(value: number, currencyCode: string) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode }).format(value);
@@ -190,8 +186,9 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const [previewBusy, setPreviewBusy] = React.useState(false);
 
   const usePreviewPrices = previewMode || Platform.OS === 'web';
-  const monthly: DisplayProduct | undefined = monthlyPackage?.product ?? (usePreviewPrices ? PREVIEW_MONTHLY : undefined);
-  const annual: DisplayProduct | undefined = annualPackage?.product ?? (usePreviewPrices ? PREVIEW_ANNUAL : undefined);
+  // Preview prices are illustrative; real purchases always use localized store products.
+  const monthly: DisplayProduct | undefined = monthlyPackage?.product ?? (usePreviewPrices ? getPremiumPreviewProduct(language, 6.99) : undefined);
+  const annual: DisplayProduct | undefined = annualPackage?.product ?? (usePreviewPrices ? getPremiumPreviewProduct(language, 49.99) : undefined);
   const savings = calculateAnnualSavingsPercent(monthly, annual);
   const annualPerMonth = formatAnnualMonthlyPrice(annual);
   const yearOfMonthly = monthly && annual && monthly.currencyCode === annual.currencyCode ? formatPrice(monthly.price * 12, monthly.currencyCode) : null;
