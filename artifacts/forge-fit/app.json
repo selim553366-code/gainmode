@@ -18,6 +18,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.forgefit2.app",
+      "appleTeamId": "DKA5B5CH29",
       "supportsTablet": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
