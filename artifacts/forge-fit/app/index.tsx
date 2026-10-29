@@ -1,8 +1,7 @@
 import React from 'react';
 import { Animated, Easing, Image, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import ReAnimated, { Easing as ReEasing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
-import Svg, { Circle as SvgCircle, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { ProgressRing } from '@/components/NutritionVisuals';
+import Svg, { Circle as SvgCircle, Defs, G as SvgG, Line as SvgLine, LinearGradient as SvgLinearGradient, Path as SvgPath, RadialGradient, Stop } from 'react-native-svg';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -1163,10 +1162,9 @@ function PlanBuildingScreen({ request, onComplete }: { request: () => Promise<Ai
     <OnboardingTopBar />
     <View style={ui.centerBody}>
       <GlowStage size={260}>
-        <ProgressRing value={percent / 100} size={196} stroke={10} color="#7FA6FF" gradientTo={colors.accent} track={`${colors.foreground}12`}>
-          <Text style={[ui.buildPercent, { color: colors.foreground }]}>{percent}<Text style={ui.buildPercentSign}>%</Text></Text>
-        </ProgressRing>
+        <CurlLift progress={percent / 100} />
       </GlowStage>
+      <Text style={[ui.buildPercent, { color: colors.foreground }]}>{percent}<Text style={ui.buildPercentSign}>%</Text></Text>
       <Text style={[ui.title, ui.centerText, { color: colors.foreground }]}>{t('planBuildingTitle')}</Text>
       <View style={[ui.aiStatus, { backgroundColor: `${result?.plan ? colors.success : colors.accent}16` }]}>
         {result ? <Ionicons name={result.plan ? 'flash-outline' : 'checkmark-circle'} size={14} color={result.plan ? colors.success : colors.accent} /> : <AiTypingDots color={colors.accent} />}
@@ -1189,6 +1187,70 @@ function PlanBuildingScreen({ request, onComplete }: { request: () => Promise<Ai
       </View>}
     </View>
   </View>;
+}
+
+const CURL_ELBOW = { x: 106, y: 132 };
+const CURL_FOREARM = 46;
+const CURL_TOP = 148;
+
+/** Hand position for a forearm angle, 0° hanging straight down and growing as the weight comes up in front. */
+function curlHand(angle: number) {
+  const radians = (angle * Math.PI) / 180;
+  return { x: CURL_ELBOW.x + CURL_FOREARM * Math.sin(radians), y: CURL_ELBOW.y + CURL_FOREARM * Math.cos(radians) };
+}
+
+/**
+ * The plan-building loader: an athlete doing a dumbbell biceps curl, seen from the side. The
+ * forearm follows the build progress from fully extended at 0% to the top of the curl at 100%,
+ * and the dumbbell leaves an accent trail along its arc. At the top a few sparks pop out.
+ */
+function CurlLift({ progress }: { progress: number }) {
+  const colors = useColors();
+  const id = React.useId().replace(/:/g, '');
+  const clamped = Math.max(0, Math.min(1, progress));
+  const eased = clamped < 0.5 ? 2 * clamped * clamped : 1 - Math.pow(-2 * clamped + 2, 2) / 2;
+  const angle = eased * CURL_TOP;
+  const hand = curlHand(angle);
+  const start = curlHand(0);
+  const end = curlHand(CURL_TOP);
+  const arc = (to: { x: number; y: number }) => `M ${start.x} ${start.y} A ${CURL_FOREARM} ${CURL_FOREARM} 0 0 0 ${to.x} ${to.y}`;
+  const body = colors.foreground;
+  const done = clamped >= 1;
+  return <Svg width={220} height={250} viewBox="0 0 220 250">
+    <Defs>
+      <SvgLinearGradient id={`${id}t`} x1="0" y1="1" x2="1" y2="0"><Stop offset="0" stopColor="#7FA6FF" /><Stop offset="1" stopColor={colors.accent} /></SvgLinearGradient>
+      <RadialGradient id={`${id}d`} cx="35%" cy="30%" r="70%"><Stop offset="0" stopColor="#BFD3FF" /><Stop offset="0.55" stopColor={colors.accent} /><Stop offset="1" stopColor="#1733B8" /></RadialGradient>
+    </Defs>
+    {/* Floor shadow */}
+    <SvgPath d="M 62 236 Q 104 228 146 236 Q 104 244 62 236 Z" fill={body} opacity={0.08} />
+    {/* The arc the dumbbell travels, faint in full and bright as far as it has come */}
+    <SvgPath d={arc(end)} stroke={body} strokeOpacity={0.12} strokeWidth={3} strokeDasharray="2 7" strokeLinecap="round" fill="none" />
+    {angle > 1 ? <SvgPath d={arc(hand)} stroke={`url(#${id}t)`} strokeWidth={5} strokeLinecap="round" fill="none" /> : null}
+    {/* Back arm and back leg sit a shade lighter */}
+    <SvgG opacity={0.35} stroke={body} strokeLinecap="round" strokeWidth={13} fill="none">
+      <SvgPath d="M 96 86 L 90 132 L 88 170" />
+      <SvgPath d="M 98 150 L 88 192 L 84 232" />
+    </SvgG>
+    {/* Body */}
+    <SvgG stroke={body} strokeLinecap="round" strokeLinejoin="round" fill="none">
+      <SvgPath d="M 100 84 Q 96 118 99 150" strokeWidth={22} />
+      <SvgPath d="M 99 150 L 108 192 L 104 232" strokeWidth={15} />
+      <SvgLine x1={104} y1={232} x2={120} y2={233} strokeWidth={9} />
+      <SvgLine x1={84} y1={232} x2={98} y2={233} strokeWidth={9} strokeOpacity={0.35} />
+      {/* Upper arm stays pinned to the side, the forearm does the work */}
+      <SvgLine x1={102} y1={88} x2={CURL_ELBOW.x} y2={CURL_ELBOW.y} strokeWidth={14} />
+      <SvgLine x1={CURL_ELBOW.x} y1={CURL_ELBOW.y} x2={hand.x} y2={hand.y} strokeWidth={12} />
+    </SvgG>
+    <SvgCircle cx={104} cy={56} r={17} fill={body} />
+    {/* Dumbbell seen end-on: a plate with its handle cap */}
+    <SvgCircle cx={hand.x} cy={hand.y} r={15} fill={`url(#${id}d)`} />
+    <SvgCircle cx={hand.x} cy={hand.y} r={5} fill="#FFFFFF" opacity={0.85} />
+    {done ? <SvgG stroke={colors.accent} strokeWidth={3} strokeLinecap="round">
+      <SvgLine x1={hand.x + 20} y1={hand.y - 12} x2={hand.x + 30} y2={hand.y - 18} />
+      <SvgLine x1={hand.x + 22} y1={hand.y + 2} x2={hand.x + 34} y2={hand.y + 2} />
+      <SvgLine x1={hand.x + 8} y1={hand.y - 22} x2={hand.x + 12} y2={hand.y - 33} />
+    </SvgG> : null}
+  </Svg>;
 }
 
 /** Three dots that bounce in turn while the AI is working. */
