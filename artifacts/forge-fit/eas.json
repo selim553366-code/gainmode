@@ -16,7 +16,7 @@
       "autoIncrement": true,
       "environment": "production",
       "node": "22.13.0",
-      "corepack": true,
+      "corepack": false,
       "pnpm": "10.26.1",
       "env": {
         "EXPO_PUBLIC_DOMAIN": "unfolded-superior-webpages.replit.app"
