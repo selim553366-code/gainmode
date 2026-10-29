@@ -769,9 +769,9 @@ function OnboardingCTA({ label, onPress, disabled = false, testID }: { label: st
   const colors = useColors();
   const insets = useSafeAreaInsets();
   return <View style={[ui.ctaWrap, { paddingBottom: insets.bottom + 16 }]}>
-    <Pressable testID={testID} accessibilityRole="button" disabled={disabled} onPress={() => { triggerHaptic(); onPress(); }} scaleTo={0.98} style={[ui.cta, { backgroundColor: colors.primary, opacity: disabled ? 0.6 : 1 }]}>
-      <Text style={ui.ctaText}>{label}</Text>
-      <View style={ui.ctaArrow}><Ionicons name="arrow-forward" size={18} color="#FFFFFF" /></View>
+    <Pressable testID={testID} accessibilityRole="button" disabled={disabled} onPress={() => { triggerHaptic(); onPress(); }} scaleTo={0.98} style={[ui.cta, { backgroundColor: colors.accent, opacity: disabled ? 0.6 : 1 }]}>
+      <Text style={[ui.ctaText, { color: colors.accentForeground }]}>{label}</Text>
+      <View style={ui.ctaArrow}><Ionicons name="arrow-forward" size={18} color={colors.accentForeground} /></View>
     </Pressable>
   </View>;
 }
@@ -926,7 +926,7 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
           <View style={[ui.floatChip, { right: 6, top: stage * 0.55, backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="barbell-outline" size={14} color={colors.foreground} /><Ionicons name="flame" size={14} color={colors.orange} /></View>
         </View></Rise>
         <View>
-          {words.map((line, index) => <Rise key={line} delay={160 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.primary : colors.foreground }]}>{line}</Text></Rise>)}
+          {words.map((line, index) => <Rise key={line} delay={160 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.accent : colors.foreground }]}>{line}</Text></Rise>)}
           <Rise delay={360}><Text style={[ui.subtitle, { color: colors.mutedForeground }]}>{t('welcomeHeroSubtitle')}</Text></Rise>
         </View>
       </View>
