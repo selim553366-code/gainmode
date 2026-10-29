@@ -11,6 +11,7 @@ import ServicesPage from '@/pages/services';
 import AboutPage from '@/pages/about';
 import ContactPage from '@/pages/contact';
 import LegalPage from '@/pages/legal';
+import AccountDeletionPage from '@/pages/account-deletion';
 import NotFound from '@/pages/not-found';
 
 function Router() {
@@ -26,6 +27,7 @@ function Router() {
         <Route path="/privacy">{() => <LegalPage kind="privacy" />}</Route>
         <Route path="/terms">{() => <LegalPage kind="terms" />}</Route>
         <Route path="/support">{() => <LegalPage kind="support" />}</Route>
+        <Route path="/delete-account" component={AccountDeletionPage} />
         {/* Addresses from the previous site keep working. */}
         <Route path="/apps"><Redirect to="/work" replace /></Route>
         <Route path="/apps/gainmode"><Redirect to="/work/gainmode" replace /></Route>
@@ -55,6 +57,7 @@ function PageMetadata() {
       '/privacy': [`${t.legal.privacyTitle} — Globe Studios`, t.legal.privacyBody],
       '/terms': [`${t.legal.termsTitle} — Globe Studios`, t.legal.termsBody],
       '/support': [`${t.legal.supportTitle} — Globe Studios`, t.legal.supportBody],
+      '/delete-account': ['Account and data deletion — GainMode', 'Learn how to delete GainMode data stored on your device and manage your subscription.'],
     };
     const [title, description] = pages[location] ?? [`${t.notFound.title} — Globe Studios`, t.notFound.body];
     const setMeta = (selector: string, attribute: 'name' | 'property', key: string, content: string) => {
