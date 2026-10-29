@@ -28,7 +28,7 @@ function LanguageSwitch({ className = '' }: { className?: string }) {
 }
 
 export function SiteLayout({ children }: { children: ReactNode }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -108,6 +108,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
           <div className="flex flex-col gap-3 text-sm">
             <Link href="/privacy" className="text-white/60 hover:text-white">{t.footer.privacy}</Link>
             <Link href="/terms" className="text-white/60 hover:text-white">{t.footer.terms}</Link>
+            <Link href={`/delete-account?lang=${lang}`} className="text-white/60 hover:text-white">{t.footer.deleteAccount}</Link>
             <Link href="/support" className="text-white/60 hover:text-white">{t.footer.support}</Link>
             <LanguageSwitch className="mt-2 self-start" />
           </div>

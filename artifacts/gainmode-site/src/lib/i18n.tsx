@@ -68,7 +68,7 @@ const en = {
     supportLabel: 'Product support',
     supportBody: 'Need help with one of our apps? Include the app name and a short description of the issue.',
   },
-  footer: { line: 'Apps and websites, made with care.', legal: 'All rights reserved.', privacy: 'Privacy', terms: 'Terms', support: 'Support' },
+  footer: { line: 'Apps and websites, made with care.', legal: 'All rights reserved.', privacy: 'Privacy', terms: 'Terms', deleteAccount: 'Delete account and data', support: 'Support' },
   legal: {
     privacyTitle: 'Privacy Policy',
     privacyBody: 'We only collect what our products need to work. We do not sell your data, and we protect it with industry-standard practices. Each app explains in its own privacy policy which data it uses and why.',
@@ -203,7 +203,7 @@ const tr: Copy = {
     supportLabel: 'Ürün desteği',
     supportBody: 'Uygulamalarımızdan biriyle ilgili yardıma mı ihtiyacın var? Uygulamanın adını ve sorunu kısaca yaz.',
   },
-  footer: { line: 'Özenle yapılan uygulamalar ve web siteleri.', legal: 'Tüm hakları saklıdır.', privacy: 'Gizlilik', terms: 'Şartlar', support: 'Destek' },
+  footer: { line: 'Özenle yapılan uygulamalar ve web siteleri.', legal: 'Tüm hakları saklıdır.', privacy: 'Gizlilik', terms: 'Şartlar', deleteAccount: 'Hesap ve verileri silme', support: 'Destek' },
   legal: {
     privacyTitle: 'Gizlilik Politikası',
     privacyBody: 'Ürünlerimizin çalışması için yalnızca gereken bilgileri topluyoruz. Verilerini satmıyoruz ve sektör standartlarında koruyoruz. Her uygulama hangi verileri neden kullandığını kendi gizlilik politikasında açıklar.',
