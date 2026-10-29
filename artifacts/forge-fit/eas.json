@@ -21,6 +21,9 @@
       "android": {
         "image": "ubuntu-26.04-jdk-17-ndk-r27b-sdk-58"
       },
+      "ios": {
+        "image": "sdk-58"
+      },
       "env": {
         "EXPO_PUBLIC_DOMAIN": "unfolded-superior-webpages.replit.app"
       }
