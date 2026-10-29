@@ -276,7 +276,7 @@ function writePreviewFlag() {
 
 export default function EntryScreen() {
   const colors = useColors();
-  const { onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen } = useFit();
+  const { hydrated, onboardingComplete, introSeen, isPremium, coachIntroPending, setIntroSeen } = useFit();
   const params = useLocalSearchParams<{ edit?: string; fields?: string; preview?: string }>();
   const editMode = params.edit === '1';
   const previewHome = Platform.OS === 'web' && params.preview === 'home';
@@ -301,6 +301,7 @@ export default function EntryScreen() {
     }
   }, [editMode, entryRoute, premiumCelebrationVisible, previewHome, previewPaywall]);
   if (previewHome) return <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
+  if (!hydrated) return <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
   if (editMode) return <OnboardingQuestions editMode selectedFields={selectedFields} />;
   if (entryRoute === 'onboarding') return <OnboardingQuestions />;
   if (entryRoute === 'intro') return <IntroScreen onDone={setIntroSeen} />;

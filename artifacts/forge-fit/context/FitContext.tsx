@@ -13,6 +13,7 @@ import { addExerciseToPlan, buildWorkoutPlanForCycle, clampWorkoutSets, getShare
 import { clearLocalAiUsageIdentity } from '@/lib/aiUsage';
 import { logCompletedExercises, restoreActivityLog, unlogExercises, type ActivityEntry } from '@/lib/progressCharts';
 import { applyAiExercises, blendNutrition, type AiPlan } from '@/lib/aiPlan';
+import { canRestoreFitStateVersion, mergePersistedFitState } from '@/lib/fitStateMigration';
 
 export type Meal = { id: string; name: string; type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; calories: number; protein: number; carbs: number; fat: number; imageUri?: string; date?: string };
 export type SavedMeal = Omit<Meal, 'date'> & { savedAt: string };
@@ -349,11 +350,14 @@ export function FitProvider({ children }: { children: ReactNode }) {
     AsyncStorage.getItem('forge-fit-state').then((stored) => {
       if (stored) {
         const parsed = JSON.parse(stored) as Partial<FitState> & { water?: unknown; hydrationGoal?: unknown };
-        if (parsed.version === initialState.version || parsed.version === 5 || parsed.version === 4 || parsed.version === 3) {
+        if (!canRestoreFitStateVersion(parsed.version, initialState.version)) {
+          console.error('Saved GainMode data uses a newer or unsupported version; keeping it untouched.');
+          return;
+        }
+        {
           const { water: _legacyWater, hydrationGoal: _legacyHydrationGoal, ...storedState } = parsed;
           const merged = {
-            ...initialState,
-            ...storedState,
+            ...mergePersistedFitState(initialState, storedState),
             accountId: typeof parsed.accountId === 'string' && parsed.accountId.trim() ? parsed.accountId : initialState.accountId,
             registeredAt: typeof parsed.registeredAt === 'string'
               ? parsed.registeredAt
