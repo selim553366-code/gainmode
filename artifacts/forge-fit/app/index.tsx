@@ -1,8 +1,7 @@
 import React from 'react';
 import { Animated, Easing, Image, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import ReAnimated, { Easing as ReEasing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
-import Svg, { Circle as SvgCircle, Defs, RadialGradient, Stop } from 'react-native-svg';
-import { ProgressRing } from '@/components/NutritionVisuals';
+import Svg, { Circle as SvgCircle, Defs, G as SvgG, Line as SvgLine, LinearGradient as SvgLinearGradient, Path as SvgPath, RadialGradient, Stop } from 'react-native-svg';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -359,6 +358,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
   const [age, setAge] = React.useState(25);
   const [ageText, setAgeText] = React.useState('25');
   const [username, setUsername] = React.useState('');
+  const [nameFocused, setNameFocused] = React.useState(false);
   const [sex, setSex] = React.useState<BiologicalSex>('preferNot');
   const [activity, setActivity] = React.useState<ActivityLevel>('light');
   const [trainingDays, setTrainingDays] = React.useState(3);
@@ -611,7 +611,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     return [...current, day];
   }); };
   const renderBody = () => {
-    if (activeStep === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.textInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></>;
+    if (activeStep === 0) return <><Text style={[styles.questionHint, { color: colors.mutedForeground }]}>{t('nameFirstHint')}</Text><TextInput autoFocus autoCapitalize="none" value={username} onChangeText={setUsername} onFocus={() => setNameFocused(true)} onBlur={() => setNameFocused(false)} placeholder={t('usernamePlaceholder')} placeholderTextColor={colors.mutedForeground} cursorColor={colors.foreground} selectionColor={`${colors.foreground}40`} style={[styles.textInput, styles.textInputNoOutline, { color: colors.foreground, backgroundColor: colors.card, borderColor: nameFocused ? colors.foreground : colors.border, borderWidth: nameFocused ? 1.5 : 1 }]} /></>;
        if (activeStep === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><View style={styles.choiceList}><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View></View> : null}</>;
       if (activeStep === 2) return <View style={styles.measurementSection}>
        <UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} />
@@ -1162,10 +1162,9 @@ function PlanBuildingScreen({ request, onComplete }: { request: () => Promise<Ai
     <OnboardingTopBar />
     <View style={ui.centerBody}>
       <GlowStage size={260}>
-        <ProgressRing value={percent / 100} size={196} stroke={10} color="#7FA6FF" gradientTo={colors.accent} track={`${colors.foreground}12`}>
-          <Text style={[ui.buildPercent, { color: colors.foreground }]}>{percent}<Text style={ui.buildPercentSign}>%</Text></Text>
-        </ProgressRing>
+        <CurlLift progress={percent / 100} />
       </GlowStage>
+      <Text style={[ui.buildPercent, { color: colors.foreground }]}>{percent}<Text style={ui.buildPercentSign}>%</Text></Text>
       <Text style={[ui.title, ui.centerText, { color: colors.foreground }]}>{t('planBuildingTitle')}</Text>
       <View style={[ui.aiStatus, { backgroundColor: `${result?.plan ? colors.success : colors.accent}16` }]}>
         {result ? <Ionicons name={result.plan ? 'flash-outline' : 'checkmark-circle'} size={14} color={result.plan ? colors.success : colors.accent} /> : <AiTypingDots color={colors.accent} />}
@@ -1188,6 +1187,70 @@ function PlanBuildingScreen({ request, onComplete }: { request: () => Promise<Ai
       </View>}
     </View>
   </View>;
+}
+
+const CURL_ELBOW = { x: 106, y: 132 };
+const CURL_FOREARM = 46;
+const CURL_TOP = 148;
+
+/** Hand position for a forearm angle, 0° hanging straight down and growing as the weight comes up in front. */
+function curlHand(angle: number) {
+  const radians = (angle * Math.PI) / 180;
+  return { x: CURL_ELBOW.x + CURL_FOREARM * Math.sin(radians), y: CURL_ELBOW.y + CURL_FOREARM * Math.cos(radians) };
+}
+
+/**
+ * The plan-building loader: an athlete doing a dumbbell biceps curl, seen from the side. The
+ * forearm follows the build progress from fully extended at 0% to the top of the curl at 100%,
+ * and the dumbbell leaves an accent trail along its arc. At the top a few sparks pop out.
+ */
+function CurlLift({ progress }: { progress: number }) {
+  const colors = useColors();
+  const id = React.useId().replace(/:/g, '');
+  const clamped = Math.max(0, Math.min(1, progress));
+  const eased = clamped < 0.5 ? 2 * clamped * clamped : 1 - Math.pow(-2 * clamped + 2, 2) / 2;
+  const angle = eased * CURL_TOP;
+  const hand = curlHand(angle);
+  const start = curlHand(0);
+  const end = curlHand(CURL_TOP);
+  const arc = (to: { x: number; y: number }) => `M ${start.x} ${start.y} A ${CURL_FOREARM} ${CURL_FOREARM} 0 0 0 ${to.x} ${to.y}`;
+  const body = colors.foreground;
+  const done = clamped >= 1;
+  return <Svg width={220} height={250} viewBox="0 0 220 250">
+    <Defs>
+      <SvgLinearGradient id={`${id}t`} x1="0" y1="1" x2="1" y2="0"><Stop offset="0" stopColor="#7FA6FF" /><Stop offset="1" stopColor={colors.accent} /></SvgLinearGradient>
+      <RadialGradient id={`${id}d`} cx="35%" cy="30%" r="70%"><Stop offset="0" stopColor="#BFD3FF" /><Stop offset="0.55" stopColor={colors.accent} /><Stop offset="1" stopColor="#1733B8" /></RadialGradient>
+    </Defs>
+    {/* Floor shadow */}
+    <SvgPath d="M 62 236 Q 104 228 146 236 Q 104 244 62 236 Z" fill={body} opacity={0.08} />
+    {/* The arc the dumbbell travels, faint in full and bright as far as it has come */}
+    <SvgPath d={arc(end)} stroke={body} strokeOpacity={0.12} strokeWidth={3} strokeDasharray="2 7" strokeLinecap="round" fill="none" />
+    {angle > 1 ? <SvgPath d={arc(hand)} stroke={`url(#${id}t)`} strokeWidth={5} strokeLinecap="round" fill="none" /> : null}
+    {/* Back arm and back leg sit a shade lighter */}
+    <SvgG opacity={0.35} stroke={body} strokeLinecap="round" strokeWidth={13} fill="none">
+      <SvgPath d="M 96 86 L 90 132 L 88 170" />
+      <SvgPath d="M 98 150 L 88 192 L 84 232" />
+    </SvgG>
+    {/* Body */}
+    <SvgG stroke={body} strokeLinecap="round" strokeLinejoin="round" fill="none">
+      <SvgPath d="M 100 84 Q 96 118 99 150" strokeWidth={22} />
+      <SvgPath d="M 99 150 L 108 192 L 104 232" strokeWidth={15} />
+      <SvgLine x1={104} y1={232} x2={120} y2={233} strokeWidth={9} />
+      <SvgLine x1={84} y1={232} x2={98} y2={233} strokeWidth={9} strokeOpacity={0.35} />
+      {/* Upper arm stays pinned to the side, the forearm does the work */}
+      <SvgLine x1={102} y1={88} x2={CURL_ELBOW.x} y2={CURL_ELBOW.y} strokeWidth={14} />
+      <SvgLine x1={CURL_ELBOW.x} y1={CURL_ELBOW.y} x2={hand.x} y2={hand.y} strokeWidth={12} />
+    </SvgG>
+    <SvgCircle cx={104} cy={56} r={17} fill={body} />
+    {/* Dumbbell seen end-on: a plate with its handle cap */}
+    <SvgCircle cx={hand.x} cy={hand.y} r={15} fill={`url(#${id}d)`} />
+    <SvgCircle cx={hand.x} cy={hand.y} r={5} fill="#FFFFFF" opacity={0.85} />
+    {done ? <SvgG stroke={colors.accent} strokeWidth={3} strokeLinecap="round">
+      <SvgLine x1={hand.x + 20} y1={hand.y - 12} x2={hand.x + 30} y2={hand.y - 18} />
+      <SvgLine x1={hand.x + 22} y1={hand.y + 2} x2={hand.x + 34} y2={hand.y + 2} />
+      <SvgLine x1={hand.x + 8} y1={hand.y - 22} x2={hand.x + 12} y2={hand.y - 33} />
+    </SvgG> : null}
+  </Svg>;
 }
 
 /** Three dots that bounce in turn while the AI is working. */
@@ -1423,6 +1486,8 @@ const styles = StyleSheet.create({
   gymLevels: { gap: 8, marginTop: 16 },
   subLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginBottom: 1 },
   textInput: { height: 64, borderRadius: 20, borderWidth: 1, paddingHorizontal: 20, fontFamily: 'Inter_600SemiBold', fontSize: 20 },
+  // The focus ring is drawn by the border itself, so drop the browser's own outline on web.
+  textInputNoOutline: Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {},
   rulerCard: { borderRadius: 26, borderWidth: 1, paddingHorizontal: 18, paddingVertical: 20 },
   rulerValue: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 7, marginBottom: 23 },
   rulerNumber: { fontFamily: 'Inter_700Bold', fontSize: 52, letterSpacing: -2, textAlign: 'center' },
@@ -1641,7 +1706,7 @@ const ui = StyleSheet.create({
   progressFill: { height: '100%', borderRadius: 2 },
   ctaWrap: { paddingHorizontal: 20, paddingTop: 10 },
   cta: { height: 60, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  ctaText: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.2, color: '#FFFFFF' },
+  ctaText: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.2 },
   ctaArrow: { alignItems: 'center', justifyContent: 'center' },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase' },
   title: { fontFamily: 'Inter_700Bold', fontSize: 32, lineHeight: 38, letterSpacing: -1.1, marginTop: 10 },
