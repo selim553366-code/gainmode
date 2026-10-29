@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, Alert, Animated, Easing, Image, Modal, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Easing, Image, Linking, Modal, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PressableScale as Pressable } from '@/components/Motion';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -20,8 +20,7 @@ import { estimateWorkoutCalories, getWorkoutForDate } from '@/lib/workoutPlan';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Apple, Bookmark, Camera, ImagePlus, Moon, Plus, ScanBarcode, Search, Sun, Sunrise, Trash2, Utensils, X } from 'lucide-react-native';
 import { WeekCalories } from '@/components/NutritionVisuals';
-import { ScanFrame, scanWindow } from '@/components/ScanFrame';
-import { isDesignPreview } from '@/lib/designPreview';
+import { ScanFrame } from '@/components/ScanFrame';
 import { calorieAdherence } from '@/lib/progressCharts';
 
 const formatNutrition = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
@@ -75,13 +74,14 @@ function PhotoAnalysisTransfer({ uri, phase, sendingLabel, aiBoxLabel, analyzing
   </View>;
 }
 
-function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, hint, healthySlogan, permissionText, unavailableText, allowCameraLabel, closeLabel, captureLabel, flipLabel, sendPhotoLabel, retakeLabel, photoGuidance }: { visible: boolean; onClose: () => void; onScanned?: (data: string) => void; onPhoto?: (photo: CapturedPhoto) => void; mode: CaptureMode; title: string; hint: string; healthySlogan: string; permissionText: string; unavailableText: string; allowCameraLabel: string; closeLabel: string; captureLabel: string; flipLabel: string; sendPhotoLabel: string; retakeLabel: string; photoGuidance: string }) {
+function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, hint, healthySlogan, permissionText, captureErrorText, allowCameraLabel, settingsLabel, closeLabel, captureLabel, flipLabel, sendPhotoLabel, retakeLabel, photoGuidance }: { visible: boolean; onClose: () => void; onScanned?: (data: string) => void; onPhoto?: (photo: CapturedPhoto) => void; mode: CaptureMode; title: string; hint: string; healthySlogan: string; permissionText: string; captureErrorText: string; allowCameraLabel: string; settingsLabel: string; closeLabel: string; captureLabel: string; flipLabel: string; sendPhotoLabel: string; retakeLabel: string; photoGuidance: string }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = React.useState<'back' | 'front'>('back');
   const [capturing, setCapturing] = React.useState(false);
   const [capturedPhoto, setCapturedPhoto] = React.useState<CapturedPhoto | null>(null);
+  const [cameraFailed, setCameraFailed] = React.useState(false);
   const scanLocked = React.useRef(false);
   const cameraRef = React.useRef<CameraView>(null);
   const [stage, setStage] = React.useState({ width: 0, height: 0 });
@@ -90,7 +90,10 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
     scanLocked.current = false;
     setFacing('back');
     setCapturedPhoto(null);
-    if (visible && permission && !permission.granted && permission.canAskAgain) requestPermission().catch(() => undefined);
+    setCameraFailed(false);
+    if (visible && Platform.OS !== 'web' && permission && !permission.granted && permission.canAskAgain) {
+      requestPermission().catch(() => undefined);
+    }
   }, [visible, permission, requestPermission]);
 
 
@@ -101,7 +104,7 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
       const photo = await cameraRef.current.takePictureAsync({ quality: 0.45, base64: true });
       if (photo?.uri) setCapturedPhoto({ uri: photo.uri, base64: photo.base64 });
     } catch {
-      // Keep the camera open so the user can try again.
+      Alert.alert(title, captureErrorText);
     } finally {
       setCapturing(false);
     }
@@ -114,11 +117,27 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
   };
 
   if (!visible) return null;
-  const cameraAvailable = Platform.OS !== 'web';
-  const cameraReady = cameraAvailable && permission?.granted;
-  // The hosted web preview has no camera; it shows the viewfinder over a stand-in scene instead.
-  const preview = !cameraAvailable && isDesignPreview();
-  const showFrame = Boolean(cameraReady || preview);
+  const cameraAvailable = Platform.OS !== 'web'
+    || (typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function');
+  const cameraReady = cameraAvailable && permission?.granted && !cameraFailed;
+  const showFrame = Boolean(cameraReady);
+  const permissionPermanentlyDenied = Platform.OS !== 'web' && permission?.status === 'denied' && !permission.canAskAgain;
+  const handleCameraPermission = async () => {
+    if (permissionPermanentlyDenied) {
+      try {
+        await Linking.openSettings();
+      } catch {
+        setCameraFailed(true);
+      }
+      return;
+    }
+    setCameraFailed(false);
+    try {
+      await requestPermission();
+    } catch {
+      setCameraFailed(true);
+    }
+  };
   return <Modal visible={visible} animationType="slide" onRequestClose={onClose} presentationStyle="fullScreen">
     <View testID={`scanner-${mode}`} onLayout={(event) => setStage({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })} style={[styles.scannerScreen, { backgroundColor: '#05060A' }]}>
       {cameraReady ? (capturedPhoto
@@ -128,14 +147,14 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
           style={StyleSheet.absoluteFill}
           facing={facing}
           barcodeScannerSettings={mode === 'barcode' ? { barcodeTypes: ['aztec', 'codabar', 'code128', 'code39', 'code93', 'datamatrix', 'ean13', 'ean8', 'itf14', 'pdf417', 'qr', 'upc_a', 'upc_e'] } : undefined}
+          onMountError={() => setCameraFailed(true)}
           onBarcodeScanned={mode === 'barcode' ? ({ data }) => {
             if (scanLocked.current || !data) return;
             scanLocked.current = true;
             onScanned?.(data);
           } : undefined}
         />) : null}
-      {preview ? <ScanPreviewScene mode={mode} width={stage.width} height={stage.height} /> : null}
-      {!showFrame ? <View style={styles.cameraPermission}><Ionicons name="camera-outline" size={42} color="#FFFFFF" /><Text style={[styles.scannerTitle, { color: '#FFFFFF', textAlign: 'center' }]}>{cameraAvailable ? permissionText : unavailableText}</Text>{cameraAvailable ? <Pressable onPress={() => requestPermission()} style={[styles.scannerPermissionButton, { backgroundColor: '#FFFFFF' }]}><Text style={[styles.scanText, { color: '#0A0B0D' }]}>{allowCameraLabel}</Text></Pressable> : null}</View> : null}
+      {!showFrame ? <View style={styles.cameraPermission}><Ionicons name="camera-outline" size={42} color="#FFFFFF" /><Text style={[styles.scannerTitle, { color: '#FFFFFF', textAlign: 'center' }]}>{permissionText}</Text>{cameraAvailable ? <Pressable onPress={handleCameraPermission} style={[styles.scannerPermissionButton, { backgroundColor: '#FFFFFF' }]}><Text style={[styles.scanText, { color: '#0A0B0D' }]}>{permissionPermanentlyDenied ? settingsLabel : allowCameraLabel}</Text></Pressable> : null}</View> : null}
       {showFrame && !capturedPhoto ? <ScanFrame mode={mode} width={stage.width} height={stage.height} hint={hint} /> : null}
 
       <View style={[styles.scannerHeader, { top: insets.top + 12 }]}>
@@ -165,7 +184,7 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
           <Pressable accessibilityLabel={flipLabel} onPress={() => setFacing((current) => current === 'back' ? 'front' : 'back')} style={styles.glassButtonLarge}>
                         <Ionicons name="restore-outline" size={20} color="#FFFFFF" />
           </Pressable>
-          <Pressable testID="camera-shutter" accessibilityLabel={captureLabel} onPress={capturePhoto} disabled={capturing || preview} scaleTo={0.92} style={[styles.shutterRing, { opacity: capturing ? 0.55 : 1 }]}>
+          <Pressable testID="camera-shutter" accessibilityLabel={captureLabel} onPress={capturePhoto} disabled={capturing} scaleTo={0.92} style={[styles.shutterRing, { opacity: capturing ? 0.55 : 1 }]}>
             <View style={styles.shutterCore} />
           </Pressable>
           <View style={styles.glassButtonLargeSpacer} />
@@ -173,27 +192,6 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
       </View> : null}
     </View>
   </Modal>;
-}
-
-/** Stand-in for the camera feed in the web preview: a plate on a table, or a product barcode. */
-function ScanPreviewScene({ mode, width, height }: { mode: CaptureMode; width: number; height: number }) {
-  if (!width) return null;
-  const win = scanWindow(mode, width, height);
-  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-    <LinearGradient colors={mode === 'meal' ? ['#3A2A1E', '#1B130D', '#0B0806'] : ['#2A2F3A', '#14171D', '#07080B']} style={StyleSheet.absoluteFill} />
-    {mode === 'meal' ? <View style={[styles.previewPlate, { left: win.x + win.w * 0.1, top: win.y + win.h * 0.12, width: win.w * 0.8, height: win.w * 0.8, borderRadius: win.w * 0.4 }]}>
-      <View style={[styles.previewPlateInner, { borderRadius: win.w * 0.3 }]}>
-        <View style={[styles.previewFood, { backgroundColor: '#E9C46A', left: '18%', top: '22%', width: '34%', height: '30%' }]} />
-        <View style={[styles.previewFood, { backgroundColor: '#C8553D', left: '48%', top: '30%', width: '32%', height: '26%' }]} />
-        <View style={[styles.previewFood, { backgroundColor: '#5FA35A', left: '26%', top: '54%', width: '44%', height: '24%' }]} />
-      </View>
-    </View> : <View style={[styles.previewPack, { left: win.x + 16, top: win.y + 14, width: win.w - 32, height: win.h - 28 }]}>
-      <View style={styles.previewBarcode}>
-        {Array.from({ length: 46 }, (_, i) => <View key={i} style={{ width: [2, 1, 3, 1, 2, 4][i % 6], height: '100%', backgroundColor: i % 2 ? 'transparent' : '#111' }} />)}
-      </View>
-      <Text style={styles.previewDigits}>8 690504 012345</Text>
-    </View>}
-  </View>;
 }
 
 export default function NutritionScreen() {
@@ -526,8 +524,8 @@ export default function NutritionScreen() {
       <Bookmark size={22} color={colors.mutedForeground} strokeWidth={1.8} />
       <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t('noSavedMeals')}</Text>
     </View>)}
-      <NeonCaptureCamera visible={mealCameraVisible} onClose={() => setMealCameraVisible(false)} onPhoto={(photo) => { setMealCameraVisible(false); void analyzeFoodPhoto(photo.uri, photo.base64); }} mode="meal" title={t('scanMeal')} hint={t('mealCameraHint')} healthySlogan={t('healthySlogan')} permissionText={t('cameraPermission')} unavailableText={t('cameraUnavailable')} allowCameraLabel={t('allowCamera')} closeLabel={t('close')} captureLabel={t('cameraCapture')} flipLabel={t('cameraFlip')} sendPhotoLabel={t('photoSendButton')} retakeLabel={t('photoRetake')} photoGuidance={t('photoFrameGuidance')} />
-      <NeonCaptureCamera visible={barcodeScannerVisible} onClose={() => setBarcodeScannerVisible(false)} onScanned={handleBarcode} mode="barcode" title={t('barcodeScannerTitle')} hint={t('barcodeScannerHint')} healthySlogan={t('healthySlogan')} permissionText={t('barcodePermission')} unavailableText={t('barcodeUnavailable')} allowCameraLabel={t('allowCamera')} closeLabel={t('close')} captureLabel={t('cameraCapture')} flipLabel={t('cameraFlip')} sendPhotoLabel={t('photoSendButton')} retakeLabel={t('photoRetake')} photoGuidance={t('photoFrameGuidance')} />
+      <NeonCaptureCamera visible={mealCameraVisible} onClose={() => setMealCameraVisible(false)} onPhoto={(photo) => { setMealCameraVisible(false); void analyzeFoodPhoto(photo.uri, photo.base64); }} mode="meal" title={t('scanMeal')} hint={t('mealCameraHint')} healthySlogan={t('healthySlogan')} permissionText={t('cameraPermission')} captureErrorText={t('photoAnalysisUnavailable')} allowCameraLabel={t('allowCamera')} settingsLabel={t('openSettings')} closeLabel={t('close')} captureLabel={t('cameraCapture')} flipLabel={t('cameraFlip')} sendPhotoLabel={t('photoSendButton')} retakeLabel={t('photoRetake')} photoGuidance={t('photoFrameGuidance')} />
+      <NeonCaptureCamera visible={barcodeScannerVisible} onClose={() => setBarcodeScannerVisible(false)} onScanned={handleBarcode} mode="barcode" title={t('barcodeScannerTitle')} hint={t('barcodeScannerHint')} healthySlogan={t('healthySlogan')} permissionText={t('barcodePermission')} captureErrorText={t('barcodeLookupError')} allowCameraLabel={t('allowCamera')} settingsLabel={t('openSettings')} closeLabel={t('close')} captureLabel={t('cameraCapture')} flipLabel={t('cameraFlip')} sendPhotoLabel={t('photoSendButton')} retakeLabel={t('photoRetake')} photoGuidance={t('photoFrameGuidance')} />
   </Screen>;
 }
 
@@ -686,12 +684,6 @@ const styles = StyleSheet.create({
   glassWideText: { fontFamily: 'Inter_600SemiBold', fontSize: 14, color: '#FFFFFF' },
   sendWide: { height: 54, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FFFFFF' },
   sendWideText: { fontFamily: 'Inter_700Bold', fontSize: 14, color: '#0A0B0D' },
-  previewPlate: { position: 'absolute', backgroundColor: '#F4F1EA', padding: '9%', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 30, shadowOffset: { width: 0, height: 20 } },
-  previewPlateInner: { flex: 1, backgroundColor: '#FFFFFF', overflow: 'hidden' },
-  previewFood: { position: 'absolute', borderRadius: 999, opacity: 0.92 },
-  previewPack: { position: 'absolute', backgroundColor: '#F5F5F2', borderRadius: 14, alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-2deg' }] },
-  previewBarcode: { flexDirection: 'row', gap: 2, height: 78, justifyContent: 'center' },
-  previewDigits: { fontFamily: 'Inter_600SemiBold', fontSize: 14, letterSpacing: 3, color: '#111', marginTop: 8 },
   scannerHeaderCopy: { gap: 8 },
   scannerTitle: { fontFamily: 'Inter_700Bold', fontSize: 20 },
   scannerLivePill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6 },
