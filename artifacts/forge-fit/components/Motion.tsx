@@ -38,7 +38,7 @@ export const PressableScale = React.forwardRef<React.ElementRef<typeof Pressable
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(progress.get(), [0, 1], [1, target]) }],
   }));
-  const resolvedStyle = typeof style === 'function' ? style({ pressed }) : style;
+  const resolvedStyle = typeof style === 'function' ? style({ pressed, hovered: false }) : style;
 
   return (
     <AnimatedPressable
