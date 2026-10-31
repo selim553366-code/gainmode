@@ -62,6 +62,14 @@
       "expo-web-browser",
       "expo-notifications",
       [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "-keep class * extends androidx.room.RoomDatabase { <init>(); }\n-keep class * extends androidx.work.InputMerger { <init>(); }"
+          }
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "Allow GainMode to use your location to show the current weather in the coach chat background.",

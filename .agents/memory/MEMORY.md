@@ -22,6 +22,7 @@
 - [Unpatched Expo dependency advisories](expo-unpatched-advisories.md) — don't force incompatible overrides for Expo transitive advisories before upstream publishes a safe version.
 - [Workspace package removal](workspace-package-removal.md) — verify artifact-scoped dependency removals; use pnpm filters if the generic helper misses a workspace package.
 - [Expo SDK React alignment](expo-sdk-react-alignment.md) — multi-Expo workspaces must pin React per artifact when SDK-required versions differ.
+- [SDK 58 Android release startup](expo-sdk58-android-startup.md) — WorkManager startup crashes can result from R8 stripping reflected Room and InputMerger constructors.
 - [Forge Fit visual language](forge-fit-visual-language.md) — keep the app light, spacious, blue-white; onboarding text and Continue action stay plain blue without glow or gradients.
 - [GainMode product naming](gainmode-brand.md) — GainMode is the current product name; older Forge Fit references are legacy.
 - [GainMode mocked load testing](forge-fit-load-testing.md) — use an isolated API and mocked AI upstream for high-volume tests without provider charges.
