@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { Language, TranslationKey } from '@/lib/i18n';
 import { PREVIEW_SUBSCRIPTION_ACTIVE, useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
@@ -440,7 +440,20 @@ export function FitProvider({ children }: { children: ReactNode }) {
   }, [hydrated, sanitizedWorkouts, state.workouts]);
 
   useEffect(() => {
-    if (hydrated) AsyncStorage.setItem('forge-fit-state', JSON.stringify(state)).catch(() => undefined);
+    if (!hydrated) return;
+    let cancelled = false;
+    void AsyncStorage.setItem('forge-fit-state', JSON.stringify(state)).then(async () => {
+      if (cancelled || Platform.OS !== 'android') return;
+      try {
+        const { refreshGainModeWidgets } = await import('@/widgets/widgetTaskHandler');
+        await refreshGainModeWidgets();
+      } catch (error) {
+        console.warn('Android home-screen widgets could not be refreshed.', error);
+      }
+    }).catch((error) => {
+      console.warn('GainMode state could not be saved.', error);
+    });
+    return () => { cancelled = true; };
   }, [state, hydrated]);
 
   useEffect(() => {
