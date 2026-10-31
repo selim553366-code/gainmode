@@ -140,13 +140,6 @@ struct MotivationPosterView: View {
 
 // MARK: - Widget
 
-@main
-struct GainModeWidgetBundle: WidgetBundle {
-  var body: some Widget {
-    MotivationWidget()
-  }
-}
-
 struct MotivationWidget: Widget {
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: "GainModeMotivation", provider: QuoteProvider()) { entry in

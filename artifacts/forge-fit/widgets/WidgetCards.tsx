@@ -46,7 +46,7 @@ function MascotRow({ title, value, dark = false }: { title: string; value: strin
 
 export function WidgetCard({ name, model }: { name: GainModeWidgetName; model: WidgetModel }) {
   const t = widgetCopy[model.language];
-  const workoutName = model.nextWorkout?.name ?? t.restDay;
+  const workoutName = model.nextWorkoutName || t.restDay;
   switch (name) {
     case 'TodayProgress':
       return <Base route="progress-charts"><Label text={t.progress} bold /><MascotRow title={t.workout} value={model.todayWorkout ? `${model.completedExercises}/${model.exerciseCount}` : t.restDay} /><FlexWidget style={{ width: 'match_parent', height: 7, flexDirection: 'row', backgroundColor: '#D6E4F7', borderRadius: 5 }}>{model.todayWorkout && <FlexWidget style={{ width: Math.max(0, Math.round(model.workoutProgress * 132)), height: 7, borderRadius: 5, backgroundColor: blue }} />}</FlexWidget><Label text={`${model.activeCalories} ${t.calories} · ${model.activeMinutes} ${t.minutes}`} /><Label text={t.open} size={9} color="#64748B" /></Base>;

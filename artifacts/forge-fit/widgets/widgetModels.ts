@@ -1,4 +1,4 @@
-import type { Language } from '@/lib/i18n';
+import { translate, type Language, type TranslationKey } from '@/lib/i18n';
 import { getCurrentStreak, getStreakCalendar } from '@/lib/streak';
 import { badgeProgress, nextBadge, type BadgeMetrics } from '@/lib/badges';
 import { quoteOfTheDay } from '@/lib/widgetQuotes';
@@ -84,6 +84,11 @@ export function createWidgetModel(snapshot: WidgetSnapshot, now = new Date()) {
       return distance(a) - distance(b);
     });
   const nextWorkout = todayWorkout ?? futureWorkouts[0] ?? null;
+  const localizeWorkoutName = (name?: string) => {
+    if (!name) return '';
+    const translated = translate(snapshot.language, name as TranslationKey);
+    return translated === name ? name : translated;
+  };
   const todayLog = snapshot.activityLog.filter((entry) => entry.date === today);
   const activeMinutes = Math.round(todayLog.reduce((sum, entry) => sum + (Number(entry.minutes) || 0), 0));
   const activeCalories = Math.round(todayLog.reduce((sum, entry) => sum + (Number(entry.calories) || 0), 0));
@@ -117,6 +122,8 @@ export function createWidgetModel(snapshot: WidgetSnapshot, now = new Date()) {
     language: snapshot.language,
     todayWorkout,
     nextWorkout,
+    todayWorkoutName: localizeWorkoutName(todayWorkout?.name),
+    nextWorkoutName: localizeWorkoutName(nextWorkout?.name),
     activeMinutes,
     activeCalories,
     workoutProgress,

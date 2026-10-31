@@ -443,7 +443,24 @@ export function FitProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     let cancelled = false;
     void AsyncStorage.setItem('forge-fit-state', JSON.stringify(state)).then(async () => {
-      if (cancelled || Platform.OS !== 'android') return;
+      if (cancelled) return;
+      if (Platform.OS === 'ios') {
+        try {
+          const [{ ExtensionStorage }, { createWidgetModel, parseWidgetSnapshot }] = await Promise.all([
+            import('@bacons/apple-targets'),
+            import('@/widgets/widgetModels'),
+          ]);
+          const snapshot = parseWidgetSnapshot(JSON.stringify(state));
+          const model = createWidgetModel(snapshot);
+          const storage = new ExtensionStorage('group.com.forgefit2.app');
+          storage.set('gainmode-widget-model', JSON.stringify(model));
+          ExtensionStorage.reloadWidget();
+        } catch (error) {
+          console.warn('iOS home-screen widgets could not be refreshed.', error);
+        }
+        return;
+      }
+      if (Platform.OS !== 'android') return;
       try {
         const { refreshGainModeWidgets } = await import('@/widgets/widgetTaskHandler');
         await refreshGainModeWidgets();

@@ -20,6 +20,9 @@
       "bundleIdentifier": "com.forgefit2.app",
       "appleTeamId": "DKA5B5CH29",
       "supportsTablet": false,
+      "entitlements": {
+        "com.apple.security.application-groups": ["group.com.forgefit2.app"]
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CADisableMinimumFrameDurationOnPhone": true
