@@ -129,7 +129,7 @@ function ActionButton({ label, icon, onPress, disabled = false }: { label: strin
   return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.primary, opacity: disabled ? 0.5 : pressed ? 0.75 : 1 }]}><Ionicons name={icon} size={18} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{label}</Text></Pressable>;
 }
 
-function UnsupportedLiveWorkout({ title, body }: { title: string; body: string }) {
+function UnsupportedLiveWorkout({ title, body, errorCode }: { title: string; body: string; errorCode?: string }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { language } = useFit();
@@ -139,6 +139,7 @@ function UnsupportedLiveWorkout({ title, body }: { title: string; body: string }
     <View style={[styles.fallbackIcon, { backgroundColor: `${colors.primary}20` }]}><Ionicons name="camera-scan" size={36} color={colors.primary} /></View>
     <Text style={[styles.fallbackTitle, { color: colors.foreground }]}>{title}</Text>
     <Text style={[styles.fallbackBody, { color: colors.mutedForeground }]}>{body}</Text>
+    {errorCode ? <Text selectable style={styles.fallbackDiagnostic}>{errorCode}</Text> : null}
     <View style={[styles.privacyNote, { backgroundColor: `${colors.success}14`, borderColor: `${colors.success}35` }]}><Ionicons name="shield-checkmark-outline" size={17} color={colors.success} /><Text style={[styles.privacyText, { color: colors.success }]}>{t('livePrivacyNote')}</Text></View>
     <ActionButton label={t('stopLiveWorkout')} icon="close" onPress={() => router.back()} />
   </View>;
@@ -165,9 +166,9 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   const { language } = useFit();
   const t = (key: LiveWorkoutCopyKey) => liveTranslate(language, key);
   const permission = useCameraPermission();
-  const [cameraError, setCameraError] = React.useState(false);
-  if (cameraError || permission.error) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} />;
-  if (!permission.granted) return <PermissionView onAllow={() => { permission.request().catch(() => setCameraError(true)); }} pending={permission.pending} canAskAgain={permission.canAskAgain} />;
+  const [cameraError, setCameraError] = React.useState<string | null>(null);
+  if (cameraError || permission.error) return <UnsupportedLiveWorkout title={t('cameraUnavailableTitle')} body={t('poseEngineError')} errorCode={cameraError ?? undefined} />;
+  if (!permission.granted) return <PermissionView onAllow={() => { permission.request().catch(() => setCameraError('PERMISSION_DENIED')); }} pending={permission.pending} canAskAgain={permission.canAskAgain} />;
   return <LiveSession kind={kind} renderCamera={(onPose, hidden, onError) => <PoseCamera
     style={[StyleSheet.absoluteFill, hidden ? styles.hiddenCamera : null]}
     facing="front"
@@ -182,7 +183,15 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
     onPose={(frame: PoseFrame) => onPose(poseFromFrame(frame), frame.timestamp)}
     onReady={({ facing }) => { if (facing !== 'front') onError(); }}
     onCameraChange={({ facing }) => { if (facing !== 'front') onError(); }}
-    onError={() => { onError(); setCameraError(true); }}
+    onError={(error) => {
+      console.error('[GainMode] Live pose engine failed', {
+        code: error.code,
+        message: error.message,
+        fatal: error.fatal,
+      });
+      onError();
+      setCameraError(error.code);
+    }}
   />} />;
 }
 
@@ -521,6 +530,7 @@ const styles = StyleSheet.create({
   fallbackIcon: { width: 78, height: 78, borderRadius: 26, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
   fallbackTitle: { fontFamily: 'Inter_700Bold', fontSize: 26, lineHeight: 32, letterSpacing: -0.8, textAlign: 'center' },
   fallbackBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 12, marginBottom: 24 },
+  fallbackDiagnostic: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 0.5, color: '#D8DEEA', textAlign: 'center', marginTop: -14, marginBottom: 20 },
   actionButton: { width: '100%', height: 54, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   actionButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   settingsLink: { fontFamily: 'Inter_600SemiBold', fontSize: 13, marginTop: 18 },

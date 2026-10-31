@@ -29,7 +29,7 @@ export function MotivationWidget({ quote, language, width }: { quote: string; la
         justifyContent: 'space-between',
         padding: compact ? 16 : 20,
         borderRadius: 28,
-        backgroundGradient: { from: '#3B7BF2', to: '#1B3FB8', orientation: 'TL_BR' },
+        backgroundColor: 'rgba(0, 0, 0, 0)',
       }}
     >
       <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
