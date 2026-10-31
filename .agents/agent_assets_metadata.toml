@@ -462,3 +462,45 @@ mtime_ms = 1793200459255
 storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/984a7ab9-aee1-46fc-b0ea-ebfb52102d7e/57677961-f842-4622-9266-53c04d346653"
 storage_version_token = "1793200499669337"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "RvrtEsqay1MLIQhu1v0vf"
+uri = "file://generated-artifacts/fitbud-widget-previews/morning.jpg"
+type = "image"
+title = "FitBud · Sabah hedefi"
+description = "Sabah hedefi ve günlük seri için widget önizlemesi."
+logical_id = "dae8a675-307e-4cdb-9640-a2ca48c3a182"
+content_hash = "sha256:c0ecf9468889188d9f54af5ee0a242c71a98ad667c1784031571b05fe769836c"
+size = 14731
+mtime_ms = 1793450606050
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/dae8a675-307e-4cdb-9640-a2ca48c3a182/4336baee-2736-464e-ae53-34e8754fecd2"
+storage_version_token = "1793450669451239"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "RaCV4nNHDyDGT371PPF1X"
+uri = "file://generated-artifacts/fitbud-widget-previews/preworkout.jpg"
+type = "image"
+title = "FitBud · Antrenman öncesi"
+description = "Planlanan antrenman öncesi hatırlatma widget’ı."
+logical_id = "8efa1067-da58-493c-932d-f8c3ee525222"
+content_hash = "sha256:278b353a93c308dda04a35c3ab2545f007f737a15f2caeb4f5d0d29c3102633f"
+size = 16438
+mtime_ms = 1793450545189
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/8efa1067-da58-493c-932d-f8c3ee525222/37333f0d-30b4-4377-bd42-15e8be1cf64b"
+storage_version_token = "1793450670791961"
+content_type = "image/jpeg"
+
+[[outputs]]
+id = "V15jwxdEq8QuTSi_KCZGf"
+uri = "file://generated-artifacts/fitbud-widget-previews/afterworkout.jpg"
+type = "image"
+title = "FitBud · Antrenman sonrası"
+description = "Antrenman tamamlandığında ilerlemeyi kutlayan widget önizlemesi."
+logical_id = "9c976cb8-d90c-409f-b669-729606421b2d"
+content_hash = "sha256:e52c9a343ebe7a71771fbdfa487e20bf3a0a46004f3815505c62ae551f81eae9"
+size = 19476
+mtime_ms = 1793450546545
+storage_uri = "gcs://replit-rams-assets-pike/rams/assets/repl:7d3ca9b3-9d45-4531-adea-ed39b080524e/9c976cb8-d90c-409f-b669-729606421b2d/026bc0ff-5314-423c-b74e-b10353621b60"
+storage_version_token = "1793450672114546"
+content_type = "image/jpeg"

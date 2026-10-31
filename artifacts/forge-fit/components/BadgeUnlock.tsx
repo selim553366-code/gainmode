@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -92,6 +92,7 @@ function Particle({ clock, color, index }: { clock: ReturnType<typeof useSharedV
 function BadgeUnlockSequence({ badge, onDone }: { badge: BadgeDefinition; onDone: (openWall: boolean) => void }) {
   const { language } = useFit();
   const reduced = useReducedMotion();
+  const androidLiteMode = Platform.OS === 'android';
   const clock = useSharedValue(reduced ? 1 : 0);
   const rays = useSharedValue(0);
   const float = useSharedValue(0);
@@ -101,10 +102,18 @@ function BadgeUnlockSequence({ badge, onDone }: { badge: BadgeDefinition; onDone
 
   React.useEffect(() => {
     const land = () => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined); };
-    void setAudioModeAsync({ playsInSilentMode: true }).catch(() => undefined);
+    if (!androidLiteMode) void setAudioModeAsync({ playsInSilentMode: true }).catch(() => undefined);
     if (reduced) {
       land();
       return undefined;
+    }
+    if (androidLiteMode) {
+      clock.set(withTiming(1, { duration: 950, easing: Easing.out(Easing.cubic) }));
+      const haptic = setTimeout(land, 700);
+      return () => {
+        clearTimeout(haptic);
+        cancelAnimation(clock);
+      };
     }
     clock.set(withTiming(1, { duration: TOTAL, easing: Easing.linear }));
     rays.set(withRepeat(withTiming(1, { duration: 24000, easing: Easing.linear }), -1));
@@ -122,7 +131,7 @@ function BadgeUnlockSequence({ badge, onDone }: { badge: BadgeDefinition; onDone
       haptics.forEach(clearTimeout);
       [clock, rays, float, shine].forEach(cancelAnimation);
     };
-  }, [clink, clock, float, rays, reduced, shine]);
+  }, [androidLiteMode, clink, clock, float, rays, reduced, shine]);
 
   const backdropStyle = useAnimatedStyle(() => ({ opacity: interpolate(clock.get(), [at(T.backdrop[0]), at(T.backdrop[1])], [0, 1], 'clamp') }));
   const bloomStyle = useAnimatedStyle(() => {
@@ -212,7 +221,7 @@ function BadgeUnlockSequence({ badge, onDone }: { badge: BadgeDefinition; onDone
           <AnimatedCircle cx={STAGE / 2} cy={STAGE / 2} stroke={metal[0]} fill="none" animatedProps={waveProps} />
         </Svg>
         <View pointerEvents="none" style={styles.particles}>
-          {PARTICLES.map((_, index) => <Particle key={index} clock={clock} index={index} color={particleColors[index % particleColors.length]} />)}
+          {PARTICLES.slice(0, androidLiteMode ? 8 : PARTICLES.length).map((_, index) => <Particle key={index} clock={clock} index={index} color={particleColors[index % particleColors.length]} />)}
         </View>
         <Animated.View style={medalStyle}>
           <BadgeMedal badge={badge} size={MEDAL} shine={shine} />

@@ -101,6 +101,7 @@ function RootLayoutNav() {
       <Stack.Screen name="settings-notifications" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="update-preferences" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="streak" options={{ headerShown: false, presentation: 'card' }} />
+      <Stack.Screen name="breathe" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="badges" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="badge-wall" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="features" options={{ headerShown: false, presentation: 'card' }} />

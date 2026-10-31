@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { Language, TranslationKey } from '@/lib/i18n';
 import { PREVIEW_SUBSCRIPTION_ACTIVE, useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
@@ -440,7 +440,37 @@ export function FitProvider({ children }: { children: ReactNode }) {
   }, [hydrated, sanitizedWorkouts, state.workouts]);
 
   useEffect(() => {
-    if (hydrated) AsyncStorage.setItem('forge-fit-state', JSON.stringify(state)).catch(() => undefined);
+    if (!hydrated) return;
+    let cancelled = false;
+    void AsyncStorage.setItem('forge-fit-state', JSON.stringify(state)).then(async () => {
+      if (cancelled) return;
+      if (Platform.OS === 'ios') {
+        try {
+          const [{ ExtensionStorage }, { createWidgetModel, parseWidgetSnapshot }] = await Promise.all([
+            import('@bacons/apple-targets'),
+            import('@/widgets/widgetModels'),
+          ]);
+          const snapshot = parseWidgetSnapshot(JSON.stringify(state));
+          const model = createWidgetModel(snapshot);
+          const storage = new ExtensionStorage('group.com.forgefit2.app');
+          storage.set('gainmode-widget-model', JSON.stringify(model));
+          ExtensionStorage.reloadWidget();
+        } catch (error) {
+          console.warn('iOS home-screen widgets could not be refreshed.', error);
+        }
+        return;
+      }
+      if (Platform.OS !== 'android') return;
+      try {
+        const { refreshGainModeWidgets } = await import('@/widgets/widgetTaskHandler');
+        await refreshGainModeWidgets();
+      } catch (error) {
+        console.warn('Android home-screen widgets could not be refreshed.', error);
+      }
+    }).catch((error) => {
+      console.warn('GainMode state could not be saved.', error);
+    });
+    return () => { cancelled = true; };
   }, [state, hydrated]);
 
   useEffect(() => {
