@@ -172,6 +172,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
   return <LiveSession kind={kind} renderCamera={(onPose, hidden, onError) => <PoseCamera
     style={[StyleSheet.absoluteFill, hidden ? styles.hiddenCamera : null]}
     facing="front"
+    delegate={Platform.OS === 'android' ? 'cpu' : 'auto'}
     profile="balanced"
     resolution="720p"
     analysisResolution="480p"
@@ -190,7 +191,7 @@ function NativeLiveCamera({ kind }: { kind: ExerciseKind }) {
         fatal: error.fatal,
       });
       onError();
-      setCameraError(error.code);
+      setCameraError(`${error.code}: ${error.message}`);
     }}
   />} />;
 }
