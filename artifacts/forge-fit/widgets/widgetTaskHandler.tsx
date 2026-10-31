@@ -20,7 +20,11 @@ export async function widgetTaskHandler({ widgetAction, widgetInfo, renderWidget
   } catch (error) {
     console.error('[GainMode] Android widget render failed', error);
     renderWidget(
-      <FlexWidget style={{ width: 'match_parent', height: 'match_parent', padding: 16, borderRadius: 24, flexDirection: 'column', justifyContent: 'center', backgroundColor: '#2563EB' }}>
+      <FlexWidget
+        clickAction="OPEN_APP"
+        accessibilityLabel={refreshHint}
+        style={{ width: 'match_parent', height: 'match_parent', padding: 16, borderRadius: 24, flexDirection: 'column', justifyContent: 'center', backgroundColor: '#2563EB' }}
+      >
         <TextWidget text="GainMode" style={{ fontSize: 18, fontWeight: '700', color: '#FFFFFF' }} />
         <TextWidget text={refreshHint} style={{ fontSize: 12, color: '#EAF2FF' }} />
       </FlexWidget>,

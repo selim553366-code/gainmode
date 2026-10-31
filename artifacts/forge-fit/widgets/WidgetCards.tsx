@@ -1,3 +1,5 @@
+"use no memo";
+
 import React from 'react';
 import { FlexWidget, ImageWidget, TextWidget } from 'react-native-android-widget';
 import type { ColorProp } from 'react-native-android-widget';
