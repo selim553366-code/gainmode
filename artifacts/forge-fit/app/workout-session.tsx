@@ -48,17 +48,63 @@ const muscleLabels: Record<MuscleGroup, TranslationKey> = {
   other: 'muscleOther',
 };
 
-function ExerciseVisual({ color, completed }: { color: string; completed: boolean }) {
-  return <View style={[styles.exerciseVisual, { backgroundColor: `${color}18` }]}>
-    <View style={[styles.visualHead, { borderColor: color }]} />
-    <View style={[styles.visualBody, { backgroundColor: color }]} />
-    <View style={styles.visualArms}>
-      <View style={[styles.visualLimb, { backgroundColor: color }]} />
-      <View style={[styles.visualBar, { backgroundColor: color }]} />
-      <View style={[styles.visualLimb, { backgroundColor: color }]} />
-    </View>
-    {completed ? <View style={[styles.visualDone, { backgroundColor: color }]}><Ionicons name="checkmark" size={13} color="#FFFFFF" /></View> : null}
+type ExerciseIconName = 'activity' | 'barbell-outline' | 'body-outline' | 'flash-outline';
+
+function exerciseIconFor(name: string, muscleGroup?: MuscleGroup): ExerciseIconName {
+  const movement = name.toLowerCase();
+  if (/squat|lunge|step.?up|deadlift|calf|hamstring/.test(movement)) return 'activity';
+  if (/plank|crunch|twist|dead.?bug|mountain/.test(movement)) return 'body-outline';
+  if (/curl|press|push|row|raise|fly|extension|pull.?up/.test(movement)) return 'barbell-outline';
+  if (muscleGroup === 'core') return 'body-outline';
+  if (muscleGroup === 'quadriceps' || muscleGroup === 'hamstrings' || muscleGroup === 'glutes' || muscleGroup === 'calves') return 'activity';
+  if (muscleGroup === 'back') return 'barbell-outline';
+  if (muscleGroup === 'shoulders') return 'flash-outline';
+  return 'barbell-outline';
+}
+
+function ExerciseVisual({ color, icon }: { color: string; icon: ExerciseIconName }) {
+  return <View style={[styles.exerciseVisual, { backgroundColor: `${color}12`, borderColor: `${color}24` }]}>
+    <View style={[styles.visualOrbit, { borderColor: `${color}24` }]} />
+    <Ionicons name={icon} size={28} color={color} />
   </View>;
+}
+
+function ExerciseCompletionButton({ completed, colors, label, onPress }: {
+  completed: boolean;
+  colors: ReturnType<typeof useColors>;
+  label: string;
+  onPress: () => void;
+}) {
+  const progress = React.useRef(new Animated.Value(completed ? 1 : 0)).current;
+  React.useEffect(() => {
+    Animated.spring(progress, {
+      toValue: completed ? 1 : 0,
+      friction: 6,
+      tension: 170,
+      useNativeDriver: true,
+    }).start();
+  }, [completed, progress]);
+  const checkOpacity = progress;
+  const arrowOpacity = progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
+  const checkScale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.45, 1] });
+  const arrowScale = progress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.65] });
+  return <Pressable
+    accessibilityRole="checkbox"
+    accessibilityState={{ checked: completed }}
+    accessibilityLabel={label}
+    onPress={onPress}
+    style={[styles.checkButton, {
+      backgroundColor: completed ? colors.success : colors.secondary,
+      borderColor: completed ? colors.success : colors.border,
+    }]}
+  >
+    <Animated.View style={[styles.completionIcon, { opacity: arrowOpacity, transform: [{ scale: arrowScale }] }]}>
+      <Ionicons name="arrow-forward" size={18} color={colors.primary} />
+    </Animated.View>
+    <Animated.View style={[styles.completionIcon, styles.completionIconOverlay, { opacity: checkOpacity, transform: [{ scale: checkScale }] }]}>
+      <Ionicons name="checkmark" size={19} color={colors.primaryForeground} />
+    </Animated.View>
+  </Pressable>;
 }
 
 export default function WorkoutSessionScreen() {
@@ -271,22 +317,53 @@ export default function WorkoutSessionScreen() {
             opacity: listAnimation.interpolate({ inputRange: [revealStart, revealEnd], outputRange: [0, 1], extrapolate: 'clamp' }),
             transform: [{ translateY: listAnimation.interpolate({ inputRange: [revealStart, revealEnd], outputRange: [18, 0], extrapolate: 'clamp' }) }],
           }}>
-          <Card style={[styles.exerciseCard, exercise.completed ? { backgroundColor: `${colors.success}10`, borderColor: `${colors.success}55` } : null]}>
-             <View style={styles.exerciseCardTop}>
-               <ExerciseVisual color={exercise.completed ? colors.success : colors.primary} completed={Boolean(exercise.completed)} />
-               <View style={styles.exerciseInfo}>
-              <Text style={[styles.exerciseOrder, { color: colors.primary }]}>{String(index + 1).padStart(2, '0')}</Text>
-              <Text style={[styles.exerciseName, { color: colors.foreground }, exercise.completed ? styles.completedText : null]}>{label(exercise.name)}</Text>
-              <View style={styles.exerciseMeta}>
-                <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}><Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.sets} {t('sets')}</Text></View>
-                <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}><Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.reps} {t('repetitions')}</Text></View>
-                 <View accessibilityLabel={`${label(exercise.name)}: ${exerciseCalories} ${t('caloriesShort')}`} style={[styles.metaPill, styles.calorieMetaPill, { backgroundColor: `${colors.orange}18` }]}><Ionicons name="flame-outline" size={11} color={colors.orange} /><Text style={[styles.metaText, { color: colors.orange }]}>{exerciseCalories} {t('caloriesShort')}</Text></View>
+           <Card style={[styles.exerciseCard, exercise.completed ? { backgroundColor: `${colors.success}0C`, borderColor: `${colors.success}55` } : null]}>
+              <View style={styles.exerciseCardTop}>
+                <ExerciseVisual
+                  color={exercise.completed ? colors.success : colors.primary}
+                  icon={exerciseIconFor(exercise.name, exercise.muscleGroup ?? selectedMuscle)}
+                />
+                <View style={styles.exerciseInfo}>
+                  <View style={styles.exerciseOverline}>
+                    <Text style={[styles.exerciseOrder, { color: exercise.completed ? colors.success : colors.primary }]}>{String(index + 1).padStart(2, '0')}</Text>
+                    <View style={[styles.muscleTag, { backgroundColor: exercise.completed ? `${colors.success}18` : `${colors.primary}12` }]}>
+                      <Text numberOfLines={1} style={[styles.muscleTagText, { color: exercise.completed ? colors.success : colors.primary }]}>{t(muscleLabels[exercise.muscleGroup ?? selectedMuscle])}</Text>
+                    </View>
+                  </View>
+                  <Text numberOfLines={2} style={[styles.exerciseName, { color: colors.foreground }, exercise.completed ? styles.completedText : null]}>{label(exercise.name)}</Text>
+                  <View style={styles.exerciseMeta}>
+                    <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}>
+                      <Ionicons name="badge-sets" size={11} color={colors.primary} />
+                      <Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.sets} {t('sets')}</Text>
+                    </View>
+                    <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}>
+                      <Ionicons name="activity" size={11} color={colors.primary} />
+                      <Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.reps} {t('repetitions')}</Text>
+                    </View>
+                    <View accessibilityLabel={`${label(exercise.name)}: ${exerciseCalories} ${t('caloriesShort')}`} style={[styles.metaPill, styles.calorieMetaPill, { backgroundColor: `${colors.orange}18` }]}>
+                      <Ionicons name="flame-outline" size={11} color={colors.orange} />
+                      <Text style={[styles.metaText, { color: colors.orange }]}>{exerciseCalories} {t('caloriesShort')}</Text>
+                    </View>
+                  </View>
+                </View>
+                <ExerciseCompletionButton
+                  completed={Boolean(exercise.completed)}
+                  colors={colors}
+                  label={t(exercise.completed ? 'markExerciseUndone' : 'markExerciseDone')}
+                  onPress={() => completeExercise(exercise.id)}
+                />
               </View>
-              {hasExerciseFormGuide(exercise.name) ? <Pressable accessibilityRole="button" accessibilityLabel={t('exerciseFormShow')} onPress={() => setGuideExercise(exercise.name)} style={styles.formGuideButton}>
-                <Ionicons name="eye-outline" size={14} color={colors.primary} />
+              {hasExerciseFormGuide(exercise.name) ? <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('exerciseFormShow')}
+                onPress={() => setGuideExercise(exercise.name)}
+                style={[styles.formGuideButton, { borderTopColor: colors.border, backgroundColor: `${colors.primary}08` }]}
+              >
+                <View style={styles.formGuideIcon}><Ionicons name="eye-outline" size={15} color={colors.primary} /></View>
                 <Text style={[styles.formGuideButtonText, { color: colors.primary }]}>{t('exerciseFormShow')}</Text>
+                <Ionicons name="chevron-forward" size={15} color={colors.primary} />
               </Pressable> : null}
-               {profile?.equipment !== 'bodyweight' ? <View style={[styles.dumbbellWeightRow, { borderTopColor: colors.border }]}>
+                {profile?.equipment !== 'bodyweight' ? <View style={[styles.dumbbellWeightRow, { borderTopColor: colors.border }]}>
                  <View style={styles.dumbbellWeightCopy}>
                    <Text style={[styles.dumbbellWeightTitle, { color: colors.foreground }]}>{t('exerciseDumbbellWeight')}</Text>
                    <Text style={[styles.dumbbellWeightHint, { color: colors.mutedForeground }]}>{t('exerciseDumbbellWeightHint')}</Text>
@@ -319,17 +396,6 @@ export default function WorkoutSessionScreen() {
                    <Ionicons name={weightChartExpanded ? 'chevron-up' : 'analytics-outline'} size={14} color={colors.primary} />
                    <Text style={[styles.weightChartToggleText, { color: colors.primary }]}>{t(weightChartExpanded ? 'exerciseWeightProgressHide' : 'exerciseWeightProgressShow')}</Text>
                  </Pressable> : null}
-               </View>
-               <Pressable
-                 accessibilityRole="checkbox"
-                 accessibilityState={{ checked: Boolean(exercise.completed) }}
-                 accessibilityLabel={t(exercise.completed ? 'markExerciseUndone' : 'markExerciseDone')}
-                 onPress={() => completeExercise(exercise.id)}
-                 style={[styles.checkButton, { backgroundColor: exercise.completed ? colors.success : colors.secondary, borderColor: exercise.completed ? colors.success : colors.border }]}
-               >
-                 <Ionicons name={exercise.completed ? 'checkmark' : 'arrow-forward'} size={18} color={exercise.completed ? colors.primaryForeground : colors.primary} />
-               </Pressable>
-             </View>
              {weightChartExpanded ? <ExerciseWeightProgressChart entries={exerciseWeightHistory} language={language} /> : null}
           </Card>
         </Animated.View>;
@@ -373,25 +439,24 @@ const styles = StyleSheet.create({
   legendDot: { width: 9, height: 9, borderRadius: 5 },
   legendText: { fontFamily: 'Inter_500Medium', fontSize: 11 },
   exerciseHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 2 },
-  exerciseCard: { padding: 12, marginBottom: 10 },
-  exerciseCardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  exerciseVisual: { width: 70, height: 78, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  visualHead: { width: 15, height: 15, borderRadius: 8, borderWidth: 2, marginBottom: 3 },
-  visualBody: { width: 7, height: 25, borderRadius: 4 },
-  visualArms: { position: 'absolute', top: 32, flexDirection: 'row', alignItems: 'center' },
-  visualLimb: { width: 18, height: 4, borderRadius: 2, transform: [{ rotate: '-18deg' }] },
-  visualBar: { width: 22, height: 3, borderRadius: 2 },
-  visualDone: { position: 'absolute', right: 5, top: 5, width: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  exerciseInfo: { flex: 1 },
-  exerciseOrder: { fontFamily: 'Inter_700Bold', fontSize: 9, letterSpacing: 1 },
-  exerciseName: { fontFamily: 'Inter_700Bold', fontSize: 14, lineHeight: 19, marginTop: 3 },
-  completedText: { textDecorationLine: 'line-through', opacity: 0.7 },
-  exerciseMeta: { flexDirection: 'row', gap: 6, marginTop: 8 },
-  metaPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4 },
+  exerciseCard: { padding: 13, marginBottom: 11, borderRadius: 22, overflow: 'hidden' },
+  exerciseCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  exerciseVisual: { width: 58, height: 62, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  visualOrbit: { position: 'absolute', width: 46, height: 46, borderRadius: 23, borderWidth: 1 },
+  exerciseInfo: { flex: 1, minWidth: 0, paddingTop: 1 },
+  exerciseOverline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  exerciseOrder: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8 },
+  muscleTag: { maxWidth: '82%', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 3 },
+  muscleTagText: { fontFamily: 'Inter_700Bold', fontSize: 8, letterSpacing: 0.45 },
+  exerciseName: { fontFamily: 'Inter_700Bold', fontSize: 15, lineHeight: 19, letterSpacing: -0.25, marginTop: 5 },
+  completedText: { opacity: 0.78 },
+  exerciseMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 },
+  metaPill: { minHeight: 23, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 4 },
   calorieMetaPill: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   metaText: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
-  formGuideButton: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, alignSelf: 'flex-start' },
-  formGuideButtonText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
+  formGuideButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingHorizontal: 8, paddingVertical: 6, borderTopWidth: 1, borderRadius: 14 },
+  formGuideIcon: { width: 27, height: 27, borderRadius: 9, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  formGuideButtonText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
   dumbbellWeightRow: { gap: 6, borderTopWidth: 1, marginTop: 10, paddingTop: 9, minWidth: 0 },
   dumbbellWeightCopy: { minWidth: 0 },
   dumbbellWeightTitle: { fontFamily: 'Inter_700Bold', fontSize: 10 },
@@ -402,7 +467,9 @@ const styles = StyleSheet.create({
   dumbbellWeightIncrease: { fontFamily: 'Inter_700Bold', fontSize: 9, marginTop: 5 },
   weightChartToggle: { minHeight: 34, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 5, marginTop: 7, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10, borderWidth: 1, maxWidth: '100%' },
   weightChartToggleText: { flexShrink: 1, fontFamily: 'Inter_700Bold', fontSize: 9 },
-  checkButton: { width: 39, height: 39, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  checkButton: { width: 42, height: 42, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  completionIcon: { position: 'absolute', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' },
+  completionIconOverlay: { top: 0, left: 0 },
   emptyPrompt: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 20, alignItems: 'center', padding: 24, marginBottom: 20 },
   emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, marginTop: 10 },
   emptyText: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 5, maxWidth: 280 },
