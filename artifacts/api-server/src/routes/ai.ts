@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { clientKey, createAiAccessToken, enforcePublicRateLimit, getAiRateLimitKey, requireAiAccess } from "../lib/security";
+import { resizeImageForAi } from "../lib/aiImage";
 
 const router: IRouter = Router();
 const COACH_MODEL = "gpt-5-mini";
@@ -366,8 +367,9 @@ router.post("/ai/coach", requireAiAccess, async (req, res) => {
     if (imageData && !normalizedImageData) return res.status(413).json({ error: "Image is too large or invalid." });
     const prompt = trimmedMessage || "Please assess this photo and give useful fitness and nutrition guidance.";
     const selectedModel = isSimpleCoachRequest(prompt) ? SIMPLE_COACH_MODEL : COACH_MODEL;
-    const userContent = normalizedImageData
-      ? [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${normalizedImageData}` } }]
+    const aiImageData = normalizedImageData ? await resizeImageForAi(normalizedImageData) : null;
+    const userContent = aiImageData
+      ? [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${aiImageData}` } }]
       : prompt;
     const coachMessages = [
       { role: "system", content: `You are Forge Coach, a warm fitness and nutrition coach who feels like a trusted gym friend. Speak naturally, casually, and supportively rather than sounding clinical, formal, or scripted. Briefly acknowledge the user's feeling or effort before giving advice. Celebrate real progress without exaggerated hype. If the user's preferred name exists in the app data, use it occasionally when it feels natural, never in every reply. Use the friendly informal form of "you" appropriate to ${languageNames[selectedLanguage]}. Never use pet names, shame, guilt, forced slang, or more than one emoji; an emoji is optional and should appear only when it genuinely fits. Use only the relevant app data included below. The userSummary and planOverview are the baseline facts you always know about this user; never act as if an available profile or workout plan does not exist. Use recentConversation to understand follow-up messages and references. If a category is not included, do not claim to have checked it and do not invent it. If medical concerns arise, recommend a clinician. Reply entirely in ${languageNames[selectedLanguage]}; do not switch languages. Keep every reply short: 2-3 clear sentences, one compact paragraph, and no more than 55 words. Do not repeat the user's data, add long explanations, or use long bullet lists. Give only the most useful interpretation and one practical next step. Return ONLY valid JSON with this exact shape: {"content":"your localized reply","actions":[]}.
@@ -479,9 +481,10 @@ router.post("/ai/food-analysis", requireAiAccess, async (req, res) => {
     const selectedLanguage = normalizeLanguage(language) ?? "en";
     const normalizedImageData = normalizeImageData(imageData);
     if (!normalizedImageData) return res.status(400).json({ error: "Valid image data is required." });
+    const aiImageData = await resizeImageForAi(normalizedImageData);
     const response = await askOpenAiWithOptions([
       { role: "system", content: `You analyze a food photo. Reply only valid JSON with keys name, calories, protein, carbs, fat. Use realistic estimates, numbers only for nutrition values, and use language ${selectedLanguage} for name. If uncertain, make the estimate explicit in the name.` },
-      { role: "user", content: [{ type: "text", text: "Identify this meal and estimate its nutrition." }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${normalizedImageData}` } }] },
+      { role: "user", content: [{ type: "text", text: "Identify this meal and estimate its nutrition." }, { type: "image_url", image_url: { url: `data:image/jpeg;base64,${aiImageData}` } }] },
     ], { model: FOOD_ANALYSIS_MODEL, maxCompletionTokens: 8192 });
     logAiUsage(req, "food-analysis", typeof clientId === "string" ? clientId.slice(0, 80) : null, response);
     const normalized = response.content.replace(/^```json\s*/i, "").replace(/\s*```$/i, "");
