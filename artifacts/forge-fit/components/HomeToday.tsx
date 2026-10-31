@@ -18,8 +18,6 @@ const copy: Record<Language, { today: string; done: string; start: string; resum
   es: { today: 'Hoy', done: 'hechos', start: 'Empezar entrenamiento', resume: 'Continuar donde lo dejaste', finished: 'Entrenamiento de hoy hecho', viewPlan: 'Ver la semana', last: 'Último registro', saved: 'Registrado hoy', save: 'Guardar', update: 'Actualizar', noLog: 'Registra tu primer peso' },
 };
 
-const muscleKey = (group: string) => `muscle${group.charAt(0).toUpperCase()}${group.slice(1)}` as TranslationKey;
-
 /** A ring that keeps swelling out of the start button so the next step is obvious. */
 function PulseRing({ color }: { color: string }) {
   const reduced = useReducedMotion();
@@ -33,28 +31,16 @@ function PulseRing({ color }: { color: string }) {
   return <Animated.View pointerEvents="none" style={[styles.pulse, { borderColor: color }, style]} />;
 }
 
-/** One exercise in the progress strip; finished ones fill in with a short delay each. */
-function Segment({ filled, color, track, index }: { filled: boolean; color: string; track: string; index: number }) {
-  const reduced = useReducedMotion();
-  const fill = useSharedValue(reduced && filled ? 1 : 0);
-  React.useEffect(() => {
-    fill.set(reduced ? (filled ? 1 : 0) : withTiming(filled ? 1 : 0, { duration: 420 + index * 60, easing: EASE_OUT }));
-  }, [fill, filled, index, reduced]);
-  const style = useAnimatedStyle(() => ({ width: `${fill.get() * 100}%` }));
-  return <View style={[styles.segment, { backgroundColor: track }]}>
-    <Animated.View style={[styles.segmentFill, { backgroundColor: color }, style]} />
-  </View>;
-}
-
 /**
- * Today's session as a dark ticket: the weekday tag, the session in large type with its muscle
- * groups, a strip with one segment per exercise that fills as they are ticked off, and a start
- * button with a ring pulsing out of it. On rest days it turns into a calm reminder.
+ * Today's session as one slim strip: an icon, the session name with weekday, duration and how many
+ * exercises are done, a hairline along the bottom that fills with that progress, and a small
+ * arrow with a ring pulsing out of it. On rest days it reads as a calm reminder instead.
  */
 export function TodaySessionCard({ workout, language, onOpen }: { workout: Workout | undefined; language: Language; onOpen: () => void }) {
   const colors = useColors();
   const c = copy[language] ?? copy.en;
   const t = (key: TranslationKey) => translate(language, key);
+  const reduced = useReducedMotion();
   const ink = colors.inkCardForeground;
   const weekday = new Intl.DateTimeFormat(language, { weekday: 'long' }).format(new Date());
   const done = workout ? workout.exercises.filter((exercise) => exercise.completed).length : 0;
@@ -62,50 +48,36 @@ export function TodaySessionCard({ workout, language, onOpen }: { workout: Worko
   const finished = total > 0 && done === total;
   const accent = finished ? colors.success : colors.orange;
   const label = !workout ? c.viewPlan : finished ? c.finished : done > 0 ? c.resume : c.start;
-  const focus = (workout?.focusAreas ?? []).slice(0, 3);
+  const ratio = total ? done / total : 0;
+  const fill = useSharedValue(reduced ? ratio : 0);
+  React.useEffect(() => {
+    fill.set(reduced ? ratio : withTiming(ratio, { duration: 700, easing: EASE_OUT }));
+  }, [fill, ratio, reduced]);
+  const fillStyle = useAnimatedStyle(() => ({ width: `${fill.get() * 100}%` }));
+  const title = workout ? (translate(language, workout.name as TranslationKey) || workout.name) : t('restDayTitle');
+  const caption = workout
+    ? `${weekday} · ${workout.duration} min · ${done}/${total} ${c.done}`
+    : `${weekday} · ${c.viewPlan}`;
 
-  return <Pressable testID="open-today-workout" accessibilityRole="button" accessibilityLabel={label} onPress={() => { triggerHaptic(); onOpen(); }} scaleTo={0.98}>
-    <View style={styles.ticket}>
+  return <Pressable testID="open-today-workout" accessibilityRole="button" accessibilityLabel={`${title}. ${label}`} onPress={() => { triggerHaptic(); onOpen(); }} scaleTo={0.98}>
+    <View style={styles.strip}>
       <LinearGradient colors={[colors.inkCardStart, colors.inkCardEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      <View pointerEvents="none" style={styles.watermark}>
-        <Ionicons name={workout ? 'barbell-outline' : 'moon-outline'} size={170} color={ink} />
+      <View style={[styles.stripIcon, { backgroundColor: `${accent}26` }]}>
+        <Ionicons name={!workout ? 'moon-outline' : finished ? 'checkmark' : 'barbell-outline'} size={17} color={accent} />
       </View>
-      <View style={[styles.glow, { backgroundColor: `${accent}30` }]} />
-
-      <View style={styles.ticketTop}>
-        <View style={[styles.dayTag, { backgroundColor: `${ink}14`, borderColor: `${ink}22` }]}>
-          <View style={[styles.dayDot, { backgroundColor: accent }]} />
-          <Text style={[styles.dayText, { color: ink }]}>{c.today} · {weekday.toLocaleUpperCase(language)}</Text>
-        </View>
-        {workout ? <View style={styles.duration}>
-          <Ionicons name="time-outline" size={14} color={`${ink}B3`} />
-          <Text style={[styles.durationText, { color: `${ink}CC` }]}>{workout.duration} min</Text>
-        </View> : null}
+      <View style={styles.stripCopy}>
+        <Text numberOfLines={1} style={[styles.stripTitle, { color: ink }]}>{title}</Text>
+        <Text numberOfLines={1} style={[styles.stripCaption, { color: `${ink}A6` }]}>{caption}</Text>
       </View>
-
-      <Text numberOfLines={2} style={[styles.sessionTitle, { color: ink }]}>
-        {workout ? (translate(language, workout.name as TranslationKey) || workout.name) : t('restDayTitle')}
-      </Text>
-      {workout ? <View style={styles.focusRow}>
-        {focus.map((group) => <View key={group} style={[styles.focusChip, { backgroundColor: `${ink}12` }]}><Text style={[styles.focusText, { color: `${ink}D9` }]}>{t(muscleKey(group))}</Text></View>)}
-      </View> : <Text style={[styles.restBody, { color: `${ink}B3` }]}>{t('restDaySubtitle')}</Text>}
-
-      {workout && total > 0 ? <View style={styles.progress}>
-        <View style={styles.segments}>
-          {workout.exercises.map((exercise, index) => <Segment key={exercise.id} index={index} filled={Boolean(exercise.completed)} color={accent} track={`${ink}1C`} />)}
+      <View style={styles.stripArrowWrap}>
+        {workout && !finished ? <PulseRing color={accent} /> : null}
+        <View style={[styles.stripArrow, { backgroundColor: accent }]}>
+          <Ionicons name="arrow-forward" size={15} color="#FFFFFF" />
         </View>
-        <Text style={[styles.progressText, { color: `${ink}B3` }]}><Text style={{ color: ink, fontFamily: 'Inter_700Bold' }}>{done}/{total}</Text> {t('exercises')} {c.done}</Text>
+      </View>
+      {workout && total > 0 ? <View style={[styles.stripTrack, { backgroundColor: `${ink}1A` }]}>
+        <Animated.View style={[styles.stripFill, { backgroundColor: accent }, fillStyle]} />
       </View> : null}
-
-      <View style={[styles.cta, { backgroundColor: ink }]}>
-        <Text style={[styles.ctaText, { color: colors.inkCardStart }]}>{label}</Text>
-        <View style={styles.ctaArrowWrap}>
-          {!finished ? <PulseRing color={accent} /> : null}
-          <View style={[styles.ctaArrow, { backgroundColor: accent }]}>
-            <Ionicons name={finished ? 'checkmark' : 'arrow-forward'} size={18} color="#FFFFFF" />
-          </View>
-        </View>
-      </View>
     </View>
   </Pressable>;
 }
@@ -220,31 +192,17 @@ export function WeightLogCard({ language, logs, fallbackWeight, onSave, testID =
 }
 
 const styles = StyleSheet.create({
-  ticket: { borderRadius: 28, padding: 20, overflow: 'hidden', marginBottom: 14 },
-  watermark: { position: 'absolute', right: -34, bottom: -30, opacity: 0.07, transform: [{ rotate: '-24deg' }] },
-  glow: { position: 'absolute', width: 220, height: 220, borderRadius: 110, right: -90, top: -110 },
-  ticketTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  dayTag: { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 999, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 6 },
-  dayDot: { width: 7, height: 7, borderRadius: 4 },
-  dayText: { fontFamily: 'Inter_700Bold', fontSize: 10.5, letterSpacing: 1.1 },
-  duration: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  durationText: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  sessionTitle: { fontFamily: 'Inter_700Bold', fontSize: 30, lineHeight: 34, letterSpacing: -1.1, marginTop: 18 },
-  focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
-  focusChip: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  focusText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  restBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, marginTop: 8, maxWidth: 280 },
-  progress: { marginTop: 20 },
-  segments: { flexDirection: 'row', gap: 4 },
-  segment: { flex: 1, height: 7, borderRadius: 4, overflow: 'hidden' },
-  segmentFill: { height: '100%', borderRadius: 4 },
-  progressText: { fontFamily: 'Inter_500Medium', fontSize: 12, marginTop: 9 },
-  cta: { marginTop: 20, height: 56, borderRadius: 18, flexDirection: 'row', alignItems: 'center', paddingLeft: 18, paddingRight: 7 },
-  ctaText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 15, letterSpacing: -0.2 },
-  ctaArrowWrap: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  pulse: { position: 'absolute', width: 42, height: 42, borderRadius: 21, borderWidth: 2 },
-  ctaArrow: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  weightCard: { borderRadius: 26, borderWidth: 1, padding: 18, marginBottom: 16 },
+  strip: { height: 64, borderRadius: 20, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 12, paddingRight: 11, marginBottom: 12 },
+  stripIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  stripCopy: { flex: 1, minWidth: 0 },
+  stripTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, letterSpacing: -0.3 },
+  stripCaption: { fontFamily: 'Inter_500Medium', fontSize: 11.5, marginTop: 2 },
+  stripArrowWrap: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  stripArrow: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  stripTrack: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3 },
+  stripFill: { height: '100%' },
+  pulse: { position: 'absolute', width: 34, height: 34, borderRadius: 17, borderWidth: 2 },
+  weightCard: { borderRadius: 24, borderWidth: 1, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 14, marginBottom: 16 },
   weightHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
   weightIcon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   weightTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, letterSpacing: -0.2 },
@@ -254,15 +212,15 @@ const styles = StyleSheet.create({
   deltaText: { fontFamily: 'Inter_700Bold', fontSize: 10.5 },
   savedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 },
   savedText: { fontFamily: 'Inter_700Bold', fontSize: 10.5 },
-  dial: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 18 },
-  stepButton: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  dial: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  stepButton: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   valueWrap: { flex: 1, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 4 },
-  valueInput: { fontFamily: 'Inter_700Bold', fontSize: 44, letterSpacing: -2, textAlign: 'center', minWidth: 110, padding: 0 },
+  valueInput: { fontFamily: 'Inter_700Bold', fontSize: 40, letterSpacing: -2, textAlign: 'center', minWidth: 110, padding: 0 },
   valueUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 15 },
-  ruler: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', height: 44, marginTop: 10, overflow: 'hidden' },
+  ruler: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', height: 38, marginTop: 6, overflow: 'hidden' },
   tickSlot: { width: 9, alignItems: 'center' },
   tick: { borderRadius: 1 },
   tickLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 9, marginTop: 4, width: 30, textAlign: 'center' },
-  saveButton: { marginTop: 8, height: 50, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  saveButton: { marginTop: 6, height: 46, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   saveText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
 });
