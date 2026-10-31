@@ -13,7 +13,7 @@ const eyebrows: Record<Language, string> = {
 };
 
 /**
- * Home-screen poster for Android: brand-blue gradient, the quote of the day set large, FitBud signature.
+ * Home-screen poster for Android: brand-blue background, the quote of the day set large, FitBud signature.
  * Tapping anywhere opens the app. The poster keeps its blue in both themes, like the iOS widget. The brand name is never set as plain
  * text; the wordmark lives only in its own artwork.
  */
@@ -29,7 +29,7 @@ export function MotivationWidget({ quote, language, width }: { quote: string; la
         justifyContent: 'space-between',
         padding: compact ? 16 : 20,
         borderRadius: 28,
-        backgroundColor: 'rgba(0, 0, 0, 0)',
+        backgroundColor: '#2563EB',
       }}
     >
       <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
