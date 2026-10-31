@@ -39,7 +39,12 @@ export type WidgetSnapshot = {
 const languages: Language[] = ['tr', 'en', 'de', 'fr', 'es'];
 
 export function parseWidgetSnapshot(value: string | null): WidgetSnapshot {
-  const raw = value ? JSON.parse(value) as Partial<WidgetSnapshot> : {};
+  let raw: Partial<WidgetSnapshot> = {};
+  try {
+    raw = value ? JSON.parse(value) as Partial<WidgetSnapshot> : {};
+  } catch (error) {
+    console.warn('Saved GainMode widget data could not be read.', error);
+  }
   const language = languages.includes(raw.language as Language) ? raw.language as Language : 'tr';
   return {
     language,
@@ -67,8 +72,18 @@ const weekdayKeys = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
 export function createWidgetModel(snapshot: WidgetSnapshot, now = new Date()) {
   const today = dateKey(now);
+  const todayIndex = now.getDay();
   const todayWorkout = snapshot.workouts.find((workout) => workout.day === weekdayKeys[now.getDay()]);
-  const nextWorkout = todayWorkout ?? snapshot.workouts.find((workout) => !workout.completed) ?? null;
+  const futureWorkouts = snapshot.workouts
+    .filter((workout) => !workout.completed && weekdayKeys.includes(workout.day ?? ''))
+    .sort((a, b) => {
+      const distance = (workout: WidgetWorkout) => {
+        const dayIndex = weekdayKeys.indexOf(workout.day ?? '');
+        return (dayIndex - todayIndex + 7) % 7 || 7;
+      };
+      return distance(a) - distance(b);
+    });
+  const nextWorkout = todayWorkout ?? futureWorkouts[0] ?? null;
   const todayLog = snapshot.activityLog.filter((entry) => entry.date === today);
   const activeMinutes = Math.round(todayLog.reduce((sum, entry) => sum + (Number(entry.minutes) || 0), 0));
   const activeCalories = Math.round(todayLog.reduce((sum, entry) => sum + (Number(entry.calories) || 0), 0));
