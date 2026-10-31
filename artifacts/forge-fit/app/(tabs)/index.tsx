@@ -13,7 +13,7 @@ import { getWorkoutForDate } from '@/lib/workoutPlan';
 import { badges, badgeText, badgeUi } from '@/lib/badges';
 import { BadgeMedal } from '@/components/BadgeMedal';
 import { AnimatedNumber, Card, Header, Metric, Screen, SectionTitle, triggerHaptic } from '@/components/FitUI';
-import { TodayWeightBar } from '@/components/TodayWeightBar';
+import { TodaySessionCard, WeightLogCard } from '@/components/HomeToday';
 
 function CalorieProgressFill({ progress, color }: { progress: number; color: string }) {
   const level = React.useRef(new Animated.Value(0)).current;
@@ -81,6 +81,8 @@ export default function TodayScreen() {
     fatGoal,
     workouts,
     addWeight,
+    weightLogs,
+    weight,
     profile,
     streakDates,
     unlockedBadgeIds,
@@ -258,41 +260,19 @@ export default function TodayScreen() {
         </View>
 
         <SectionTitle title={t('todayWorkout')} action={t('viewAll')} onAction={() => router.push('/(tabs)/plan')} />
-        <Card
-          onPress={() =>
-            todayWorkout
-              ? router.push({ pathname: '/(tabs)/plan', params: { day: todayWorkout.day } })
-              : router.push('/(tabs)/plan')
-          }
-          style={styles.workoutCard}
-        >
-          <View style={[styles.workoutIcon, { backgroundColor: `${todayWorkout ? colors.orange : colors.primary}15` }]}>
-            <Ionicons
-              name={todayWorkout ? 'barbell-outline' : 'moon-outline'}
-              size={22}
-              color={todayWorkout ? colors.orange : colors.primary}
-            />
-          </View>
-          <View style={styles.workoutCopy}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-              {todayWorkout ? (translate(language, todayWorkout.name as Parameters<typeof translate>[1]) || todayWorkout.name) : t('restDayTitle')}
-            </Text>
-            <Text style={[styles.cardCaption, { color: colors.mutedForeground }]}>
-              {todayWorkout
-                ? `${todayWorkout.duration} min  •  ${todayWorkout.exercises.length} ${t('exercises')}`
-                : t('restDaySubtitle')}
-            </Text>
-          </View>
-          <View testID="open-today-workout" style={[styles.workoutButton, { backgroundColor: colors.primary }]}>
-            <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
-          </View>
-        </Card>
-        <TodayWeightBar
+        <TodaySessionCard
+          workout={todayWorkout}
           language={language}
-          tracksWeight={Boolean(profile && profile.goal !== 'muscle')}
-          onSave={addWeight}
-          testID="home-add-today-weight"
+          onOpen={() => (todayWorkout
+            ? router.push({ pathname: '/(tabs)/plan', params: { day: todayWorkout.day } })
+            : router.push('/(tabs)/plan'))}
         />
+        {profile && profile.goal !== 'muscle' ? <WeightLogCard
+          language={language}
+          logs={weightLogs}
+          fallbackWeight={weight ?? profile.weight ?? null}
+          onSave={addWeight}
+        /> : null}
       </View>
 
     </Screen>
@@ -445,10 +425,4 @@ const styles = StyleSheet.create({
     marginBottom: 27,
   },
   metricGoal: { fontFamily: 'Inter_500Medium', fontSize: 10 },
-  workoutCard: { flexDirection: 'row', alignItems: 'center', gap: 13, minHeight: 86, paddingVertical: 16 },
-  workoutIcon: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
-  workoutCopy: { flex: 1, minWidth: 0 },
-  cardTitle: { fontFamily: 'Inter_700Bold', fontSize: 16, letterSpacing: -0.3 },
-  cardCaption: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 5 },
-  workoutButton: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
 });
