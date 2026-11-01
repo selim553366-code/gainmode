@@ -1,7 +1,8 @@
 import { translate, type Language, type TranslationKey } from '@/lib/i18n';
 import { getCurrentStreak, getStreakCalendar } from '@/lib/streak';
-import { badgeProgress, nextBadge, type BadgeMetrics } from '@/lib/badges';
+import { badgeProgress, badges, countOnTargetDays, nextBadge, type BadgeMetrics } from '@/lib/badges';
 import { quoteOfTheDay } from '@/lib/widgetQuotes';
+import { widgetFirstName } from './widgetSchedule';
 
 export const GAINMODE_WIDGETS = [
   'TodayProgress',
@@ -13,6 +14,7 @@ export const GAINMODE_WIDGETS = [
   'NextGoal',
   'Performance',
   'GoodNight',
+  'Daily',
 ] as const;
 
 export type GainModeWidgetName = (typeof GAINMODE_WIDGETS)[number];
@@ -27,6 +29,7 @@ type WidgetWorkout = {
 
 export type WidgetSnapshot = {
   language: Language;
+  username: string | null;
   workouts: WidgetWorkout[];
   activityLog: { date: string; minutes: number; calories: number }[];
   streakDates: string[];
@@ -48,6 +51,7 @@ export function parseWidgetSnapshot(value: string | null): WidgetSnapshot {
   const language = languages.includes(raw.language as Language) ? raw.language as Language : 'tr';
   return {
     language,
+    username: typeof raw.username === 'string' ? raw.username : null,
     workouts: Array.isArray(raw.workouts) ? raw.workouts : [],
     activityLog: Array.isArray(raw.activityLog) ? raw.activityLog : [],
     streakDates: Array.isArray(raw.streakDates) ? raw.streakDates : [],
@@ -84,6 +88,7 @@ export function createWidgetModel(snapshot: WidgetSnapshot, now = new Date()) {
       return distance(a) - distance(b);
     });
   const nextWorkout = todayWorkout ?? futureWorkouts[0] ?? null;
+  const tomorrowWorkout = snapshot.workouts.find((workout) => workout.day === weekdayKeys[(todayIndex + 1) % 7]);
   const localizeWorkoutName = (name?: string) => {
     if (!name) return '';
     const translated = translate(snapshot.language, name as TranslationKey);
@@ -101,9 +106,11 @@ export function createWidgetModel(snapshot: WidgetSnapshot, now = new Date()) {
     ...snapshot.achievementStats,
     streak: currentStreak,
     activeDays: snapshot.streakDates.length,
-    onTargetDays: 0,
+    onTargetDays: countOnTargetDays(snapshot.meals, snapshot.calorieGoal),
   };
-  const next = nextBadge(metrics, snapshot.unlockedBadgeIds);
+  // A badge whose target is already met is about to unlock in the app, so the goal shown is the one after it.
+  const reached = badges.filter((badge) => badgeProgress(badge, metrics) >= 1).map((badge) => badge.id);
+  const next = nextBadge(metrics, [...snapshot.unlockedBadgeIds, ...reached]);
   const currentWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 12);
   const previousWeekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 13, 12);
   const currentWeekKey = dateKey(currentWeekStart);
@@ -114,14 +121,21 @@ export function createWidgetModel(snapshot: WidgetSnapshot, now = new Date()) {
   const previousWeekMinutes = snapshot.activityLog
     .filter((entry) => entry.date >= previousWeekKey && entry.date < currentWeekKey)
     .reduce((sum, entry) => sum + (Number(entry.minutes) || 0), 0);
+  const goalCurrent = next ? Math.min(next.target, Math.max(0, Math.round(metrics[next.metric]))) : 0;
   const performanceChange = previousWeekMinutes > 0
     ? Math.round(((currentWeekMinutes - previousWeekMinutes) / previousWeekMinutes) * 100)
     : null;
 
   return {
     language: snapshot.language,
+    firstName: widgetFirstName(snapshot.username),
     todayWorkout,
     nextWorkout,
+    todayWorkoutDuration: Math.round(Number(todayWorkout?.duration) || 0),
+    workoutPending: Boolean(todayWorkout && !todayWorkout.completed),
+    tomorrowWorkoutName: localizeWorkoutName(tomorrowWorkout?.name),
+    activeToday: snapshot.streakDates.includes(today),
+    totalWorkouts: snapshot.achievementStats.workouts,
     todayWorkoutName: localizeWorkoutName(todayWorkout?.name),
     nextWorkoutName: localizeWorkoutName(nextWorkout?.name),
     activeMinutes,
@@ -135,12 +149,15 @@ export function createWidgetModel(snapshot: WidgetSnapshot, now = new Date()) {
     nextBadge: next,
     nextBadgeTitle: next ? next.title[snapshot.language] : '',
     nextBadgeProgress: next ? badgeProgress(next, metrics) : 1,
+    nextBadgeMetric: next?.metric ?? null,
+    nextBadgeRemaining: next ? Math.max(0, next.target - goalCurrent) : 0,
     performanceBars: streakWeek.map((day) => snapshot.activityLog
       .filter((entry) => entry.date === day.date)
       .reduce((sum, entry) => sum + (Number(entry.minutes) || 0), 0)),
     currentWeekMinutes: Math.round(currentWeekMinutes),
     performanceChange,
-    isNight: now.getHours() >= 21 || now.getHours() < 6,
+    hour: now.getHours(),
+    isNight: now.getHours() >= 21 || now.getHours() < 5,
     localTime: now.toLocaleTimeString(snapshot.language, { hour: '2-digit', minute: '2-digit' }),
   };
 }

@@ -16,7 +16,7 @@ export async function widgetTaskHandler({ widgetAction, widgetInfo, renderWidget
     const name = GAINMODE_WIDGETS.includes(widgetInfo.widgetName as GainModeWidgetName)
       ? widgetInfo.widgetName as GainModeWidgetName
       : 'Motivation';
-    renderWidget(<WidgetCard name={name} model={createWidgetModel(snapshot)} />);
+    renderWidget(<WidgetCard name={name} model={createWidgetModel(snapshot)} size={{ width: widgetInfo.width, height: widgetInfo.height }} />);
   } catch (error) {
     console.error('[GainMode] Android widget render failed', error);
     renderWidget(
@@ -38,6 +38,6 @@ export async function refreshGainModeWidgets() {
   const model = createWidgetModel(snapshot);
   await Promise.all(GAINMODE_WIDGETS.map((widgetName) => requestWidgetUpdate({
     widgetName,
-    renderWidget: () => <WidgetCard name={widgetName} model={model} />,
+    renderWidget: (info) => <WidgetCard name={widgetName} model={model} size={{ width: info.width, height: info.height }} />,
   })));
 }
