@@ -21,7 +21,9 @@
       "appleTeamId": "DKA5B5CH29",
       "supportsTablet": false,
       "entitlements": {
-        "com.apple.security.application-groups": ["group.com.forgefit2.app"]
+        "com.apple.security.application-groups": [
+          "group.com.forgefit2.app"
+        ]
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -116,6 +118,20 @@
         {
           "widgets": [
             {
+              "name": "Daily",
+              "label": "GainMode · Günün kartı",
+              "description": "Saate göre değişir: sabah antrenman, öğlen hedef, akşam performans, gece iyi geceler",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "420dp",
+              "maxResizeHeight": "260dp",
+              "resizeMode": "horizontal|vertical",
+              "previewImage": "./assets/images/widgets/widget-start.jpg",
+              "updatePeriodMillis": 1800000
+            },
+            {
               "name": "TodayProgress",
               "label": "GainMode · Bugünkü ilerleme",
               "description": "Bugünkü antrenman ilerlemesi",
@@ -129,14 +145,116 @@
               "previewImage": "./assets/images/widget-preview.png",
               "updatePeriodMillis": 1800000
             },
-            { "name": "Breathe", "label": "GainMode · Nefes molası", "description": "Kısa nefes molası", "minWidth": "180dp", "minHeight": "110dp", "targetCellWidth": 3, "targetCellHeight": 2, "maxResizeWidth": "400dp", "maxResizeHeight": "260dp", "resizeMode": "horizontal|vertical", "updatePeriodMillis": 1800000 },
-            { "name": "Streak", "label": "GainMode · Günlük seri", "description": "Günlük aktivite serisi", "minWidth": "180dp", "minHeight": "110dp", "targetCellWidth": 3, "targetCellHeight": 2, "maxResizeWidth": "400dp", "maxResizeHeight": "260dp", "resizeMode": "horizontal|vertical", "updatePeriodMillis": 1800000 },
-            { "name": "StartWorkout", "label": "GainMode · Antrenman", "description": "Bugünkü antrenmana geç", "minWidth": "180dp", "minHeight": "110dp", "targetCellWidth": 3, "targetCellHeight": 2, "maxResizeWidth": "400dp", "maxResizeHeight": "260dp", "resizeMode": "horizontal|vertical", "updatePeriodMillis": 1800000 },
-            { "name": "WeeklyConsistency", "label": "GainMode · Haftalık devamlılık", "description": "Son yedi gündeki aktiviteler", "minWidth": "180dp", "minHeight": "110dp", "targetCellWidth": 3, "targetCellHeight": 2, "maxResizeWidth": "400dp", "maxResizeHeight": "260dp", "resizeMode": "horizontal|vertical", "updatePeriodMillis": 1800000 },
-            { "name": "Motivation", "label": "GainMode · Günün sözü", "description": "Her gün yeni bir motivasyon sözü", "minWidth": "180dp", "minHeight": "110dp", "targetCellWidth": 3, "targetCellHeight": 2, "maxResizeWidth": "400dp", "maxResizeHeight": "260dp", "resizeMode": "horizontal|vertical", "previewImage": "./assets/images/widget-preview.png", "updatePeriodMillis": 1800000 },
-            { "name": "NextGoal", "label": "GainMode · Sıradaki hedef", "description": "Bir sonraki rozet hedefin", "minWidth": "180dp", "minHeight": "110dp", "targetCellWidth": 3, "targetCellHeight": 2, "maxResizeWidth": "400dp", "maxResizeHeight": "260dp", "resizeMode": "horizontal|vertical", "updatePeriodMillis": 1800000 },
-            { "name": "Performance", "label": "GainMode · Performans", "description": "Haftalık antrenman performansı", "minWidth": "180dp", "minHeight": "110dp", "targetCellWidth": 3, "targetCellHeight": 2, "maxResizeWidth": "400dp", "maxResizeHeight": "260dp", "resizeMode": "horizontal|vertical", "updatePeriodMillis": 1800000 },
-            { "name": "GoodNight", "label": "GainMode · İyi geceler", "description": "Akşam dinlenme hatırlatması", "minWidth": "180dp", "minHeight": "110dp", "targetCellWidth": 3, "targetCellHeight": 2, "maxResizeWidth": "400dp", "maxResizeHeight": "260dp", "resizeMode": "horizontal|vertical", "updatePeriodMillis": 1800000 }
+            {
+              "name": "Breathe",
+              "label": "GainMode · Nefes molası",
+              "description": "Kısa nefes molası",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "400dp",
+              "maxResizeHeight": "260dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Streak",
+              "label": "GainMode · Günlük seri",
+              "description": "Serin, adın ve toplam antrenmanların",
+              "minWidth": "250dp",
+              "minHeight": "60dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 1,
+              "maxResizeWidth": "400dp",
+              "maxResizeHeight": "260dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000,
+              "previewImage": "./assets/images/widgets/widget-stronger.jpg"
+            },
+            {
+              "name": "StartWorkout",
+              "label": "GainMode · Antrenmana başla",
+              "description": "Bugünkü antrenmanın, süresi ve ilerlemen",
+              "minWidth": "250dp",
+              "minHeight": "60dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 1,
+              "maxResizeWidth": "400dp",
+              "maxResizeHeight": "260dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000,
+              "previewImage": "./assets/images/widgets/widget-start.jpg"
+            },
+            {
+              "name": "WeeklyConsistency",
+              "label": "GainMode · Haftalık devamlılık",
+              "description": "Son yedi gündeki aktiviteler",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "400dp",
+              "maxResizeHeight": "260dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "Motivation",
+              "label": "GainMode · Günün sözü",
+              "description": "Her gün yeni bir motivasyon sözü",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 3,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "400dp",
+              "maxResizeHeight": "260dp",
+              "resizeMode": "horizontal|vertical",
+              "previewImage": "./assets/images/widget-preview.png",
+              "updatePeriodMillis": 1800000
+            },
+            {
+              "name": "NextGoal",
+              "label": "GainMode · Sıradaki hedef",
+              "description": "Sıradaki rozete ne kadar kaldığı",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "400dp",
+              "maxResizeHeight": "260dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000,
+              "previewImage": "./assets/images/widgets/widget-goal.jpg"
+            },
+            {
+              "name": "Performance",
+              "label": "GainMode · Performans",
+              "description": "Geçen haftaya göre değişimin ve 7 günlük grafiğin",
+              "minWidth": "110dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 2,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "400dp",
+              "maxResizeHeight": "260dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000,
+              "previewImage": "./assets/images/widgets/widget-performance.jpg"
+            },
+            {
+              "name": "GoodNight",
+              "label": "GainMode · İyi geceler",
+              "description": "Bugünün özeti ve yarınki antrenmanın",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "maxResizeWidth": "400dp",
+              "maxResizeHeight": "260dp",
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000,
+              "previewImage": "./assets/images/widgets/widget-night.jpg"
+            }
           ]
         }
       ],

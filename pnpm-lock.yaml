@@ -92,7 +92,7 @@ overrides:
 
 patchedDependencies:
   react-native-pose-detection@0.1.0:
-    hash: 88cf866be5a37cd3d4ff6e39fcbaa030c5878e0c8746510a89a61c758cdec0b4
+    hash: dc37d3c9bd6171be5dfb98bb73f18a448d2dd26639a0fa02eced747421035001
     path: patches/react-native-pose-detection@0.1.0.patch
 
 importers:
@@ -199,7 +199,7 @@ importers:
         version: 0.24.0(expo@58.0.21)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
       react-native-pose-detection:
         specifier: 0.1.0
-        version: 0.1.0(patch_hash=88cf866be5a37cd3d4ff6e39fcbaa030c5878e0c8746510a89a61c758cdec0b4)(expo@58.0.21)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
+        version: 0.1.0(patch_hash=dc37d3c9bd6171be5dfb98bb73f18a448d2dd26639a0fa02eced747421035001)(expo@58.0.21)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
       react-native-purchases:
         specifier: ^10.8.1
         version: 10.8.1(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
@@ -11780,7 +11780,7 @@ snapshots:
       react-native-is-edge-to-edge: 1.3.1(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
       react-native-reanimated: 4.7.1(react-native-worklets@0.13.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
 
-  react-native-pose-detection@0.1.0(patch_hash=88cf866be5a37cd3d4ff6e39fcbaa030c5878e0c8746510a89a61c758cdec0b4)(expo@58.0.21)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
+  react-native-pose-detection@0.1.0(patch_hash=dc37d3c9bd6171be5dfb98bb73f18a448d2dd26639a0fa02eced747421035001)(expo@58.0.21)(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0):
     dependencies:
       expo: 58.0.21(@babel/core@7.29.7)(@expo/metro-runtime@58.0.15)(expo-router@58.0.28)(react-dom@19.3.0(react@19.3.0))(react-native-web@0.21.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-native-worklets@0.13.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@react-native/metro-config@0.88.0(@babel/core@7.29.7))(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
       react: 19.3.0

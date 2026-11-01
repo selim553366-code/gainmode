@@ -1,8 +1,24 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 762216dffe0cc99447b0567b1172f39a63e1396e..336c48184e005e034d83ac2ef446aa4dd6427690 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -31,7 +31,10 @@ dependencies {
+   // Pinned deliberately. tasks-vision is a thin facade from 0.10.33 on; the native libraries
+   // live in tasks-core, which it pulls transitively with all four ABIs.
+   // See docs/adr/0007-pin-mediapipe-0-10-35.md.
+-  implementation 'com.google.mediapipe:tasks-vision:0.10.35'
++  // GainMode: release builds on 0.10.35 failed to create the landmarker with a missing
++  // com.google.mediapipe.framework.Graph class, which the 0.10.33+ facade no longer brings in.
++  // 0.10.29 still ships the framework classes inside tasks-core and has the same Tasks API.
++  implementation 'com.google.mediapipe:tasks-vision:0.10.29'
+ 
+   def cameraxVersion = '1.6.1'
+   implementation "androidx.camera:camera-core:$cameraxVersion"
 diff --git a/android/src/main/java/com/posedetection/PoseDetectionModule.kt b/android/src/main/java/com/posedetection/PoseDetectionModule.kt
-index 2ceaf41..06874dc 100644
+index f8f89b8e945925112ca85a534fe2a18f281f8fd5..bf43490a829fca5f1fc0b49dc72a8ea562f3d918 100644
 --- a/android/src/main/java/com/posedetection/PoseDetectionModule.kt
 +++ b/android/src/main/java/com/posedetection/PoseDetectionModule.kt
-@@ -21,7 +21,7 @@ import com.posedetection.view.parseOverlay
+@@ -21,9 +21,9 @@ import com.posedetection.view.parseOverlay
  import expo.modules.interfaces.permissions.PermissionsResponse
  import expo.modules.interfaces.permissions.PermissionsStatus
  import expo.modules.kotlin.functions.Queues
@@ -11,6 +27,8 @@ index 2ceaf41..06874dc 100644
  import expo.modules.kotlin.modules.ModuleDefinition
 +import java.nio.ByteBuffer
  
+ class PoseDetectionModule : Module() {
+     private fun hasCameraPermission(): Boolean {
 @@ -60,7 +60,7 @@ class PoseDetectionModule : Module() {
                          angleJoints = angleJointsFrom(options),
                          selection = selectionFrom(options),
@@ -43,11 +61,38 @@ index 2ceaf41..06874dc 100644
  /** Resolved by JavaScript for the live path, and passed the same way here. */
  internal fun angleJointsFrom(options: Map<String, Any?>?): Array<String> {
      val raw = options?.get("angleJoints") as? List<*> ?: return Skeleton.ANGLE_JOINT_NAMES
+diff --git a/android/src/main/java/com/posedetection/camera/CameraSource.kt b/android/src/main/java/com/posedetection/camera/CameraSource.kt
+index 5af6b73c786fa2adae83367d0237b1b12a769809..1e02d587b44c2c7934e2ce9febcf45f142e89cb5 100644
+--- a/android/src/main/java/com/posedetection/camera/CameraSource.kt
++++ b/android/src/main/java/com/posedetection/camera/CameraSource.kt
+@@ -200,6 +200,9 @@ internal class CameraSource(
+ 
+         val lens = resolveAvailable(provider, target)
+         val rotation = currentRotation()
++        // Keep the camera preview in its natural orientation. The rig overlay
++        // is mirrored independently below for left/right body alignment.
++        previewView.scaleX = 1f
+ 
+         val preview =
+             Preview
+diff --git a/android/src/main/java/com/posedetection/detector/PoseDetector.kt b/android/src/main/java/com/posedetection/detector/PoseDetector.kt
+index a76bc6046f4bbcdb559225fcc1a7b25b32086a8c..aa3d039317bd32517ac185c9be4d961da6ea38e2 100644
+--- a/android/src/main/java/com/posedetection/detector/PoseDetector.kt
++++ b/android/src/main/java/com/posedetection/detector/PoseDetector.kt
+@@ -256,7 +256,7 @@ internal class PoseDetector private constructor(
+             Array(QUARTER_TURNS) { quarter ->
+                 ImageProcessingOptions
+                     .builder()
+-                    .setRotationDegrees(-(quarter * DEGREES_PER_QUARTER))
++                    .setRotationDegrees(quarter * DEGREES_PER_QUARTER)
+                     .build()
+             }
+ 
 diff --git a/android/src/main/java/com/posedetection/view/PoseCameraView.kt b/android/src/main/java/com/posedetection/view/PoseCameraView.kt
-index 64a4740..07e2296 100644
+index 59140816dc2e188e5fa17423520ca9072952f1cb..2ab4f8fb148b82241bbd38dd9eac8e8ec84bf920 100644
 --- a/android/src/main/java/com/posedetection/view/PoseCameraView.kt
 +++ b/android/src/main/java/com/posedetection/view/PoseCameraView.kt
-@@ -51,7 +51,7 @@ import com.posedetection.performance.ThermalPolicy
+@@ -51,9 +51,9 @@ import com.posedetection.performance.ThermalPolicy
  import com.posedetection.performance.ThermalState
  import com.posedetection.performance.Tiers
  import expo.modules.kotlin.AppContext
@@ -56,7 +101,10 @@ index 64a4740..07e2296 100644
  import expo.modules.kotlin.views.ExpoView
 +import java.nio.ByteBuffer
  import java.util.concurrent.Executors
-@@ -81,6 +81,6 @@ class PoseCameraView(
+ import java.util.concurrent.atomic.AtomicBoolean
+ import java.util.concurrent.atomic.AtomicLong
+@@ -80,7 +80,7 @@ class PoseCameraView(
+ 
      private val previewView =
          PreviewView(context).apply {
 -            implementationMode = PreviewView.ImplementationMode.PERFORMANCE
@@ -64,13 +112,7 @@ index 64a4740..07e2296 100644
              scaleType = PreviewView.ScaleType.FILL_CENTER
          }
      private val overlayView = OverlayView(context)
-@@ -317,13 +317,14 @@ class PoseCameraView(
-         )
-         container.addView(
-             overlayView,
-             FrameLayout.LayoutParams(
-                 FrameLayout.LayoutParams.MATCH_PARENT,
-                 FrameLayout.LayoutParams.MATCH_PARENT,
+@@ -323,6 +323,7 @@ class PoseCameraView(
              ),
          )
          addView(container)
@@ -78,11 +120,38 @@ index 64a4740..07e2296 100644
  
          // Props have not arrived yet. Without this a frame landing first would find no layout and
          // be dropped, and `snapshotFrame()` would answer empty for reasons nobody could see.
-         applyFrameLayout()
-@@ -927,1 +927,2 @@ class PoseCameraView(
+@@ -715,6 +716,12 @@ class PoseCameraView(
+         if (started) restartSession()
+     }
+ 
++    /** Class names along the cause chain, so a screenshot of the error says what actually broke. */
++    private fun describeFailure(error: Throwable): String =
++        generateSequence(error) { it.cause?.takeIf { cause -> cause !== it } }
++            .take(3)
++            .joinToString(" <- ") { "${it.javaClass.simpleName}: ${it.message ?: "-"}" }
++
+     private fun failDetector(
+         error: Throwable,
+         generation: Int,
+@@ -726,7 +733,7 @@ class PoseCameraView(
+         resolvedDelegate = null
+         emitError(
+             ErrorCode.DETECTOR_INIT_FAILED,
+-            error.message ?: "The pose landmarker could not be created.",
++            describeFailure(error),
+         )
+         emitReadyOnce()
+     }
+@@ -924,6 +931,7 @@ class PoseCameraView(
+         // Before anything reads a coordinate: the overlay, the geometry, the evaluators and the
+         // wire all have to agree about where the body is.
          if (propSmoothing) smoothing.apply(landmarkBuffer, elapsedSeconds) else smoothing.reset()
 +        rotateLandmarksToDisplay(frameRotationDegrees)
-@@ -938,2 +938,25 @@ class PoseCameraView(
+ 
+         // Landmarks are normalized to the rotated frame MediaPipe was asked to process, not to the
+         // sensor buffer, so the overlay is handed the display-upright size. The mirror flag comes
+@@ -936,6 +944,29 @@ class PoseCameraView(
+ 
          buildFrame(result, primaryIndex, pose.size, frameWidth, frameHeight, nowMs, comparable, elapsedSeconds)
      }
 +    private fun rotateLandmarksToDisplay(rotationDegrees: Int) {
@@ -108,12 +177,10 @@ index 64a4740..07e2296 100644
 +            }
 +        }
 +    }
-@@ -1294,3 +1294,3 @@ class PoseCameraView(
-     private fun syncOverlayMirroring() {
--        overlayView.setMirrored(camera.facing == Facing.FRONT)
-+        overlayView.setMirrored(camera.facing == Facing.FRONT)
-     }
-@@ -1379,13 +1379,12 @@ class PoseCameraView(
+ 
+     /**
+      * Largest bounding box, ties broken by distance from the frame centre. With one pose this is
+@@ -1379,13 +1410,12 @@ class PoseCameraView(
          frames.setLayout(next)
      }
  
@@ -130,7 +197,7 @@ index 64a4740..07e2296 100644
  
      fun currentState(): Map<String, Any?> =
          mapOf(
-@@ -1646,6 +1645,13 @@ class PoseCameraView(
+@@ -1646,6 +1676,13 @@ class PoseCameraView(
      }
  }
  
@@ -144,27 +211,27 @@ index 64a4740..07e2296 100644
  internal fun Facing.nameForJs(): String = if (this == Facing.FRONT) "front" else "back"
  
  internal fun Size.toMap(): Map<String, Any?> = mapOf("width" to width, "height" to height)
-diff --git a/android/src/main/java/com/posedetection/camera/CameraSource.kt b/android/src/main/java/com/posedetection/camera/CameraSource.kt
---- a/android/src/main/java/com/posedetection/camera/CameraSource.kt
-+++ b/android/src/main/java/com/posedetection/camera/CameraSource.kt
-@@ -201,2 +201,5 @@ internal class CameraSource(
-         val lens = resolveAvailable(provider, target)
-         val rotation = currentRotation()
-+        // Keep the camera preview in its natural orientation. The rig overlay
-+        // is mirrored independently below for left/right body alignment.
-+        previewView.scaleX = 1f
-diff --git a/android/src/main/java/com/posedetection/detector/PoseDetector.kt b/android/src/main/java/com/posedetection/detector/PoseDetector.kt
---- a/android/src/main/java/com/posedetection/detector/PoseDetector.kt
-+++ b/android/src/main/java/com/posedetection/detector/PoseDetector.kt
-@@ -256,6 +256,6 @@ internal class PoseDetector private constructor(
-             Array(QUARTER_TURNS) { quarter ->
-                 ImageProcessingOptions
-                     .builder()
--                    .setRotationDegrees(-(quarter * DEGREES_PER_QUARTER))
-+                    .setRotationDegrees(quarter * DEGREES_PER_QUARTER)
-                     .build()
-             }
+diff --git a/build/frames/decodeFrames.js b/build/frames/decodeFrames.js
+index 201a44b011f02becae695e8d953e72f5f0e7c695..d1d6851645b8812b932188082539045071471212 100644
+--- a/build/frames/decodeFrames.js
++++ b/build/frames/decodeFrames.js
+@@ -15,7 +15,13 @@ function isCount(value) {
+  * A malformed buffer returns an `error` rather than throwing: this runs inside the tick handler,
+  * where a throw would stall the drain loop permanently.
+  */
+-function decodeFrames(buffer, options) {
++function decodeFrames(input, options) {
++    const buffer = input instanceof ArrayBuffer
++        ? input
++        : input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
++    if (!(buffer instanceof ArrayBuffer)) {
++        return { frames: [], droppedCount: 0, error: 'frame buffer is not an ArrayBuffer' };
++    }
+     if (buffer.byteLength < wire_1.HEADER_FLOAT64S * Float64Array.BYTES_PER_ELEMENT) {
+         // The empty drain is the common case, not an error: native returns a bare header when the
+         // ring buffer had nothing in it.
 diff --git a/ios/PoseDetectionModule.swift b/ios/PoseDetectionModule.swift
+index 8ba92e726c458d3cbdca661477f55fac6ee9692a..eca298a30cad7d2f28973131a9eb6c29218ed352 100644
 --- a/ios/PoseDetectionModule.swift
 +++ b/ios/PoseDetectionModule.swift
 @@ -27,7 +27,7 @@ public class PoseDetectionModule: Module {
@@ -199,6 +266,7 @@ diff --git a/ios/PoseDetectionModule.swift b/ios/PoseDetectionModule.swift
        }
      }
 diff --git a/ios/view/PoseCameraView+Ref.swift b/ios/view/PoseCameraView+Ref.swift
+index b15f141d09ba014ca2ee8d9cf5d6ea11890aaf99..0a6f60418812fe17568060f8f2f7e8ce9af69a3b 100644
 --- a/ios/view/PoseCameraView+Ref.swift
 +++ b/ios/view/PoseCameraView+Ref.swift
 @@ -99,17 +99,17 @@ extension PoseCameraView {
@@ -226,6 +294,7 @@ diff --git a/ios/view/PoseCameraView+Ref.swift b/ios/view/PoseCameraView+Ref.swi
  
    /// Zero once results stop: the last live value would read as a session that is still running.
 diff --git a/src/frames/decodeFrames.ts b/src/frames/decodeFrames.ts
+index e9cf82eba3daca494e397e4b863b06b3522210a4..e3e1d9aaafc3c6e9328bb62e0e291fb23808ab15 100644
 --- a/src/frames/decodeFrames.ts
 +++ b/src/frames/decodeFrames.ts
 @@ -40,7 +40,17 @@ function isCount(value: number): boolean {
@@ -247,21 +316,3 @@ diff --git a/src/frames/decodeFrames.ts b/src/frames/decodeFrames.ts
    if (buffer.byteLength < HEADER_FLOAT64S * Float64Array.BYTES_PER_ELEMENT) {
      // The empty drain is the common case, not an error: native returns a bare header when the
      // ring buffer had nothing in it.
-diff --git a/build/frames/decodeFrames.js b/build/frames/decodeFrames.js
---- a/build/frames/decodeFrames.js
-+++ b/build/frames/decodeFrames.js
-@@ -15,7 +15,13 @@ function isCount(value) {
-  * A malformed buffer returns an `error` rather than throwing: this runs inside the tick handler,
-  * where a throw would stall the drain loop permanently.
-  */
--function decodeFrames(buffer, options) {
-+function decodeFrames(input, options) {
-+    const buffer = input instanceof ArrayBuffer
-+        ? input
-+        : input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
-+    if (!(buffer instanceof ArrayBuffer)) {
-+        return { frames: [], droppedCount: 0, error: 'frame buffer is not an ArrayBuffer' };
-+    }
-     if (buffer.byteLength < wire_1.HEADER_FLOAT64S * Float64Array.BYTES_PER_ELEMENT) {
-         // The empty drain is the common case, not an error: native returns a bare header when the
-         // ring buffer had nothing in it.

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { Language, TranslationKey } from '@/lib/i18n';
+import { detectDeviceLanguage } from '@/lib/deviceLanguage';
 import { PREVIEW_SUBSCRIPTION_ACTIVE, useSubscription } from '@/lib/revenuecat';
 import { NotificationSettingKey, NotificationSettings, syncFitnessNotifications } from '@/lib/notifications';
 import { restoreNotificationPreferences } from '@/lib/notificationPreferences';
@@ -178,7 +179,7 @@ type FitContextValue = FitState & {
 const initialState: FitState = {
   version: 5,
   accountId: createLocalAccountId(),
-  language: 'tr',
+  language: detectDeviceLanguage(),
   weight: null,
   calorieGoal: null,
   proteinGoal: null,
