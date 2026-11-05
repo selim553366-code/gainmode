@@ -31,6 +31,7 @@ import { getEntryRoute } from '@/lib/entryFlow';
 import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
 import { Paywall } from '@/components/Paywall';
 import { HeightRuler } from '@/components/HeightRuler';
+import { WeightDial } from '@/components/WeightDial';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
 import type { AiPlan } from '@/lib/aiPlan';
@@ -197,19 +198,6 @@ function UnitToggle({ unit, onChange, metricLabel, imperialLabel }: { unit: Meas
         <Text style={[styles.unitOptionText, { color: selected ? colors.primaryForeground : colors.mutedForeground }]}>{option === 'metric' ? metricLabel : imperialLabel}</Text>
       </Pressable>;
     })}
-  </View>;
-}
-
-function WeightPicker({ value, unit, inputValue, onInputChange, onChange }: { value: number; unit: MeasurementUnit; inputValue: string; onInputChange: (value: string) => void; onChange: (value: number) => void }) {
-  const colors = useColors();
-  const change = (amount: number) => {
-    const next = unit === 'metric' ? value + amount : value + amount * KG_PER_POUND;
-    onChange(Math.round(Math.max(35, Math.min(200, next)) * 10) / 10);
-  };
-  return <View style={[styles.weightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <Pressable onPress={() => change(unit === 'metric' ? -0.5 : -1)} style={[styles.stepButton, { backgroundColor: colors.secondary }]}><Ionicons name="remove" size={22} color={colors.foreground} /></Pressable>
-    <View style={styles.weightValue}><TextInput value={inputValue} onChangeText={onInputChange} keyboardType="decimal-pad" selectTextOnFocus style={[styles.weightNumberInput, { color: colors.foreground }]} /><Text style={[styles.rulerUnit, { color: colors.primary }]}>{unit === 'metric' ? 'kg' : 'lb'}</Text></View>
-    <Pressable onPress={() => change(unit === 'metric' ? 0.5 : 1)} style={[styles.stepButton, { backgroundColor: colors.accent }]}><Ionicons name="add" size={22} color="#FFFFFF" /></Pressable>
   </View>;
 }
 
@@ -598,7 +586,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
        {measurementUnit === 'metric' ? <View style={styles.measurementInputRow}><TextInput value={heightText} onChangeText={updateMetricHeightText} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>cm</Text></View> : <View style={styles.measurementInputRow}><TextInput value={heightFeetText} onChangeText={(text) => updateImperialHeightText('feet', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>{t('heightFeet')}</Text><TextInput value={heightInchesText} onChangeText={(text) => updateImperialHeightText('inches', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>{t('heightInches')}</Text></View>}
        <Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('heightRulerHint')}</Text>
      </View>;
-      if (activeStep === 3) return <View style={styles.measurementSection}><UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} /><WeightPicker value={weight} unit={measurementUnit} inputValue={weightText} onInputChange={updateWeightText} onChange={updateWeightFromKg} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('weightInputHint')}</Text></View>;
+      if (activeStep === 3) return <View style={styles.measurementSection}><UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} /><WeightDial value={weight} unit={measurementUnit} inputValue={weightText} onInputChange={updateWeightText} onChange={updateWeightFromKg} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('weightInputHint')}</Text></View>;
        if (activeStep === 4) return <><AgePicker value={age} inputValue={ageText} yearsLabel={t('ageYears')} onInputChange={updateAgeText} onChange={updateAge} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{age} {t('ageYears')}</Text></>;
       if (activeStep === 5) return <View style={styles.choiceList}><ChoiceButton label={t('goalMuscle')} selected={goal === 'muscle'} onPress={() => { setGoal('muscle'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightGain')} selected={goal === 'weightGain'} onPress={() => { setGoal('weightGain'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightLoss')} selected={goal === 'weightLoss'} onPress={() => { setGoal('weightLoss'); setTargetWeight(null); }} icon="scale-outline" /><ChoiceButton label={t('goalFatLoss')} selected={goal === 'fatLoss'} onPress={() => { setGoal('fatLoss'); setTargetWeight(null); }} icon="flame-outline" /><ChoiceButton label={t('goalMaintain')} selected={goal === 'maintain'} onPress={() => { setGoal('maintain'); setTargetWeight(null); }} icon="pause-outline" /></View>;
      if (activeStep === 6) return <View style={styles.choiceList}><ChoiceButton label={t('sexFemale')} selected={sex === 'female'} onPress={() => setSex('female')} /><ChoiceButton label={t('sexMale')} selected={sex === 'male'} onPress={() => setSex('male')} /><ChoiceButton label={t('sexPreferNot')} selected={sex === 'preferNot'} onPress={() => setSex('preferNot')} /></View>;
