@@ -30,6 +30,7 @@ import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } 
 import { getEntryRoute } from '@/lib/entryFlow';
 import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
 import { Paywall } from '@/components/Paywall';
+import { HeightRuler } from '@/components/HeightRuler';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
 import type { AiPlan } from '@/lib/aiPlan';
@@ -185,29 +186,6 @@ function OnboardingScrollHint({ visible }: { visible: boolean }) {
     </Animated.View>
     <Ionicons name="chevron-down" size={16} color={colors.primary} />
   </Animated.View>;
-}
-
-function RulerPicker({ value, min, max, onChange, valueLabel, minLabel, maxLabel }: { value: number; min: number; max: number; onChange: (value: number) => void; valueLabel: string; minLabel: string; maxLabel: string }) {
-  const colors = useColors();
-  const [trackWidth, setTrackWidth] = React.useState(308);
-  const updateFromX = (x: number) => onChange(Math.round(min + Math.max(0, Math.min(1, x / trackWidth)) * (max - min)));
-  const panResponder = React.useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: (event) => updateFromX(event.nativeEvent.locationX),
-    onPanResponderMove: (event) => updateFromX(event.nativeEvent.locationX),
-  }), [min, max, onChange, trackWidth]);
-  const progress = (value - min) / (max - min);
-  return <View style={[styles.rulerCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <View style={styles.rulerValue}><Text style={[styles.rulerNumber, { color: colors.foreground }]}>{valueLabel}</Text></View>
-    <View {...panResponder.panHandlers} onLayout={({ nativeEvent }) => setTrackWidth(nativeEvent.layout.width)} style={styles.rulerTrack}>
-      <View pointerEvents="none" style={[styles.rulerLine, { backgroundColor: colors.border }]} />
-      <View pointerEvents="none" style={[styles.rulerProgress, { width: `${progress * 100}%`, backgroundColor: colors.primary }]} />
-      <View pointerEvents="none" style={styles.rulerTicks}>{Array.from({ length: 16 }, (_, index) => <View key={index} style={[styles.rulerTick, { height: index % 5 === 0 ? 27 : 15, backgroundColor: index % 5 === 0 ? colors.primary : colors.mutedForeground }]} />)}</View>
-      <View pointerEvents="none" style={[styles.rulerThumb, { left: `${progress * 100}%`, backgroundColor: colors.primary, borderColor: colors.background }]} />
-    </View>
-    <View style={styles.rulerLabels}><Text style={[styles.rulerLabel, { color: colors.mutedForeground }]}>{minLabel}</Text><Text style={[styles.rulerLabel, { color: colors.mutedForeground }]}>{maxLabel}</Text></View>
-  </View>;
 }
 
 function UnitToggle({ unit, onChange, metricLabel, imperialLabel }: { unit: MeasurementUnit; onChange: (unit: MeasurementUnit) => void; metricLabel: string; imperialLabel: string }) {
@@ -616,7 +594,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
        if (activeStep === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><View style={styles.choiceList}><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View></View> : null}</>;
       if (activeStep === 2) return <View style={styles.measurementSection}>
        <UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} />
-       <RulerPicker value={height} min={130} max={220} onChange={updateHeightFromCm} valueLabel={measurementUnit === 'metric' ? `${height} cm` : formatImperialHeightLabel(height)} minLabel={measurementUnit === 'metric' ? '130 cm' : formatImperialHeightLabel(130)} maxLabel={measurementUnit === 'metric' ? '220 cm' : formatImperialHeightLabel(220)} />
+       <HeightRuler value={height} min={130} max={220} onChange={updateHeightFromCm} valueText={measurementUnit === 'metric' ? String(height) : formatImperialHeightLabel(height)} unitText={measurementUnit === 'metric' ? 'cm' : ''} altText={measurementUnit === 'metric' ? formatImperialHeightLabel(height) : `${height} cm`} />
        {measurementUnit === 'metric' ? <View style={styles.measurementInputRow}><TextInput value={heightText} onChangeText={updateMetricHeightText} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>cm</Text></View> : <View style={styles.measurementInputRow}><TextInput value={heightFeetText} onChangeText={(text) => updateImperialHeightText('feet', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>{t('heightFeet')}</Text><TextInput value={heightInchesText} onChangeText={(text) => updateImperialHeightText('inches', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>{t('heightInches')}</Text></View>}
        <Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('heightRulerHint')}</Text>
      </View>;
