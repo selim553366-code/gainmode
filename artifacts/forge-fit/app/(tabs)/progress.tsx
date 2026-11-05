@@ -28,7 +28,7 @@ function outcomeCopy(outcome: WeightOutcome, t: (key: Parameters<typeof translat
 
 export default function ProgressScreen() {
   const colors = useColors();
-  const { language, weight, weightLogs, addWeight, profile, calorieGoal, meals, workouts, dumbbellWeightHistory, registeredAt } = useFit();
+  const { language, weight, goalWeight, weightLogs, addWeight, profile, calorieGoal, meals, workouts, dumbbellWeightHistory, registeredAt } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [launching, setLaunching] = React.useState(false);
   const launchProgress = React.useRef(new Animated.Value(0)).current;
@@ -73,7 +73,7 @@ export default function ProgressScreen() {
 
     <ProgressChartsButton />
 
-     <TodayWeightBar language={language} tracksWeight={tracksWeight} onSave={addWeight} testID="progress-add-today-weight" />
+     <TodayWeightBar language={language} tracksWeight={tracksWeight} onSave={addWeight} logs={weightLogs} fallbackWeight={weight} goalWeight={goalWeight} testID="progress-add-today-weight" />
   </Screen>;
 }
 
