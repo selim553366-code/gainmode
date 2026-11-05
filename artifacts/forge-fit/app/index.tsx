@@ -1,7 +1,7 @@
 import React from 'react';
 import { Animated, Easing, Image, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import ReAnimated, { Easing as ReEasing, ZoomIn, ZoomOut, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
-import Svg, { Circle as SvgCircle, Defs, G as SvgG, Line as SvgLine, LinearGradient as SvgLinearGradient, Path as SvgPath, RadialGradient, Stop } from 'react-native-svg';
+import ReAnimated, { Easing as ReEasing, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
+import Svg, { Circle as SvgCircle, Defs, G as SvgG, Line as SvgLine, LinearGradient as SvgLinearGradient, Ellipse as SvgEllipse, Path as SvgPath, RadialGradient, Stop } from 'react-native-svg';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -103,19 +103,29 @@ const PLATE_PITCH = 7.5;
 const BAR_WIDTH = 150;
 const PLATE_START = 38;
 
-/** One plate on one end of the bar. It springs on when its answer is given and pops off if the user goes back. */
+const PLATE_TRAVEL = 34;
+
+/**
+ * One plate on one end of the bar. It slides in from outside the bar, along it, and settles with a little spring
+ * when its answer is given. Going back fades it off.
+ */
 function Plate({ index, side, color }: { index: number; side: 'left' | 'right'; color: string }) {
   const height = PLATE_HEIGHTS[index];
   const offset = PLATE_START - index * PLATE_PITCH;
+  const from = side === 'left' ? -PLATE_TRAVEL : PLATE_TRAVEL;
+  const slide = useSharedValue(0);
+  React.useEffect(() => {
+    slide.set(withSpring(1, { damping: 22, stiffness: 210 }));
+  }, [slide]);
+  const style = useAnimatedStyle(() => ({ opacity: Math.min(1, slide.get() * 2.5), transform: [{ translateX: from * (1 - slide.get()) }] }));
   return <ReAnimated.View
-    entering={ZoomIn.springify().damping(12).stiffness(240)}
-    exiting={ZoomOut.duration(140)}
-    style={[ui.plate, { height, width: PLATE_WIDTH, backgroundColor: color, top: (40 - height) / 2 }, side === 'left' ? { left: offset } : { right: offset }]}
+    exiting={FadeOut.duration(130)}
+    style={[ui.plate, { height, width: PLATE_WIDTH, backgroundColor: color, top: (40 - height) / 2 }, side === 'left' ? { left: offset } : { right: offset }, style]}
   />;
 }
 
 /**
- * Loads a barbell as the questions are answered: every answer puts another plate on both ends, so progress
+ * Loads a barbell as the questions are answered: every answer slides another plate onto both ends, so progress
  * reads as a lift being built rather than a status line. The whole bar dips a little when a plate lands.
  */
 function BarLoader({ step, total }: { step: number; total: number }) {
@@ -742,34 +752,64 @@ function OnboardingCTA({ label, onPress, disabled = false, testID }: { label: st
 }
 
 /**
- * A stage for the mascot or an icon: two dashed orbits turning in opposite directions around a
- * soft glow that breathes. Used on the welcome, completion and plan pages.
+ * A stage for the mascot: a spotlight falling from above onto a lifting platform, so he stands in a gym rather than
+ * floating in a glow. The beam breathes slowly. Pages that draw their own scene (the curl, the app icon) pass
+ * `floor={false}` and just get the light.
  */
-function GlowStage({ size, children, tint }: { size: number; children: React.ReactNode; tint?: string }) {
+function LiftStage({ size, children, tint, floor = true }: { size: number; children: React.ReactNode; tint?: string; floor?: boolean }) {
   const colors = useColors();
   const reduced = useReducedMotion();
-  const spin = useSharedValue(0);
   const breathe = useSharedValue(0);
   const color = tint ?? colors.accent;
   React.useEffect(() => {
     if (reduced) return;
-    spin.set(withRepeat(withTiming(1, { duration: 26000, easing: ReEasing.linear }), -1));
-    breathe.set(withRepeat(withTiming(1, { duration: 2600, easing: ReEasing.inOut(ReEasing.sin) }), -1, true));
-  }, [breathe, reduced, spin]);
-  const outer = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
-  const inner = useAnimatedStyle(() => ({ transform: [{ rotate: `${-spin.get() * 520}deg` }] }));
-  const glow = useAnimatedStyle(() => ({ opacity: 0.55 + breathe.get() * 0.35, transform: [{ scale: 0.92 + breathe.get() * 0.1 }] }));
+    breathe.set(withRepeat(withTiming(1, { duration: 3200, easing: ReEasing.inOut(ReEasing.sin) }), -1, true));
+  }, [breathe, reduced]);
+  const beam = useAnimatedStyle(() => ({ opacity: 0.72 + breathe.get() * 0.28 }));
+  const w = size;
+  const floorY = size * 0.8;
+  const platW = size * 0.78;
+  const platH = size * 0.17;
   return <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-    <ReAnimated.View style={[StyleSheet.absoluteFill, glow]}>
-      <Svg width={size} height={size}><Defs><RadialGradient id="stageGlow" cx="50%" cy="50%" r="50%"><Stop offset="0" stopColor={color} stopOpacity={0.4} /><Stop offset="0.6" stopColor={color} stopOpacity={0.1} /><Stop offset="1" stopColor={color} stopOpacity={0} /></RadialGradient></Defs><SvgCircle cx={size / 2} cy={size / 2} r={size / 2} fill="url(#stageGlow)" /></Svg>
+    <ReAnimated.View pointerEvents="none" style={[StyleSheet.absoluteFill, beam]}>
+      <Svg width={w} height={size}>
+        <Defs>
+          <SvgLinearGradient id="liftBeam" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={color} stopOpacity={0} />
+            <Stop offset="0.55" stopColor={color} stopOpacity={0.12} />
+            <Stop offset="1" stopColor={color} stopOpacity={0.26} />
+          </SvgLinearGradient>
+          <RadialGradient id="liftPool" cx="50%" cy="50%" r="50%">
+            <Stop offset="0" stopColor={color} stopOpacity={0.42} />
+            <Stop offset="1" stopColor={color} stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <SvgPath d={`M${w * 0.4} 0 L${w * 0.6} 0 L${w * 0.9} ${floorY} L${w * 0.1} ${floorY} Z`} fill="url(#liftBeam)" />
+        <SvgEllipse cx={w / 2} cy={floorY} rx={w * 0.46} ry={size * 0.1} fill="url(#liftPool)" />
+      </Svg>
     </ReAnimated.View>
-    <ReAnimated.View style={[StyleSheet.absoluteFill, outer]}>
-      <Svg width={size} height={size}><SvgCircle cx={size / 2} cy={size / 2} r={size / 2 - 6} stroke={colors.foreground} strokeOpacity={0.14} strokeWidth={1.5} strokeDasharray="2 10" fill="none" /><SvgCircle cx={size / 2} cy={6} r={4} fill={color} /></Svg>
-    </ReAnimated.View>
-    <ReAnimated.View style={[StyleSheet.absoluteFill, inner]}>
-      <Svg width={size} height={size}><SvgCircle cx={size / 2} cy={size / 2} r={size * 0.36} stroke={colors.foreground} strokeOpacity={0.1} strokeWidth={1} fill="none" /><SvgCircle cx={size / 2 + size * 0.36} cy={size / 2} r={3} fill={colors.foreground} fillOpacity={0.5} /></Svg>
-    </ReAnimated.View>
+    {floor ? <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Svg width={w} height={size}>
+        <SvgEllipse cx={w / 2} cy={floorY + platH * 0.28} rx={platW / 2} ry={platH / 2} fill={colors.foreground} fillOpacity={0.14} />
+        <SvgEllipse cx={w / 2} cy={floorY + platH * 0.1} rx={platW / 2} ry={platH / 2} fill={colors.card} stroke={colors.foreground} strokeOpacity={0.18} strokeWidth={1.5} />
+        <SvgEllipse cx={w / 2} cy={floorY + platH * 0.1} rx={platW * 0.37} ry={platH * 0.36} fill="none" stroke={color} strokeOpacity={0.75} strokeWidth={2.5} />
+        <SvgEllipse cx={w / 2} cy={floorY + platH * 0.1} rx={platW * 0.2} ry={platH * 0.2} fill={colors.foreground} fillOpacity={0.06} />
+      </Svg>
+    </View> : null}
     {children}
+  </View>;
+}
+
+/** A weight plate that doubles as the "all set" stamp: grooved rim, a check where the hole would be. */
+function PlateBadge({ color, size = 58 }: { color: string; size?: number }) {
+  const r = size / 2;
+  return <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+    <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+      <SvgCircle cx={r} cy={r} r={r - 1} fill={color} />
+      <SvgCircle cx={r} cy={r} r={r * 0.8} fill="none" stroke="#FFFFFF" strokeOpacity={0.4} strokeWidth={2} />
+      <SvgCircle cx={r} cy={r} r={r * 0.6} fill="none" stroke="#000000" strokeOpacity={0.16} strokeWidth={2} />
+    </Svg>
+    <View style={{ zIndex: 2 }}><Ionicons name="checkmark" size={Math.round(size * 0.46)} color="#FFFFFF" /></View>
   </View>;
 }
 
@@ -882,11 +922,11 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
       <OnboardingTopBar />
       <View style={ui.welcomeBody}>
         <Rise style={ui.welcomeStage}><View style={{ width: stage, height: stage }}>
-          <GlowStage size={stage}>
+          <LiftStage size={stage}>
             <ReAnimated.View style={mascotStyle}>
               <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={{ width: stage * 0.78, height: stage * 0.78 }} />
             </ReAnimated.View>
-          </GlowStage>
+          </LiftStage>
           <View style={[ui.floatChip, { left: 6, top: stage * 0.2, backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="camera-outline" size={14} color={colors.foreground} /><Text style={[ui.floatChipText, { color: colors.foreground }]}>AI</Text></View>
           <View style={[ui.floatChip, { right: 6, top: stage * 0.55, backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="barbell-outline" size={14} color={colors.foreground} /><Ionicons name="flame" size={14} color={colors.orange} /></View>
         </View></Rise>
@@ -999,16 +1039,16 @@ function CompletionScreen({ onContinue }: { onContinue: () => void }) {
   React.useEffect(() => {
     pop.set(withDelay(350, withSpring(1, { damping: 10, stiffness: 180 })));
   }, [pop]);
-  const badge = useAnimatedStyle(() => ({ opacity: pop.get(), transform: [{ scale: 0.4 + pop.get() * 0.6 }, { rotate: `${(1 - pop.get()) * -40}deg` }] }));
+  const badge = useAnimatedStyle(() => ({ opacity: pop.get(), transform: [{ scale: 0.4 + pop.get() * 0.6 }, { rotate: `${(1 - pop.get()) * -40 - 10}deg` }] }));
   return <View style={ui.page}>
     <OnboardingBackdrop />
     <OnboardingTopBar />
     <View style={ui.centerBody}>
       <Rise>
-        <GlowStage size={300} tint={colors.success}>
+        <LiftStage size={300} tint={colors.success}>
           <Image source={require('@/assets/images/coach-thumbs-up-no-bg.png')} resizeMode="contain" style={{ width: 230, height: 230 }} />
-          <ReAnimated.View style={[ui.doneBadge, { backgroundColor: colors.success }, badge]}><Ionicons name="checkmark" size={26} color="#FFFFFF" /></ReAnimated.View>
-        </GlowStage>
+          <ReAnimated.View style={[ui.doneBadge, badge]}><PlateBadge color={colors.success} /></ReAnimated.View>
+        </LiftStage>
       </Rise>
       <Rise delay={200}><Text style={[ui.title, ui.centerText, { color: colors.foreground }]}>{t('finishQuestionsTitle')}</Text></Rise>
       <Rise delay={280}><Text style={[ui.subtitle, ui.centerText, { color: colors.mutedForeground }]}>{t('finishQuestionsBody')}</Text></Rise>
@@ -1126,9 +1166,9 @@ function PlanBuildingScreen({ request, onComplete }: { request: () => Promise<Ai
     <OnboardingBackdrop />
     <OnboardingTopBar />
     <View style={ui.centerBody}>
-      <GlowStage size={260}>
+      <LiftStage size={260} floor={false}>
         <CurlLift progress={percent / 100} />
-      </GlowStage>
+      </LiftStage>
       <Text style={[ui.buildPercent, { color: colors.foreground }]}>{percent}<Text style={ui.buildPercentSign}>%</Text></Text>
       <Text style={[ui.title, ui.centerText, { color: colors.foreground }]}>{t('planBuildingTitle')}</Text>
       <View style={[ui.aiStatus, { backgroundColor: `${result?.plan ? colors.success : colors.accent}16` }]}>
@@ -1244,7 +1284,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
     <OnboardingBackdrop />
     <OnboardingTopBar />
     <ScrollView contentContainerStyle={[ui.scrollBody, { alignItems: 'center' }]} showsVerticalScrollIndicator={false}>
-      <Rise><GlowStage size={240}><Image source={require('@/assets/images/coach-app-icon-final.png')} style={ui.introIcon} /></GlowStage></Rise>
+      <Rise><LiftStage size={240} floor={false}><Image source={require('@/assets/images/coach-app-icon-final.png')} style={ui.introIcon} /></LiftStage></Rise>
       <Rise delay={140}><Text style={[ui.title, ui.centerText, { color: colors.foreground }]}>{t('onboardingTitle')}</Text></Rise>
       <Rise delay={200}><Text style={[ui.subtitle, ui.centerText, { color: colors.mutedForeground }]}>{t('onboardingIntro')}</Text></Rise>
       <Rise delay={280} style={{ alignSelf: 'stretch', marginTop: 22 }}>
@@ -1711,7 +1751,7 @@ const ui = StyleSheet.create({
   growthFeature: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6, maxWidth: '100%' },
   growthFeatureText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, flexShrink: 1 },
   centerBody: { flex: 1, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' },
-  doneBadge: { position: 'absolute', right: 52, top: 52, width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#FFFFFF' },
+  doneBadge: { position: 'absolute', right: 44, top: 64, transform: [{ rotate: '-10deg' }] },
   scrollBody: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 },
   overloadCard: { borderRadius: 28, padding: 20 },
   stairs: { height: 120, flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
@@ -1748,7 +1788,7 @@ const ui = StyleSheet.create({
   optionalTag: { marginLeft: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
   optionalText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   pulseDock: { alignItems: 'center', paddingHorizontal: 20, paddingTop: 6 },
-  pulse: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderRadius: 22, borderWidth: 1, paddingLeft: 16, paddingRight: 12, paddingVertical: 8, width: '100%', maxWidth: 420, overflow: 'hidden' },
+  pulse: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderRadius: 22, borderWidth: 1, paddingLeft: 16, paddingRight: 30, paddingVertical: 8, width: '100%', maxWidth: 420, overflow: 'hidden' },
   pulseCopy: { flexShrink: 1, minWidth: 0 },
   pulseText: { fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: -0.2 },
   pulseCount: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 2 },
