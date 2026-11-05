@@ -1,6 +1,6 @@
 import React from 'react';
 import { Animated, Easing, Image, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import ReAnimated, { Easing as ReEasing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
+import ReAnimated, { Easing as ReEasing, ZoomIn, ZoomOut, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import Svg, { Circle as SvgCircle, Defs, G as SvgG, Line as SvgLine, LinearGradient as SvgLinearGradient, Path as SvgPath, RadialGradient, Stop } from 'react-native-svg';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -96,58 +96,56 @@ function CoachMotion({ variant, large = false, onboarding = false }: { variant: 
   return <Image source={source} resizeMode="contain" style={[large ? styles.coachLarge : onboarding ? styles.coachOnboarding : styles.coachSmall, !large && variant === 'wave' ? styles.coachWaveQuestion : null]} />;
 }
 
-const savedCopy: Record<string, string> = { tr: 'Cevabın kaydedildi', en: 'Answer saved', de: 'Antwort gespeichert', fr: 'Réponse enregistrée', es: 'Respuesta guardada' };
+// Heights (px) of the plates in the order they go on, biggest first.
+const PLATE_HEIGHTS = [34, 30, 26, 22, 18, 14];
+const PLATE_WIDTH = 6;
+const PLATE_PITCH = 7.5;
+const BAR_WIDTH = 150;
+const PLATE_START = 38;
 
-/** One bar of the coach's listening wave, offset in phase from its neighbours. */
-function PulseBar({ clock, phase, color }: { clock: SharedValue<number>; phase: number; color: string }) {
-  const style = useAnimatedStyle(() => ({ height: 4 + 12 * Math.abs(Math.sin((clock.get() + phase) * Math.PI * 2)) }));
-  return <ReAnimated.View style={[ui.pulseBar, { backgroundColor: color }, style]} />;
+/** One plate on one end of the bar. It springs on when its answer is given and pops off if the user goes back. */
+function Plate({ index, side, color }: { index: number; side: 'left' | 'right'; color: string }) {
+  const height = PLATE_HEIGHTS[index];
+  const offset = PLATE_START - index * PLATE_PITCH;
+  return <ReAnimated.View
+    entering={ZoomIn.springify().damping(12).stiffness(240)}
+    exiting={ZoomOut.duration(140)}
+    style={[ui.plate, { height, width: PLATE_WIDTH, backgroundColor: color, top: (40 - height) / 2 }, side === 'left' ? { left: offset } : { right: offset }]}
+  />;
 }
 
 /**
- * The coach listening in, docked above the main button: the avatar sits in a turning arc and a
- * small wave plays beside the text. Each new question first flashes a saved check for the
- * previous answer, then goes back to listening.
+ * Loads a barbell as the questions are answered: every answer puts another plate on both ends, so progress
+ * reads as a lift being built rather than a status line. The whole bar dips a little when a plate lands.
  */
-function CoachPulse({ step }: { step: number }) {
+function BarLoader({ step, total }: { step: number; total: number }) {
   const colors = useColors();
   const { language } = useFit();
-  const reduced = useReducedMotion();
-  const clock = useSharedValue(0);
-  const spin = useSharedValue(0);
-  const flash = useSharedValue(0);
-  const [saved, setSaved] = React.useState(false);
+  const dip = useSharedValue(0);
   const first = React.useRef(true);
+  const plates = Math.max(0, Math.min(PLATE_HEIGHTS.length, Math.round(((step + 1) / Math.max(total, 1)) * PLATE_HEIGHTS.length)));
 
   React.useEffect(() => {
-    if (reduced) return;
-    clock.set(withRepeat(withTiming(1, { duration: 1400, easing: ReEasing.linear }), -1));
-    spin.set(withRepeat(withTiming(1, { duration: 2400, easing: ReEasing.linear }), -1));
-  }, [clock, reduced, spin]);
+    if (first.current) { first.current = false; return; }
+    dip.set(withSequence(withTiming(1, { duration: 90 }), withSpring(0, { damping: 9, stiffness: 260 })));
+  }, [dip, step]);
 
-  React.useEffect(() => {
-    if (first.current) { first.current = false; return undefined; }
-    setSaved(true);
-    flash.set(0);
-    flash.set(withSequence(withTiming(1, { duration: 220 }), withDelay(900, withTiming(0, { duration: 260 }))));
-    const timer = setTimeout(() => setSaved(false), 1300);
-    return () => clearTimeout(timer);
-  }, [flash, step]);
-
-  const arcStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
-  const glowStyle = useAnimatedStyle(() => ({ opacity: flash.get() }));
-  const tone = saved ? colors.success : colors.accent;
+  const barStyle = useAnimatedStyle(() => ({ transform: [{ translateY: dip.get() * 3 }] }));
   return <View style={ui.pulseDock}>
     <View style={[ui.pulse, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <ReAnimated.View pointerEvents="none" style={[StyleSheet.absoluteFill, ui.pulseFlash, { backgroundColor: `${colors.success}22`, borderColor: `${colors.success}66` }, glowStyle]} />
-      <View style={ui.pulseAvatar}>
-        <ReAnimated.View style={[StyleSheet.absoluteFill, arcStyle]}>
-          <Svg width={34} height={34}><SvgCircle cx={17} cy={17} r={15.5} stroke={tone} strokeWidth={2} strokeLinecap="round" strokeDasharray="28 70" fill="none" /></Svg>
-        </ReAnimated.View>
-        <View style={[ui.pulseFace, { backgroundColor: colors.secondary }]}><Image source={require('@/assets/images/coach-writing-no-bg.png')} resizeMode="contain" style={ui.pulseFaceImage} /></View>
+      <View style={ui.pulseCopy}>
+        <Text numberOfLines={1} style={[ui.pulseText, { color: colors.foreground }]}>{translate(language, 'analyzingAnswers')}</Text>
+        <Text style={[ui.pulseCount, { color: colors.mutedForeground }]}>{Math.min(step + 1, total)} / {total}</Text>
       </View>
-      <Text numberOfLines={1} style={[ui.pulseText, { color: colors.foreground }]}>{saved ? savedCopy[language] ?? savedCopy.en : translate(language, 'analyzingAnswers')}</Text>
-      {saved ? <Ionicons name="checkmark-circle" size={18} color={colors.success} /> : <View style={ui.pulseWave}>{[0, 0.15, 0.3, 0.45].map((phase) => <PulseBar key={phase} clock={clock} phase={phase} color={colors.accent} />)}</View>}
+      <ReAnimated.View style={[ui.bar, barStyle]}>
+        <View style={[ui.barShaft, { backgroundColor: colors.mutedForeground }]} />
+        <View style={[ui.barCollar, { left: 2, backgroundColor: colors.mutedForeground }]} />
+        <View style={[ui.barCollar, { right: 2, backgroundColor: colors.mutedForeground }]} />
+        {Array.from({ length: plates }, (_, index) => {
+          const color = index % 2 === 0 ? colors.accent : colors.foreground;
+          return <React.Fragment key={index}><Plate index={index} side="left" color={color} /><Plate index={index} side="right" color={color} /></React.Fragment>;
+        })}
+      </ReAnimated.View>
     </View>
   </View>;
 }
@@ -644,7 +642,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
         </KeyboardAwareScrollViewCompat>
         <OnboardingScrollHint visible={scrollHintEligible && questionAnswerBottom > questionViewportHeight + 18 && questionScrollOffset < Math.max(0, questionAnswerBottom - questionViewportHeight - 18)} />
       </Animated.View>
-      <CoachPulse step={step} />
+      <BarLoader step={step} total={total} />
       <OnboardingCTA testID="onboarding-next" label={step === total - 1 ? t('continueToPlan') : t('continue')} onPress={next} />
     </View>;
 }
@@ -1750,14 +1748,14 @@ const ui = StyleSheet.create({
   optionalTag: { marginLeft: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
   optionalText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   pulseDock: { alignItems: 'center', paddingHorizontal: 20, paddingTop: 6 },
-  pulse: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 999, borderWidth: 1, paddingLeft: 5, paddingRight: 14, paddingVertical: 5, maxWidth: '100%', overflow: 'hidden' },
-  pulseFlash: { borderRadius: 999, borderWidth: 1 },
-  pulseAvatar: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-  pulseFace: { width: 26, height: 26, borderRadius: 13, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
-  pulseFaceImage: { width: 30, height: 30, marginBottom: -5 },
-  pulseText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  pulseWave: { flexDirection: 'row', alignItems: 'center', gap: 2.5, height: 16 },
-  pulseBar: { width: 3, borderRadius: 2 },
+  pulse: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderRadius: 22, borderWidth: 1, paddingLeft: 16, paddingRight: 12, paddingVertical: 8, width: '100%', maxWidth: 420, overflow: 'hidden' },
+  pulseCopy: { flexShrink: 1, minWidth: 0 },
+  pulseText: { fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: -0.2 },
+  pulseCount: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 2 },
+  bar: { width: BAR_WIDTH, height: 40 },
+  barShaft: { position: 'absolute', left: 0, right: 0, top: 18, height: 4, borderRadius: 2, opacity: 0.55 },
+  barCollar: { position: 'absolute', top: 14, width: 4, height: 12, borderRadius: 2 },
+  plate: { position: 'absolute', borderRadius: 2 },
   aiStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, marginTop: 14, maxWidth: '100%' },
   aiStatusText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12.5 },
   aiDots: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 14 },
