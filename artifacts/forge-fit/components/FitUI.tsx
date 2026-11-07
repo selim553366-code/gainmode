@@ -1,4 +1,5 @@
 import React, { ReactNode } from 'react';
+import { router } from 'expo-router';
 import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Platform, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from 'react-native';
 import { AnimatedFill, PressableScale as Pressable, Reveal } from '@/components/Motion';
 import { queueWidgetOffer } from '@/components/WidgetOffer';
@@ -248,7 +249,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
         }}
       />
     </Modal>
-    <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onClose(); if (purchasedRef.current) { queueCoachKickoff(); void queueWidgetOffer(); } }} />
+    <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onClose(); if (purchasedRef.current) { queueCoachKickoff(); void queueWidgetOffer(); } router.navigate('/(tabs)/coach'); }} />
   </>;
 }
 
