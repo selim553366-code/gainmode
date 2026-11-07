@@ -15,7 +15,7 @@ import { getWorkoutForDate } from '@/lib/workoutPlan';
 import { badges, badgeText, badgeUi } from '@/lib/badges';
 import { BadgeMedal } from '@/components/BadgeMedal';
 import { AnimatedNumber, GainModeWordmark, Screen, triggerHaptic } from '@/components/FitUI';
-import { CalorieArc, MacroCard, TodaySessionCard, WeightLogCard } from '@/components/HomeToday';
+import { CalorieArc, MacroCard, TodaySessionCard } from '@/components/HomeToday';
 
 const HERO_DEEP = '#123A8F';
 
@@ -42,10 +42,6 @@ export default function TodayScreen() {
     carbsGoal,
     fatGoal,
     workouts,
-    addWeight,
-    weightLogs,
-    weight,
-    profile,
     streakDates,
     unlockedBadgeIds,
   } = useFit();
@@ -162,12 +158,6 @@ export default function TodayScreen() {
             ? router.push({ pathname: '/(tabs)/plan', params: { day: todayWorkout.day } })
             : router.push('/(tabs)/plan'))}
         />
-        {profile && profile.goal !== 'muscle' ? <WeightLogCard
-          language={language}
-          logs={weightLogs}
-          fallbackWeight={weight ?? profile.weight ?? null}
-          onSave={addWeight}
-        /> : null}
       </View>
     </Screen>
   );
