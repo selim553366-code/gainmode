@@ -102,8 +102,8 @@ export default function TodayScreen() {
               <Ellipse cx={52} cy={15} rx={50} ry={12} fill="url(#medalShadow)" />
             </Svg>
           </View>
-          <View style={[styles.medalDisc, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <FloatingMedal><BadgeMedal badge={latestBadge} size={80} locked={!unlockedBadgeIds.length} /></FloatingMedal>
+          <View style={styles.medalDisc}>
+            <FloatingMedal><BadgeMedal badge={latestBadge} size={92} locked={!unlockedBadgeIds.length} /></FloatingMedal>
           </View>
           <View style={[styles.medalCount, { backgroundColor: colors.foreground }]}>
             <Text style={[styles.medalCountText, { color: colors.background }]}>{unlockedBadgeIds.length} / {badges.length}</Text>
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   greetingSub: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, marginTop: 6 },
   medalWrap: { width: 106, height: 116, alignItems: 'center' },
   medalShadow: { position: 'absolute', bottom: 6 },
-  medalDisc: { width: 100, height: 100, borderRadius: 50, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  medalDisc: { width: 100, height: 100, alignItems: 'center', justifyContent: 'center' },
   medalCount: { position: 'absolute', bottom: 0, borderRadius: 999, paddingHorizontal: 11, paddingVertical: 4 },
   medalCountText: { fontFamily: 'Inter_800ExtraBold', fontSize: 11.5, letterSpacing: 0.2 },
   content: { paddingTop: 4 },
