@@ -96,7 +96,7 @@ function Ember({ index, count, time, size, color, ignite }: { index: number; cou
  * larger crimson blaze, day 50 to a blue flame, day 100 to a violet legend fire. Flames are
  * procedurally animated on the UI thread; reduced motion shows a still fire.
  */
-export function StreakFire({ days, height = 250 }: { days: number; height?: number }) {
+export function StreakFire({ days, height = 250, bare = false }: { days: number; height?: number; /** No backdrop of its own, for a page that paints the night behind it. */ bare?: boolean }) {
   const reduced = useReducedMotion();
   const tier = fireTier(days);
   const scale = fireScale(days);
@@ -149,8 +149,8 @@ export function StreakFire({ days, height = 250 }: { days: number; height?: numb
     return { opacity: (lit ? flicker : 0) * ignite.get() * (1 + flare.get() * 0.4), transform: [{ scale: 0.92 + scale * 0.25 + flare.get() * 0.25 }] };
   });
 
-  return <View style={[styles.stage, { height }]}>
-    <LinearGradient colors={['#08080A', lit ? palette.hearth : '#101114']} style={StyleSheet.absoluteFill} />
+  return <View style={[styles.stage, bare ? styles.bare : null, { height }]}>
+    {bare ? null : <LinearGradient colors={['#08080A', lit ? palette.hearth : '#101114']} style={StyleSheet.absoluteFill} />}
     <Animated.View pointerEvents="none" style={[styles.glowWrap, glowStyle]}>
       <Svg width="100%" height="100%" viewBox="0 0 200 200">
         <Defs>
@@ -220,5 +220,6 @@ export function StreakFire({ days, height = 250 }: { days: number; height?: numb
 
 const styles = StyleSheet.create({
   stage: { borderRadius: 20, overflow: 'hidden' },
+  bare: { borderRadius: 0, overflow: 'visible' },
   glowWrap: { position: 'absolute', left: -40, right: -40, top: -10, bottom: -60 },
 });
