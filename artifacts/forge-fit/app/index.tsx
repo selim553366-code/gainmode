@@ -893,19 +893,47 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
   </View>;
 }
 
+/** The grooves of a 20 kg plate, seen face-on: the welcome poster's backdrop, turning very slowly. */
+function PlateFace({ size, color }: { size: number; color: string }) {
+  const r = size / 2;
+  const rings = [0.98, 0.9, 0.86, 0.66, 0.6, 0.34, 0.3, 0.14];
+  return <Svg width={size} height={size}>
+    {rings.map((k, index) => <SvgCircle key={k} cx={r} cy={r} r={r * k} fill="none" stroke={color} strokeOpacity={index % 2 === 0 ? 0.16 : 0.08} strokeWidth={index % 2 === 0 ? 2 : 1} />)}
+    {Array.from({ length: 12 }, (_, index) => {
+      const angle = (index / 12) * Math.PI * 2;
+      return <SvgLine key={index} x1={r + Math.cos(angle) * r * 0.66} y1={r + Math.sin(angle) * r * 0.66} x2={r + Math.cos(angle) * r * 0.86} y2={r + Math.sin(angle) * r * 0.86} stroke={color} strokeOpacity={0.1} strokeWidth={1.5} />;
+    })}
+  </Svg>;
+}
+
+/**
+ * The first screen: a blue poster card with FitBud standing in it and his head breaking out over the top edge,
+ * a plate's grooves turning behind him and "Day 01" stamped in the bottom corner. Under it an editorial headline and
+ * the three things the app actually does. The mascot climbs up into the card on arrival.
+ */
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
   const colors = useColors();
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { width } = useWindowDimensions();
   const reduced = useReducedMotion();
-  const float = useSharedValue(0);
+  const sway = useSharedValue(0);
+  const climb = useSharedValue(reduced ? 1 : 0);
+  const turn = useSharedValue(0);
   const leave = useSharedValue(0);
   const [leaving, setLeaving] = React.useState(false);
+  const [hero, setHero] = React.useState({ width: 0, height: 0 });
   React.useEffect(() => {
-    if (!reduced) float.set(withRepeat(withTiming(1, { duration: 2200, easing: ReEasing.inOut(ReEasing.sin) }), -1, true));
-  }, [float, reduced]);
-  const mascotStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -10 * float.get() }, { rotate: `${-2 + float.get() * 4}deg` }] }));
+    if (reduced) return;
+    climb.set(withDelay(180, withSpring(1, { damping: 15, stiffness: 120 })));
+    sway.set(withDelay(900, withRepeat(withTiming(1, { duration: 2600, easing: ReEasing.inOut(ReEasing.sin) }), -1, true)));
+    turn.set(withRepeat(withTiming(1, { duration: 90000, easing: ReEasing.linear }), -1));
+  }, [climb, reduced, sway, turn]);
+  const mascotStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, climb.get() * 1.6),
+    transform: [{ translateY: (1 - climb.get()) * 90 - sway.get() * 6 }, { rotate: `${-1.5 + sway.get() * 3}deg` }],
+  }));
+  const plateStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.get() * 360}deg` }] }));
   const pageStyle = useAnimatedStyle(() => ({ opacity: 1 - leave.get() * 0.4, transform: [{ translateX: -leave.get() * width * 0.35 }, { scale: 1 - leave.get() * 0.04 }] }));
   const start = () => {
     if (leaving) return;
@@ -913,29 +941,57 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
     leave.set(withTiming(1, { duration: 380, easing: ReEasing.in(ReEasing.cubic) }));
     setTimeout(onStart, reduced ? 0 : 360);
   };
-  const stage = Math.min(width - 24, 360);
   const words = t('welcomeHeroTitle').split('. ').map((part, index, all) => (index < all.length - 1 ? `${part}.` : part));
+  // The card is sized from the mascot so his head always clears its top edge by the same share, on any screen.
+  const mascotSize = Math.min(hero.height * 1.1, hero.width * 1.2);
+  const lip = Math.max(0, Math.round(hero.height - mascotSize * 0.8));
+  const plate = hero.width * 1.25;
+  const features: { icon: React.ComponentProps<typeof Ionicons>['name']; label: Parameters<typeof translate>[1] }[] = [
+    { icon: 'barbell-outline', label: 'welcomeFeaturePlan' },
+    { icon: 'camera-outline', label: 'welcomeFeatureFood' },
+    { icon: 'body-outline', label: 'welcomeFeatureForm' },
+  ];
 
   return <View style={ui.page}>
     <OnboardingBackdrop />
     <ReAnimated.View style={[{ flex: 1 }, pageStyle]}>
       <OnboardingTopBar />
       <View style={ui.welcomeBody}>
-        <Rise style={ui.welcomeStage}><View style={{ width: stage, height: stage }}>
-          <LiftStage size={stage}>
-            <ReAnimated.View style={mascotStyle}>
-              <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={{ width: stage * 0.78, height: stage * 0.78 }} />
-            </ReAnimated.View>
-          </LiftStage>
-          <View style={[ui.floatChip, { left: 6, top: stage * 0.2, backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="camera-outline" size={14} color={colors.foreground} /><Text style={[ui.floatChipText, { color: colors.foreground }]}>AI</Text></View>
-          <View style={[ui.floatChip, { right: 6, top: stage * 0.55, backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="barbell-outline" size={14} color={colors.foreground} /><Ionicons name="flame" size={14} color={colors.orange} /></View>
-        </View></Rise>
-        <View>
-          {words.map((line, index) => <Rise key={line} delay={160 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.accent : colors.foreground }]}>{line}</Text></Rise>)}
-          <Rise delay={360}><Text style={[ui.subtitle, { color: colors.mutedForeground }]}>{t('welcomeHeroSubtitle')}</Text></Rise>
+        <Rise style={ui.welcomeHero}>
+          <View style={{ flex: 1 }} onLayout={({ nativeEvent }) => setHero({ width: nativeEvent.layout.width, height: nativeEvent.layout.height })}>
+            {hero.height > 0 ? <>
+              <View style={[ui.welcomePoster, { top: lip }]}>
+                <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
+                <ReAnimated.View pointerEvents="none" style={[{ position: 'absolute', width: plate, height: plate, left: -plate * 0.42, bottom: -plate * 0.5 }, plateStyle]}>
+                  <PlateFace size={plate} color="#FFFFFF" />
+                </ReAnimated.View>
+                <View style={ui.welcomePosterHead}>
+                  <Text style={ui.welcomeDay}>{t('welcomeDayOne')}</Text>
+                  <View style={ui.welcomeDayRule} />
+                </View>
+                <Svg pointerEvents="none" width={hero.width} height={40} style={ui.welcomeFloorShadow}>
+                  <Defs><RadialGradient id="welcomeFloor" cx="50%" cy="50%" r="50%"><Stop offset="0" stopColor="#020A1F" stopOpacity={0.55} /><Stop offset="1" stopColor="#020A1F" stopOpacity={0} /></RadialGradient></Defs>
+                  <SvgEllipse cx={hero.width / 2} cy={20} rx={mascotSize * 0.3} ry={14} fill="url(#welcomeFloor)" />
+                </Svg>
+              </View>
+              <ReAnimated.View pointerEvents="none" style={[{ position: 'absolute', bottom: 0, left: (hero.width - mascotSize) / 2, width: mascotSize, height: mascotSize }, mascotStyle]}>
+                <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={{ width: mascotSize, height: mascotSize }} />
+              </ReAnimated.View>
+            </> : null}
+          </View>
+        </Rise>
+        <View style={ui.welcomeCopy}>
+          {words.map((line, index) => <Rise key={line} delay={260 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.accent : colors.foreground }]}>{line}</Text></Rise>)}
+          <Rise delay={440}><Text style={[ui.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeHeroSubtitle')}</Text></Rise>
+          <Rise delay={520}><View style={[ui.welcomeFeatures, { borderColor: colors.border }]}>
+            {features.map((feature, index) => <View key={feature.label} style={[ui.welcomeFeature, index > 0 ? { borderLeftWidth: 1, borderLeftColor: colors.border } : null]}>
+              <Ionicons name={feature.icon} size={17} color={colors.accent} />
+              <Text numberOfLines={2} style={[ui.welcomeFeatureText, { color: colors.foreground }]}>{t(feature.label)}</Text>
+            </View>)}
+          </View></Rise>
         </View>
       </View>
-      <Rise delay={460}><OnboardingCTA testID="onboarding-start" label={t('welcomeHeroStart')} onPress={start} disabled={leaving} /></Rise>
+      <Rise delay={600}><OnboardingCTA testID="onboarding-start" label={t('welcomeHeroStart')} onPress={start} disabled={leaving} /></Rise>
     </ReAnimated.View>
   </View>;
 }
@@ -1719,11 +1775,19 @@ const ui = StyleSheet.create({
   centerText: { textAlign: 'center' },
   pill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 6 },
   pillText: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 0.6 },
-  welcomeBody: { flex: 1, paddingHorizontal: 24, justifyContent: 'space-between', paddingBottom: 8 },
-  welcomeStage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  welcomeTitle: { fontFamily: 'Inter_700Bold', fontSize: 38, lineHeight: 42, letterSpacing: -1.6 },
-  floatChip: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 8, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
-  floatChipText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  welcomeBody: { flex: 1, paddingHorizontal: 20, paddingBottom: 6 },
+  welcomeHero: { flex: 1, minHeight: 250, marginTop: 4 },
+  welcomePoster: { position: 'absolute', left: 0, right: 0, bottom: 0, borderRadius: 34, overflow: 'hidden' },
+  welcomePosterHead: { position: 'absolute', left: 20, bottom: 18, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  welcomeDay: { color: '#FFFFFF', fontFamily: 'Inter_800ExtraBold', fontSize: 13, letterSpacing: 2.4 },
+  welcomeDayRule: { width: 28, height: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.55)' },
+  welcomeFloorShadow: { position: 'absolute', left: 0, bottom: 4 },
+  welcomeCopy: { paddingTop: 22, paddingHorizontal: 4 },
+  welcomeTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 36, lineHeight: 40, letterSpacing: -1.6 },
+  welcomeSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, marginTop: 10 },
+  welcomeFeatures: { flexDirection: 'row', borderTopWidth: 1, borderBottomWidth: 1, marginTop: 18 },
+  welcomeFeature: { flex: 1, alignItems: 'flex-start', gap: 6, paddingVertical: 12, paddingHorizontal: 10 },
+  welcomeFeatureText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, lineHeight: 15 },
   modeBody: { flex: 1, paddingHorizontal: 24, paddingTop: 28 },
   modeHero: { borderRadius: 28, padding: 20 },
   modeHeroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
