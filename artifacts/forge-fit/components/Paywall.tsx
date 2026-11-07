@@ -29,6 +29,8 @@ import { SkyBackdrop } from '@/components/SkyBackdrop';
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type Plan = 'monthly' | 'annual';
 type DisplayProduct = { price: number; currencyCode: string; priceString: string };
+const ANNUAL_TONES: [string, string] = ['#E8364F', '#FF8A3D'];
+const MONTHLY_TONES: [string, string] = ['#2563EB', '#38BDF8'];
 
 function formatPrice(value: number, currencyCode: string) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode }).format(value);
@@ -78,10 +80,38 @@ function FeatureRow({ icon, title, body, delay, last }: { icon: IconName; title:
 }
 
 /**
- * Plan card. The chosen one fills with the brand gradient and its text turns white; the other stays a plain card.
- * A square check in the corner confirms the choice.
+ * Colour that moves like slow water: two soft gradient bands, three times the card's width, drifting past each other
+ * in opposite directions. No shapes, just colour, softened by a light blur. Still under reduced motion.
  */
-function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadge, strike, testID }: {
+function WaterFill({ colors: tones, width, speed = 1 }: { colors: [string, string]; width: number; speed?: number }) {
+  const reduced = useReducedMotion();
+  const a = useSharedValue(0);
+  const b = useSharedValue(0);
+  React.useEffect(() => {
+    if (reduced || !width) return;
+    a.set(withRepeat(withTiming(1, { duration: 9000 / speed, easing: Easing.inOut(Easing.sin) }), -1, true));
+    b.set(withRepeat(withTiming(1, { duration: 13000 / speed, easing: Easing.inOut(Easing.sin) }), -1, true));
+  }, [a, b, reduced, speed, width]);
+  const bandA = useAnimatedStyle(() => ({ transform: [{ translateX: -a.get() * width * 2 }] }));
+  const bandB = useAnimatedStyle(() => ({ transform: [{ translateX: -(1 - b.get()) * width * 2 }] }));
+  const [c0, c1] = tones;
+  if (!width) return null;
+  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+    <Animated.View style={[styles.band, { width: width * 3 }, bandA]}>
+      <LinearGradient colors={[c0, c1, c0, c1, c0]} start={{ x: 0, y: 0.3 }} end={{ x: 1, y: 0.7 }} style={StyleSheet.absoluteFill} />
+    </Animated.View>
+    <Animated.View style={[styles.band, { width: width * 3, opacity: 0.55 }, bandB]}>
+      <LinearGradient colors={[`${c1}00`, c1, `${c0}00`, c0, `${c1}00`, c1]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+    </Animated.View>
+    <BlurView intensity={24} tint="default" style={StyleSheet.absoluteFill} />
+  </View>;
+}
+
+/**
+ * Plan bar. Its colour always flows slowly; at rest it only tints the price side of the bar, and when chosen it
+ * floods the whole bar (420ms) and the text turns white.
+ */
+function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadge, strike, tones, testID }: {
   selected: boolean;
   onPress: () => void;
   title: string;
@@ -91,31 +121,79 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadg
   badge?: string;
   saveBadge?: string | null;
   strike?: string | null;
+  tones: [string, string];
   testID: string;
 }) {
   const colors = useColors();
+  const dark = colors.colorScheme === 'dark';
+  const [width, setWidth] = React.useState(0);
+  const fill = useSharedValue(selected ? 1 : 0);
+  React.useEffect(() => {
+    fill.set(withTiming(selected ? 1 : 0, { duration: selected ? 420 : 280, easing: EASE_OUT }));
+  }, [fill, selected]);
+  const maskStyle = useAnimatedStyle(() => ({ opacity: 1 - fill.get() }));
+  const colorStyle = useAnimatedStyle(() => ({ opacity: 0.55 + fill.get() * 0.45 }));
   const ink = selected ? '#FFFFFF' : colors.foreground;
-  const muted = selected ? 'rgba(255,255,255,0.74)' : colors.mutedForeground;
-  const inner = <>
-    <View style={styles.planHead}>
-      <Text numberOfLines={1} style={[styles.planTitle, { color: ink }]}>{title}</Text>
-      <View style={[styles.check, selected ? { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' } : { borderColor: colors.border }]}>
-        {selected ? <Ionicons name="checkmark" size={14} color={colors.accent} /> : null}
+  const muted = selected ? 'rgba(255,255,255,0.8)' : colors.mutedForeground;
+  return <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} scaleTo={0.98} style={styles.planWrap}>
+    <View onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))} style={[styles.plan, { backgroundColor: colors.card, borderColor: selected ? (dark ? 'rgba(255,255,255,0.85)' : tones[0]) : colors.border }]}>
+      <View pointerEvents="none" style={styles.planColor}>
+        <Animated.View style={[StyleSheet.absoluteFill, colorStyle]}><WaterFill colors={tones} width={width} /></Animated.View>
+        {/* At rest the card colour covers the left so the text stays readable and the colour pools at the price. */}
+        <Animated.View style={[StyleSheet.absoluteFill, maskStyle]}>
+          <LinearGradient colors={[colors.card, colors.card, `${colors.card}00`]} locations={[0, 0.34, 0.86]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+        </Animated.View>
+      </View>
+      <View style={[styles.radio, { borderColor: selected ? '#FFFFFF' : colors.border }]}>
+        {selected ? <View style={styles.radioDot} /> : null}
+      </View>
+      <View style={styles.planCopy}>
+        <View style={styles.planTitleRow}>
+          <Text style={[styles.planTitle, { color: ink }]}>{title}</Text>
+          {saveBadge ? <View style={[styles.saveBadge, { backgroundColor: selected ? 'rgba(255,255,255,0.22)' : `${colors.success}22` }]}><Text style={[styles.saveBadgeText, { color: selected ? '#FFFFFF' : colors.success }]}>{saveBadge}</Text></View> : null}
+        </View>
+        <Text numberOfLines={1} style={[styles.planNote, { color: muted }]}>{note}</Text>
+      </View>
+      <View style={styles.planPriceColumn}>
+        {strike ? <Text style={[styles.planStrike, { color: selected ? 'rgba(255,255,255,0.7)' : dark ? 'rgba(255,255,255,0.7)' : colors.mutedForeground }]}>{strike}</Text> : null}
+        <Text numberOfLines={1} style={[styles.planPrice, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{price}</Text>
+        <Text style={[styles.planUnit, { color: selected || dark ? 'rgba(255,255,255,0.8)' : colors.mutedForeground }]}>{unit}</Text>
       </View>
     </View>
-    {strike ? <Text style={[styles.planStrike, { color: muted }]}>{strike}</Text> : <View style={styles.strikeSpace} />}
-    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[styles.planPrice, { color: ink }]}>{price}</Text>
-    <Text style={[styles.planUnit, { color: muted }]}>{unit}</Text>
-    <View style={styles.planFoot}>
-      {saveBadge ? <View style={[styles.saveBadge, { backgroundColor: selected ? '#FFFFFF' : `${colors.success}1F` }]}><Text style={[styles.saveBadgeText, { color: selected ? colors.accent : colors.success }]}>{saveBadge}</Text></View> : null}
-      <Text numberOfLines={2} style={[styles.planNote, { color: muted }]}>{note}</Text>
-    </View>
-  </>;
-  return <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} scaleTo={0.97} style={styles.planWrap}>
-    {selected
-      ? <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.plan, styles.planSelected]}>{inner}</LinearGradient>
-      : <View style={[styles.plan, { backgroundColor: colors.card, borderColor: colors.border }]}>{inner}</View>}
     {badge ? <View style={[styles.planBadge, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
+  </Pressable>;
+}
+
+/**
+ * The buy button as a charging bar: it carries the chosen plan's flowing colour, says what you are buying under the
+ * call to action, and a white key tile on the right nudges forward every few seconds.
+ */
+function ChargeButton({ label, sub, tones, busy, disabled, onPress }: { label: string; sub: string; tones: [string, string]; busy: boolean; disabled: boolean; onPress: () => void }) {
+  const reduced = useReducedMotion();
+  const [width, setWidth] = React.useState(0);
+  const nudge = useSharedValue(0);
+  const sweep = useSharedValue(0);
+  React.useEffect(() => {
+    if (reduced) return;
+    nudge.set(withRepeat(withSequence(withDelay(1800, withTiming(1, { duration: 260, easing: EASE_OUT })), withTiming(0, { duration: 420, easing: Easing.inOut(Easing.quad) })), -1));
+    sweep.set(withRepeat(withSequence(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.quad) }), withDelay(1200, withTiming(0, { duration: 0 }))), -1));
+  }, [nudge, reduced, sweep]);
+  const keyStyle = useAnimatedStyle(() => ({ transform: [{ translateX: nudge.get() * 5 }] }));
+  const sweepStyle = useAnimatedStyle(() => ({ opacity: sweep.get() > 0 && sweep.get() < 1 ? 1 : 0, transform: [{ translateX: -120 + sweep.get() * (width + 160) }, { skewX: '-20deg' }] }));
+  return <Pressable testID="paywall-subscribe" accessibilityRole="button" accessibilityState={{ disabled, busy }} disabled={disabled} onPress={onPress} scaleTo={0.97}>
+    <View onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))} style={[styles.cta, { backgroundColor: tones[0] }]}>
+      <WaterFill colors={tones} width={width} speed={1.6} />
+      <Animated.View pointerEvents="none" style={[styles.ctaSweep, sweepStyle]}>
+        <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+      <View style={styles.ctaCopy}>
+        <Text style={styles.ctaText}>{label}</Text>
+        <Text numberOfLines={1} style={styles.ctaSub}>{sub}</Text>
+      </View>
+      <Animated.View style={[styles.ctaKey, keyStyle]}>
+        {busy ? <ActivityIndicator color={tones[0]} /> : <Ionicons name="arrow-forward" size={20} color={tones[0]} />}
+      </Animated.View>
+    </View>
   </Pressable>;
 }
 
@@ -238,6 +316,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
         </Animated.View>
 
         <Animated.View style={plansEntrance}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallChoosePlan')}</Text>
           <View style={styles.plans}>
             {annual ? <PlanCard
               testID="paywall-annual-plan"
@@ -250,6 +329,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               badge={t('paywallBestValue')}
               saveBadge={savings !== null ? t('paywallSave').replace('{percent}', String(savings)) : null}
               strike={yearOfMonthly}
+              tones={ANNUAL_TONES}
             /> : null}
             {monthly ? <PlanCard
               testID="paywall-monthly-plan"
@@ -259,6 +339,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               price={monthly.priceString}
               unit={t('premiumPerMonth')}
               note={t('paywallMonthlyNote')}
+              tones={MONTHLY_TONES}
             /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
           </View>
@@ -279,20 +360,14 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
       <BlurView intensity={40} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass }]} />
       {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
-      <Pressable
-        testID="paywall-subscribe"
-        accessibilityRole="button"
-        accessibilityState={{ disabled: busy || checking, busy }}
+      <ChargeButton
+        label={busy ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('paywallCta')}
+        sub={selectedProduct ? `${plan === 'annual' ? t('premiumAnnualPlan') : t('premiumMonthlyPlan')} · ${selectedProduct.priceString}` : t('premiumTrust')}
+        tones={plan === 'annual' ? ANNUAL_TONES : MONTHLY_TONES}
+        busy={busy}
         disabled={busy || checking}
         onPress={() => { void handlePurchase(); }}
-        scaleTo={0.97}
-        style={styles.ctaWrap}
-      >
-        <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cta}>
-          <Text style={styles.ctaText}>{busy ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('paywallCta')}</Text>
-          <View style={styles.ctaArrow}>{busy ? <ActivityIndicator color={colors.accent} /> : <Ionicons name="arrow-forward" size={18} color={colors.accent} />}</View>
-        </LinearGradient>
-      </Pressable>
+      />
       <Text style={[styles.renew, { color: colors.mutedForeground }]}>{renewNote}</Text>
       <View style={styles.links}>
         <Pressable testID="paywall-restore" accessibilityRole="button" disabled={isRestoring} onPress={() => { void handleRestore(); }} hitSlop={8}>
@@ -321,25 +396,27 @@ const styles = StyleSheet.create({
   heading: { alignItems: 'center', marginTop: 14 },
   title: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 38, letterSpacing: -1.6, textAlign: 'center' },
   body: { fontFamily: 'Inter_400Regular', fontSize: 14.5, lineHeight: 21, marginTop: 8, textAlign: 'center', maxWidth: 330 },
-  plans: { flexDirection: 'row', gap: 10, marginTop: 26 },
-  planWrap: { flex: 1 },
-  plan: { flex: 1, borderRadius: 26, borderWidth: 1.5, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 16, minHeight: 186 },
-  planSelected: { borderColor: 'transparent' },
-  planHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  planTitle: { flex: 1, fontFamily: 'Inter_800ExtraBold', fontSize: 15, letterSpacing: -0.3 },
-  check: { width: 22, height: 22, borderRadius: 7, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  planStrike: { fontFamily: 'Inter_500Medium', fontSize: 12, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'], marginTop: 16 },
-  strikeSpace: { height: 15, marginTop: 16 },
-  planPrice: { fontFamily: 'Inter_800ExtraBold', fontSize: 25, letterSpacing: -1, fontVariant: ['tabular-nums'], marginTop: 2 },
-  planUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  planFoot: { marginTop: 'auto', paddingTop: 12, gap: 6 },
-  planNote: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 16 },
-  planBadge: { position: 'absolute', top: -11, alignSelf: 'center', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  plans: { gap: 14, marginTop: 4 },
+  planWrap: {},
+  plan: { borderRadius: 24, borderWidth: 1.5, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', minHeight: 84 },
+  planColor: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
+  band: { position: 'absolute', top: 0, bottom: 0, left: 0 },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FFFFFF' },
+  planCopy: { flex: 1, minWidth: 0 },
+  planTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  planTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 17, letterSpacing: -0.4 },
+  planNote: { fontFamily: 'Inter_500Medium', fontSize: 12.5, marginTop: 4 },
+  planPriceColumn: { alignItems: 'flex-end' },
+  planStrike: { fontFamily: 'Inter_500Medium', fontSize: 12, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'] },
+  planPrice: { fontFamily: 'Inter_800ExtraBold', fontSize: 21, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  planUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 1 },
+  planBadge: { position: 'absolute', top: -10, left: 18, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   planBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 9.5, letterSpacing: 0.9 },
-  saveBadge: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  saveBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   saveBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 0.4 },
   plansLoading: { flex: 1, borderRadius: 26, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8 },
-  sectionTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 20, letterSpacing: -0.7, marginTop: 26, marginBottom: 10, paddingHorizontal: 2 },
+  sectionTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 20, letterSpacing: -0.7, marginTop: 26, marginBottom: 14, paddingHorizontal: 2 },
   features: { borderRadius: 26, borderWidth: 1, paddingHorizontal: 16 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 14 },
   featureIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
@@ -348,10 +425,12 @@ const styles = StyleSheet.create({
   disclosure: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: 14, textAlign: 'center' },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   error: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, textAlign: 'center', marginBottom: 10 },
-  ctaWrap: { borderRadius: 31 },
-  cta: { height: 62, borderRadius: 31, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 26, paddingRight: 8 },
-  ctaText: { fontFamily: 'Inter_800ExtraBold', fontSize: 17, letterSpacing: -0.2, color: '#FFFFFF' },
-  ctaArrow: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  cta: { height: 68, borderRadius: 24, flexDirection: 'row', alignItems: 'center', paddingLeft: 22, paddingRight: 10, overflow: 'hidden' },
+  ctaSweep: { position: 'absolute', top: -10, bottom: -10, left: 0, width: 90 },
+  ctaCopy: { flex: 1, minWidth: 0 },
+  ctaText: { fontFamily: 'Inter_800ExtraBold', fontSize: 18, letterSpacing: -0.4, color: '#FFFFFF' },
+  ctaSub: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2, fontVariant: ['tabular-nums'] },
+  ctaKey: { width: 50, height: 50, borderRadius: 17, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   renew: { fontFamily: 'Inter_500Medium', fontSize: 12, textAlign: 'center', marginTop: 10, fontVariant: ['tabular-nums'] },
   links: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', columnGap: 14, rowGap: 8, marginTop: 10, paddingHorizontal: 8 },
   link: { flexShrink: 1, textAlign: 'center', fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 16 },
