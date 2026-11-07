@@ -1,7 +1,7 @@
 """Renders one matte metal medal per badge, with the badge's icon embossed on it (assets/images/medals/badge-<id>.png).
 
 Each icon is a Lucide icon turned into raised line relief: the SVG strokes become rounded 3D tubes standing on the face.
-Run with Blender's Python module (pip install bpy). The manifest lists {id, tier, icon} for every badge plus a "locked" one,
+Run with Blender's Python module (pip install bpy). The manifest lists {id, tier, icon, color} for every badge (color paints the face) plus a "locked" one,
 and svg_dir holds <icon>.svg (24x24 Lucide icons):
   python scripts/renderBadgeMedals.py -- <out_dir> <svg_dir> <manifest.json> [size=640] [samples=128] [only_id]
 """
@@ -35,7 +35,7 @@ def reset():
     sc.render.film_transparent = True
     sc.render.resolution_x = size; sc.render.resolution_y = size
     sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGBA'
-    sc.view_settings.view_transform = 'AgX'; sc.view_settings.look = 'AgX - Punchy'
+    sc.view_settings.view_transform = 'Standard'; sc.view_settings.look = 'None'; sc.view_settings.exposure = -0.35   # Standard keeps the badge colours saturated; AgX washes them out
     world = bpy.data.worlds.new('w'); sc.world = world; world.use_nodes = True
     bg = world.node_tree.nodes['Background']; bg.inputs[0].default_value = (0.8, 0.84, 0.93, 1); bg.inputs[1].default_value = 0.4
     return sc
@@ -67,14 +67,15 @@ def lathe(name, profile, mat, segments=192):
 def arc(cx, cz, r, a0, a1, n=10):
     return [(cx + r * math.cos(math.radians(a0 + (a1 - a0) * i / n)), cz + r * math.sin(math.radians(a0 + (a1 - a0) * i / n))) for i in range(n + 1)]
 
-def build(base, face, metallic, rough):
+def build(base, face, metallic, rough, enamel=None):
     root = bpy.data.objects.new('medal', None); bpy.context.collection.objects.link(root)
     R, T = 0.5, 0.07
     # rim: a rounded torus-like band; face: a recessed disc with a fine beaded ring
     rim = [(0.36, T * 0.55)] + arc(R - 0.07, T - 0.07, 0.07, 90, 0, 8) + [(R, 0.0)] + arc(R - 0.07, -(T - 0.07), 0.07, 0, -90, 8) + [(0.36, -T * 0.55)]
     ob = lathe('rim', rim, metal('rim', base, metallic, rough, 0.04)); ob.parent = root
     disc = [(0.0, T * 0.3), (0.34, T * 0.3), (0.36, T * 0.55), (0.36, -T * 0.55), (0.34, -T * 0.3), (0.0, -T * 0.3)]
-    ob = lathe('face', disc, metal('face', face, metallic, rough + 0.05, 0.05)); ob.parent = root
+    face_mat = metal('face', shade(enamel, -0.12), 0.0, 0.5, 0.04) if enamel else metal('face', face, metallic, rough + 0.05, 0.05)
+    ob = lathe('face', disc, face_mat); ob.parent = root
     # a thin raised bead ring on the face
     bead = arc(0.30, T * 0.3, 0.013, 180, 0, 8) + [(0.317, T * 0.3)]
     ob = lathe('bead', [(0.287, T * 0.3)] + arc(0.30, T * 0.3, 0.013, 180, 0, 8) + [(0.313, T * 0.3)], metal('bead', base, metallic, rough, 0.02)); ob.parent = root
@@ -83,11 +84,15 @@ def build(base, face, metallic, rough):
 PX = 0.0254 / 96          # Blender's SVG importer maps one SVG px to this many units
 GLYPH = 0.47              # glyph size on the medal (the medal's diameter is 1.0)
 
+def shade(h, amount):
+    h = h.lstrip('#'); c = [int(h[i:i+2], 16) for i in (0, 2, 4)]
+    return '#%02X%02X%02X' % tuple(int(v * (1 + amount)) for v in c)
+
 def lighten(h, amount):
     h = h.lstrip('#'); c = [int(h[i:i+2], 16) for i in (0, 2, 4)]
     return '#%02X%02X%02X' % tuple(int(v + (255 - v) * amount) for v in c)
 
-def emboss(root, svg_path, face_z, base, metallic, rough):
+def emboss(root, svg_path, face_z, base, metallic, rough, enamel=None):
     """Import a stroke-only 24x24 SVG and turn each path into a rounded raised tube standing on the medal face."""
     bpy.ops.preferences.addon_enable(module='io_curve_svg')
     before = set(bpy.data.objects)
@@ -98,7 +103,7 @@ def emboss(root, svg_path, face_z, base, metallic, rough):
     holder.scale = (k, k, k)
     holder.location = (-12 * PX * k, -12 * PX * k, face_z)
     holder.parent = root
-    mat = metal('glyph', lighten(base, 0.22), metallic, max(0.26, rough - 0.2), 0.02)
+    mat = metal('glyph', lighten(enamel, 0.5), 0.0, 0.4, 0.02) if enamel else metal('glyph', lighten(base, 0.22), metallic, max(0.26, rough - 0.2), 0.02)
     for o in objs:
         o.parent = holder
         d = o.data
@@ -126,8 +131,9 @@ for entry in json.load(open(manifest_path)):
         continue
     base, face, metallic, rough = TIERS[entry['tier']]
     sc = reset()
-    root = build(base, face, metallic, rough)
-    emboss(root, os.path.join(svg_dir, entry['icon'] + '.svg'), 0.07 * 0.3, face, metallic, rough)
+    enamel = entry.get('color')       # a badge's own colour paints the face; the tier's metal stays on the rim
+    root = build(base, face, metallic, rough, enamel)
+    emboss(root, os.path.join(svg_dir, entry['icon'] + '.svg'), 0.07 * 0.3, face, metallic, rough, enamel)
     camera_and_lights(sc)
     sc.render.filepath = os.path.join(out_dir, f"badge-{entry['id']}.png")
     bpy.ops.render.render(write_still=True); print('rendered', entry['id'])
