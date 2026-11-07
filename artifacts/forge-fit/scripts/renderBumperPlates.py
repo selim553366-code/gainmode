@@ -15,12 +15,15 @@ def srgb(h):
     h = h.lstrip('#'); c = [int(h[i:i+2], 16) / 255 for i in (0, 2, 4)]
     return tuple(((x / 12.92) if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4) for x in c) + (1.0,)
 
+MODE = argv[4] if len(argv) > 4 else 'stand'   # 'stand': floating, seen at an angle; 'flat': lying face-up, for stacks
 PLATES = [
     # name, colour, kg, yaw, pitch
     ('red', '#D8463E', '25', 34, 18),
     ('blue', '#2F6BFF', '20', -30, 16),
     ('yellow', '#F6BE3C', '15', 40, 22),
     ('green', '#2BA65C', '10', -36, 20),
+    ('white', '#E9ECEF', '5', 30, 18),
+    ('gray', '#8E96A3', '20', -28, 18),
 ]
 
 def reset():
@@ -77,14 +80,14 @@ def steel():
     b.inputs['Anisotropic'].default_value = 0.6
     return m
 
-def paint():
+def paint(ink='#F4F4F2'):
     m = bpy.data.materials.new('paint'); m.use_nodes = True
     b = m.node_tree.nodes['Principled BSDF']
-    b.inputs['Base Color'].default_value = srgb('#F4F4F2')
+    b.inputs['Base Color'].default_value = srgb(ink)
     b.inputs['Roughness'].default_value = 0.62
     return m
 
-def build(color, kg):
+def build(color, kg, ink='#F4F4F2'):
     root = bpy.data.objects.new('plate', None); bpy.context.collection.objects.link(root)
     R, T, step = 0.5, 0.08, 0.022   # outer radius, half thickness, face recess
     # rubber body profile: rounded outer rim, recessed face between r=0.42 and r=0.19
@@ -117,7 +120,7 @@ def build(color, kg):
         cu = bpy.data.curves.new('t', 'FONT'); cu.body = text; cu.font = font; cu.size = scale
         cu.align_x = 'CENTER'; cu.align_y = 'CENTER'; cu.extrude = 0.008; cu.bevel_depth = 0.002
         to = bpy.data.objects.new('txt', cu); bpy.context.collection.objects.link(to)
-        to.location = (0, y, T - step + 0.008); to.data.materials.append(paint()); to.parent = root
+        to.location = (0, y, T - step + 0.008); to.data.materials.append(paint(ink)); to.parent = root
     return root
 
 def camera_and_lights(sc):
@@ -134,9 +137,17 @@ def camera_and_lights(sc):
 
 for name, color, kg, yaw, pitch in PLATES:
     sc = reset()
-    root = build(color, kg)
-    root.rotation_euler = Euler((math.radians(pitch), math.radians(yaw), math.radians(-8)), 'XYZ')
+    root = build(color, kg, '#2A2F36' if name == 'white' else '#F4F4F2')
     camera_and_lights(sc)
-    sc.render.filepath = os.path.join(out_dir, f'plate-{name}.png')
+    if MODE == 'flat':
+        # lying face-up, seen from 30 degrees above with an orthographic camera so stacked sprites line up exactly
+        root.rotation_euler = Euler((0, 0, math.radians(yaw)), 'XYZ')
+        cam = sc.camera; cam.data.type = 'ORTHO'; cam.data.ortho_scale = 1.2
+        elev = math.radians(30); dist = 6
+        cam.location = (0, -dist * math.cos(elev), dist * math.sin(elev))
+        cam.rotation_euler = Euler((math.radians(90) - elev, 0, 0), 'XYZ')
+    else:
+        root.rotation_euler = Euler((math.radians(pitch), math.radians(yaw), math.radians(-8)), 'XYZ')
+    sc.render.filepath = os.path.join(out_dir, f'plate-{name}.png' if MODE == 'stand' else f'flat-{name}.png')
     bpy.ops.render.render(write_still=True)
     print('rendered', name)
