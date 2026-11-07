@@ -27,6 +27,7 @@ import { WeatherBackground } from '@/components/WeatherBackground';
 import { classifyWeather, type WeatherKind } from '@/lib/weatherBackground';
 import { fetchCurrentWeather } from '@/lib/weatherService';
 import { getWeatherLabel } from '@/lib/weatherLabels';
+import { WeatherIntroSheet } from '@/components/WeatherIntroSheet';
 
 const WEATHER_ENABLED_KEY = 'gainmode-coach-weather-enabled-v1';
 const WEATHER_REFRESH_MS = 30 * 60_000;
@@ -674,22 +675,17 @@ export default function CoachScreen() {
          </Pressable>
       </View>
     </View>
-    <Modal visible={weatherIntroVisible} transparent animationType="fade" onRequestClose={() => setWeatherIntroVisible(false)}>
-      <View style={styles.weatherModalBackdrop}>
-        <View style={[styles.weatherModalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[styles.weatherModalIcon, { backgroundColor: `${colors.accent}22` }]}><Ionicons name="weather-sun" size={28} color={colors.accent} /></View>
-          <Text style={[styles.weatherModalTitle, { color: colors.foreground }]}>{t('coachWeatherIntroTitle')}</Text>
-          <Text style={[styles.weatherModalBody, { color: colors.foreground }]}>{t('coachWeatherIntroBody')}</Text>
-          <Text style={[styles.weatherModalNote, { color: colors.mutedForeground }]}>{t('coachWeatherIntroNote')}</Text>
-          <Pressable accessibilityRole="button" onPress={() => { void acceptWeatherIntro(); }} style={[styles.weatherAccept, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.weatherAcceptText, { color: colors.primaryForeground }]}>{t('coachWeatherAccept')}</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => setWeatherIntroVisible(false)} style={styles.weatherDecline}>
-            <Text style={[styles.weatherDeclineText, { color: colors.mutedForeground }]}>{t('coachWeatherDecline')}</Text>
-          </Pressable>
-        </View>
-      </View>
-    </Modal>
+    <WeatherIntroSheet
+      visible={weatherIntroVisible}
+      language={language}
+      title={t('coachWeatherIntroTitle')}
+      body={t('coachWeatherIntroBody')}
+      note={t('coachWeatherIntroNote')}
+      acceptLabel={t('coachWeatherAccept')}
+      declineLabel={t('coachWeatherDecline')}
+      onAccept={() => { void acceptWeatherIntro(); }}
+      onDecline={() => setWeatherIntroVisible(false)}
+    />
     <View pointerEvents="none" style={styles.analysisFlightLayer}>
       <Animated.View style={[styles.analysisFlightCard, { backgroundColor: colors.primaryForeground, opacity: weeklyCardReveal.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.9, 0] }), transform: [{ translateX: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, 20 - (screenSize.width / 2 - 130)] }) }, { translateY: weeklyCardReveal.interpolate({ inputRange: [0, 1], outputRange: [0, chatOriginY + 42 - (screenSize.height - 220)] }) }, { scale: weeklyCardReveal.interpolate({ inputRange: [0, 0.75, 1], outputRange: [1, 0.84, 0.68] }) }] }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /><Text style={[styles.analysisFlightText, { color: colors.primary }]}>{t('weeklyAnalysisReading')}</Text></Animated.View>
     </View>
@@ -745,16 +741,6 @@ const styles = StyleSheet.create({
   referenceSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 17, lineHeight: 23, marginTop: 2, maxWidth: 310 },
   weatherButton: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12, maxWidth: '100%', paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth },
   weatherButtonText: { fontFamily: 'Inter_600SemiBold', fontSize: 13, flexShrink: 1 },
-  weatherModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  weatherModalCard: { width: '100%', maxWidth: 380, borderRadius: 28, borderWidth: StyleSheet.hairlineWidth, padding: 24, alignItems: 'center' },
-  weatherModalIcon: { width: 60, height: 60, borderRadius: 30, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  weatherModalTitle: { fontFamily: 'Inter_700Bold', fontSize: 21, lineHeight: 27, textAlign: 'center' },
-  weatherModalBody: { fontFamily: 'Inter_400Regular', fontSize: 16, lineHeight: 23, textAlign: 'center', marginTop: 10 },
-  weatherModalNote: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, textAlign: 'center', marginTop: 10 },
-  weatherAccept: { alignSelf: 'stretch', alignItems: 'center', borderRadius: 16, paddingVertical: 15, marginTop: 20 },
-  weatherAcceptText: { fontFamily: 'Inter_700Bold', fontSize: 16 },
-  weatherDecline: { paddingVertical: 12, marginTop: 4 },
-  weatherDeclineText: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   caption: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
   limit: { flexDirection: 'row', alignItems: 'baseline', gap: 2 },
   limitNumber: { fontFamily: 'Inter_700Bold', fontSize: 18 },
