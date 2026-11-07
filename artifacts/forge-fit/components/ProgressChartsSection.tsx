@@ -6,7 +6,7 @@ import { PressableScale as Pressable } from '@/components/Motion';
 import { useFit } from '@/context/FitContext';
 import { useColors } from '@/hooks/useColors';
 import { translate, type TranslationKey } from '@/lib/i18n';
-import { bodyWeightSeries, calorieAdherence, dailyActivity, liftedWeightSeries } from '@/lib/progressCharts';
+import { bodyWeightSeries, calorieAdherence, dailyActivity, liftedWeightSeries, weightTrendPoints } from '@/lib/progressCharts';
 import { AdherenceGrid, BarsChart, ChartCard, EmptyChart, RateRing, TrendChart } from '@/components/ProgressCharts';
 import { SegmentedControl } from '@/components/SettingsControls';
 
@@ -21,7 +21,7 @@ export function ProgressChartsButton() {
   const { language } = useFit();
   const t = (key: TranslationKey) => translate(language, key);
   return <Pressable testID="open-progress-charts" accessibilityRole="button" onPress={() => router.push('/progress-charts')} style={[styles.entry, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <View style={[styles.entryIcon, { backgroundColor: colors.secondary }]}><Ionicons name="analytics-outline" size={20} color={colors.foreground} /></View>
+    <View style={[styles.entryIcon, { backgroundColor: `${colors.accent}1A` }]}><Ionicons name="analytics-outline" size={22} color={colors.accent} /></View>
     <View style={styles.entryCopy}>
       <Text style={[styles.entryTitle, { color: colors.foreground }]}>{t('chartsTitle')}</Text>
       <Text numberOfLines={2} style={[styles.entryCaption, { color: colors.mutedForeground }]}>{t('chartsEntryHint')}</Text>
@@ -45,6 +45,7 @@ export function ProgressChartsView() {
   const tracksWeight = Boolean(profile && profile.goal !== 'muscle');
   const usesWeights = Boolean(profile && profile.equipment !== 'bodyweight');
   const body = bodyWeightSeries({ startWeight: profile?.weight ?? weight, registeredAt, weightLogs });
+  const bodyPoints = weightTrendPoints(body.points);
   const lifted = liftedWeightSeries({ history: dumbbellWeightHistory, startWeightKg: profile?.dumbbellWeightKg, registeredAt });
   const activity = dailyActivity(activityLog, days);
   const adherence = calorieAdherence(meals, calorieGoal, days);
@@ -100,8 +101,8 @@ export function ProgressChartsView() {
       deltaTone={bodyGood ? 'good' : 'neutral'}
       caption={bodyCaption}
     >
-      {body.points.length > 1
-        ? <TrendChart points={body.points} color={colors.accent} locale={language} unit="kg" />
+      {bodyPoints.length
+        ? <TrendChart points={bodyPoints} color={colors.accent} locale={language} unit="kg" />
         : <EmptyChart icon="scale-outline" text={t('chartBodyWeightEmpty')} />}
     </ChartCard> : null}
 
@@ -182,9 +183,9 @@ const styles = StyleSheet.create({
   tab: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 15, paddingVertical: 9 },
   tabText: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
   rangeRow: { marginBottom: 12 },
-  entry: { flexDirection: 'row', alignItems: 'center', gap: 13, borderRadius: 22, borderWidth: 1, padding: 15, marginBottom: 16 },
-  entryIcon: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
+  entry: { flexDirection: 'row', alignItems: 'center', gap: 13, borderRadius: 32, borderWidth: 1, padding: 14, paddingRight: 18, marginBottom: 16 },
+  entryIcon: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
   entryCopy: { flex: 1, minWidth: 0 },
-  entryTitle: { fontFamily: 'Inter_700Bold', fontSize: 15 },
+  entryTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 17, letterSpacing: -0.5 },
   entryCaption: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 15, marginTop: 3 },
 });

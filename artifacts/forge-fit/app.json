@@ -103,6 +103,7 @@
           "cameraPermissionText": "GainMode uses the camera to analyze your movement."
         }
       ],
+      "./plugins/withMediaPipePin",
       "expo-asset",
       [
         "expo-audio",

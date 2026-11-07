@@ -1,5 +1,5 @@
 import React from 'react';
-import { Animated, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PressableScale as Pressable } from '@/components/Motion';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@/components/AppIcon';
 import { MuscleAnatomy, type WorkoutMapKey } from '@/components/MuscleAnatomy';
 import { Card, CelebrationBurst, ProgressBar, triggerHaptic } from '@/components/FitUI';
+import { SkyBackdrop } from '@/components/SkyBackdrop';
 import { ExerciseFormGuide, hasExerciseFormGuide } from '@/components/ExerciseFormGuide';
 import { ExerciseWeightProgressChart } from '@/components/ExerciseWeightProgressChart';
 import { useFit } from '@/context/FitContext';
@@ -94,15 +95,15 @@ function ExerciseCompletionButton({ completed, colors, label, onPress }: {
     accessibilityLabel={label}
     onPress={onPress}
     style={[styles.checkButton, {
-      backgroundColor: completed ? colors.success : colors.secondary,
-      borderColor: completed ? colors.success : colors.border,
+      backgroundColor: completed ? colors.success : colors.accent,
+      borderColor: completed ? colors.success : colors.accent,
     }]}
   >
     <Animated.View style={[styles.completionIcon, { opacity: arrowOpacity, transform: [{ scale: arrowScale }] }]}>
-      <Ionicons name="arrow-forward" size={18} color={colors.primary} />
+      <Ionicons name="arrow-forward" size={19} color={colors.accentForeground} />
     </Animated.View>
     <Animated.View style={[styles.completionIcon, styles.completionIconOverlay, { opacity: checkOpacity, transform: [{ scale: checkScale }] }]}>
-      <Ionicons name="checkmark" size={19} color={colors.primaryForeground} />
+      <Ionicons name="checkmark" size={20} color="#FFFFFF" />
     </Animated.View>
   </Pressable>;
 }
@@ -208,14 +209,15 @@ export default function WorkoutSessionScreen() {
     });
   };
 
-  return <View style={[styles.page, { backgroundColor: colors.background }]}>
+  return <View style={styles.page}>
+    <SkyBackdrop />
     <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 36 }]}>
       <View style={styles.header}>
         <Pressable accessibilityLabel={t('backToPlan')} onPress={() => router.back()} style={[styles.iconButton, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name="arrow-back" size={20} color={colors.foreground} />
         </Pressable>
         <View style={styles.headerText}>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>{t('activeMuscles').toUpperCase()}</Text>
+          <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>{t('activeMuscles').toUpperCase()}</Text>
           <Text style={[styles.title, { color: colors.foreground }]}>{label(workout.name)}</Text>
         </View>
         <View style={[styles.counter, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -229,14 +231,14 @@ export default function WorkoutSessionScreen() {
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('muscleMap')}</Text>
             <Text style={[styles.sectionHint, { color: colors.mutedForeground }]}>{t('tapHighlightedMuscle')}</Text>
           </View>
-          <View style={[styles.sideSwitch, { backgroundColor: colors.secondary }]}>
+          <View style={[styles.sideSwitch, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {(['front', 'back'] as BodySide[]).map((item) => <Pressable
               key={item}
               testID={`body-side-${item}`}
               onPress={() => { triggerHaptic(); setSide(item); setSelectedMuscle(null); }}
-              style={[styles.sideButton, side === item ? { backgroundColor: colors.primary } : null]}
+              style={[styles.sideButton, side === item ? { backgroundColor: colors.accent } : null]}
             >
-              <Text style={[styles.sideText, { color: side === item ? colors.primaryForeground : colors.mutedForeground }]}>{t(item === 'front' ? 'frontBody' : 'backBody')}</Text>
+              <Text style={[styles.sideText, { color: side === item ? colors.accentForeground : colors.mutedForeground }]}>{t(item === 'front' ? 'frontBody' : 'backBody')}</Text>
             </Pressable>)}
           </View>
         </View>
@@ -247,7 +249,7 @@ export default function WorkoutSessionScreen() {
             mapKey={mapKey}
             selectedMuscle={selectedMuscle}
             onSelect={selectMuscle}
-            activeColor={colors.primary}
+            activeColor={colors.accent}
             selectedColor={colors.blue}
             labelBackgroundColor={colors.card}
             labelTextColor={colors.foreground}
@@ -256,28 +258,28 @@ export default function WorkoutSessionScreen() {
           />
           {showTapHint ? <Animated.View pointerEvents="none" style={[styles.tapHint, {
             backgroundColor: colors.card,
-            borderColor: colors.primary,
+            borderColor: colors.accent,
             opacity: tapHintAnimation.interpolate({ inputRange: [0, 1], outputRange: [0.78, 1] }),
             transform: [
               { translateY: tapHintAnimation.interpolate({ inputRange: [0, 1], outputRange: [-8, 8] }) },
               { scale: tapHintAnimation.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.06] }) },
             ],
           }]}>
-            <View style={[styles.tapHintIcon, { backgroundColor: colors.primary }]}>
-              <Ionicons name="hand-pointer" size={23} color={colors.primaryForeground} />
+            <View style={[styles.tapHintIcon, { backgroundColor: colors.accent }]}>
+              <Ionicons name="hand-pointer" size={23} color={colors.accentForeground} />
             </View>
             <Text style={[styles.tapHintText, { color: colors.foreground }]}>{t('tapMuscleHint')}</Text>
           </Animated.View> : null}
         </View>
         <View
           accessibilityLabel={t('clickToViewWorkouts')}
-          style={[styles.mapCta, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}35` }]}
+          style={[styles.mapCta, { backgroundColor: `${colors.accent}14`, borderColor: `${colors.accent}40` }]}
         >
-          <Ionicons name="hand-pointer" size={15} color={colors.primary} />
-          <Text style={[styles.mapCtaText, { color: colors.primary }]}>{t('clickToViewWorkouts')}</Text>
+          <Ionicons name="hand-pointer" size={15} color={colors.accent} />
+          <Text style={[styles.mapCtaText, { color: colors.accent }]}>{t('clickToViewWorkouts')}</Text>
         </View>
         <View style={styles.legend}>
-          <View style={[styles.legendDot, { backgroundColor: colors.primary }]} />
+          <View style={[styles.legendDot, { backgroundColor: colors.accent }]} />
           <Text style={[styles.legendText, { color: colors.mutedForeground }]}>{t('todayTargetMuscles')}</Text>
         </View>
         <ProgressBar value={workout.exercises.length ? completedCount / workout.exercises.length : 0} color={colors.success} />
@@ -292,7 +294,7 @@ export default function WorkoutSessionScreen() {
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t(muscleLabels[selectedMuscle])}</Text>
             <Text style={[styles.sectionHint, { color: colors.mutedForeground }]}>{selectedExercises.length} {t('exercises')}</Text>
           </View>
-          <Ionicons name="barbell-outline" size={22} color={colors.primary} />
+          <Ionicons name="barbell-outline" size={22} color={colors.accent} />
         </View>
         {selectedExercises.map((exercise, index) => {
           const revealStart = Math.min(0.65, index * 0.1);
@@ -320,24 +322,24 @@ export default function WorkoutSessionScreen() {
            <Card style={[styles.exerciseCard, exercise.completed ? { backgroundColor: `${colors.success}0C`, borderColor: `${colors.success}55` } : null]}>
               <View style={styles.exerciseCardTop}>
                 <ExerciseVisual
-                  color={exercise.completed ? colors.success : colors.primary}
+                  color={exercise.completed ? colors.success : colors.accent}
                   icon={exerciseIconFor(exercise.name, exercise.muscleGroup ?? selectedMuscle)}
                 />
                 <View style={styles.exerciseInfo}>
                   <View style={styles.exerciseOverline}>
-                    <Text style={[styles.exerciseOrder, { color: exercise.completed ? colors.success : colors.primary }]}>{String(index + 1).padStart(2, '0')}</Text>
-                    <View style={[styles.muscleTag, { backgroundColor: exercise.completed ? `${colors.success}18` : `${colors.primary}12` }]}>
-                      <Text numberOfLines={1} style={[styles.muscleTagText, { color: exercise.completed ? colors.success : colors.primary }]}>{t(muscleLabels[exercise.muscleGroup ?? selectedMuscle])}</Text>
+                    <Text style={[styles.exerciseOrder, { color: exercise.completed ? colors.success : colors.accent }]}>{String(index + 1).padStart(2, '0')}</Text>
+                    <View style={[styles.muscleTag, { backgroundColor: exercise.completed ? `${colors.success}18` : `${colors.accent}14` }]}>
+                      <Text numberOfLines={1} style={[styles.muscleTagText, { color: exercise.completed ? colors.success : colors.accent }]}>{t(muscleLabels[exercise.muscleGroup ?? selectedMuscle])}</Text>
                     </View>
                   </View>
                   <Text numberOfLines={2} style={[styles.exerciseName, { color: colors.foreground }, exercise.completed ? styles.completedText : null]}>{label(exercise.name)}</Text>
                   <View style={styles.exerciseMeta}>
                     <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}>
-                      <Ionicons name="badge-sets" size={11} color={colors.primary} />
+                      <Ionicons name="badge-sets" size={11} color={colors.accent} />
                       <Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.sets} {t('sets')}</Text>
                     </View>
                     <View style={[styles.metaPill, { backgroundColor: colors.secondary }]}>
-                      <Ionicons name="activity" size={11} color={colors.primary} />
+                      <Ionicons name="activity" size={11} color={colors.accent} />
                       <Text style={[styles.metaText, { color: colors.foreground }]}>{exercise.reps} {t('repetitions')}</Text>
                     </View>
                     <View accessibilityLabel={`${label(exercise.name)}: ${exerciseCalories} ${t('caloriesShort')}`} style={[styles.metaPill, styles.calorieMetaPill, { backgroundColor: `${colors.orange}18` }]}>
@@ -357,11 +359,11 @@ export default function WorkoutSessionScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={t('exerciseFormShow')}
                 onPress={() => setGuideExercise(exercise.name)}
-                style={[styles.formGuideButton, { borderTopColor: colors.border, backgroundColor: `${colors.primary}08` }]}
+                style={[styles.formGuideButton, { backgroundColor: `${colors.accent}12` }]}
               >
-                <View style={styles.formGuideIcon}><Ionicons name="eye-outline" size={15} color={colors.primary} /></View>
-                <Text style={[styles.formGuideButtonText, { color: colors.primary }]}>{t('exerciseFormShow')}</Text>
-                <Ionicons name="chevron-forward" size={15} color={colors.primary} />
+                <View style={styles.formGuideIcon}><Ionicons name="eye-outline" size={15} color={colors.accent} /></View>
+                <Text style={[styles.formGuideButtonText, { color: colors.accent }]}>{t('exerciseFormShow')}</Text>
+                <Ionicons name="chevron-forward" size={15} color={colors.accent} />
               </Pressable> : null}
                 {profile?.equipment !== 'bodyweight' ? <View style={[styles.dumbbellWeightRow, { borderTopColor: colors.border }]}>
                  <View style={styles.dumbbellWeightCopy}>
@@ -381,7 +383,7 @@ export default function WorkoutSessionScreen() {
                      placeholderTextColor={colors.mutedForeground}
                      style={[styles.dumbbellWeightInput, { color: colors.foreground }]}
                    />
-                   <Text style={[styles.dumbbellWeightUnit, { color: colors.primary }]}>kg</Text>
+                   <Text style={[styles.dumbbellWeightUnit, { color: colors.accent }]}>kg</Text>
                  </View>
                </View> : null}
                {profile?.equipment !== 'bodyweight' && dumbbellWeightIncrease !== null ? <Text style={[styles.dumbbellWeightIncrease, { color: dumbbellWeightIncrease >= 0 ? colors.success : colors.orange }]}>{t('exerciseDumbbellIncrease')}: {dumbbellWeightIncrease >= 0 ? '+' : ''}{dumbbellWeightIncrease} kg</Text> : null}
@@ -391,17 +393,17 @@ export default function WorkoutSessionScreen() {
                    accessibilityState={{ expanded: weightChartExpanded }}
                    accessibilityLabel={t(weightChartExpanded ? 'exerciseWeightProgressHide' : 'exerciseWeightProgressShow')}
                    onPress={() => setExpandedWeightChartId(weightChartExpanded ? null : exercise.id)}
-                   style={[styles.weightChartToggle, { borderColor: colors.border, backgroundColor: `${colors.primary}0C` }]}
+                   style={[styles.weightChartToggle, { borderColor: `${colors.accent}40`, backgroundColor: `${colors.accent}12` }]}
                  >
-                   <Ionicons name={weightChartExpanded ? 'chevron-up' : 'analytics-outline'} size={14} color={colors.primary} />
-                   <Text style={[styles.weightChartToggleText, { color: colors.primary }]}>{t(weightChartExpanded ? 'exerciseWeightProgressHide' : 'exerciseWeightProgressShow')}</Text>
+                   <Ionicons name={weightChartExpanded ? 'chevron-up' : 'analytics-outline'} size={14} color={colors.accent} />
+                   <Text style={[styles.weightChartToggleText, { color: colors.accent }]}>{t(weightChartExpanded ? 'exerciseWeightProgressHide' : 'exerciseWeightProgressShow')}</Text>
                  </Pressable> : null}
              {weightChartExpanded ? <ExerciseWeightProgressChart entries={exerciseWeightHistory} language={language} /> : null}
           </Card>
         </Animated.View>;
         })}
       </Animated.View> : <View style={[styles.emptyPrompt, { borderColor: colors.border }]}>
-        <Ionicons name="body-outline" size={28} color={colors.primary} />
+        <Image source={require('@/assets/images/props/dumbbell.png')} resizeMode="contain" style={styles.emptyDumbbell} />
         <Text style={[styles.emptyTitle, { color: colors.foreground }]}>{t('selectMuscleTitle')}</Text>
         <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t('selectMuscleBody')}</Text>
       </View>}
@@ -415,23 +417,23 @@ const styles = StyleSheet.create({
   page: { flex: 1 },
   content: { paddingHorizontal: 18 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 18 },
-  iconButton: { width: 43, height: 43, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  iconButton: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   headerText: { flex: 1 },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.1 },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 22, letterSpacing: -0.6, marginTop: 3 },
-  counter: { minWidth: 46, height: 38, borderRadius: 13, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  counterText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
-  anatomyCard: { padding: 16, marginBottom: 22 },
+  title: { fontFamily: 'Inter_800ExtraBold', fontSize: 26, letterSpacing: -1.1, marginTop: 3 },
+  counter: { minWidth: 56, height: 42, borderRadius: 21, paddingHorizontal: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  counterText: { fontFamily: 'Inter_800ExtraBold', fontSize: 14 },
+  anatomyCard: { padding: 18, marginBottom: 22, borderRadius: 34 },
   anatomyTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 13 },
   anatomyTopCopy: { flex: 1, minWidth: 0 },
-  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, letterSpacing: -0.3 },
+  sectionTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 21, letterSpacing: -0.8 },
   sectionHint: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: 3 },
-  sideSwitch: { flexDirection: 'row', flexShrink: 0, padding: 3, borderRadius: 12 },
-  sideButton: { width: 48, height: 31, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
-  sideText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
-  anatomyStage: { height: 440, borderRadius: 22, paddingHorizontal: 28, paddingVertical: 8, overflow: 'hidden' },
-  mapCta: { minHeight: 36, borderRadius: 13, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 10, paddingHorizontal: 12 },
-  mapCtaText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
+  sideSwitch: { flexDirection: 'row', flexShrink: 0, padding: 3, borderRadius: 20, borderWidth: 1 },
+  sideButton: { width: 56, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  sideText: { fontFamily: 'Inter_800ExtraBold', fontSize: 11 },
+  anatomyStage: { height: 440, borderRadius: 28, paddingHorizontal: 28, paddingVertical: 8, overflow: 'hidden' },
+  mapCta: { minHeight: 46, borderRadius: 23, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 10, paddingHorizontal: 12 },
+  mapCtaText: { fontFamily: 'Inter_800ExtraBold', fontSize: 12 },
   tapHint: { position: 'absolute', right: 10, top: 118, maxWidth: 126, borderRadius: 16, borderWidth: 1, padding: 8, alignItems: 'center', shadowColor: '#000000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5 },
   tapHintIcon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   tapHintText: { fontFamily: 'Inter_700Bold', fontSize: 10, lineHeight: 14, textAlign: 'center', marginTop: 6 },
@@ -439,39 +441,40 @@ const styles = StyleSheet.create({
   legendDot: { width: 9, height: 9, borderRadius: 5 },
   legendText: { fontFamily: 'Inter_500Medium', fontSize: 11 },
   exerciseHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingHorizontal: 2 },
-  exerciseCard: { padding: 13, marginBottom: 11, borderRadius: 22, overflow: 'hidden' },
+  exerciseCard: { padding: 14, marginBottom: 12, borderRadius: 32, overflow: 'hidden' },
   exerciseCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  exerciseVisual: { width: 58, height: 62, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  exerciseVisual: { width: 62, height: 62, borderRadius: 31, borderWidth: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   visualOrbit: { position: 'absolute', width: 46, height: 46, borderRadius: 23, borderWidth: 1 },
   exerciseInfo: { flex: 1, minWidth: 0, paddingTop: 1 },
   exerciseOverline: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   exerciseOrder: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8 },
   muscleTag: { maxWidth: '82%', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 3 },
   muscleTagText: { fontFamily: 'Inter_700Bold', fontSize: 8, letterSpacing: 0.45 },
-  exerciseName: { fontFamily: 'Inter_700Bold', fontSize: 15, lineHeight: 19, letterSpacing: -0.25, marginTop: 5 },
+  exerciseName: { fontFamily: 'Inter_800ExtraBold', fontSize: 18, lineHeight: 22, letterSpacing: -0.6, marginTop: 5 },
   completedText: { opacity: 0.78 },
   exerciseMeta: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 8 },
   metaPill: { minHeight: 23, flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 4 },
   calorieMetaPill: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  metaText: { fontFamily: 'Inter_600SemiBold', fontSize: 9 },
-  formGuideButton: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingHorizontal: 8, paddingVertical: 6, borderTopWidth: 1, borderRadius: 14 },
-  formGuideIcon: { width: 27, height: 27, borderRadius: 9, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  formGuideButtonText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 11 },
+  metaText: { fontFamily: 'Inter_700Bold', fontSize: 10 },
+  formGuideButton: { minHeight: 50, flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 25 },
+  formGuideIcon: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  formGuideButtonText: { flex: 1, fontFamily: 'Inter_800ExtraBold', fontSize: 13 },
   dumbbellWeightRow: { gap: 6, borderTopWidth: 1, marginTop: 10, paddingTop: 9, minWidth: 0 },
   dumbbellWeightCopy: { minWidth: 0 },
-  dumbbellWeightTitle: { fontFamily: 'Inter_700Bold', fontSize: 10 },
+  dumbbellWeightTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 12 },
   dumbbellWeightHint: { fontFamily: 'Inter_400Regular', fontSize: 9, marginTop: 2 },
-  dumbbellWeightInputShell: { width: 84, minWidth: 84, height: 34, borderRadius: 10, borderWidth: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', paddingHorizontal: 7, flexShrink: 0 },
-  dumbbellWeightInput: { flex: 1, minWidth: 34, paddingVertical: 0, paddingHorizontal: 0, fontFamily: 'Inter_700Bold', fontSize: 12, textAlign: 'right' },
+  dumbbellWeightInputShell: { width: 96, minWidth: 96, height: 40, borderRadius: 20, borderWidth: 1, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-end', paddingHorizontal: 7, flexShrink: 0 },
+  dumbbellWeightInput: { flex: 1, minWidth: 34, paddingVertical: 0, paddingHorizontal: 0, fontFamily: 'Inter_800ExtraBold', fontSize: 14, textAlign: 'right' },
   dumbbellWeightUnit: { fontFamily: 'Inter_700Bold', fontSize: 10, marginLeft: 3 },
   dumbbellWeightIncrease: { fontFamily: 'Inter_700Bold', fontSize: 9, marginTop: 5 },
-  weightChartToggle: { minHeight: 34, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 5, marginTop: 7, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10, borderWidth: 1, maxWidth: '100%' },
+  weightChartToggle: { minHeight: 38, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, marginTop: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 19, borderWidth: 1, maxWidth: '100%' },
   weightChartToggleText: { flexShrink: 1, fontFamily: 'Inter_700Bold', fontSize: 9 },
-  checkButton: { width: 42, height: 42, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  checkButton: { width: 46, height: 46, borderRadius: 23, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   completionIcon: { position: 'absolute', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' },
   completionIconOverlay: { top: 0, left: 0 },
-  emptyPrompt: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 20, alignItems: 'center', padding: 24, marginBottom: 20 },
-  emptyTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, marginTop: 10 },
+  emptyPrompt: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 34, alignItems: 'center', padding: 26, marginBottom: 20 },
+  emptyDumbbell: { width: 96, height: 96 },
+  emptyTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 19, letterSpacing: -0.6, marginTop: 6 },
   emptyText: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 5, maxWidth: 280 },
   missingPage: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   missingTitle: { fontFamily: 'Inter_700Bold', fontSize: 20, textAlign: 'center' },

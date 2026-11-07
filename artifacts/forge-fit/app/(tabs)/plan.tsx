@@ -1,10 +1,10 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Circle, Line } from 'react-native-svg';
+import Svg, { Circle, Defs, Ellipse, Line, RadialGradient, Stop } from 'react-native-svg';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
-import { ArrowRight, Check, Clock, Dumbbell, Moon, ScanLine } from 'lucide-react-native';
+import { ArrowRight, Check, Clock, Dumbbell, Layers, Moon } from 'lucide-react-native';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { useFit } from '@/context/FitContext';
 import { translate, type Language, type TranslationKey } from '@/lib/i18n';
@@ -12,7 +12,6 @@ import { getWeekdayKey, getWorkoutCompletionRatio, type MuscleGroup } from '@/li
 import { liveTranslate, type LiveWorkoutCopyKey } from '@/lib/liveWorkoutCopy';
 import { useColors } from '@/hooks/useColors';
 import { EmptyState, Header, Screen, triggerHaptic } from '@/components/FitUI';
-import { ProgressRing } from '@/components/NutritionVisuals';
 
 const muscleGroupLabels: Record<MuscleGroup, TranslationKey> = {
   chest: 'muscleChest',
@@ -40,12 +39,12 @@ const dayLabels: Record<WeekDay, TranslationKey> = {
   SUN: 'daySun',
 };
 
-const planCopy: Record<Language, { week: string; workouts: string; more: string; done: string; resume: string; live: string; rest: string; today: string }> = {
-  tr: { week: 'BU HAFTA', workouts: 'antrenman tamamlandı', more: '+{n} hareket daha', done: 'Tamamlandı', resume: 'Kaldığın yerden devam et', live: 'CANLI', rest: 'Toparlanma', today: 'Bugün' },
-  en: { week: 'THIS WEEK', workouts: 'workouts done', more: '+{n} more exercises', done: 'Completed', resume: 'Pick up where you left off', live: 'LIVE', rest: 'Recovery', today: 'Today' },
-  de: { week: 'DIESE WOCHE', workouts: 'Trainings erledigt', more: '+{n} weitere Übungen', done: 'Erledigt', resume: 'Dort weitermachen, wo du warst', live: 'LIVE', rest: 'Erholung', today: 'Heute' },
-  fr: { week: 'CETTE SEMAINE', workouts: 'séances terminées', more: '+{n} autres exercices', done: 'Terminé', resume: 'Reprendre où tu t’es arrêté', live: 'LIVE', rest: 'Récupération', today: 'Aujourd’hui' },
-  es: { week: 'ESTA SEMANA', workouts: 'entrenos hechos', more: '+{n} ejercicios más', done: 'Completado', resume: 'Sigue donde lo dejaste', live: 'EN VIVO', rest: 'Recuperación', today: 'Hoy' },
+const planCopy: Record<Language, { week: string; workouts: string; more: string; done: string; resume: string; live: string; rest: string; today: string; moves: string; time: string; sets: string; minutes: string }> = {
+  tr: { week: 'BU HAFTA', workouts: 'antrenman tamamlandı', more: '+{n} hareket daha', done: 'Tamamlandı', resume: 'Kaldığın yerden devam et', live: 'CANLI', rest: 'Toparlanma', today: 'Bugün', moves: 'Hareketler', time: 'Süre', sets: 'Set', minutes: 'dk' },
+  en: { week: 'THIS WEEK', workouts: 'workouts done', more: '+{n} more exercises', done: 'Completed', resume: 'Pick up where you left off', live: 'LIVE', rest: 'Recovery', today: 'Today', moves: 'Exercises', time: 'Time', sets: 'Sets', minutes: 'min' },
+  de: { week: 'DIESE WOCHE', workouts: 'Trainings erledigt', more: '+{n} weitere Übungen', done: 'Erledigt', resume: 'Dort weitermachen, wo du warst', live: 'LIVE', rest: 'Erholung', today: 'Heute', moves: 'Übungen', time: 'Dauer', sets: 'Sätze', minutes: 'Min' },
+  fr: { week: 'CETTE SEMAINE', workouts: 'séances terminées', more: '+{n} autres exercices', done: 'Terminé', resume: 'Reprendre où tu t’es arrêté', live: 'LIVE', rest: 'Récupération', today: 'Aujourd’hui', moves: 'Exercices', time: 'Durée', sets: 'Séries', minutes: 'min' },
+  es: { week: 'ESTA SEMANA', workouts: 'entrenos hechos', more: '+{n} ejercicios más', done: 'Completado', resume: 'Sigue donde lo dejaste', live: 'EN VIVO', rest: 'Recuperación', today: 'Hoy', moves: 'Ejercicios', time: 'Tiempo', sets: 'Series', minutes: 'min' },
 };
 
 /** Calendar date for each weekday of the current Monday-first week. */
@@ -58,45 +57,36 @@ function weekDates(now = new Date()) {
 }
 
 /**
- * The week as a route: seven stops joined by a line that fills up to the last finished workout.
- * Training stops carry a ring of their own progress, rest days are a small moon, finished days a
- * solid check; the chosen day lifts into a pill with its date.
+ * The week as seven capsules. Each one fills from the bottom as its workout gets done, a finished day turns green,
+ * a rest day stays an outline with a moon, and the chosen day turns solid ink.
  */
-function WeekRoute({ activeDay, onSelect, workouts, language }: { activeDay: WeekDay; onSelect: (day: WeekDay) => void; workouts: ReturnType<typeof useFit>['workouts']; language: Language }) {
+function WeekCapsules({ activeDay, onSelect, workouts, language }: { activeDay: WeekDay; onSelect: (day: WeekDay) => void; workouts: ReturnType<typeof useFit>['workouts']; language: Language }) {
   const colors = useColors();
   const dates = weekDates();
   const today = getWeekdayKey() as WeekDay;
-  const lastDone = weekDays.reduce((last, day, index) => (workouts.find((item) => item.day === day)?.completed ? index : last), -1);
-  const [width, setWidth] = React.useState(0);
-  const step = width / 7;
-
-  return <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={styles.route}>
-    {width ? <Svg width={width} height={44} style={styles.routeLine}>
-      <Line x1={step / 2} x2={width - step / 2} y1={22} y2={22} stroke={colors.border} strokeWidth={2} strokeDasharray="2 6" strokeLinecap="round" />
-      {lastDone >= 0 ? <Line x1={step / 2} x2={step / 2 + step * lastDone} y1={22} y2={22} stroke={colors.success} strokeWidth={3} strokeLinecap="round" /> : null}
-    </Svg> : null}
+  return <View style={styles.capsules}>
     {weekDays.map((day, index) => {
       const workout = workouts.find((item) => item.day === day);
       const ratio = workout ? getWorkoutCompletionRatio(workout) : 0;
       const done = Boolean(workout?.completed);
       const selected = day === activeDay;
-      return <Pressable key={day} testID={`plan-day-${day}`} accessibilityRole="tab" accessibilityLabel={translate(language, dayLabels[day])} accessibilityState={{ selected }} onPress={() => { triggerHaptic(); onSelect(day); }} scaleTo={0.92} style={styles.stop}>
-        <View style={styles.node}>
-          {done
-            ? <View style={[styles.nodeDone, { backgroundColor: colors.success }]}><Check size={16} color="#FFFFFF" strokeWidth={3} /></View>
-            : workout
-              ? <View style={[styles.nodeWorkout, { backgroundColor: selected ? colors.foreground : colors.card }]}>
-                <ProgressRing value={ratio} size={40} stroke={3} color={selected ? colors.background : colors.accent} track={selected ? `${colors.background}33` : colors.border}>
-                  <Dumbbell size={15} color={selected ? colors.background : colors.foreground} strokeWidth={2.2} />
-                </ProgressRing>
-              </View>
-              : <View style={[styles.nodeRest, { backgroundColor: selected ? colors.foreground : colors.secondary }]}><Moon size={12} color={selected ? colors.background : colors.mutedForeground} strokeWidth={2.2} /></View>}
+      const ink = selected ? colors.background : colors.foreground;
+      const muted = selected ? `${colors.background}99` : colors.mutedForeground;
+      return <Pressable key={day} testID={`plan-day-${day}`} accessibilityRole="tab" accessibilityLabel={translate(language, dayLabels[day])} accessibilityState={{ selected }} onPress={() => { triggerHaptic(); onSelect(day); }} scaleTo={0.92} style={styles.capsuleWrap}>
+        <View style={[
+          styles.capsule,
+          selected
+            ? { backgroundColor: colors.foreground, borderColor: colors.foreground }
+            : workout ? { backgroundColor: colors.card, borderColor: colors.border } : { backgroundColor: 'transparent', borderColor: colors.border, borderStyle: 'dashed' },
+        ]}>
+          {workout && !selected ? <View style={[styles.capsuleFill, { height: `${Math.max(done ? 100 : ratio * 100, 0)}%`, backgroundColor: done ? `${colors.success}2E` : `${colors.accent}1F` }]} /> : null}
+          <Text style={[styles.capsuleDay, { color: muted }]}>{translate(language, dayLabels[day])}</Text>
+          <Text style={[styles.capsuleDate, { color: ink }]}>{dates[index]}</Text>
+          <View style={[styles.capsuleIcon, { backgroundColor: done ? colors.success : selected ? colors.accent : workout ? `${colors.accent}18` : 'transparent' }]}>
+            {done ? <Check size={12} color="#FFFFFF" strokeWidth={3} /> : workout ? <Dumbbell size={12} color={selected ? '#FFFFFF' : colors.accent} strokeWidth={2.3} /> : <Moon size={12} color={muted} strokeWidth={2.2} />}
+          </View>
         </View>
-        <View style={[styles.stopLabel, selected && { backgroundColor: colors.secondary }]}>
-          <Text style={[styles.stopDay, { color: selected ? colors.foreground : colors.mutedForeground }]}>{translate(language, dayLabels[day])}</Text>
-          <Text style={[styles.stopDate, { color: selected ? colors.foreground : colors.mutedForeground }]}>{dates[index]}</Text>
-        </View>
-        {day === today ? <View style={[styles.todayDot, { backgroundColor: colors.accent }]} /> : null}
+        <View style={[styles.todayDot, { backgroundColor: day === today ? colors.accent : 'transparent' }]} />
       </Pressable>;
     })}
   </View>;
@@ -138,6 +128,7 @@ export default function PlanScreen() {
   const completedCount = active?.exercises.filter((exercise) => Boolean(exercise.completed)).length ?? 0;
   const completedWorkouts = workouts.filter((workout) => workout.completed).length;
   const isToday = activeDay === getWeekdayKey();
+  const dark = colors.colorScheme === 'dark';
   const liveChoices = [
     { kind: 'squat', label: liveT('liveSquat') },
     { kind: 'pushup', label: liveT('livePushup') },
@@ -159,70 +150,109 @@ export default function PlanScreen() {
     triggerHaptic();
     router.push({ pathname: '/workout-session', params: { workoutId: active.id } });
   };
-  const ratio = active && active.exercises.length ? completedCount / active.exercises.length : 0;
-  const preview = active?.exercises.slice(0, 4) ?? [];
-  const hidden = (active?.exercises.length ?? 0) - preview.length;
+  const totalSets = active?.exercises.reduce((sum, exercise) => sum + (Number(exercise.sets) || 0), 0) ?? 0;
+  const nextIndex = active?.exercises.findIndex((exercise) => !exercise.completed) ?? -1;
+  const dayName = (isToday ? copy.today : t(dayLabels[activeDay])).toLocaleUpperCase(language);
 
-  return <View style={[styles.page, { backgroundColor: colors.background }]}>
-    <Screen>
+  return <View style={styles.page}>
+    <Screen sky>
       <Header eyebrow={t('planEyebrow')} title={t('planTitle')} />
 
-      <View style={[styles.weekCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={styles.weekHead}>
-          <Text style={[styles.weekEyebrow, { color: colors.mutedForeground }]}>{copy.week}</Text>
-          <Text style={[styles.weekCount, { color: colors.foreground }]}>{completedWorkouts}<Text style={{ color: colors.mutedForeground }}> / {workouts.length}</Text> <Text style={[styles.weekCountUnit, { color: colors.mutedForeground }]}>{copy.workouts}</Text></Text>
+      <View style={styles.weekHead}>
+        <Text style={[styles.weekEyebrow, { color: colors.mutedForeground }]}>{copy.week}</Text>
+        <View style={styles.weekDots}>
+          {workouts.map((workout) => <View key={workout.id} style={[styles.weekDot, { backgroundColor: workout.completed ? colors.success : `${colors.foreground}1A` }]} />)}
+          <Text style={[styles.weekCount, { color: colors.foreground }]}>{completedWorkouts}/{workouts.length}</Text>
         </View>
-        <WeekRoute activeDay={activeDay} onSelect={setActiveDay} workouts={workouts} language={language} />
       </View>
+      <WeekCapsules activeDay={activeDay} onSelect={setActiveDay} workouts={workouts} language={language} />
 
       {active ? <>
-        <LinearGradient colors={[colors.inkCardStart, colors.inkCardEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.session}>
-          {/* The day's name, huge and faint, sits behind the card like a watermark. */}
-          <Text pointerEvents="none" numberOfLines={1} style={[styles.watermark, { color: `${colors.inkCardForeground}0D` }]}>{t(dayLabels[activeDay]).toLocaleUpperCase(language)}</Text>
-          <View style={styles.sessionTop}>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[styles.sessionEyebrow, { color: `${colors.inkCardForeground}99` }]}>{isToday ? copy.today.toLocaleUpperCase(language) : t(dayLabels[activeDay]).toLocaleUpperCase(language)}</Text>
-              <Text style={[styles.sessionTitle, { color: colors.inkCardForeground }]}>{label(active.name)}</Text>
-              <View style={styles.metaRow}>
-                <View style={[styles.meta, { backgroundColor: `${colors.inkCardForeground}14` }]}><Clock size={12} color={colors.inkCardForeground} strokeWidth={2.2} /><Text style={[styles.metaText, { color: colors.inkCardForeground }]}>{active.duration} {t('minutesShort')}</Text></View>
-                <View style={[styles.meta, { backgroundColor: `${colors.inkCardForeground}14` }]}><Dumbbell size={12} color={colors.inkCardForeground} strokeWidth={2.2} /><Text style={[styles.metaText, { color: colors.inkCardForeground }]}>{active.exercises.length} {t('exercises')}</Text></View>
-              </View>
+        {/* Session stage: the 3D kettlebell stands on its shadow beside the name of the day's workout. */}
+        <View style={[styles.stage, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.stageTop}>
+            <View style={styles.stageCopy}>
+              <Text style={[styles.stageEyebrow, { color: colors.accent }]}>{dayName}</Text>
+              <Text numberOfLines={2} style={[styles.stageTitle, { color: colors.foreground }]}>{label(active.name)}</Text>
+              {active.focusAreas?.length ? <View style={styles.focusRow}>
+                {active.focusAreas.map((group) => <View key={group} style={[styles.focusChip, { borderColor: colors.border }]}><Text style={[styles.focusChipText, { color: colors.foreground }]}>{t(muscleGroupLabels[group])}</Text></View>)}
+              </View> : null}
             </View>
-            <ProgressRing value={ratio} size={78} stroke={7} color="#7FA6FF" gradientTo={colors.success} track={`${colors.inkCardForeground}1A`}>
-              <Text style={[styles.ringValue, { color: colors.inkCardForeground }]}>{completedCount}</Text>
-              <Text style={[styles.ringTotal, { color: `${colors.inkCardForeground}99` }]}>/ {active.exercises.length}</Text>
-            </ProgressRing>
+            <View style={styles.prop} pointerEvents="none">
+              <Svg width={112} height={26} style={styles.propShadow}>
+                <Defs><RadialGradient id="kbShadow" cx="50%" cy="50%" r="50%"><Stop offset="0" stopColor={dark ? '#000000' : '#0B2A66'} stopOpacity={dark ? 0.6 : 0.28} /><Stop offset="1" stopColor="#0B2A66" stopOpacity={0} /></RadialGradient></Defs>
+                <Ellipse cx={56} cy={13} rx={54} ry={11} fill="url(#kbShadow)" />
+              </Svg>
+              <Image source={require('@/assets/images/props/kettlebell.png')} resizeMode="contain" style={styles.propImage} />
+            </View>
           </View>
 
-          {active.focusAreas?.length ? <View style={styles.focusRow}>
-            {active.focusAreas.map((group) => <View key={group} style={[styles.focusChip, { borderColor: `${colors.inkCardForeground}2E` }]}><Text style={[styles.focusChipText, { color: `${colors.inkCardForeground}CC` }]}>{t(muscleGroupLabels[group])}</Text></View>)}
+          <View style={[styles.stats, { backgroundColor: `${colors.foreground}08` }]}>
+            {[
+              { icon: <Clock size={14} color={colors.accent} strokeWidth={2.3} />, value: String(active.duration), unit: copy.minutes, label: copy.time },
+              { icon: <Dumbbell size={14} color={colors.accent} strokeWidth={2.3} />, value: String(active.exercises.length), unit: '', label: copy.moves },
+              { icon: <Layers size={14} color={colors.accent} strokeWidth={2.3} />, value: String(totalSets), unit: '', label: copy.sets },
+            ].map((stat, index) => <View key={stat.label} style={[styles.stat, index ? { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: colors.border } : null]}>
+              {stat.icon}
+              <Text style={[styles.statValue, { color: colors.foreground }]}>{stat.value}<Text style={[styles.statUnit, { color: colors.mutedForeground }]}>{stat.unit ? ` ${stat.unit}` : ''}</Text></Text>
+              <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{stat.label}</Text>
+            </View>)}
+          </View>
+
+          {completedCount > 0 ? <View style={styles.progressRow}>
+            <View style={[styles.progressTrack, { backgroundColor: `${colors.foreground}12` }]}>
+              <View style={[styles.progressFill, { width: `${(completedCount / Math.max(active.exercises.length, 1)) * 100}%`, backgroundColor: colors.success }]} />
+            </View>
+            <Text style={[styles.progressText, { color: colors.foreground }]}>{completedCount}/{active.exercises.length}</Text>
           </View> : null}
 
-          <View style={[styles.list, { borderTopColor: `${colors.inkCardForeground}14` }]}>
-            {preview.map((exercise, index) => <View key={exercise.id} style={styles.listRow}>
-              <View style={[styles.listIndex, { backgroundColor: exercise.completed ? colors.success : `${colors.inkCardForeground}14` }]}>
-                {exercise.completed ? <Check size={12} color="#FFFFFF" strokeWidth={3} /> : <Text style={[styles.listIndexText, { color: colors.inkCardForeground }]}>{index + 1}</Text>}
-              </View>
-              <Text numberOfLines={1} style={[styles.listName, { color: colors.inkCardForeground, opacity: exercise.completed ? 0.55 : 1 }]}>{label(exercise.name)}</Text>
-              <Text style={[styles.listSets, { color: `${colors.inkCardForeground}99` }]}>{exercise.sets} × {exercise.reps}</Text>
-            </View>)}
-            {hidden > 0 ? <Text style={[styles.more, { color: `${colors.inkCardForeground}80` }]}>{copy.more.replace('{n}', String(hidden))}</Text> : null}
-          </View>
-
-          <Pressable testID="start-planned-workout" accessibilityRole="button" accessibilityLabel={t('startWorkout')} onPress={startWorkout} scaleTo={0.97} style={[styles.cta, { backgroundColor: colors.inkCardForeground }]}>
-            <Text style={[styles.ctaText, { color: colors.inkCardStart }]}>{active.completed ? copy.done : completedCount > 0 ? copy.resume : t('startWorkout')}</Text>
-            <View style={[styles.ctaArrow, { backgroundColor: colors.inkCardStart }]}>{active.completed ? <Check size={16} color={colors.inkCardForeground} strokeWidth={3} /> : <ArrowRight size={16} color={colors.inkCardForeground} strokeWidth={2.4} />}</View>
+          <Pressable testID="start-planned-workout" accessibilityRole="button" accessibilityLabel={t('startWorkout')} onPress={startWorkout} scaleTo={0.97} style={[styles.cta, { backgroundColor: colors.foreground }]}>
+            <Text style={[styles.ctaText, { color: colors.background }]}>{active.completed ? copy.done : completedCount > 0 ? copy.resume : t('startWorkout')}</Text>
+            <View style={[styles.ctaArrow, { backgroundColor: colors.accent }]}>{active.completed ? <Check size={17} color="#FFFFFF" strokeWidth={3} /> : <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.4} />}</View>
           </Pressable>
-        </LinearGradient>
+        </View>
 
-        <View testID="live-form-analysis-bar" style={[styles.live, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {/* The exercises as a route: done stops are green, the next one is ringed, the rest wait in line. */}
+        <View style={styles.sectionHead}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{copy.moves}</Text>
+          <Text style={[styles.sectionCount, { color: colors.mutedForeground }]}>{active.exercises.length}</Text>
+        </View>
+        <View style={[styles.route, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {active.exercises.map((exercise, index) => {
+            const done = Boolean(exercise.completed);
+            const next = index === nextIndex;
+            const last = index === active.exercises.length - 1;
+            return <Pressable key={exercise.id} accessibilityRole="button" onPress={startWorkout} scaleTo={0.985} style={styles.stop}>
+              <View style={styles.rail}>
+                <View style={[styles.node, done
+                  ? { backgroundColor: colors.success, borderColor: colors.success }
+                  : next ? { backgroundColor: colors.card, borderColor: colors.accent, borderWidth: 2.5 } : { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  {done ? <Check size={13} color="#FFFFFF" strokeWidth={3} /> : <Text style={[styles.nodeText, { color: next ? colors.accent : colors.mutedForeground }]}>{index + 1}</Text>}
+                </View>
+                {!last ? <View style={[styles.railLine, { backgroundColor: done ? colors.success : colors.border }]} /> : null}
+              </View>
+              <View style={[styles.stopBody, !last ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border } : null]}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text numberOfLines={1} style={[styles.stopName, { color: colors.foreground, opacity: done ? 0.5 : 1 }]}>{label(exercise.name)}</Text>
+                  {exercise.muscleGroup ? <Text numberOfLines={1} style={[styles.stopMuscle, { color: colors.mutedForeground }]}>{t(muscleGroupLabels[exercise.muscleGroup as MuscleGroup] ?? 'muscleOther')}</Text> : null}
+                </View>
+                <View style={[styles.setsPill, { backgroundColor: next ? `${colors.accent}14` : `${colors.foreground}0A` }]}>
+                  <Text style={[styles.setsText, { color: next ? colors.accent : colors.foreground }]}>{exercise.sets} × {exercise.reps}</Text>
+                </View>
+              </View>
+            </Pressable>;
+          })}
+        </View>
+
+        {/* Live form check: always a night-blue panel, like the camera view it opens. */}
+        <LinearGradient testID="live-form-analysis-bar" colors={['#0E1730', '#16264D']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.live}>
           <View style={styles.liveTop}>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <View style={[styles.livePill, { backgroundColor: '#3DD68C1F' }]}><View style={styles.liveDot} /><Text style={styles.livePillText}>{copy.live}</Text></View>
-              <Text style={[styles.liveTitle, { color: colors.foreground }]}>{liveT('liveWorkoutTitle')}</Text>
-              <Text style={[styles.liveBody, { color: colors.mutedForeground }]}>{liveT('liveWorkoutBody')}</Text>
+              <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.livePillText}>{copy.live}</Text></View>
+              <Text style={styles.liveTitle}>{liveT('liveWorkoutTitle')}</Text>
+              <Text style={styles.liveBody}>{liveT('liveWorkoutBody')}</Text>
             </View>
-            <LinearGradient colors={['#0E1424', '#182544']} style={styles.liveVisual}><SkeletonScan /></LinearGradient>
+            <View style={styles.liveVisual}><SkeletonScan /></View>
           </View>
           <View style={styles.liveChoices}>
             {liveChoices.map((choice) => <Pressable
@@ -231,86 +261,97 @@ export default function PlanScreen() {
               accessibilityRole="button"
               accessibilityLabel={choice.label}
               onPress={() => { triggerHaptic(); router.push({ pathname: '/live-workout', params: { exercise: choice.kind } }); }}
-              style={[styles.liveChoice, { backgroundColor: colors.secondary }]}
+              style={styles.liveChoice}
             >
-              <ScanLine size={15} color={colors.foreground} strokeWidth={2.2} />
-              <Text numberOfLines={1} style={[styles.liveChoiceText, { color: colors.foreground }]}>{choice.label}</Text>
+              <Text numberOfLines={1} style={styles.liveChoiceText}>{choice.label}</Text>
+              <ArrowRight size={14} color="#FFFFFF" strokeWidth={2.4} />
             </Pressable>)}
           </View>
-        </View>
-      </> : <LinearGradient colors={colors.colorScheme === 'dark' ? ['#151A2E', '#0D0F17'] : ['#EEF2FF', '#F7F8FC']} style={[styles.rest, { borderColor: colors.border }]}>
-        <Svg width={120} height={120} viewBox="0 0 120 120" style={styles.restArt}>
-          <Circle cx={60} cy={60} r={56} fill={colors.accent} opacity={0.08} />
-          <Circle cx={60} cy={60} r={40} fill={colors.accent} opacity={0.12} />
-          {[[22, 30], [96, 24], [100, 82], [18, 88], [84, 50]].map(([x, y]) => <Circle key={`${x}-${y}`} cx={x} cy={y} r={1.6} fill={colors.foreground} opacity={0.5} />)}
+        </LinearGradient>
+      </> : <View style={[styles.rest, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Svg width={140} height={140} viewBox="0 0 140 140" style={styles.restArt}>
+          <Circle cx={70} cy={70} r={66} fill={colors.accent} opacity={0.06} />
+          <Circle cx={70} cy={70} r={46} fill={colors.accent} opacity={0.1} />
+          {[[24, 34], [112, 26], [118, 96], [20, 104], [98, 58]].map(([x, y]) => <Circle key={`${x}-${y}`} cx={x} cy={y} r={1.8} fill={colors.foreground} opacity={0.45} />)}
         </Svg>
-        <View style={[styles.restIcon, { backgroundColor: colors.card }]}><Moon size={26} color={colors.accent} strokeWidth={2} /></View>
-        <Text style={[styles.restEyebrow, { color: colors.mutedForeground }]}>{copy.rest.toLocaleUpperCase(language)}</Text>
+        <View style={[styles.restIcon, { backgroundColor: colors.foreground }]}><Moon size={26} color={colors.background} strokeWidth={2.2} /></View>
+        <Text style={[styles.restEyebrow, { color: colors.accent }]}>{copy.rest.toLocaleUpperCase(language)}</Text>
         <Text style={[styles.restTitle, { color: colors.foreground }]}>{t('restDayTitle')}</Text>
         <Text style={[styles.restBody, { color: colors.mutedForeground }]}>{t('restDaySubtitle')}</Text>
-      </LinearGradient>}
+      </View>}
     </Screen>
   </View>;
 }
 
 const styles = StyleSheet.create({
   page: { flex: 1 },
-  weekCard: { borderRadius: 26, borderWidth: 1, paddingTop: 16, paddingBottom: 12, paddingHorizontal: 10, marginBottom: 14 },
-  weekHead: { paddingHorizontal: 8, marginBottom: 14 },
-  weekEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.4 },
-  weekCount: { fontFamily: 'Inter_700Bold', fontSize: 24, letterSpacing: -0.6, marginTop: 4 },
-  weekCountUnit: { fontFamily: 'Inter_500Medium', fontSize: 12, letterSpacing: 0 },
-  route: { flexDirection: 'row' },
-  routeLine: { position: 'absolute', left: 0, top: 0 },
-  stop: { flex: 1, alignItems: 'center' },
-  node: { height: 44, alignItems: 'center', justifyContent: 'center' },
-  nodeDone: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
-  nodeWorkout: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  nodeRest: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  stopLabel: { alignItems: 'center', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 4, marginTop: 6 },
-  stopDay: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
-  stopDate: { fontFamily: 'Inter_700Bold', fontSize: 13, marginTop: 1 },
-  todayDot: { width: 4, height: 4, borderRadius: 2, marginTop: 4 },
-  session: { borderRadius: 30, padding: 20, overflow: 'hidden', marginBottom: 14 },
-  watermark: { position: 'absolute', right: -10, top: -18, fontFamily: 'Inter_700Bold', fontSize: 120, letterSpacing: -6 },
-  sessionTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  sessionEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.4 },
-  sessionTitle: { fontFamily: 'Inter_700Bold', fontSize: 30, letterSpacing: -1, marginTop: 6 },
-  metaRow: { flexDirection: 'row', gap: 6, marginTop: 12 },
-  meta: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
-  metaText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  ringValue: { fontFamily: 'Inter_700Bold', fontSize: 20, letterSpacing: -0.6 },
-  ringTotal: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: -2 },
-  focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 },
+  weekHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingHorizontal: 2 },
+  weekEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10.5, letterSpacing: 1.4 },
+  weekDots: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  weekDot: { width: 14, height: 5, borderRadius: 3 },
+  weekCount: { fontFamily: 'Inter_800ExtraBold', fontSize: 13, marginLeft: 6 },
+  capsules: { flexDirection: 'row', gap: 6, marginBottom: 18 },
+  capsuleWrap: { flex: 1, alignItems: 'center' },
+  capsule: { width: '100%', height: 96, borderRadius: 999, borderWidth: 1.2, alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, paddingBottom: 7, overflow: 'hidden' },
+  capsuleFill: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  capsuleDay: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.4 },
+  capsuleDate: { fontFamily: 'Inter_800ExtraBold', fontSize: 18, letterSpacing: -0.6 },
+  capsuleIcon: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  todayDot: { width: 5, height: 5, borderRadius: 3, marginTop: 6 },
+  stage: { borderRadius: 32, borderWidth: 1, padding: 20, marginBottom: 22 },
+  stageTop: { flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
+  stageCopy: { flex: 1, minWidth: 0, paddingBottom: 4 },
+  stageEyebrow: { fontFamily: 'Inter_800ExtraBold', fontSize: 10.5, letterSpacing: 1.4 },
+  stageTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 32, letterSpacing: -1.5, lineHeight: 35, marginTop: 6 },
+  focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 12 },
   focusChip: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
-  focusChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  list: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 18, paddingTop: 14, gap: 11 },
-  listRow: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  listIndex: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  listIndexText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
-  listName: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 14 },
-  listSets: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  more: { fontFamily: 'Inter_500Medium', fontSize: 12, marginLeft: 35 },
-  cta: { height: 58, borderRadius: 20, marginTop: 20, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 8 },
-  ctaText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 15 },
-  ctaArrow: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  live: { borderRadius: 26, borderWidth: 1, padding: 16, marginBottom: 18 },
+  focusChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11.5 },
+  prop: { width: 112, height: 132, alignItems: 'center', justifyContent: 'flex-end', marginRight: -6 },
+  propShadow: { position: 'absolute', bottom: 0 },
+  propImage: { width: 96, height: 128, marginBottom: 8 },
+  stats: { flexDirection: 'row', borderRadius: 22, paddingVertical: 12, marginTop: 18 },
+  stat: { flex: 1, alignItems: 'center', gap: 3 },
+  statValue: { fontFamily: 'Inter_800ExtraBold', fontSize: 20, letterSpacing: -0.6, marginTop: 2 },
+  statUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 0 },
+  statLabel: { fontFamily: 'Inter_500Medium', fontSize: 11 },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 16 },
+  progressTrack: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 3 },
+  progressText: { fontFamily: 'Inter_800ExtraBold', fontSize: 13 },
+  cta: { height: 62, borderRadius: 31, marginTop: 18, flexDirection: 'row', alignItems: 'center', paddingLeft: 26, paddingRight: 8 },
+  ctaText: { flex: 1, fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2 },
+  ctaArrow: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  sectionHead: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 10, paddingHorizontal: 2 },
+  sectionTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 22, letterSpacing: -0.8 },
+  sectionCount: { fontFamily: 'Inter_700Bold', fontSize: 14 },
+  route: { borderRadius: 28, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 6, marginBottom: 22 },
+  stop: { flexDirection: 'row', alignItems: 'stretch', gap: 12 },
+  rail: { width: 30, alignItems: 'center', paddingTop: 14 },
+  node: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
+  nodeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 12 },
+  railLine: { position: 'absolute', top: 44, bottom: -14, width: 2, borderRadius: 1 },
+  stopBody: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
+  stopName: { fontFamily: 'Inter_700Bold', fontSize: 14.5, letterSpacing: -0.2 },
+  stopMuscle: { fontFamily: 'Inter_500Medium', fontSize: 11.5, marginTop: 2 },
+  setsPill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  setsText: { fontFamily: 'Inter_700Bold', fontSize: 12, fontVariant: ['tabular-nums'] },
+  live: { borderRadius: 32, padding: 20, marginBottom: 18, overflow: 'hidden' },
   liveTop: { flexDirection: 'row', gap: 14, alignItems: 'center' },
-  livePill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 },
+  livePill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4, backgroundColor: 'rgba(61,214,140,0.16)' },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#3DD68C' },
-  livePillText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1, color: '#22A06B' },
-  liveTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, letterSpacing: -0.4, marginTop: 10 },
-  liveBody: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 5 },
-  liveVisual: { width: 104, height: 124, borderRadius: 20, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  livePillText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1, color: '#3DD68C' },
+  liveTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 21, letterSpacing: -0.8, marginTop: 10, color: '#FFFFFF' },
+  liveBody: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 5, color: 'rgba(255,255,255,0.68)' },
+  liveVisual: { width: 104, height: 124, borderRadius: 26, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   skeleton: { width: 100, height: 112 },
   scanLine: { position: 'absolute', left: 0, right: 0, top: 0, height: 2 },
   liveChoices: { flexDirection: 'row', gap: 8, marginTop: 16 },
-  liveChoice: { flex: 1, height: 46, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 6 },
-  liveChoiceText: { fontFamily: 'Inter_700Bold', fontSize: 12.5 },
-  rest: { borderRadius: 30, borderWidth: 1, paddingVertical: 34, paddingHorizontal: 24, alignItems: 'center', marginBottom: 18, overflow: 'hidden' },
-  restArt: { position: 'absolute', top: 14 },
+  liveChoice: { flex: 1, height: 48, borderRadius: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 8, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' },
+  liveChoiceText: { fontFamily: 'Inter_700Bold', fontSize: 12.5, color: '#FFFFFF', flexShrink: 1 },
+  rest: { borderRadius: 32, borderWidth: 1, paddingVertical: 34, paddingHorizontal: 24, alignItems: 'center', marginBottom: 18, overflow: 'hidden' },
+  restArt: { position: 'absolute', top: 6 },
   restIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
-  restEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.4, marginTop: 34 },
-  restTitle: { fontFamily: 'Inter_700Bold', fontSize: 26, letterSpacing: -0.8, textAlign: 'center', marginTop: 6 },
+  restEyebrow: { fontFamily: 'Inter_800ExtraBold', fontSize: 10.5, letterSpacing: 1.4, marginTop: 40 },
+  restTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 28, letterSpacing: -1.2, textAlign: 'center', marginTop: 6 },
   restBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 8, maxWidth: 290 },
 });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { bodyWeightSeries, calorieAdherence, dailyActivity, lastDays, liftedWeightSeries, logCompletedExercises, restoreActivityLog, unlogExercises } from '../lib/progressCharts.ts';
+import { bodyWeightSeries, calorieAdherence, dailyActivity, lastDays, liftedWeightSeries, weightTrendPoints, logCompletedExercises, restoreActivityLog, unlogExercises } from '../lib/progressCharts.ts';
 
 const now = new Date(2026, 9, 26, 15, 0);
 
@@ -85,4 +85,15 @@ test('calorie adherence uses a ±20% band and ignores untracked days', () => {
   assert.deepEqual(result.series.map((day) => day.status), ['none', 'over', 'under', 'on']);
   assert.equal(result.tracked, 3);
   assert.equal(result.rate, 33);
+});
+
+test('weight trend starts from a single weigh-in and carries the last value to today', () => {
+  assert.deepEqual(weightTrendPoints([], { now }), []);
+  assert.deepEqual(weightTrendPoints([{ date: '2026-10-26', value: 80 }], { now }), [{ date: '2026-10-26', value: 80 }, { date: '2026-10-26', value: 80 }]);
+  assert.deepEqual(weightTrendPoints([{ date: '2026-10-22', value: 80 }], { now }), [{ date: '2026-10-22', value: 80 }, { date: '2026-10-26', value: 80 }]);
+  assert.deepEqual(
+    weightTrendPoints([{ date: '2026-10-01', value: 82 }, { date: '2026-10-24', value: 81 }], { from: '2026-10-20', now }),
+    [{ date: '2026-10-20', value: 82 }, { date: '2026-10-24', value: 81 }, { date: '2026-10-26', value: 81 }],
+  );
+  assert.deepEqual(weightTrendPoints([{ date: '2026-10-01', value: 82 }], { from: '2026-10-20', now }), [{ date: '2026-10-20', value: 82 }, { date: '2026-10-26', value: 82 }]);
 });

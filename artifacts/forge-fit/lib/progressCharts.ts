@@ -116,6 +116,25 @@ export function bodyWeightSeries({
   return { points, start, current, change: start !== null && current !== null ? round1(current - start) : null };
 }
 
+/**
+ * Points to draw for a weight trend, so a chart starts from the very first weigh-in: the last value
+ * carries forward to today, a window (`from`) opens with the value standing at its start, and a
+ * single weigh-in becomes a flat line instead of an empty chart. Returns [] only with no data at all.
+ */
+export function weightTrendPoints(points: ChartPoint[], { from, now = new Date() }: { from?: string; now?: Date } = {}): ChartPoint[] {
+  if (!points.length) return [];
+  const today = dayKey(now);
+  let shown = [...points];
+  if (shown.at(-1)!.date < today) shown.push({ date: today, value: shown.at(-1)!.value });
+  if (from) {
+    const before = shown.filter((point) => point.date < from).at(-1);
+    shown = shown.filter((point) => point.date >= from);
+    if (before && (!shown.length || shown[0].date > from)) shown.unshift({ date: from, value: before.value });
+  }
+  if (shown.length === 1) shown = [shown[0], { ...shown[0] }];
+  return shown;
+}
+
 /** Heaviest dumbbell used on each day, starting from the onboarding dumbbell weight. */
 export function liftedWeightSeries({
   history,

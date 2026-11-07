@@ -1,7 +1,7 @@
 import React from 'react';
 import { Animated, Easing, Image, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import ReAnimated, { Easing as ReEasing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
-import Svg, { Circle as SvgCircle, Defs, G as SvgG, Line as SvgLine, LinearGradient as SvgLinearGradient, Path as SvgPath, RadialGradient, Stop } from 'react-native-svg';
+import ReAnimated, { Easing as ReEasing, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
+import Svg, { Circle as SvgCircle, Defs, G as SvgG, Line as SvgLine, LinearGradient as SvgLinearGradient, Ellipse as SvgEllipse, Path as SvgPath, RadialGradient, Stop } from 'react-native-svg';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -30,6 +30,9 @@ import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } 
 import { getEntryRoute } from '@/lib/entryFlow';
 import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
 import { Paywall } from '@/components/Paywall';
+import { HeightRuler } from '@/components/HeightRuler';
+import { SkyBackdrop } from '@/components/SkyBackdrop';
+import { WeightDial } from '@/components/WeightDial';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
 import type { AiPlan } from '@/lib/aiPlan';
@@ -94,58 +97,66 @@ function CoachMotion({ variant, large = false, onboarding = false }: { variant: 
   return <Image source={source} resizeMode="contain" style={[large ? styles.coachLarge : onboarding ? styles.coachOnboarding : styles.coachSmall, !large && variant === 'wave' ? styles.coachWaveQuestion : null]} />;
 }
 
-const savedCopy: Record<string, string> = { tr: 'Cevabın kaydedildi', en: 'Answer saved', de: 'Antwort gespeichert', fr: 'Réponse enregistrée', es: 'Respuesta guardada' };
+// Heights (px) of the plates in the order they go on, biggest first.
+const PLATE_HEIGHTS = [34, 30, 26, 22, 18, 14];
+const PLATE_WIDTH = 6;
+const PLATE_PITCH = 7.5;
+const BAR_WIDTH = 150;
+const PLATE_START = 38;
 
-/** One bar of the coach's listening wave, offset in phase from its neighbours. */
-function PulseBar({ clock, phase, color }: { clock: SharedValue<number>; phase: number; color: string }) {
-  const style = useAnimatedStyle(() => ({ height: 4 + 12 * Math.abs(Math.sin((clock.get() + phase) * Math.PI * 2)) }));
-  return <ReAnimated.View style={[ui.pulseBar, { backgroundColor: color }, style]} />;
+const PLATE_TRAVEL = 34;
+
+/**
+ * One plate on one end of the bar. It slides in from outside the bar, along it, and settles with a little spring
+ * when its answer is given. Going back fades it off.
+ */
+function Plate({ index, side, color }: { index: number; side: 'left' | 'right'; color: string }) {
+  const height = PLATE_HEIGHTS[index];
+  const offset = PLATE_START - index * PLATE_PITCH;
+  const from = side === 'left' ? -PLATE_TRAVEL : PLATE_TRAVEL;
+  const slide = useSharedValue(0);
+  React.useEffect(() => {
+    slide.set(withSpring(1, { damping: 22, stiffness: 210 }));
+  }, [slide]);
+  const style = useAnimatedStyle(() => ({ opacity: Math.min(1, slide.get() * 2.5), transform: [{ translateX: from * (1 - slide.get()) }] }));
+  return <ReAnimated.View
+    exiting={FadeOut.duration(130)}
+    style={[ui.plate, { height, width: PLATE_WIDTH, backgroundColor: color, top: (40 - height) / 2 }, side === 'left' ? { left: offset } : { right: offset }, style]}
+  />;
 }
 
 /**
- * The coach listening in, docked above the main button: the avatar sits in a turning arc and a
- * small wave plays beside the text. Each new question first flashes a saved check for the
- * previous answer, then goes back to listening.
+ * Loads a barbell as the questions are answered: every answer slides another plate onto both ends, so progress
+ * reads as a lift being built rather than a status line. The whole bar dips a little when a plate lands.
  */
-function CoachPulse({ step }: { step: number }) {
+function BarLoader({ step, total }: { step: number; total: number }) {
   const colors = useColors();
   const { language } = useFit();
-  const reduced = useReducedMotion();
-  const clock = useSharedValue(0);
-  const spin = useSharedValue(0);
-  const flash = useSharedValue(0);
-  const [saved, setSaved] = React.useState(false);
+  const dip = useSharedValue(0);
   const first = React.useRef(true);
+  const plates = Math.max(0, Math.min(PLATE_HEIGHTS.length, Math.round(((step + 1) / Math.max(total, 1)) * PLATE_HEIGHTS.length)));
 
   React.useEffect(() => {
-    if (reduced) return;
-    clock.set(withRepeat(withTiming(1, { duration: 1400, easing: ReEasing.linear }), -1));
-    spin.set(withRepeat(withTiming(1, { duration: 2400, easing: ReEasing.linear }), -1));
-  }, [clock, reduced, spin]);
+    if (first.current) { first.current = false; return; }
+    dip.set(withSequence(withTiming(1, { duration: 90 }), withSpring(0, { damping: 9, stiffness: 260 })));
+  }, [dip, step]);
 
-  React.useEffect(() => {
-    if (first.current) { first.current = false; return undefined; }
-    setSaved(true);
-    flash.set(0);
-    flash.set(withSequence(withTiming(1, { duration: 220 }), withDelay(900, withTiming(0, { duration: 260 }))));
-    const timer = setTimeout(() => setSaved(false), 1300);
-    return () => clearTimeout(timer);
-  }, [flash, step]);
-
-  const arcStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
-  const glowStyle = useAnimatedStyle(() => ({ opacity: flash.get() }));
-  const tone = saved ? colors.success : colors.accent;
+  const barStyle = useAnimatedStyle(() => ({ transform: [{ translateY: dip.get() * 3 }] }));
   return <View style={ui.pulseDock}>
     <View style={[ui.pulse, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <ReAnimated.View pointerEvents="none" style={[StyleSheet.absoluteFill, ui.pulseFlash, { backgroundColor: `${colors.success}22`, borderColor: `${colors.success}66` }, glowStyle]} />
-      <View style={ui.pulseAvatar}>
-        <ReAnimated.View style={[StyleSheet.absoluteFill, arcStyle]}>
-          <Svg width={34} height={34}><SvgCircle cx={17} cy={17} r={15.5} stroke={tone} strokeWidth={2} strokeLinecap="round" strokeDasharray="28 70" fill="none" /></Svg>
-        </ReAnimated.View>
-        <View style={[ui.pulseFace, { backgroundColor: colors.secondary }]}><Image source={require('@/assets/images/coach-writing-no-bg.png')} resizeMode="contain" style={ui.pulseFaceImage} /></View>
+      <View style={ui.pulseCopy}>
+        <Text numberOfLines={1} style={[ui.pulseText, { color: colors.foreground }]}>{translate(language, 'analyzingAnswers')}</Text>
+        <Text style={[ui.pulseCount, { color: colors.mutedForeground }]}>{Math.min(step + 1, total)} / {total}</Text>
       </View>
-      <Text numberOfLines={1} style={[ui.pulseText, { color: colors.foreground }]}>{saved ? savedCopy[language] ?? savedCopy.en : translate(language, 'analyzingAnswers')}</Text>
-      {saved ? <Ionicons name="checkmark-circle" size={18} color={colors.success} /> : <View style={ui.pulseWave}>{[0, 0.15, 0.3, 0.45].map((phase) => <PulseBar key={phase} clock={clock} phase={phase} color={colors.accent} />)}</View>}
+      <ReAnimated.View style={[ui.bar, barStyle]}>
+        <View style={[ui.barShaft, { backgroundColor: colors.mutedForeground }]} />
+        <View style={[ui.barCollar, { left: 2, backgroundColor: colors.mutedForeground }]} />
+        <View style={[ui.barCollar, { right: 2, backgroundColor: colors.mutedForeground }]} />
+        {Array.from({ length: plates }, (_, index) => {
+          const color = index % 2 === 0 ? colors.accent : colors.foreground;
+          return <React.Fragment key={index}><Plate index={index} side="left" color={color} /><Plate index={index} side="right" color={color} /></React.Fragment>;
+        })}
+      </ReAnimated.View>
     </View>
   </View>;
 }
@@ -187,29 +198,6 @@ function OnboardingScrollHint({ visible }: { visible: boolean }) {
   </Animated.View>;
 }
 
-function RulerPicker({ value, min, max, onChange, valueLabel, minLabel, maxLabel }: { value: number; min: number; max: number; onChange: (value: number) => void; valueLabel: string; minLabel: string; maxLabel: string }) {
-  const colors = useColors();
-  const [trackWidth, setTrackWidth] = React.useState(308);
-  const updateFromX = (x: number) => onChange(Math.round(min + Math.max(0, Math.min(1, x / trackWidth)) * (max - min)));
-  const panResponder = React.useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: (event) => updateFromX(event.nativeEvent.locationX),
-    onPanResponderMove: (event) => updateFromX(event.nativeEvent.locationX),
-  }), [min, max, onChange, trackWidth]);
-  const progress = (value - min) / (max - min);
-  return <View style={[styles.rulerCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <View style={styles.rulerValue}><Text style={[styles.rulerNumber, { color: colors.foreground }]}>{valueLabel}</Text></View>
-    <View {...panResponder.panHandlers} onLayout={({ nativeEvent }) => setTrackWidth(nativeEvent.layout.width)} style={styles.rulerTrack}>
-      <View pointerEvents="none" style={[styles.rulerLine, { backgroundColor: colors.border }]} />
-      <View pointerEvents="none" style={[styles.rulerProgress, { width: `${progress * 100}%`, backgroundColor: colors.primary }]} />
-      <View pointerEvents="none" style={styles.rulerTicks}>{Array.from({ length: 16 }, (_, index) => <View key={index} style={[styles.rulerTick, { height: index % 5 === 0 ? 27 : 15, backgroundColor: index % 5 === 0 ? colors.primary : colors.mutedForeground }]} />)}</View>
-      <View pointerEvents="none" style={[styles.rulerThumb, { left: `${progress * 100}%`, backgroundColor: colors.primary, borderColor: colors.background }]} />
-    </View>
-    <View style={styles.rulerLabels}><Text style={[styles.rulerLabel, { color: colors.mutedForeground }]}>{minLabel}</Text><Text style={[styles.rulerLabel, { color: colors.mutedForeground }]}>{maxLabel}</Text></View>
-  </View>;
-}
-
 function UnitToggle({ unit, onChange, metricLabel, imperialLabel }: { unit: MeasurementUnit; onChange: (unit: MeasurementUnit) => void; metricLabel: string; imperialLabel: string }) {
   const colors = useColors();
   return <View style={[styles.unitToggle, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -219,19 +207,6 @@ function UnitToggle({ unit, onChange, metricLabel, imperialLabel }: { unit: Meas
         <Text style={[styles.unitOptionText, { color: selected ? colors.primaryForeground : colors.mutedForeground }]}>{option === 'metric' ? metricLabel : imperialLabel}</Text>
       </Pressable>;
     })}
-  </View>;
-}
-
-function WeightPicker({ value, unit, inputValue, onInputChange, onChange }: { value: number; unit: MeasurementUnit; inputValue: string; onInputChange: (value: string) => void; onChange: (value: number) => void }) {
-  const colors = useColors();
-  const change = (amount: number) => {
-    const next = unit === 'metric' ? value + amount : value + amount * KG_PER_POUND;
-    onChange(Math.round(Math.max(35, Math.min(200, next)) * 10) / 10);
-  };
-  return <View style={[styles.weightCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <Pressable onPress={() => change(unit === 'metric' ? -0.5 : -1)} style={[styles.stepButton, { backgroundColor: colors.secondary }]}><Ionicons name="remove" size={22} color={colors.foreground} /></Pressable>
-    <View style={styles.weightValue}><TextInput value={inputValue} onChangeText={onInputChange} keyboardType="decimal-pad" selectTextOnFocus style={[styles.weightNumberInput, { color: colors.foreground }]} /><Text style={[styles.rulerUnit, { color: colors.primary }]}>{unit === 'metric' ? 'kg' : 'lb'}</Text></View>
-    <Pressable onPress={() => change(unit === 'metric' ? 0.5 : 1)} style={[styles.stepButton, { backgroundColor: colors.accent }]}><Ionicons name="add" size={22} color="#FFFFFF" /></Pressable>
   </View>;
 }
 
@@ -616,11 +591,11 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
        if (activeStep === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><View style={styles.choiceList}><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View></View> : null}</>;
       if (activeStep === 2) return <View style={styles.measurementSection}>
        <UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} />
-       <RulerPicker value={height} min={130} max={220} onChange={updateHeightFromCm} valueLabel={measurementUnit === 'metric' ? `${height} cm` : formatImperialHeightLabel(height)} minLabel={measurementUnit === 'metric' ? '130 cm' : formatImperialHeightLabel(130)} maxLabel={measurementUnit === 'metric' ? '220 cm' : formatImperialHeightLabel(220)} />
+       <HeightRuler value={height} min={130} max={220} onChange={updateHeightFromCm} valueText={measurementUnit === 'metric' ? String(height) : formatImperialHeightLabel(height)} unitText={measurementUnit === 'metric' ? 'cm' : ''} altText={measurementUnit === 'metric' ? formatImperialHeightLabel(height) : `${height} cm`} />
        {measurementUnit === 'metric' ? <View style={styles.measurementInputRow}><TextInput value={heightText} onChangeText={updateMetricHeightText} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>cm</Text></View> : <View style={styles.measurementInputRow}><TextInput value={heightFeetText} onChangeText={(text) => updateImperialHeightText('feet', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>{t('heightFeet')}</Text><TextInput value={heightInchesText} onChangeText={(text) => updateImperialHeightText('inches', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>{t('heightInches')}</Text></View>}
        <Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('heightRulerHint')}</Text>
      </View>;
-      if (activeStep === 3) return <View style={styles.measurementSection}><UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} /><WeightPicker value={weight} unit={measurementUnit} inputValue={weightText} onInputChange={updateWeightText} onChange={updateWeightFromKg} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('weightInputHint')}</Text></View>;
+      if (activeStep === 3) return <View style={styles.measurementSection}><UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} /><WeightDial value={weight} unit={measurementUnit} inputValue={weightText} onInputChange={updateWeightText} onChange={updateWeightFromKg} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('weightInputHint')}</Text></View>;
        if (activeStep === 4) return <><AgePicker value={age} inputValue={ageText} yearsLabel={t('ageYears')} onInputChange={updateAgeText} onChange={updateAge} /><Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{age} {t('ageYears')}</Text></>;
       if (activeStep === 5) return <View style={styles.choiceList}><ChoiceButton label={t('goalMuscle')} selected={goal === 'muscle'} onPress={() => { setGoal('muscle'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightGain')} selected={goal === 'weightGain'} onPress={() => { setGoal('weightGain'); setTargetWeight(null); }} icon="trending-up-outline" /><ChoiceButton label={t('goalWeightLoss')} selected={goal === 'weightLoss'} onPress={() => { setGoal('weightLoss'); setTargetWeight(null); }} icon="scale-outline" /><ChoiceButton label={t('goalFatLoss')} selected={goal === 'fatLoss'} onPress={() => { setGoal('fatLoss'); setTargetWeight(null); }} icon="flame-outline" /><ChoiceButton label={t('goalMaintain')} selected={goal === 'maintain'} onPress={() => { setGoal('maintain'); setTargetWeight(null); }} icon="pause-outline" /></View>;
      if (activeStep === 6) return <View style={styles.choiceList}><ChoiceButton label={t('sexFemale')} selected={sex === 'female'} onPress={() => setSex('female')} /><ChoiceButton label={t('sexMale')} selected={sex === 'male'} onPress={() => setSex('male')} /><ChoiceButton label={t('sexPreferNot')} selected={sex === 'preferNot'} onPress={() => setSex('preferNot')} /></View>;
@@ -678,7 +653,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
         </KeyboardAwareScrollViewCompat>
         <OnboardingScrollHint visible={scrollHintEligible && questionAnswerBottom > questionViewportHeight + 18 && questionScrollOffset < Math.max(0, questionAnswerBottom - questionViewportHeight - 18)} />
       </Animated.View>
-      <CoachPulse step={step} />
+      <BarLoader step={step} total={total} />
       <OnboardingCTA testID="onboarding-next" label={step === total - 1 ? t('continueToPlan') : t('continue')} onPress={next} />
     </View>;
 }
@@ -720,25 +695,7 @@ function CompletionCheckmark() {
  * the same calm, living ground.
  */
 function OnboardingBackdrop() {
-  const colors = useColors();
-  const reduced = useReducedMotion();
-  const drift = useSharedValue(0);
-  React.useEffect(() => {
-    if (reduced) return;
-    drift.set(withRepeat(withTiming(1, { duration: 9000, easing: ReEasing.inOut(ReEasing.sin) }), -1, true));
-  }, [drift, reduced]);
-  const blobA = useAnimatedStyle(() => ({ transform: [{ translateX: -30 + drift.get() * 60 }, { translateY: drift.get() * 40 }] }));
-  const blobB = useAnimatedStyle(() => ({ transform: [{ translateX: 30 - drift.get() * 50 }, { translateY: -drift.get() * 30 }] }));
-  const dark = colors.colorScheme === 'dark';
-  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} />
-    <ReAnimated.View style={[ui.blob, { top: -140, right: -160 }, blobA]}>
-      <Svg width={420} height={420}><Defs><RadialGradient id="obA" cx="50%" cy="50%" r="50%"><Stop offset="0" stopColor={colors.accent} stopOpacity={dark ? 0.32 : 0.2} /><Stop offset="1" stopColor={colors.accent} stopOpacity={0} /></RadialGradient></Defs><SvgCircle cx={210} cy={210} r={210} fill="url(#obA)" /></Svg>
-    </ReAnimated.View>
-    <ReAnimated.View style={[ui.blob, { bottom: -180, left: -180 }, blobB]}>
-      <Svg width={440} height={440}><Defs><RadialGradient id="obB" cx="50%" cy="50%" r="50%"><Stop offset="0" stopColor="#8B5CF6" stopOpacity={dark ? 0.22 : 0.12} /><Stop offset="1" stopColor="#8B5CF6" stopOpacity={0} /></RadialGradient></Defs><SvgCircle cx={220} cy={220} r={220} fill="url(#obB)" /></Svg>
-    </ReAnimated.View>
-  </View>;
+  return <SkyBackdrop />;
 }
 
 /** Top row shared by every onboarding page: optional back, the wordmark, and the language flags. */
@@ -771,41 +728,37 @@ function OnboardingCTA({ label, onPress, disabled = false, testID }: { label: st
   const insets = useSafeAreaInsets();
   return <View style={[ui.ctaWrap, { paddingBottom: insets.bottom + 16 }]}>
     <Pressable testID={testID} accessibilityRole="button" disabled={disabled} onPress={() => { triggerHaptic(); onPress(); }} scaleTo={0.98} style={[ui.cta, { backgroundColor: colors.accent, opacity: disabled ? 0.6 : 1 }]}>
-      <Text style={[ui.ctaText, { color: colors.accentForeground }]}>{label}</Text>
-      <View style={ui.ctaArrow}><Ionicons name="arrow-forward" size={18} color={colors.accentForeground} /></View>
+      <Text numberOfLines={1} style={[ui.ctaText, { color: colors.accentForeground }]}>{label}</Text>
+      <View style={[ui.ctaArrow, { backgroundColor: colors.accentForeground }]}><Ionicons name="arrow-forward" size={19} color={colors.accent} /></View>
     </Pressable>
   </View>;
 }
 
-/**
- * A stage for the mascot or an icon: two dashed orbits turning in opposite directions around a
- * soft glow that breathes. Used on the welcome, completion and plan pages.
- */
-function GlowStage({ size, children, tint }: { size: number; children: React.ReactNode; tint?: string }) {
+/** A stage for a scene the page draws itself (the curl, the app icon): a soft halo so it lifts off the sky. */
+function LiftStage({ size, children }: { size: number; children: React.ReactNode }) {
   const colors = useColors();
-  const reduced = useReducedMotion();
-  const spin = useSharedValue(0);
-  const breathe = useSharedValue(0);
-  const color = tint ?? colors.accent;
-  React.useEffect(() => {
-    if (reduced) return;
-    spin.set(withRepeat(withTiming(1, { duration: 26000, easing: ReEasing.linear }), -1));
-    breathe.set(withRepeat(withTiming(1, { duration: 2600, easing: ReEasing.inOut(ReEasing.sin) }), -1, true));
-  }, [breathe, reduced, spin]);
-  const outer = useAnimatedStyle(() => ({ transform: [{ rotate: `${spin.get() * 360}deg` }] }));
-  const inner = useAnimatedStyle(() => ({ transform: [{ rotate: `${-spin.get() * 520}deg` }] }));
-  const glow = useAnimatedStyle(() => ({ opacity: 0.55 + breathe.get() * 0.35, transform: [{ scale: 0.92 + breathe.get() * 0.1 }] }));
+  const dark = colors.colorScheme === 'dark';
   return <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-    <ReAnimated.View style={[StyleSheet.absoluteFill, glow]}>
-      <Svg width={size} height={size}><Defs><RadialGradient id="stageGlow" cx="50%" cy="50%" r="50%"><Stop offset="0" stopColor={color} stopOpacity={0.4} /><Stop offset="0.6" stopColor={color} stopOpacity={0.1} /><Stop offset="1" stopColor={color} stopOpacity={0} /></RadialGradient></Defs><SvgCircle cx={size / 2} cy={size / 2} r={size / 2} fill="url(#stageGlow)" /></Svg>
-    </ReAnimated.View>
-    <ReAnimated.View style={[StyleSheet.absoluteFill, outer]}>
-      <Svg width={size} height={size}><SvgCircle cx={size / 2} cy={size / 2} r={size / 2 - 6} stroke={colors.foreground} strokeOpacity={0.14} strokeWidth={1.5} strokeDasharray="2 10" fill="none" /><SvgCircle cx={size / 2} cy={6} r={4} fill={color} /></Svg>
-    </ReAnimated.View>
-    <ReAnimated.View style={[StyleSheet.absoluteFill, inner]}>
-      <Svg width={size} height={size}><SvgCircle cx={size / 2} cy={size / 2} r={size * 0.36} stroke={colors.foreground} strokeOpacity={0.1} strokeWidth={1} fill="none" /><SvgCircle cx={size / 2 + size * 0.36} cy={size / 2} r={3} fill={colors.foreground} fillOpacity={0.5} /></Svg>
-    </ReAnimated.View>
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Svg width={size} height={size}>
+        <Defs><RadialGradient id="stageHalo" cx="50%" cy="50%" r="50%"><Stop offset="0" stopColor={dark ? colors.accent : '#FFFFFF'} stopOpacity={dark ? 0.28 : 0.9} /><Stop offset="1" stopColor={dark ? colors.accent : '#FFFFFF'} stopOpacity={0} /></RadialGradient></Defs>
+        <SvgCircle cx={size / 2} cy={size / 2} r={size / 2} fill="url(#stageHalo)" />
+      </Svg>
+    </View>
     {children}
+  </View>;
+}
+
+/** A weight plate that doubles as the "all set" stamp: grooved rim, a check where the hole would be. */
+function PlateBadge({ color, size = 58 }: { color: string; size?: number }) {
+  const r = size / 2;
+  return <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+    <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
+      <SvgCircle cx={r} cy={r} r={r - 1} fill={color} />
+      <SvgCircle cx={r} cy={r} r={r * 0.8} fill="none" stroke="#FFFFFF" strokeOpacity={0.4} strokeWidth={2} />
+      <SvgCircle cx={r} cy={r} r={r * 0.6} fill="none" stroke="#000000" strokeOpacity={0.16} strokeWidth={2} />
+    </Svg>
+    <View style={{ zIndex: 2 }}><Ionicons name="checkmark" size={Math.round(size * 0.46)} color="#FFFFFF" /></View>
   </View>;
 }
 
@@ -863,7 +816,8 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
       <Rise delay={120}><Text style={[ui.subtitle, { color: colors.mutedForeground }]}>{t('onboardingModeSubtitle')}</Text></Rise>
       <Rise delay={200} style={{ marginTop: 26 }}>
         <Pressable testID="mode-quick" accessibilityRole="button" onPress={() => onSelect('quick')} scaleTo={0.98}>
-          <LinearGradient colors={[colors.inkCardStart, colors.inkCardEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={ui.modeHero}>
+          <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={ui.modeHero}>
+            <Image source={BUMPER_PLATES.yellow} resizeMode="contain" style={ui.modeHeroPlate} />
             <View style={ui.modeHeroTop}>
               <View style={[ui.modeHeroIcon, { backgroundColor: `${colors.inkCardForeground}1A` }]}><Ionicons name="flash-outline" size={24} color="#FCD34D" /></View>
               <View style={[ui.modeTag, { backgroundColor: '#FCD34D' }]}><Text style={ui.modeTagText}>{t('onboardingQuickCount')}</Text></View>
@@ -889,19 +843,105 @@ function OnboardingModeChoice({ onSelect, onBack }: { onSelect: (mode: Onboardin
   </View>;
 }
 
+// Matte rubber bumper plates rendered in Blender (scripts/renderBumperPlates.py), one per standard colour.
+const BUMPER_PLATES = {
+  red: require('@/assets/images/plates/plate-red.png'),
+  blue: require('@/assets/images/plates/plate-blue.png'),
+  yellow: require('@/assets/images/plates/plate-yellow.png'),
+  green: require('@/assets/images/plates/plate-green.png'),
+  white: require('@/assets/images/plates/plate-white.png'),
+  gray: require('@/assets/images/plates/plate-gray.png'),
+} as const;
+
+// The same plates lying face-up, seen from 30 degrees above with an orthographic camera so they stack exactly.
+const FLAT_PLATES = {
+  red: require('@/assets/images/plates/flat-red.png'),
+  blue: require('@/assets/images/plates/flat-blue.png'),
+  yellow: require('@/assets/images/plates/flat-yellow.png'),
+  green: require('@/assets/images/plates/flat-green.png'),
+  white: require('@/assets/images/plates/flat-white.png'),
+  gray: require('@/assets/images/plates/flat-gray.png'),
+} as const;
+const FLAT_RATIO = 0.593; // sprite height / width
+const FLAT_STEP = 0.136; // one plate's visible thickness / width
+
+/** One plate in a stack: it drops onto the one below with a small spring. */
+function StackedPlate({ tone, width, bottom, delay }: { tone: keyof typeof FLAT_PLATES; width: number; bottom: number; delay: number }) {
+  const reduced = useReducedMotion();
+  const drop = useSharedValue(reduced ? 1 : 0);
+  React.useEffect(() => {
+    if (!reduced) drop.set(withDelay(delay, withSpring(1, { damping: 13, stiffness: 170 })));
+  }, [delay, drop, reduced]);
+  const style = useAnimatedStyle(() => ({ opacity: Math.min(1, drop.get() * 2), transform: [{ translateY: (1 - drop.get()) * -70 }] }));
+  return <ReAnimated.View style={[{ position: 'absolute', left: 0, bottom, width, height: width * FLAT_RATIO }, style]}>
+    <Image source={FLAT_PLATES[tone]} resizeMode="contain" style={{ width, height: width * FLAT_RATIO }} />
+  </ReAnimated.View>;
+}
+
+/** A stack of plates lying on top of each other, built one plate at a time from the bottom. */
+function PlateStack({ tones, width, delay = 0 }: { tones: (keyof typeof FLAT_PLATES)[]; width: number; delay?: number }) {
+  const step = width * FLAT_STEP;
+  return <View style={{ width, height: width * FLAT_RATIO + step * (tones.length - 1) }}>
+    {tones.map((tone, index) => <StackedPlate key={index} tone={tone} width={width} bottom={index * step} delay={delay + index * 170} />)}
+  </View>;
+}
+
+
+/** A plate drifting around FitBud: it drops in on arrival, then bobs and sways on its own rhythm. */
+function FloatingPlate({ size, tone, left, top, tilt, delay, phase }: { size: number; tone: keyof typeof BUMPER_PLATES; left: number; top: number; tilt: number; delay: number; phase: number }) {
+  const reduced = useReducedMotion();
+  const enter = useSharedValue(reduced ? 1 : 0);
+  const bob = useSharedValue(0);
+  React.useEffect(() => {
+    if (reduced) return;
+    enter.set(withDelay(delay, withSpring(1, { damping: 14, stiffness: 120 })));
+    bob.set(withDelay(delay + phase, withRepeat(withTiming(1, { duration: 2400 + phase, easing: ReEasing.inOut(ReEasing.sin) }), -1, true)));
+  }, [bob, delay, enter, phase, reduced]);
+  const style = useAnimatedStyle(() => ({
+    opacity: Math.min(1, enter.get() * 1.4),
+    transform: [
+      { translateY: (1 - enter.get()) * -46 + (bob.get() - 0.5) * 12 },
+      { rotate: `${tilt + (bob.get() - 0.5) * 8}deg` },
+    ],
+  }));
+  return <ReAnimated.View pointerEvents="none" style={[{ position: 'absolute', left, top, width: size, height: size }, style]}>
+    <Image source={BUMPER_PLATES[tone]} resizeMode="contain" style={{ width: size, height: size }} />
+  </ReAnimated.View>;
+}
+
+/**
+ * The first screen. A big GAINMODE wordmark under a soft sky, FitBud waving in the middle with gym bumper plates
+ * floating around him (some cut off by the screen edge) and a speech bubble saying hello. A clean sheet at the
+ * bottom carries the headline, one line of copy and the start button.
+ */
 function WelcomeScreen({ onStart }: { onStart: () => void }) {
   const colors = useColors();
-  const { language } = useFit();
+  const { language, setLanguage } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
-  const float = useSharedValue(0);
+  const dark = colors.colorScheme === 'dark';
+  const sway = useSharedValue(0);
+  const rise = useSharedValue(reduced ? 1 : 0);
+  const hello = useSharedValue(reduced ? 1 : 0);
+  const sheet = useSharedValue(reduced ? 1 : 0);
   const leave = useSharedValue(0);
   const [leaving, setLeaving] = React.useState(false);
+  const [stage, setStage] = React.useState({ width: 0, height: 0 });
   React.useEffect(() => {
-    if (!reduced) float.set(withRepeat(withTiming(1, { duration: 2200, easing: ReEasing.inOut(ReEasing.sin) }), -1, true));
-  }, [float, reduced]);
-  const mascotStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -10 * float.get() }, { rotate: `${-2 + float.get() * 4}deg` }] }));
+    if (reduced) return;
+    rise.set(withDelay(120, withSpring(1, { damping: 15, stiffness: 120 })));
+    sheet.set(withDelay(60, withSpring(1, { damping: 18, stiffness: 130 })));
+    hello.set(withDelay(900, withSpring(1, { damping: 11, stiffness: 200 })));
+    sway.set(withDelay(900, withRepeat(withTiming(1, { duration: 2600, easing: ReEasing.inOut(ReEasing.sin) }), -1, true)));
+  }, [hello, reduced, rise, sheet, sway]);
+  const mascotStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, rise.get() * 1.5),
+    transform: [{ translateY: (1 - rise.get()) * 70 - sway.get() * 5 }, { rotate: `${-1.5 + sway.get() * 3}deg` }],
+  }));
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - sheet.get()) * 160 }] }));
+  const helloStyle = useAnimatedStyle(() => ({ opacity: hello.get(), transform: [{ scale: 0.6 + hello.get() * 0.4 }, { rotate: '-6deg' }] }));
   const pageStyle = useAnimatedStyle(() => ({ opacity: 1 - leave.get() * 0.4, transform: [{ translateX: -leave.get() * width * 0.35 }, { scale: 1 - leave.get() * 0.04 }] }));
   const start = () => {
     if (leaving) return;
@@ -909,29 +949,52 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
     leave.set(withTiming(1, { duration: 380, easing: ReEasing.in(ReEasing.cubic) }));
     setTimeout(onStart, reduced ? 0 : 360);
   };
-  const stage = Math.min(width - 24, 360);
   const words = t('welcomeHeroTitle').split('. ').map((part, index, all) => (index < all.length - 1 ? `${part}.` : part));
+  const w = stage.width;
+  const h = stage.height;
+  const mascot = Math.min(h * 0.98, w * 0.86);
+  const mascotTop = h - mascot * 0.95;
 
-  return <View style={ui.page}>
-    <OnboardingBackdrop />
+  return <View style={[ui.page, { backgroundColor: dark ? colors.background : '#F6F9FD' }]}>
+    <SkyBackdrop />
     <ReAnimated.View style={[{ flex: 1 }, pageStyle]}>
-      <OnboardingTopBar />
-      <View style={ui.welcomeBody}>
-        <Rise style={ui.welcomeStage}><View style={{ width: stage, height: stage }}>
-          <GlowStage size={stage}>
-            <ReAnimated.View style={mascotStyle}>
-              <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={{ width: stage * 0.78, height: stage * 0.78 }} />
-            </ReAnimated.View>
-          </GlowStage>
-          <View style={[ui.floatChip, { left: 6, top: stage * 0.2, backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="camera-outline" size={14} color={colors.foreground} /><Text style={[ui.floatChipText, { color: colors.foreground }]}>AI</Text></View>
-          <View style={[ui.floatChip, { right: 6, top: stage * 0.55, backgroundColor: colors.card, borderColor: colors.border }]}><Ionicons name="barbell-outline" size={14} color={colors.foreground} /><Ionicons name="flame" size={14} color={colors.orange} /></View>
-        </View></Rise>
-        <View>
-          {words.map((line, index) => <Rise key={line} delay={160 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.accent : colors.foreground }]}>{line}</Text></Rise>)}
-          <Rise delay={360}><Text style={[ui.subtitle, { color: colors.mutedForeground }]}>{t('welcomeHeroSubtitle')}</Text></Rise>
-        </View>
+      <View style={[ui.welcomeTop, { paddingTop: insets.top + 10 }]}>
+        <WelcomeLanguageSelector language={language} onSelect={setLanguage} />
       </View>
-      <Rise delay={460}><OnboardingCTA testID="onboarding-start" label={t('welcomeHeroStart')} onPress={start} disabled={leaving} /></Rise>
+      <Rise style={ui.welcomeMark}><GainModeWordmark color={colors.foreground} width={Math.min(width - 40, 380)} height={Math.min(width - 40, 380) / 6.9} /></Rise>
+      <View style={ui.welcomeStage} onLayout={({ nativeEvent }) => setStage({ width: nativeEvent.layout.width, height: nativeEvent.layout.height })}>
+        {w > 0 ? <>
+          <FloatingPlate tone="red" size={w * 0.36} left={-w * 0.12} top={h * 0.02} tilt={-6} delay={200} phase={0} />
+          <FloatingPlate tone="yellow" size={w * 0.22} left={w * 0.72} top={-h * 0.02} tilt={8} delay={320} phase={300} />
+          <FloatingPlate tone="blue" size={w * 0.4} left={w * 0.74} top={h * 0.4} tilt={6} delay={260} phase={600} />
+          <FloatingPlate tone="green" size={w * 0.2} left={w * 0.03} top={h * 0.58} tilt={-6} delay={380} phase={900} />
+          <ReAnimated.View pointerEvents="none" style={[{ position: 'absolute', left: (w - mascot) / 2, top: mascotTop, width: mascot, height: mascot }, mascotStyle]}>
+            <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={{ width: mascot, height: mascot }} />
+          </ReAnimated.View>
+          <ReAnimated.View pointerEvents="none" style={[ui.helloBubble, { left: w / 2 + mascot * 0.02, top: Math.max(0, mascotTop - 6), backgroundColor: dark ? '#FFFFFF' : '#0B0D12' }, helloStyle]}>
+            <Text numberOfLines={1} style={[ui.helloText, { color: dark ? '#0B0D12' : '#FFFFFF' }]}>{t('welcomeHello')}</Text>
+            <View style={[ui.helloTail, { backgroundColor: dark ? '#FFFFFF' : '#0B0D12' }]} />
+          </ReAnimated.View>
+        </> : null}
+      </View>
+      <ReAnimated.View style={[ui.welcomeSheet, { backgroundColor: dark ? colors.card : '#FFFFFF', borderColor: dark ? colors.border : 'transparent', paddingBottom: insets.bottom + 14 }, sheetStyle]}>
+        <View style={[ui.sheetHandle, { backgroundColor: `${colors.foreground}22` }]} />
+        <Rise delay={260}><View style={ui.readyRow}>
+          <View style={ui.plateStack}>
+            {(['red', 'blue', 'yellow'] as const).map((tone, index) => <Image key={tone} source={BUMPER_PLATES[tone]} resizeMode="contain" style={[ui.plateStackItem, { marginLeft: index === 0 ? 0 : -9, zIndex: 3 - index }]} />)}
+          </View>
+          <Text numberOfLines={1} style={[ui.readyText, { color: colors.mutedForeground }]}>{t('welcomeReady')}</Text>
+        </View></Rise>
+        {words.map((line, index) => <Rise key={line} delay={320 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.accent : colors.foreground }]}>{line}</Text></Rise>)}
+        <Rise delay={490}><Text style={[ui.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeHeroSubtitle')}</Text></Rise>
+        <Rise delay={570}>
+          <Pressable testID="onboarding-start" accessibilityRole="button" disabled={leaving} onPress={() => { triggerHaptic(); start(); }} scaleTo={0.98} style={[ui.startButton, { backgroundColor: colors.accent, opacity: leaving ? 0.7 : 1 }]}>
+            <Text style={[ui.startText, { color: colors.accentForeground }]}>{t('welcomeHeroStart')}</Text>
+            <View style={[ui.startArrow, { backgroundColor: colors.accentForeground }]}><Ionicons name="arrow-forward" size={19} color={colors.accent} /></View>
+          </Pressable>
+        </Rise>
+        <Rise delay={640}><Text numberOfLines={1} adjustsFontSizeToFit style={[ui.featureLine, { color: colors.mutedForeground }]}>{t('welcomeFeatureLine')}</Text></Rise>
+      </ReAnimated.View>
     </ReAnimated.View>
   </View>;
 }
@@ -954,8 +1017,7 @@ function GrowthComparisonScreen({ onContinue }: { onContinue: () => void }) {
   const { language } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [leaving, setLeaving] = React.useState(false);
-  const leftFill = React.useRef(new Animated.Value(0)).current;
-  const rightFill = React.useRef(new Animated.Value(0)).current;
+  const { width } = useWindowDimensions();
   const contentOpacity = React.useRef(new Animated.Value(0)).current;
   const contentTranslateY = React.useRef(new Animated.Value(18)).current;
 
@@ -963,16 +1025,8 @@ function GrowthComparisonScreen({ onContinue }: { onContinue: () => void }) {
     Animated.parallel([
       Animated.timing(contentOpacity, { toValue: 1, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       Animated.timing(contentTranslateY, { toValue: 0, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.sequence([
-        Animated.delay(240),
-        Animated.timing(leftFill, { toValue: 1, duration: 850, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-      ]),
-      Animated.sequence([
-        Animated.delay(430),
-        Animated.timing(rightFill, { toValue: 1, duration: 1050, easing: Easing.out(Easing.cubic), useNativeDriver: false }),
-      ]),
     ]).start();
-  }, [contentOpacity, contentTranslateY, leftFill, rightFill]);
+  }, [contentOpacity, contentTranslateY]);
 
   const leaveScreen = () => {
     if (leaving) return;
@@ -985,8 +1039,9 @@ function GrowthComparisonScreen({ onContinue }: { onContinue: () => void }) {
     });
   };
 
-  const leftHeight = leftFill.interpolate({ inputRange: [0, 1], outputRange: [0, 52] });
-  const rightHeight = rightFill.interpolate({ inputRange: [0, 1], outputRange: [0, 238] });
+  // Both cards get the same stage height so the single plate and the six-plate tower share a floor.
+  const plateWidth = Math.min(150, ((Math.min(width, 520) - 48 - 10) / 2 - 24) * 0.92);
+  const stageHeight = plateWidth * (FLAT_RATIO + FLAT_STEP * 5) + 58;
 
   return <View style={ui.page}>
     <OnboardingBackdrop />
@@ -997,20 +1052,17 @@ function GrowthComparisonScreen({ onContinue }: { onContinue: () => void }) {
       <Text style={[ui.subtitle, { color: colors.mutedForeground }]}>{t('growthBody')}</Text>
       <View style={ui.growthRow}>
         <View style={[ui.growthCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <View style={[ui.growthTrack, { backgroundColor: `${colors.foreground}0D` }]}>
-            <Animated.View style={[ui.growthFill, { height: leftHeight, backgroundColor: `${colors.mutedForeground}66` }]}>
-              <Text style={[ui.growthRate, { color: colors.foreground }]}>{t('growthSlowRate')}</Text>
-            </Animated.View>
+          <View style={[ui.growthStage, { height: stageHeight }]}>
+            <Text style={[ui.growthRate, { color: colors.mutedForeground }]}>{t('growthSlowRate')}</Text>
+            <PlateStack tones={['gray']} width={plateWidth} delay={300} />
           </View>
           <Text style={[ui.growthCardTitle, { color: colors.foreground }]}>{t('growthUnplannedTitle')}</Text>
           <Text style={[ui.growthCardBody, { color: colors.mutedForeground }]}>{t('growthUnplannedBody')}</Text>
         </View>
-        <LinearGradient colors={[colors.inkCardStart, colors.inkCardEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[ui.growthCard, ui.growthCardHero]}>
-          <View style={[ui.growthTrack, { backgroundColor: `${colors.inkCardForeground}12` }]}>
-            <Animated.View style={[ui.growthFill, { height: rightHeight, overflow: 'hidden' }]}>
-              <LinearGradient colors={['#7FA6FF', colors.accent]} style={StyleSheet.absoluteFill} />
-              <Text style={[ui.growthRate, { color: '#FFFFFF' }]}>{t('growthFastRate')}</Text>
-            </Animated.View>
+        <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[ui.growthCard, ui.growthCardHero]}>
+          <View style={[ui.growthStage, { height: stageHeight }]}>
+            <Text style={[ui.growthRate, { color: '#FFFFFF' }]}>{t('growthFastRate')}</Text>
+            <PlateStack tones={['blue', 'red', 'yellow', 'green', 'blue', 'white']} width={plateWidth} delay={520} />
           </View>
           <BrandTitle text={t('growthGainModeTitle')} color={colors.inkCardForeground} />
           <Text style={[ui.growthCardBody, { color: `${colors.inkCardForeground}B3` }]}>{t('growthGainModeBody')}</Text>
@@ -1035,16 +1087,20 @@ function CompletionScreen({ onContinue }: { onContinue: () => void }) {
   React.useEffect(() => {
     pop.set(withDelay(350, withSpring(1, { damping: 10, stiffness: 180 })));
   }, [pop]);
-  const badge = useAnimatedStyle(() => ({ opacity: pop.get(), transform: [{ scale: 0.4 + pop.get() * 0.6 }, { rotate: `${(1 - pop.get()) * -40}deg` }] }));
+  const badge = useAnimatedStyle(() => ({ opacity: pop.get(), transform: [{ scale: 0.4 + pop.get() * 0.6 }, { rotate: `${(1 - pop.get()) * -40 - 10}deg` }] }));
   return <View style={ui.page}>
     <OnboardingBackdrop />
     <OnboardingTopBar />
     <View style={ui.centerBody}>
       <Rise>
-        <GlowStage size={300} tint={colors.success}>
-          <Image source={require('@/assets/images/coach-thumbs-up-no-bg.png')} resizeMode="contain" style={{ width: 230, height: 230 }} />
-          <ReAnimated.View style={[ui.doneBadge, { backgroundColor: colors.success }, badge]}><Ionicons name="checkmark" size={26} color="#FFFFFF" /></ReAnimated.View>
-        </GlowStage>
+        <View style={ui.doneStage}>
+          <FloatingPlate tone="red" size={92} left={-8} top={8} tilt={-6} delay={200} phase={0} />
+          <FloatingPlate tone="yellow" size={62} left={244} top={-4} tilt={8} delay={320} phase={300} />
+          <FloatingPlate tone="blue" size={104} left={228} top={170} tilt={6} delay={260} phase={600} />
+          <FloatingPlate tone="green" size={58} left={12} top={200} tilt={-6} delay={380} phase={900} />
+          <Image source={require('@/assets/images/coach-thumbs-up-no-bg.png')} resizeMode="contain" style={ui.doneMascot} />
+          <ReAnimated.View style={[ui.doneBadge, badge]}><PlateBadge color={colors.success} /></ReAnimated.View>
+        </View>
       </Rise>
       <Rise delay={200}><Text style={[ui.title, ui.centerText, { color: colors.foreground }]}>{t('finishQuestionsTitle')}</Text></Rise>
       <Rise delay={280}><Text style={[ui.subtitle, ui.centerText, { color: colors.mutedForeground }]}>{t('finishQuestionsBody')}</Text></Rise>
@@ -1062,7 +1118,8 @@ function ProgressiveOverloadScreen({ onContinue }: { onContinue: () => void }) {
   React.useEffect(() => {
     if (!reduced) climb.set(withRepeat(withTiming(1, { duration: 2400, easing: ReEasing.inOut(ReEasing.cubic) }), -1, true));
   }, [climb, reduced]);
-  const steps = [0.35, 0.5, 0.65, 0.8, 1];
+  const { width } = useWindowDimensions();
+  const plateMax = Math.min(110, (Math.min(width, 520) - 88) / 3.2);
   return <View style={ui.page}>
     <OnboardingBackdrop />
     <OnboardingTopBar />
@@ -1071,8 +1128,8 @@ function ProgressiveOverloadScreen({ onContinue }: { onContinue: () => void }) {
       <Rise delay={80}><Text style={[ui.title, { color: colors.foreground }]}>{t('overloadTitle')}</Text></Rise>
       <Rise delay={140}><Text style={[ui.subtitle, { color: colors.mutedForeground }]}>{t('overloadBody')}</Text></Rise>
       <Rise delay={220} style={{ marginTop: 22 }}>
-        <LinearGradient colors={[colors.inkCardStart, colors.inkCardEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={ui.overloadCard}>
-          <View style={ui.stairs}>{steps.map((height, index) => <StairBar key={index} index={index} height={height} climb={climb} accent={colors.accent} track={`${colors.inkCardForeground}14`} />)}</View>
+        <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={ui.overloadCard}>
+          <View style={ui.plateRow}>{OVERLOAD_PLATES.map((plate, index) => <OverloadPlate key={plate.tone} index={index} tone={plate.tone} size={plateMax * plate.scale} climb={climb} />)}</View>
           <View style={ui.overloadRuleRow}>
             <Text style={[ui.overloadNumber, { color: colors.inkCardForeground }]}>12+</Text>
             <View style={{ flex: 1 }}>
@@ -1090,13 +1147,24 @@ function ProgressiveOverloadScreen({ onContinue }: { onContinue: () => void }) {
   </View>;
 }
 
-/** One step of the overload staircase; the highlight climbs from the first bar to the last. */
-function StairBar({ index, height, climb, accent, track }: { index: number; height: number; climb: ReturnType<typeof useSharedValue<number>>; accent: string; track: string }) {
+const OVERLOAD_PLATES: { tone: keyof typeof BUMPER_PLATES; scale: number }[] = [
+  { tone: 'white', scale: 0.52 },
+  { tone: 'green', scale: 0.64 },
+  { tone: 'yellow', scale: 0.76 },
+  { tone: 'blue', scale: 0.88 },
+  { tone: 'red', scale: 1 },
+];
+
+/** One plate of the 5 → 25 kg row; a lift travels along the row as the load goes up. */
+function OverloadPlate({ index, tone, size, climb }: { index: number; tone: keyof typeof BUMPER_PLATES; size: number; climb: ReturnType<typeof useSharedValue<number>> }) {
   const style = useAnimatedStyle(() => {
-    const lit = climb.get() * 5 > index;
-    return { backgroundColor: lit ? accent : track };
+    // A lift travels along the row: each plate rises as the wave reaches it and settles once it has passed.
+    const wave = Math.max(0, 1 - Math.abs(climb.get() * 5.6 - 0.3 - index));
+    return { transform: [{ translateY: -12 * wave }, { scale: 1 + 0.05 * wave }] };
   });
-  return <ReAnimated.View style={[ui.stair, { height: `${height * 100}%` }, style]} />;
+  return <ReAnimated.View style={[{ width: size, height: size, marginLeft: index === 0 ? 0 : -size * 0.16 }, style]}>
+    <Image source={BUMPER_PLATES[tone]} resizeMode="contain" style={{ width: size, height: size }} />
+  </ReAnimated.View>;
 }
 
 const planAiCopy: Record<string, { writing: string; ready: string; local: string; note: string }> = {
@@ -1162,9 +1230,9 @@ function PlanBuildingScreen({ request, onComplete }: { request: () => Promise<Ai
     <OnboardingBackdrop />
     <OnboardingTopBar />
     <View style={ui.centerBody}>
-      <GlowStage size={260}>
+      <LiftStage size={260}>
         <CurlLift progress={percent / 100} />
-      </GlowStage>
+      </LiftStage>
       <Text style={[ui.buildPercent, { color: colors.foreground }]}>{percent}<Text style={ui.buildPercentSign}>%</Text></Text>
       <Text style={[ui.title, ui.centerText, { color: colors.foreground }]}>{t('planBuildingTitle')}</Text>
       <View style={[ui.aiStatus, { backgroundColor: `${result?.plan ? colors.success : colors.accent}16` }]}>
@@ -1280,7 +1348,7 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
     <OnboardingBackdrop />
     <OnboardingTopBar />
     <ScrollView contentContainerStyle={[ui.scrollBody, { alignItems: 'center' }]} showsVerticalScrollIndicator={false}>
-      <Rise><GlowStage size={240}><Image source={require('@/assets/images/coach-app-icon-final.png')} style={ui.introIcon} /></GlowStage></Rise>
+      <Rise><LiftStage size={240}><Image source={require('@/assets/images/coach-app-icon-final.png')} style={ui.introIcon} /></LiftStage></Rise>
       <Rise delay={140}><Text style={[ui.title, ui.centerText, { color: colors.foreground }]}>{t('onboardingTitle')}</Text></Rise>
       <Rise delay={200}><Text style={[ui.subtitle, ui.centerText, { color: colors.mutedForeground }]}>{t('onboardingIntro')}</Text></Rise>
       <Rise delay={280} style={{ alignSelf: 'stretch', marginTop: 22 }}>
@@ -1706,28 +1774,42 @@ const ui = StyleSheet.create({
   progressTrack: { height: 4, borderRadius: 2, overflow: 'hidden', marginTop: 14 },
   progressFill: { height: '100%', borderRadius: 2 },
   ctaWrap: { paddingHorizontal: 20, paddingTop: 10 },
-  cta: { height: 60, borderRadius: 22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  ctaText: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.2 },
-  ctaArrow: { alignItems: 'center', justifyContent: 'center' },
+  cta: { height: 60, borderRadius: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingLeft: 26, paddingRight: 7 },
+  ctaText: { flexShrink: 1, fontFamily: 'Inter_800ExtraBold', fontSize: 17, letterSpacing: -0.2 },
+  ctaArrow: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
   eyebrow: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 1.6, textTransform: 'uppercase' },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 32, lineHeight: 38, letterSpacing: -1.1, marginTop: 10 },
+  title: { fontFamily: 'Inter_800ExtraBold', fontSize: 32, lineHeight: 38, letterSpacing: -1.3, marginTop: 10 },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, marginTop: 10 },
   centerText: { textAlign: 'center' },
   pill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 6 },
   pillText: { fontFamily: 'Inter_700Bold', fontSize: 11, letterSpacing: 0.6 },
-  welcomeBody: { flex: 1, paddingHorizontal: 24, justifyContent: 'space-between', paddingBottom: 8 },
-  welcomeStage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  welcomeTitle: { fontFamily: 'Inter_700Bold', fontSize: 38, lineHeight: 42, letterSpacing: -1.6 },
-  floatChip: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, borderWidth: 1, paddingHorizontal: 11, paddingVertical: 8, shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } },
-  floatChipText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
+  welcomeTop: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 20 },
+  welcomeMark: { alignItems: 'center', marginTop: 18 },
+  welcomeStage: { flex: 1, minHeight: 230 },
+  helloBubble: { position: 'absolute', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
+  helloText: { fontFamily: 'Inter_800ExtraBold', fontSize: 14, letterSpacing: -0.2 },
+  helloTail: { position: 'absolute', left: 14, bottom: -5, width: 12, height: 12, borderRadius: 2, transform: [{ rotate: '45deg' }] },
+  welcomeSheet: { borderTopLeftRadius: 34, borderTopRightRadius: 34, borderWidth: 1, borderBottomWidth: 0, paddingTop: 10, paddingHorizontal: 20, shadowColor: '#0B2A66', shadowOpacity: 0.12, shadowRadius: 24, shadowOffset: { width: 0, height: -8 }, elevation: 12 },
+  sheetHandle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, marginBottom: 16 },
+  readyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 14 },
+  plateStack: { flexDirection: 'row', alignItems: 'center' },
+  plateStackItem: { width: 26, height: 26 },
+  readyText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 13 },
+  startButton: { height: 60, borderRadius: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 26, paddingRight: 7, marginTop: 18 },
+  startText: { fontFamily: 'Inter_800ExtraBold', fontSize: 17, letterSpacing: -0.2 },
+  startArrow: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  featureLine: { fontFamily: 'Inter_500Medium', fontSize: 12, textAlign: 'center', marginTop: 12 },
+  welcomeTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 38, letterSpacing: -1.5, textAlign: 'center', paddingHorizontal: 4 },
+  welcomeSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 10, paddingHorizontal: 12 },
   modeBody: { flex: 1, paddingHorizontal: 24, paddingTop: 28 },
-  modeHero: { borderRadius: 28, padding: 20 },
+  modeHero: { borderRadius: 28, padding: 20, overflow: 'hidden' },
+  modeHeroPlate: { position: 'absolute', right: -34, bottom: -52, width: 128, height: 128, transform: [{ rotate: '-12deg' }] },
   modeHeroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   modeHeroIcon: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   modeTag: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   modeTagText: { fontFamily: 'Inter_700Bold', fontSize: 11, color: '#1A1300' },
   modeHeroTitle: { fontFamily: 'Inter_700Bold', fontSize: 24, letterSpacing: -0.6, marginTop: 18 },
-  modeHeroBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, marginTop: 6 },
+  modeHeroBody: { fontFamily: 'Inter_400Regular', fontSize: 13, lineHeight: 19, marginTop: 6, maxWidth: '74%' },
   modeSpeed: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginTop: 16 },
   modeSpeedBar: { width: 8, borderRadius: 3 },
   modeCard: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 24, borderWidth: 1, padding: 16 },
@@ -1738,20 +1820,21 @@ const ui = StyleSheet.create({
   growthRow: { flexDirection: 'row', gap: 10, marginTop: 22 },
   growthCard: { flex: 1, borderRadius: 24, borderWidth: 1, padding: 12 },
   growthCardHero: { borderWidth: 0 },
-  growthTrack: { height: 250, borderRadius: 18, justifyContent: 'flex-end', overflow: 'hidden' },
+  growthStage: { alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
   growthFill: { borderRadius: 16, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 10, minHeight: 0 },
-  growthRate: { fontFamily: 'Inter_700Bold', fontSize: 22, letterSpacing: -0.6 },
+  growthRate: { fontFamily: 'Inter_800ExtraBold', fontSize: 30, letterSpacing: -1 },
   growthCardTitle: { fontFamily: 'Inter_700Bold', fontSize: 14, marginTop: 12 },
   growthCardBody: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 15, marginTop: 3 },
   growthFeatures: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14 },
   growthFeature: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 6, maxWidth: '100%' },
   growthFeatureText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, flexShrink: 1 },
   centerBody: { flex: 1, paddingHorizontal: 24, alignItems: 'center', justifyContent: 'center' },
-  doneBadge: { position: 'absolute', right: 52, top: 52, width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#FFFFFF' },
+  doneStage: { width: 320, height: 290 },
+  doneMascot: { position: 'absolute', left: 40, top: 20, width: 240, height: 250 },
+  doneBadge: { position: 'absolute', right: 52, top: 52, transform: [{ rotate: '-10deg' }] },
   scrollBody: { paddingHorizontal: 24, paddingTop: 24, paddingBottom: 16 },
   overloadCard: { borderRadius: 28, padding: 20 },
-  stairs: { height: 120, flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  stair: { flex: 1, borderRadius: 10 },
+  plateRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', paddingTop: 8 },
   overloadRuleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 20 },
   overloadNumber: { fontFamily: 'Inter_700Bold', fontSize: 40, letterSpacing: -1.5 },
   overloadRuleTitle: { fontFamily: 'Inter_700Bold', fontSize: 14 },
@@ -1784,14 +1867,14 @@ const ui = StyleSheet.create({
   optionalTag: { marginLeft: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 },
   optionalText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
   pulseDock: { alignItems: 'center', paddingHorizontal: 20, paddingTop: 6 },
-  pulse: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 999, borderWidth: 1, paddingLeft: 5, paddingRight: 14, paddingVertical: 5, maxWidth: '100%', overflow: 'hidden' },
-  pulseFlash: { borderRadius: 999, borderWidth: 1 },
-  pulseAvatar: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-  pulseFace: { width: 26, height: 26, borderRadius: 13, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
-  pulseFaceImage: { width: 30, height: 30, marginBottom: -5 },
-  pulseText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  pulseWave: { flexDirection: 'row', alignItems: 'center', gap: 2.5, height: 16 },
-  pulseBar: { width: 3, borderRadius: 2 },
+  pulse: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16, borderRadius: 22, borderWidth: 1, paddingLeft: 16, paddingRight: 30, paddingVertical: 8, width: '100%', maxWidth: 420, overflow: 'hidden' },
+  pulseCopy: { flexShrink: 1, minWidth: 0 },
+  pulseText: { fontFamily: 'Inter_700Bold', fontSize: 13, letterSpacing: -0.2 },
+  pulseCount: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 2 },
+  bar: { width: BAR_WIDTH, height: 40 },
+  barShaft: { position: 'absolute', left: 0, right: 0, top: 18, height: 4, borderRadius: 2, opacity: 0.55 },
+  barCollar: { position: 'absolute', top: 14, width: 4, height: 12, borderRadius: 2 },
+  plate: { position: 'absolute', borderRadius: 2 },
   aiStatus: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8, marginTop: 14, maxWidth: '100%' },
   aiStatusText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12.5 },
   aiDots: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 14 },
