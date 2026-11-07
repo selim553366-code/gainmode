@@ -6,7 +6,7 @@ import { PressableScale as Pressable } from '@/components/Motion';
 import { useFit } from '@/context/FitContext';
 import { useColors } from '@/hooks/useColors';
 import { translate, type TranslationKey } from '@/lib/i18n';
-import { bodyWeightSeries, calorieAdherence, dailyActivity, liftedWeightSeries } from '@/lib/progressCharts';
+import { bodyWeightSeries, calorieAdherence, dailyActivity, liftedWeightSeries, weightTrendPoints } from '@/lib/progressCharts';
 import { AdherenceGrid, BarsChart, ChartCard, EmptyChart, RateRing, TrendChart } from '@/components/ProgressCharts';
 import { SegmentedControl } from '@/components/SettingsControls';
 
@@ -45,6 +45,7 @@ export function ProgressChartsView() {
   const tracksWeight = Boolean(profile && profile.goal !== 'muscle');
   const usesWeights = Boolean(profile && profile.equipment !== 'bodyweight');
   const body = bodyWeightSeries({ startWeight: profile?.weight ?? weight, registeredAt, weightLogs });
+  const bodyPoints = weightTrendPoints(body.points);
   const lifted = liftedWeightSeries({ history: dumbbellWeightHistory, startWeightKg: profile?.dumbbellWeightKg, registeredAt });
   const activity = dailyActivity(activityLog, days);
   const adherence = calorieAdherence(meals, calorieGoal, days);
@@ -100,8 +101,8 @@ export function ProgressChartsView() {
       deltaTone={bodyGood ? 'good' : 'neutral'}
       caption={bodyCaption}
     >
-      {body.points.length > 1
-        ? <TrendChart points={body.points} color={colors.accent} locale={language} unit="kg" />
+      {bodyPoints.length
+        ? <TrendChart points={bodyPoints} color={colors.accent} locale={language} unit="kg" />
         : <EmptyChart icon="scale-outline" text={t('chartBodyWeightEmpty')} />}
     </ChartCard> : null}
 

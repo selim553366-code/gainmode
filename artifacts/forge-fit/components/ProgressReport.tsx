@@ -7,7 +7,7 @@ import { Ionicons } from '@/components/AppIcon';
 import { triggerHaptic } from '@/components/FitUI';
 import { useColors } from '@/hooks/useColors';
 import { translate, type Language, type TranslationKey } from '@/lib/i18n';
-import { bodyWeightSeries, calorieAdherence, dailyActivity, lastDays, type ActivityEntry } from '@/lib/progressCharts';
+import { bodyWeightSeries, calorieAdherence, dailyActivity, lastDays, weightTrendPoints, type ActivityEntry } from '@/lib/progressCharts';
 import type { WeeklySummary, WeightOutcome } from '@/lib/weeklyAnalysis';
 
 type WeightLog = { value: number; date: string };
@@ -91,7 +91,7 @@ export function WeekReport({ language, summary, weightLogs, startWeight, registe
   const t = (key: TranslationKey) => translate(language, key);
   const week = lastDays(7);
   const activity = dailyActivity(activityLog, 7);
-  const series = bodyWeightSeries({ startWeight, registeredAt, weightLogs }).points.filter((point) => point.date >= week[0]);
+  const series = weightTrendPoints(bodyWeightSeries({ startWeight, registeredAt, weightLogs }).points, { from: week[0] });
   const weights = series.map((point) => point.value);
   const [plotWidth, setPlotWidth] = React.useState(0);
   const plotHeight = 70;
@@ -190,8 +190,7 @@ export function ChartStrip({ language, weightLogs, startWeight, registeredAt, ac
   const t = (key: TranslationKey) => translate(language, key);
   const week = lastDays(7);
   const weight = bodyWeightSeries({ startWeight, registeredAt, weightLogs });
-  const recent = weight.points.filter((point) => point.date >= week[0]).map((point) => point.value);
-  const line = linePath(recent.length >= 2 ? recent : weight.points.slice(-7).map((point) => point.value), TILE_PLOT.width, TILE_PLOT.height, 4);
+  const line = linePath(weightTrendPoints(weight.points, { from: week[0] }).map((point) => point.value), TILE_PLOT.width, TILE_PLOT.height, 4);
   const minutes = dailyActivity(activityLog, 7).map((day) => day.minutes);
   const maxMinutes = Math.max(...minutes, 1);
   const adherence = calorieAdherence(meals, calorieGoal, 7);
