@@ -1,5 +1,5 @@
-// Generated from scripts/renderBadgeMedals.py: one Blender medal per badge, its icon embossed on it.
-// Metro needs static paths, so every medal is listed here.
+// Generated from scripts/renderBadgeMedals.py: one Blender medal per badge (its icon embossed on it), plus a grey locked
+// variant of each. Metro needs static paths, so every medal is listed here.
 export const badgeMedalImages: Record<string, number> = {
   'first-workout': require('@/assets/images/medals/badge-first-workout.png'),
   'workout-10': require('@/assets/images/medals/badge-workout-10.png'),
@@ -30,4 +30,32 @@ export const badgeMedalImages: Record<string, number> = {
   'exercise-500': require('@/assets/images/medals/badge-exercise-500.png'),
   'exercise-2000': require('@/assets/images/medals/badge-exercise-2000.png'),
   'locked': require('@/assets/images/medals/badge-locked.png'),
+  'locked-first-workout': require('@/assets/images/medals/badge-locked-first-workout.png'),
+  'locked-workout-10': require('@/assets/images/medals/badge-locked-workout-10.png'),
+  'locked-workout-25': require('@/assets/images/medals/badge-locked-workout-25.png'),
+  'locked-workout-100': require('@/assets/images/medals/badge-locked-workout-100.png'),
+  'locked-workout-250': require('@/assets/images/medals/badge-locked-workout-250.png'),
+  'locked-workout-400': require('@/assets/images/medals/badge-locked-workout-400.png'),
+  'locked-minutes-600': require('@/assets/images/medals/badge-locked-minutes-600.png'),
+  'locked-minutes-3000': require('@/assets/images/medals/badge-locked-minutes-3000.png'),
+  'locked-minutes-6000': require('@/assets/images/medals/badge-locked-minutes-6000.png'),
+  'locked-streak-3': require('@/assets/images/medals/badge-locked-streak-3.png'),
+  'locked-streak-7': require('@/assets/images/medals/badge-locked-streak-7.png'),
+  'locked-streak-30': require('@/assets/images/medals/badge-locked-streak-30.png'),
+  'locked-streak-100': require('@/assets/images/medals/badge-locked-streak-100.png'),
+  'locked-streak-365': require('@/assets/images/medals/badge-locked-streak-365.png'),
+  'locked-active-100': require('@/assets/images/medals/badge-locked-active-100.png'),
+  'locked-active-365': require('@/assets/images/medals/badge-locked-active-365.png'),
+  'locked-meal-1': require('@/assets/images/medals/badge-locked-meal-1.png'),
+  'locked-meal-50': require('@/assets/images/medals/badge-locked-meal-50.png'),
+  'locked-target-7': require('@/assets/images/medals/badge-locked-target-7.png'),
+  'locked-meal-400': require('@/assets/images/medals/badge-locked-meal-400.png'),
+  'locked-target-30': require('@/assets/images/medals/badge-locked-target-30.png'),
+  'locked-meal-1000': require('@/assets/images/medals/badge-locked-meal-1000.png'),
+  'locked-weight-1': require('@/assets/images/medals/badge-locked-weight-1.png'),
+  'locked-weight-10': require('@/assets/images/medals/badge-locked-weight-10.png'),
+  'locked-weight-52': require('@/assets/images/medals/badge-locked-weight-52.png'),
+  'locked-exercise-50': require('@/assets/images/medals/badge-locked-exercise-50.png'),
+  'locked-exercise-500': require('@/assets/images/medals/badge-locked-exercise-500.png'),
+  'locked-exercise-2000': require('@/assets/images/medals/badge-locked-exercise-2000.png'),
 };

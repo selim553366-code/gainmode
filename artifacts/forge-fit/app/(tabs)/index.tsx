@@ -13,7 +13,7 @@ import { getMealsForRange } from '@/lib/nutritionDates';
 import { getCurrentStreak } from '@/lib/streak';
 import { getWorkoutForDate } from '@/lib/workoutPlan';
 import { badges, badgeText, badgeUi } from '@/lib/badges';
-import { BadgeMedal3D } from '@/components/BadgeMedal3D';
+import { BadgeMedal } from '@/components/BadgeMedal';
 import { AnimatedNumber, GainModeWordmark, Screen, triggerHaptic } from '@/components/FitUI';
 import { CalorieArc, MacroCard, TodaySessionCard, WeightLogCard } from '@/components/HomeToday';
 
@@ -107,7 +107,7 @@ export default function TodayScreen() {
             </Svg>
           </View>
           <View style={[styles.medalDisc, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <FloatingMedal><BadgeMedal3D badge={latestBadge} size={80} locked={!unlockedBadgeIds.length} /></FloatingMedal>
+            <FloatingMedal><BadgeMedal badge={latestBadge} size={80} locked={!unlockedBadgeIds.length} /></FloatingMedal>
           </View>
           <View style={[styles.medalCount, { backgroundColor: colors.foreground }]}>
             <Text style={[styles.medalCountText, { color: colors.background }]}>{unlockedBadgeIds.length} / {badges.length}</Text>

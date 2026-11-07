@@ -270,7 +270,7 @@ export const styles = StyleSheet.create({
   featurePill: { minHeight: 40, borderRadius: 999, borderWidth: 1, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 4 },
   featurePillText: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 0 },
   eyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 1.4, marginBottom: 10 },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 32, lineHeight: 36, letterSpacing: -1.2 },
+  title: { fontFamily: 'Inter_800ExtraBold', fontSize: 32, lineHeight: 36, letterSpacing: -1.4 },
   subtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, marginTop: 8 },
   headerAvatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   headerAvatarText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
