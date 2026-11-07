@@ -421,29 +421,30 @@ export default function NutritionScreen() {
     </View>;
   };
 
-  return <Screen>
+  return <Screen sky>
     <Header eyebrow={dateLabel.toLocaleUpperCase(language)} title={t('nutritionTitle')} />
 
     <WeekCalories days={calorieAdherence(meals, calorieGoal, 7).series} goal={calorieGoal} language={language} colors={colors} />
 
     <View style={styles.actions}>
       <Pressable testID="camera-scan" accessibilityRole="button" onPress={openMealCamera} scaleTo={0.97} style={styles.cameraAction}>
-        <LinearGradient colors={[colors.accent, dark ? '#3D5BD9' : '#1D4ED8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cameraActionFill}>
+        <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cameraActionFill}>
+          <Image source={require('@/assets/images/food/apple.png')} resizeMode="contain" style={styles.cameraApple} />
           <View style={styles.cameraIcon}><Camera size={22} color="#FFFFFF" strokeWidth={2.2} /></View>
-          <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ minWidth: 0 }}>
             <Text style={styles.cameraTitle}>{t('scanMeal')}</Text>
-            <Text numberOfLines={2} style={styles.cameraHint}>{t('mealCaptureHint')}</Text>
+            <Text numberOfLines={3} style={styles.cameraHint}>{t('mealCaptureHint')}</Text>
           </View>
         </LinearGradient>
       </Pressable>
       <View style={styles.sideActions}>
         <Pressable testID="barcode-scan" accessibilityRole="button" onPress={openBarcodeScanner} style={[styles.sideAction, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <ScanBarcode size={20} color={colors.foreground} strokeWidth={2} />
-          <Text numberOfLines={1} style={[styles.sideActionText, { color: colors.foreground }]}>{t('scanBarcode')}</Text>
+          <View style={[styles.sideIcon, { backgroundColor: `${colors.accent}1A` }]}><ScanBarcode size={18} color={colors.accent} strokeWidth={2.2} /></View>
+          <Text numberOfLines={2} style={[styles.sideActionText, { color: colors.foreground }]}>{t('scanBarcode')}</Text>
         </Pressable>
         <Pressable testID="gallery-scan" accessibilityRole="button" onPress={pickPhoto} style={[styles.sideAction, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <ImagePlus size={20} color={colors.foreground} strokeWidth={2} />
-          <Text numberOfLines={1} style={[styles.sideActionText, { color: colors.foreground }]}>{t('add')}</Text>
+          <View style={[styles.sideIcon, { backgroundColor: `${colors.accent}1A` }]}><ImagePlus size={18} color={colors.accent} strokeWidth={2.2} /></View>
+          <Text numberOfLines={2} style={[styles.sideActionText, { color: colors.foreground }]}>{t('add')}</Text>
         </Pressable>
       </View>
     </View>
@@ -493,16 +494,16 @@ export default function NutritionScreen() {
           <Text numberOfLines={1} style={[styles.mealRowName, { color: colors.foreground }]}>{food.name}</Text>
           <Text style={[styles.resultServing, { color: colors.mutedForeground }]}>{food.serving} · {food.calories} {t('caloriesShort')} · P {formatNutrition(food.protein)} · K {formatNutrition(food.carbs)} · Y {formatNutrition(food.fat)}</Text>
         </View>
-        <View style={[styles.addBubble, { backgroundColor: colors.primary }]}><Plus size={16} color={colors.primaryForeground} strokeWidth={2.6} /></View>
+        <View style={[styles.addBubble, { backgroundColor: colors.accent }]}><Plus size={16} color={colors.accentForeground} strokeWidth={2.6} /></View>
       </Pressable>)}
     </View> : null}
 
     <View style={styles.listHeader}>
-      <View style={[styles.segment, { backgroundColor: colors.secondary }]}>
+      <View style={[styles.segment, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {(['daily', 'saved'] as const).map((section) => {
           const active = mealSection === section;
-          return <Pressable key={section} testID={section === 'daily' ? 'daily-meals-tab' : 'saved-meals-tab'} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => setMealSection(section)} scaleTo={1} style={[styles.segmentItem, active && { backgroundColor: colors.segmentActive }]}>
-            <Text style={[styles.segmentText, { color: active ? colors.foreground : colors.mutedForeground }]}>{section === 'daily' ? t('loggedFoods') : t('savedMealsTab')}</Text>
+          return <Pressable key={section} testID={section === 'daily' ? 'daily-meals-tab' : 'saved-meals-tab'} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => setMealSection(section)} scaleTo={1} style={[styles.segmentItem, active && { backgroundColor: colors.accent }]}>
+            <Text style={[styles.segmentText, { color: active ? colors.accentForeground : colors.mutedForeground }]}>{section === 'daily' ? t('loggedFoods') : t('savedMealsTab')}</Text>
           </Pressable>;
         })}
       </View>
@@ -518,7 +519,7 @@ export default function NutritionScreen() {
       <Utensils size={22} color={colors.mutedForeground} strokeWidth={1.8} />
       <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>{t('noMeals')}</Text>
     </View>) : (savedMeals.length ? <View style={styles.group}>{[...savedMeals].reverse().map((meal) => mealRow(meal, <View style={styles.savedActions}>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('addSavedMeal')} onPress={() => addSavedFood(meal)} hitSlop={6} style={[styles.addBubble, { backgroundColor: colors.primary }]}><Plus size={16} color={colors.primaryForeground} strokeWidth={2.6} /></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('addSavedMeal')} onPress={() => addSavedFood(meal)} hitSlop={6} style={[styles.addBubble, { backgroundColor: colors.accent }]}><Plus size={16} color={colors.accentForeground} strokeWidth={2.6} /></Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={t('removeSavedMeal')} onPress={() => removeSavedMeal(meal.id)} hitSlop={6} style={styles.rowAction}><Trash2 size={16} color={colors.mutedForeground} strokeWidth={2} /></Pressable>
     </View>))}</View> : <View style={[styles.empty, { borderColor: colors.border }]}>
       <Bookmark size={22} color={colors.mutedForeground} strokeWidth={1.8} />
@@ -545,42 +546,44 @@ const styles = StyleSheet.create({
   macros: { flexDirection: 'row' },
   actions: { flexDirection: 'row', gap: 10, marginBottom: 18 },
   cameraAction: { flex: 1.35 },
-  cameraActionFill: { flex: 1, minHeight: 128, borderRadius: 24, padding: 16, justifyContent: 'space-between' },
+  cameraActionFill: { flex: 1, minHeight: 150, borderRadius: 32, padding: 18, justifyContent: 'space-between', overflow: 'hidden' },
+  cameraApple: { position: 'absolute', right: 6, top: 8, width: 74, height: 74, transform: [{ rotate: '10deg' }] },
   cameraIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  cameraTitle: { fontFamily: 'Inter_700Bold', fontSize: 16, color: '#FFFFFF', marginTop: 12 },
+  cameraTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 19, letterSpacing: -0.6, color: '#FFFFFF', marginTop: 10 },
   cameraHint: { fontFamily: 'Inter_400Regular', fontSize: 10.5, lineHeight: 14, color: 'rgba(255,255,255,0.78)', marginTop: 3 },
   sideActions: { flex: 1, gap: 10 },
-  sideAction: { flex: 1, borderRadius: 20, borderWidth: 1, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  sideActionText: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12.5 },
+  sideAction: { flex: 1, borderRadius: 28, borderWidth: 1, paddingLeft: 9, paddingRight: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  sideIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  sideActionText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 12.5, lineHeight: 15 },
   analysisCard: { padding: 12, marginBottom: 18 },
   analysisImage: { width: '100%', height: 170, borderRadius: 18 },
   analysisStatus: { fontFamily: 'Inter_600SemiBold', fontSize: 13, marginTop: 10, paddingHorizontal: 4 },
-  search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, borderRadius: 18, borderWidth: 1, paddingHorizontal: 16 },
-  results: { borderRadius: 20, borderWidth: 1, marginTop: 10, overflow: 'hidden' },
-  addBubble: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 58, borderRadius: 29, borderWidth: 1, paddingHorizontal: 20 },
+  results: { borderRadius: 28, borderWidth: 1, marginTop: 10, overflow: 'hidden' },
+  addBubble: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   listHeader: { marginTop: 22, marginBottom: 14 },
-  segment: { flexDirection: 'row', borderRadius: 14, padding: 4 },
-  segmentItem: { flex: 1, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  segmentText: { fontFamily: 'Inter_600SemiBold', fontSize: 13 },
+  segment: { flexDirection: 'row', borderRadius: 27, borderWidth: 1, padding: 4 },
+  segmentItem: { flex: 1, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  segmentText: { fontFamily: 'Inter_800ExtraBold', fontSize: 13 },
   group: { marginBottom: 16, gap: 8 },
   groupHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 2, paddingHorizontal: 2 },
-  groupTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, letterSpacing: -0.2 },
+  groupTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 19, letterSpacing: -0.6 },
   groupKcal: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  mealRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 20, borderWidth: 1, padding: 10 },
-  mealPhoto: { width: 52, height: 52, borderRadius: 15 },
+  mealRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 28, borderWidth: 1, padding: 10, paddingRight: 14 },
+  mealPhoto: { width: 56, height: 56, borderRadius: 28 },
   mealGlyph: { alignItems: 'center', justifyContent: 'center' },
   mealCopy: { flex: 1, minWidth: 0 },
-  mealRowName: { fontFamily: 'Inter_600SemiBold', fontSize: 14 },
+  mealRowName: { fontFamily: 'Inter_700Bold', fontSize: 14.5, letterSpacing: -0.2 },
   macroDots: { flexDirection: 'row', gap: 10, marginTop: 6 },
   macroDot: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   macroDotText: { fontFamily: 'Inter_500Medium', fontSize: 11 },
   mealKcalCol: { alignItems: 'flex-end' },
-  mealRowKcal: { fontFamily: 'Inter_700Bold', fontSize: 16, letterSpacing: -0.3 },
+  mealRowKcal: { fontFamily: 'Inter_800ExtraBold', fontSize: 18, letterSpacing: -0.6 },
   mealRowUnit: { fontFamily: 'Inter_500Medium', fontSize: 9 },
   rowAction: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
   savedActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  empty: { borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', paddingVertical: 28, alignItems: 'center', gap: 8 },
+  empty: { borderRadius: 28, borderWidth: 1, borderStyle: 'dashed', paddingVertical: 32, alignItems: 'center', gap: 8 },
   emptyText: { fontFamily: 'Inter_500Medium', fontSize: 12, textAlign: 'center', paddingHorizontal: 24 },
   summaryCard: { padding: 20 },
   macroTargets: { borderTopWidth: 1, marginTop: 17, paddingTop: 14 },
