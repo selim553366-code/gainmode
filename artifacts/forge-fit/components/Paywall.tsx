@@ -25,6 +25,7 @@ import { Ionicons } from '@/components/AppIcon';
 import { EASE_OUT, PressableScale as Pressable } from '@/components/Motion';
 import { GainModeWordmark } from '@/components/FitUI';
 import { SkyBackdrop } from '@/components/SkyBackdrop';
+import { ChargeButton, WaterFill } from '@/components/ChargeButton';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type Plan = 'monthly' | 'annual';
@@ -77,34 +78,6 @@ function FeatureRow({ icon, title, body, delay, last }: { icon: IconName; title:
       <Text numberOfLines={2} style={[styles.featureBody, { color: colors.mutedForeground }]}>{body}</Text>
     </View>
   </Animated.View>;
-}
-
-/**
- * Colour that moves like slow water: two soft gradient bands, three times the card's width, drifting past each other
- * in opposite directions. No shapes, just colour, softened by a light blur. Still under reduced motion.
- */
-function WaterFill({ colors: tones, width, speed = 1 }: { colors: [string, string]; width: number; speed?: number }) {
-  const reduced = useReducedMotion();
-  const a = useSharedValue(0);
-  const b = useSharedValue(0);
-  React.useEffect(() => {
-    if (reduced || !width) return;
-    a.set(withRepeat(withTiming(1, { duration: 9000 / speed, easing: Easing.inOut(Easing.sin) }), -1, true));
-    b.set(withRepeat(withTiming(1, { duration: 13000 / speed, easing: Easing.inOut(Easing.sin) }), -1, true));
-  }, [a, b, reduced, speed, width]);
-  const bandA = useAnimatedStyle(() => ({ transform: [{ translateX: -a.get() * width * 2 }] }));
-  const bandB = useAnimatedStyle(() => ({ transform: [{ translateX: -(1 - b.get()) * width * 2 }] }));
-  const [c0, c1] = tones;
-  if (!width) return null;
-  return <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-    <Animated.View style={[styles.band, { width: width * 3 }, bandA]}>
-      <LinearGradient colors={[c0, c1, c0, c1, c0]} start={{ x: 0, y: 0.3 }} end={{ x: 1, y: 0.7 }} style={StyleSheet.absoluteFill} />
-    </Animated.View>
-    <Animated.View style={[styles.band, { width: width * 3, opacity: 0.55 }, bandB]}>
-      <LinearGradient colors={[`${c1}00`, c1, `${c0}00`, c0, `${c1}00`, c1]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-    </Animated.View>
-    <BlurView intensity={24} tint="default" style={StyleSheet.absoluteFill} />
-  </View>;
 }
 
 /**
@@ -161,39 +134,6 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadg
       </View>
     </View>
     {badge ? <View style={[styles.planBadge, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
-  </Pressable>;
-}
-
-/**
- * The buy button as a charging bar: it carries the chosen plan's flowing colour, says what you are buying under the
- * call to action, and a white key tile on the right nudges forward every few seconds.
- */
-function ChargeButton({ label, sub, tones, busy, disabled, onPress }: { label: string; sub: string; tones: [string, string]; busy: boolean; disabled: boolean; onPress: () => void }) {
-  const reduced = useReducedMotion();
-  const [width, setWidth] = React.useState(0);
-  const nudge = useSharedValue(0);
-  const sweep = useSharedValue(0);
-  React.useEffect(() => {
-    if (reduced) return;
-    nudge.set(withRepeat(withSequence(withDelay(1800, withTiming(1, { duration: 260, easing: EASE_OUT })), withTiming(0, { duration: 420, easing: Easing.inOut(Easing.quad) })), -1));
-    sweep.set(withRepeat(withSequence(withTiming(1, { duration: 2400, easing: Easing.inOut(Easing.quad) }), withDelay(1200, withTiming(0, { duration: 0 }))), -1));
-  }, [nudge, reduced, sweep]);
-  const keyStyle = useAnimatedStyle(() => ({ transform: [{ translateX: nudge.get() * 5 }] }));
-  const sweepStyle = useAnimatedStyle(() => ({ opacity: sweep.get() > 0 && sweep.get() < 1 ? 1 : 0, transform: [{ translateX: -120 + sweep.get() * (width + 160) }, { skewX: '-20deg' }] }));
-  return <Pressable testID="paywall-subscribe" accessibilityRole="button" accessibilityState={{ disabled, busy }} disabled={disabled} onPress={onPress} scaleTo={0.97}>
-    <View onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))} style={[styles.cta, { backgroundColor: tones[0] }]}>
-      <WaterFill colors={tones} width={width} speed={1.6} />
-      <Animated.View pointerEvents="none" style={[styles.ctaSweep, sweepStyle]}>
-        <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.45)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
-      </Animated.View>
-      <View style={styles.ctaCopy}>
-        <Text style={styles.ctaText}>{label}</Text>
-        <Text numberOfLines={1} style={styles.ctaSub}>{sub}</Text>
-      </View>
-      <Animated.View style={[styles.ctaKey, keyStyle]}>
-        {busy ? <ActivityIndicator color={tones[0]} /> : <Ionicons name="arrow-forward" size={20} color={tones[0]} />}
-      </Animated.View>
-    </View>
   </Pressable>;
 }
 
@@ -361,6 +301,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass }]} />
       {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       <ChargeButton
+        testID="paywall-subscribe"
         label={busy ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('paywallCta')}
         sub={selectedProduct ? `${plan === 'annual' ? t('premiumAnnualPlan') : t('premiumMonthlyPlan')} · ${selectedProduct.priceString}` : t('premiumTrust')}
         tones={plan === 'annual' ? ANNUAL_TONES : MONTHLY_TONES}
@@ -400,7 +341,6 @@ const styles = StyleSheet.create({
   planWrap: {},
   plan: { borderRadius: 24, borderWidth: 1.5, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', minHeight: 84 },
   planColor: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
-  band: { position: 'absolute', top: 0, bottom: 0, left: 0 },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FFFFFF' },
   planCopy: { flex: 1, minWidth: 0 },
@@ -425,12 +365,6 @@ const styles = StyleSheet.create({
   disclosure: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: 14, textAlign: 'center' },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   error: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, textAlign: 'center', marginBottom: 10 },
-  cta: { height: 68, borderRadius: 24, flexDirection: 'row', alignItems: 'center', paddingLeft: 22, paddingRight: 10, overflow: 'hidden' },
-  ctaSweep: { position: 'absolute', top: -10, bottom: -10, left: 0, width: 90 },
-  ctaCopy: { flex: 1, minWidth: 0 },
-  ctaText: { fontFamily: 'Inter_800ExtraBold', fontSize: 18, letterSpacing: -0.4, color: '#FFFFFF' },
-  ctaSub: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2, fontVariant: ['tabular-nums'] },
-  ctaKey: { width: 50, height: 50, borderRadius: 17, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   renew: { fontFamily: 'Inter_500Medium', fontSize: 12, textAlign: 'center', marginTop: 10, fontVariant: ['tabular-nums'] },
   links: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', columnGap: 14, rowGap: 8, marginTop: 10, paddingHorizontal: 8 },
   link: { flexShrink: 1, textAlign: 'center', fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 16 },
