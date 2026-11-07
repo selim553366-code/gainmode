@@ -1,4 +1,5 @@
-"""Renders matte 3D food props for the Nutrition page (assets/images/food/apple.png).
+"""Renders matte 3D props: the Nutrition page apple (assets/images/food/apple.png) and the Plan page dumbbell
+(assets/images/props/dumbbell.png).
 
 Run with Blender's Python module (pip install bpy):
   python scripts/renderFoodProps.py -- <out_dir> [size=640] [samples=128]
@@ -66,6 +67,43 @@ def scene():
     world = bpy.data.worlds.new('w'); sc.world = world; world.use_nodes = True
     bg = world.node_tree.nodes['Background']; bg.inputs[0].default_value = (0.8, 0.84, 0.93, 1); bg.inputs[1].default_value = 0.45
     return sc
+
+def dumbbell():
+    plate = mat('#F2F5FA', 0.55, 0.3, 0.02)
+    band = mat('#2F6BFF', 0.5, 0.3, 0.02)
+    steel = bpy.data.materials.new('steel'); steel.use_nodes = True
+    b = steel.node_tree.nodes['Principled BSDF']; b.inputs['Base Color'].default_value = (0.78, 0.8, 0.83, 1); b.inputs['Metallic'].default_value = 1.0; b.inputs['Roughness'].default_value = 0.3
+    parts = []
+    # axis along X: handle, collars, two stacked plates each side (big then small)
+    def cyl(r, depth, x, material, bevel=0.01):
+        bpy.ops.mesh.primitive_cylinder_add(vertices=96, radius=r, depth=depth, location=(x, 0, 0), rotation=(0, math.radians(90), 0))
+        o = bpy.context.active_object; o.data.materials.append(material)
+        bv = o.modifiers.new('b', 'BEVEL'); bv.width = bevel; bv.segments = 4
+        bpy.ops.object.shade_smooth(); parts.append(o); return o
+    cyl(0.05, 1.5, 0, steel, 0.004)
+    for sign in (-1, 1):
+        cyl(0.075, 0.06, sign * 0.36, steel, 0.008)
+        cyl(0.36, 0.16, sign * 0.46, plate)
+        cyl(0.362, 0.03, sign * 0.46, band, 0.006)
+        cyl(0.27, 0.12, sign * 0.62, plate)
+        cyl(0.082, 0.07, sign * 0.72, steel, 0.008)
+    return parts
+
+if os.environ.get('PROP') == 'dumbbell':
+    sc = scene(); parts = dumbbell()
+    holder = bpy.data.objects.new('h', None); bpy.context.collection.objects.link(holder)
+    for p in parts: p.parent = holder
+    holder.rotation_euler = Euler((math.radians(18), math.radians(-24), math.radians(-14)), 'XYZ')
+    cam = bpy.data.cameras.new('c'); cam.type = 'ORTHO'; cam.ortho_scale = 2.3
+    co = bpy.data.objects.new('cam', cam); bpy.context.collection.objects.link(co); sc.camera = co
+    co.location = (0, -4, 0.0); co.rotation_euler = (math.radians(90), 0, 0)
+    def area2(name, loc, energy, sz, color=(1, 1, 1)):
+        l = bpy.data.lights.new(name, 'AREA'); l.energy = energy; l.size = sz; l.color = color
+        o = bpy.data.objects.new(name, l); bpy.context.collection.objects.link(o); o.location = loc
+        o.rotation_euler = (Vector((0, 0, 0)) - Vector(loc)).to_track_quat('-Z', 'Y').to_euler()
+    area2('key', (-2.2, -2.6, 2.6), 650, 2.6); area2('fill', (2.6, -2.2, 1.2), 200, 3.0, (0.88, 0.92, 1.0)); area2('rim', (1.8, 2.2, 2.0), 260, 1.4)
+    sc.render.filepath = os.path.join(out_dir, 'dumbbell.png')
+    bpy.ops.render.render(write_still=True); print('rendered dumbbell'); sys.exit(0)
 
 sc = scene()
 parts = apple()

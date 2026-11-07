@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Line } from 'react-native-svg';
@@ -85,16 +85,16 @@ function WeekRoute({ activeDay, onSelect, workouts, language }: { activeDay: Wee
           {done
             ? <View style={[styles.nodeDone, { backgroundColor: colors.success }]}><Check size={16} color="#FFFFFF" strokeWidth={3} /></View>
             : workout
-              ? <View style={[styles.nodeWorkout, { backgroundColor: selected ? colors.foreground : colors.card }]}>
-                <ProgressRing value={ratio} size={40} stroke={3} color={selected ? colors.background : colors.accent} track={selected ? `${colors.background}33` : colors.border}>
-                  <Dumbbell size={15} color={selected ? colors.background : colors.foreground} strokeWidth={2.2} />
+              ? <View style={[styles.nodeWorkout, { backgroundColor: selected ? colors.accent : colors.card }]}>
+                <ProgressRing value={ratio} size={40} stroke={3} color={selected ? '#FFFFFF' : colors.accent} track={selected ? 'rgba(255,255,255,0.3)' : colors.border}>
+                  <Dumbbell size={15} color={selected ? '#FFFFFF' : colors.foreground} strokeWidth={2.2} />
                 </ProgressRing>
               </View>
-              : <View style={[styles.nodeRest, { backgroundColor: selected ? colors.foreground : colors.secondary }]}><Moon size={12} color={selected ? colors.background : colors.mutedForeground} strokeWidth={2.2} /></View>}
+              : <View style={[styles.nodeRest, { backgroundColor: selected ? colors.accent : colors.secondary }]}><Moon size={12} color={selected ? '#FFFFFF' : colors.mutedForeground} strokeWidth={2.2} /></View>}
         </View>
-        <View style={[styles.stopLabel, selected && { backgroundColor: colors.secondary }]}>
+        <View style={[styles.stopLabel, selected && { backgroundColor: `${colors.accent}1F` }]}>
           <Text style={[styles.stopDay, { color: selected ? colors.foreground : colors.mutedForeground }]}>{translate(language, dayLabels[day])}</Text>
-          <Text style={[styles.stopDate, { color: selected ? colors.foreground : colors.mutedForeground }]}>{dates[index]}</Text>
+          <Text style={[styles.stopDate, { color: selected ? colors.accent : colors.mutedForeground }]}>{dates[index]}</Text>
         </View>
         {day === today ? <View style={[styles.todayDot, { backgroundColor: colors.accent }]} /> : null}
       </Pressable>;
@@ -163,11 +163,12 @@ export default function PlanScreen() {
   const preview = active?.exercises.slice(0, 4) ?? [];
   const hidden = (active?.exercises.length ?? 0) - preview.length;
 
-  return <View style={[styles.page, { backgroundColor: colors.background }]}>
-    <Screen>
+  return <View style={styles.page}>
+    <Screen sky>
       <Header eyebrow={t('planEyebrow')} title={t('planTitle')} />
 
       <View style={[styles.weekCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <Image source={require('@/assets/images/props/dumbbell.png')} resizeMode="contain" style={styles.weekDumbbell} />
         <View style={styles.weekHead}>
           <Text style={[styles.weekEyebrow, { color: colors.mutedForeground }]}>{copy.week}</Text>
           <Text style={[styles.weekCount, { color: colors.foreground }]}>{completedWorkouts}<Text style={{ color: colors.mutedForeground }}> / {workouts.length}</Text> <Text style={[styles.weekCountUnit, { color: colors.mutedForeground }]}>{copy.workouts}</Text></Text>
@@ -176,42 +177,40 @@ export default function PlanScreen() {
       </View>
 
       {active ? <>
-        <LinearGradient colors={[colors.inkCardStart, colors.inkCardEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.session}>
-          {/* The day's name, huge and faint, sits behind the card like a watermark. */}
-          <Text pointerEvents="none" numberOfLines={1} style={[styles.watermark, { color: `${colors.inkCardForeground}0D` }]}>{t(dayLabels[activeDay]).toLocaleUpperCase(language)}</Text>
+        <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.session}>
           <View style={styles.sessionTop}>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[styles.sessionEyebrow, { color: `${colors.inkCardForeground}99` }]}>{isToday ? copy.today.toLocaleUpperCase(language) : t(dayLabels[activeDay]).toLocaleUpperCase(language)}</Text>
-              <Text style={[styles.sessionTitle, { color: colors.inkCardForeground }]}>{label(active.name)}</Text>
+              <Text style={[styles.sessionEyebrow, { color: `${'#FFFFFF'}99` }]}>{isToday ? copy.today.toLocaleUpperCase(language) : t(dayLabels[activeDay]).toLocaleUpperCase(language)}</Text>
+              <Text style={[styles.sessionTitle, { color: '#FFFFFF' }]}>{label(active.name)}</Text>
               <View style={styles.metaRow}>
-                <View style={[styles.meta, { backgroundColor: `${colors.inkCardForeground}14` }]}><Clock size={12} color={colors.inkCardForeground} strokeWidth={2.2} /><Text style={[styles.metaText, { color: colors.inkCardForeground }]}>{active.duration} {t('minutesShort')}</Text></View>
-                <View style={[styles.meta, { backgroundColor: `${colors.inkCardForeground}14` }]}><Dumbbell size={12} color={colors.inkCardForeground} strokeWidth={2.2} /><Text style={[styles.metaText, { color: colors.inkCardForeground }]}>{active.exercises.length} {t('exercises')}</Text></View>
+                <View style={[styles.meta, { backgroundColor: `${'#FFFFFF'}14` }]}><Clock size={12} color={'#FFFFFF'} strokeWidth={2.2} /><Text style={[styles.metaText, { color: '#FFFFFF' }]}>{active.duration} {t('minutesShort')}</Text></View>
+                <View style={[styles.meta, { backgroundColor: `${'#FFFFFF'}14` }]}><Dumbbell size={12} color={'#FFFFFF'} strokeWidth={2.2} /><Text style={[styles.metaText, { color: '#FFFFFF' }]}>{active.exercises.length} {t('exercises')}</Text></View>
               </View>
             </View>
-            <ProgressRing value={ratio} size={78} stroke={7} color="#7FA6FF" gradientTo={colors.success} track={`${colors.inkCardForeground}1A`}>
-              <Text style={[styles.ringValue, { color: colors.inkCardForeground }]}>{completedCount}</Text>
-              <Text style={[styles.ringTotal, { color: `${colors.inkCardForeground}99` }]}>/ {active.exercises.length}</Text>
+            <ProgressRing value={ratio} size={78} stroke={7} color="#FFFFFF" gradientTo="#A7F0C8" track={`${'#FFFFFF'}1A`}>
+              <Text style={[styles.ringValue, { color: '#FFFFFF' }]}>{completedCount}</Text>
+              <Text style={[styles.ringTotal, { color: `${'#FFFFFF'}99` }]}>/ {active.exercises.length}</Text>
             </ProgressRing>
           </View>
 
           {active.focusAreas?.length ? <View style={styles.focusRow}>
-            {active.focusAreas.map((group) => <View key={group} style={[styles.focusChip, { borderColor: `${colors.inkCardForeground}2E` }]}><Text style={[styles.focusChipText, { color: `${colors.inkCardForeground}CC` }]}>{t(muscleGroupLabels[group])}</Text></View>)}
+            {active.focusAreas.map((group) => <View key={group} style={[styles.focusChip, { borderColor: `${'#FFFFFF'}2E` }]}><Text style={[styles.focusChipText, { color: `${'#FFFFFF'}CC` }]}>{t(muscleGroupLabels[group])}</Text></View>)}
           </View> : null}
 
-          <View style={[styles.list, { borderTopColor: `${colors.inkCardForeground}14` }]}>
+          <View style={[styles.list, { borderTopColor: `${'#FFFFFF'}14` }]}>
             {preview.map((exercise, index) => <View key={exercise.id} style={styles.listRow}>
-              <View style={[styles.listIndex, { backgroundColor: exercise.completed ? colors.success : `${colors.inkCardForeground}14` }]}>
-                {exercise.completed ? <Check size={12} color="#FFFFFF" strokeWidth={3} /> : <Text style={[styles.listIndexText, { color: colors.inkCardForeground }]}>{index + 1}</Text>}
+              <View style={[styles.listIndex, { backgroundColor: exercise.completed ? colors.success : `${'#FFFFFF'}14` }]}>
+                {exercise.completed ? <Check size={12} color="#FFFFFF" strokeWidth={3} /> : <Text style={[styles.listIndexText, { color: '#FFFFFF' }]}>{index + 1}</Text>}
               </View>
-              <Text numberOfLines={1} style={[styles.listName, { color: colors.inkCardForeground, opacity: exercise.completed ? 0.55 : 1 }]}>{label(exercise.name)}</Text>
-              <Text style={[styles.listSets, { color: `${colors.inkCardForeground}99` }]}>{exercise.sets} × {exercise.reps}</Text>
+              <Text numberOfLines={1} style={[styles.listName, { color: '#FFFFFF', opacity: exercise.completed ? 0.55 : 1 }]}>{label(exercise.name)}</Text>
+              <Text style={[styles.listSets, { color: `${'#FFFFFF'}99` }]}>{exercise.sets} × {exercise.reps}</Text>
             </View>)}
-            {hidden > 0 ? <Text style={[styles.more, { color: `${colors.inkCardForeground}80` }]}>{copy.more.replace('{n}', String(hidden))}</Text> : null}
+            {hidden > 0 ? <Text style={[styles.more, { color: `${'#FFFFFF'}80` }]}>{copy.more.replace('{n}', String(hidden))}</Text> : null}
           </View>
 
-          <Pressable testID="start-planned-workout" accessibilityRole="button" accessibilityLabel={t('startWorkout')} onPress={startWorkout} scaleTo={0.97} style={[styles.cta, { backgroundColor: colors.inkCardForeground }]}>
-            <Text style={[styles.ctaText, { color: colors.inkCardStart }]}>{active.completed ? copy.done : completedCount > 0 ? copy.resume : t('startWorkout')}</Text>
-            <View style={[styles.ctaArrow, { backgroundColor: colors.inkCardStart }]}>{active.completed ? <Check size={16} color={colors.inkCardForeground} strokeWidth={3} /> : <ArrowRight size={16} color={colors.inkCardForeground} strokeWidth={2.4} />}</View>
+          <Pressable testID="start-planned-workout" accessibilityRole="button" accessibilityLabel={t('startWorkout')} onPress={startWorkout} scaleTo={0.97} style={[styles.cta, { backgroundColor: '#FFFFFF' }]}>
+            <Text style={[styles.ctaText, { color: '#123A8F' }]}>{active.completed ? copy.done : completedCount > 0 ? copy.resume : t('startWorkout')}</Text>
+            <View style={[styles.ctaArrow, { backgroundColor: colors.accent }]}>{active.completed ? <Check size={17} color="#FFFFFF" strokeWidth={3} /> : <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.4} />}</View>
           </Pressable>
         </LinearGradient>
 
@@ -231,9 +230,9 @@ export default function PlanScreen() {
               accessibilityRole="button"
               accessibilityLabel={choice.label}
               onPress={() => { triggerHaptic(); router.push({ pathname: '/live-workout', params: { exercise: choice.kind } }); }}
-              style={[styles.liveChoice, { backgroundColor: colors.secondary }]}
+              style={[styles.liveChoice, { backgroundColor: `${colors.accent}14` }]}
             >
-              <ScanLine size={15} color={colors.foreground} strokeWidth={2.2} />
+              <ScanLine size={15} color={colors.accent} strokeWidth={2.2} />
               <Text numberOfLines={1} style={[styles.liveChoiceText, { color: colors.foreground }]}>{choice.label}</Text>
             </Pressable>)}
           </View>
@@ -255,10 +254,11 @@ export default function PlanScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1 },
-  weekCard: { borderRadius: 26, borderWidth: 1, paddingTop: 16, paddingBottom: 12, paddingHorizontal: 10, marginBottom: 14 },
+  weekCard: { borderRadius: 34, borderWidth: 1, paddingTop: 18, paddingBottom: 14, paddingHorizontal: 12, marginBottom: 14, overflow: 'hidden' },
+  weekDumbbell: { position: 'absolute', right: 8, top: 6, width: 88, height: 88 },
   weekHead: { paddingHorizontal: 8, marginBottom: 14 },
   weekEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.4 },
-  weekCount: { fontFamily: 'Inter_700Bold', fontSize: 24, letterSpacing: -0.6, marginTop: 4 },
+  weekCount: { fontFamily: 'Inter_800ExtraBold', fontSize: 30, letterSpacing: -1.2, marginTop: 4 },
   weekCountUnit: { fontFamily: 'Inter_500Medium', fontSize: 12, letterSpacing: 0 },
   route: { flexDirection: 'row' },
   routeLine: { position: 'absolute', left: 0, top: 0 },
@@ -267,19 +267,18 @@ const styles = StyleSheet.create({
   nodeDone: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   nodeWorkout: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   nodeRest: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  stopLabel: { alignItems: 'center', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 4, marginTop: 6 },
+  stopLabel: { alignItems: 'center', borderRadius: 14, paddingHorizontal: 6, paddingVertical: 5, marginTop: 6 },
   stopDay: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   stopDate: { fontFamily: 'Inter_700Bold', fontSize: 13, marginTop: 1 },
   todayDot: { width: 4, height: 4, borderRadius: 2, marginTop: 4 },
-  session: { borderRadius: 30, padding: 20, overflow: 'hidden', marginBottom: 14 },
-  watermark: { position: 'absolute', right: -10, top: -18, fontFamily: 'Inter_700Bold', fontSize: 120, letterSpacing: -6 },
+  session: { borderRadius: 34, padding: 22, overflow: 'hidden', marginBottom: 14 },
   sessionTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   sessionEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.4 },
-  sessionTitle: { fontFamily: 'Inter_700Bold', fontSize: 30, letterSpacing: -1, marginTop: 6 },
+  sessionTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, letterSpacing: -1.6, marginTop: 6 },
   metaRow: { flexDirection: 'row', gap: 6, marginTop: 12 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   metaText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  ringValue: { fontFamily: 'Inter_700Bold', fontSize: 20, letterSpacing: -0.6 },
+  ringValue: { fontFamily: 'Inter_800ExtraBold', fontSize: 22, letterSpacing: -0.8 },
   ringTotal: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: -2 },
   focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 },
   focusChip: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
@@ -291,26 +290,26 @@ const styles = StyleSheet.create({
   listName: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   listSets: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   more: { fontFamily: 'Inter_500Medium', fontSize: 12, marginLeft: 35 },
-  cta: { height: 58, borderRadius: 20, marginTop: 20, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 8 },
-  ctaText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 15 },
-  ctaArrow: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
-  live: { borderRadius: 26, borderWidth: 1, padding: 16, marginBottom: 18 },
+  cta: { height: 62, borderRadius: 31, marginTop: 20, flexDirection: 'row', alignItems: 'center', paddingLeft: 26, paddingRight: 8 },
+  ctaText: { flex: 1, fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2, color: '#123A8F' },
+  ctaArrow: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  live: { borderRadius: 34, borderWidth: 1, padding: 18, marginBottom: 18 },
   liveTop: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   livePill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 4 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#3DD68C' },
   livePillText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1, color: '#22A06B' },
-  liveTitle: { fontFamily: 'Inter_700Bold', fontSize: 18, letterSpacing: -0.4, marginTop: 10 },
+  liveTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 21, letterSpacing: -0.8, marginTop: 10 },
   liveBody: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 5 },
-  liveVisual: { width: 104, height: 124, borderRadius: 20, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  liveVisual: { width: 104, height: 124, borderRadius: 28, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   skeleton: { width: 100, height: 112 },
   scanLine: { position: 'absolute', left: 0, right: 0, top: 0, height: 2 },
   liveChoices: { flexDirection: 'row', gap: 8, marginTop: 16 },
-  liveChoice: { flex: 1, height: 46, borderRadius: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 6 },
+  liveChoice: { flex: 1, height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 6 },
   liveChoiceText: { fontFamily: 'Inter_700Bold', fontSize: 12.5 },
-  rest: { borderRadius: 30, borderWidth: 1, paddingVertical: 34, paddingHorizontal: 24, alignItems: 'center', marginBottom: 18, overflow: 'hidden' },
+  rest: { borderRadius: 34, borderWidth: 1, paddingVertical: 34, paddingHorizontal: 24, alignItems: 'center', marginBottom: 18, overflow: 'hidden' },
   restArt: { position: 'absolute', top: 14 },
   restIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginTop: 14 },
   restEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.4, marginTop: 34 },
-  restTitle: { fontFamily: 'Inter_700Bold', fontSize: 26, letterSpacing: -0.8, textAlign: 'center', marginTop: 6 },
+  restTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 28, letterSpacing: -1.2, textAlign: 'center', marginTop: 6 },
   restBody: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 8, maxWidth: 290 },
 });
