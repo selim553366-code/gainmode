@@ -31,6 +31,7 @@ import { getEntryRoute } from '@/lib/entryFlow';
 import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
 import { Paywall } from '@/components/Paywall';
 import { HeightRuler } from '@/components/HeightRuler';
+import { SkyBackdrop } from '@/components/SkyBackdrop';
 import { WeightDial } from '@/components/WeightDial';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
@@ -885,15 +886,6 @@ function PlateStack({ tones, width, delay = 0 }: { tones: (keyof typeof FLAT_PLA
   </View>;
 }
 
-/** The soft sky every onboarding page sits on, the same as the welcome screen. */
-function SkyBackdrop() {
-  const colors = useColors();
-  const dark = colors.colorScheme === 'dark';
-  const sky = dark ? ['#1A3F8F', '#0E1E42', colors.background] as const : ['#B9D9FF', '#E4F0FF', '#F6F9FD'] as const;
-  return <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: dark ? colors.background : '#F6F9FD' }]}>
-    <LinearGradient colors={sky} locations={[0, 0.45, 0.85]} style={StyleSheet.absoluteFill} />
-  </View>;
-}
 
 /** A plate drifting around FitBud: it drops in on arrival, then bobs and sways on its own rhythm. */
 function FloatingPlate({ size, tone, left, top, tilt, delay, phase }: { size: number; tone: keyof typeof BUMPER_PLATES; left: number; top: number; tilt: number; delay: number; phase: number }) {

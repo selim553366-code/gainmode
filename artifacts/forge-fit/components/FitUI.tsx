@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import { useColors } from '@/hooks/useColors';
+import { SkyBackdrop } from '@/components/SkyBackdrop';
 import { useFit } from '@/context/FitContext';
 import { translate, type Language, type TranslationKey } from '@/lib/i18n';
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
@@ -67,11 +68,16 @@ function revealSections(children: ReactNode) {
   });
 }
 
-export function Screen({ children, scroll = true, bottomPadding = 104, ambient = true }: { children: ReactNode; scroll?: boolean; bottomPadding?: number; ambient?: boolean }) {
+export function Screen({ children, scroll = true, bottomPadding = 104, ambient = true, sky = false }: { children: ReactNode; scroll?: boolean; bottomPadding?: number; ambient?: boolean; sky?: boolean }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const topSpacing = Platform.OS === 'ios' ? 28 : 16;
   const content = <View style={[styles.screen, { paddingTop: insets.top + topSpacing, paddingBottom: insets.bottom + bottomPadding }]}>{revealSections(children)}</View>;
+  if (sky) {
+    // The sky is fixed behind the page and only the content scrolls over it.
+    const body = scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: 'transparent' }}>{content}</ScrollView> : content;
+    return <View style={{ flex: 1 }}><SkyBackdrop />{body}</View>;
+  }
   const backdrop = ambient ? <AmbientBackdrop>{content}</AmbientBackdrop> : <View style={[styles.plainBackdrop, { backgroundColor: colors.background }]}>{content}</View>;
   return scroll ? <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1 }} style={{ backgroundColor: colors.background }}>{backdrop}</ScrollView> : backdrop;
 }
