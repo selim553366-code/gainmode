@@ -259,6 +259,11 @@ export default function EntryScreen() {
   const selectedFields = React.useMemo(() => parseProfileEditFields(params.fields), [params.fields]);
   const entryRoute = getEntryRoute({ onboardingComplete, introSeen, isPremium, subscriptionPurchaseEnabled: SUBSCRIPTION_PURCHASE_ENABLED, coachIntroPending });
   const [premiumCelebrationVisible, setPremiumCelebrationVisible] = React.useState(false);
+  // True once this run has shown the subscription gate: leaving it means the user just subscribed.
+  const passedPaywallRef = React.useRef(false);
+  if (entryRoute === 'premium') passedPaywallRef.current = true;
+  // Set when the purchase celebration closes, so the redirect below cannot send the user to Today instead of FitBud.
+  const celebratedRef = React.useRef(false);
   const purchasedRef = React.useRef(false);
   // The web preview counts as subscribed, so show the plan picker once after onboarding there too.
   const [previewPaywallDone, setPreviewPaywallDone] = React.useState(() => !isDesignPreview() || readPreviewFlag());
@@ -273,8 +278,19 @@ export default function EntryScreen() {
       return;
     }
     if (!editMode && !previewPaywall && !premiumCelebrationVisible && (entryRoute === 'tabs' || entryRoute === 'coach')) {
+      if (celebratedRef.current) {
+        router.replace('/(tabs)/coach');
+        return undefined;
+      }
+      if (passedPaywallRef.current) {
+        // The store can report the subscription a moment before the purchase callback starts the celebration.
+        // Wait for it, and land on FitBud either way, never on Today.
+        const timer = setTimeout(() => router.replace('/(tabs)/coach'), 1500);
+        return () => clearTimeout(timer);
+      }
       router.replace(entryRoute === 'coach' ? '/(tabs)/coach' : '/(tabs)');
     }
+    return undefined;
   }, [editMode, entryRoute, premiumCelebrationVisible, previewHome, previewPaywall]);
   if (previewHome) return <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
   if (!hydrated) return <View style={[styles.entryRedirecting, { backgroundColor: colors.background }]} />;
@@ -286,6 +302,7 @@ export default function EntryScreen() {
       visible
       modal={false}
       onDone={() => {
+        celebratedRef.current = true;
         setPremiumCelebrationVisible(false);
         router.replace('/(tabs)/coach');
         if (purchasedRef.current) { queueCoachKickoff(); void queueWidgetOffer(); }
