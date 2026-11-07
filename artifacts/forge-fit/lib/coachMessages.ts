@@ -10,7 +10,7 @@ export type CoachMessageRecord = {
   id: string;
   text: string;
   from: 'coach' | 'user';
-  variant?: 'weeklyAnalysis';
+  variant?: 'weeklyAnalysis' | 'kickoff';
   media?: 'welcomeGif';
   actions?: CoachAction[];
   actionStatus?: 'pending' | 'applied' | 'rejected';

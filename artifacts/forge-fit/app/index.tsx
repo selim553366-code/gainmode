@@ -28,7 +28,8 @@ import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollV
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
 import { getEntryRoute } from '@/lib/entryFlow';
-import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
+import { queueWidgetOffer } from '@/components/WidgetOffer';
+import { queueCoachKickoff } from '@/lib/coachKickoffStore';
 import { Paywall } from '@/components/Paywall';
 import { HeightRuler } from '@/components/HeightRuler';
 import { SkyBackdrop } from '@/components/SkyBackdrop';
@@ -287,7 +288,7 @@ export default function EntryScreen() {
       onDone={() => {
         setPremiumCelebrationVisible(false);
         router.replace('/(tabs)/coach');
-        if (purchasedRef.current) void offerWidgetAfterFirstPurchase();
+        if (purchasedRef.current) { queueCoachKickoff(); void queueWidgetOffer(); }
       }}
     />;
   }
@@ -296,6 +297,8 @@ export default function EntryScreen() {
       previewMode
       onUnlock={finishPreviewPaywall}
       onPurchaseSuccess={() => {
+        // The design preview has no widgets, so it only queues FitBud's kickoff message.
+        queueCoachKickoff();
         setPremiumCelebrationVisible(true);
         finishPreviewPaywall();
       }}

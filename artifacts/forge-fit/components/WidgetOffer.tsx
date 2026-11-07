@@ -23,16 +23,36 @@ export function openWidgetOffer() {
   listeners.forEach((listener) => listener());
 }
 
-/** Called after a first successful subscription purchase; shows the offer only once per install. */
-export async function offerWidgetAfterFirstPurchase() {
+const OFFER_PENDING_KEY = 'gainmode-widget-offer-pending';
+// Set when the purchase happens in this run of the app, so the offer waits for a better moment.
+let queuedThisSession = false;
+
+/**
+ * Called after a first successful subscription purchase. The offer is not shown right away, where it would
+ * cover FitBud's welcome; it waits for the first finished workout or the next time the app opens.
+ */
+export async function queueWidgetOffer() {
   try {
     if (await AsyncStorage.getItem(OFFER_SHOWN_KEY)) return;
+    await AsyncStorage.setItem(OFFER_PENDING_KEY, new Date().toISOString());
+    queuedThisSession = true;
+  } catch {
+    // Without storage the offer simply stays in Settings.
+  }
+}
+
+/** Shows a queued offer once. On launch it skips the session the purchase happened in; a finished workout does not. */
+export async function offerQueuedWidget({ afterWorkout = false }: { afterWorkout?: boolean } = {}) {
+  if (queuedThisSession && !afterWorkout) return;
+  try {
+    if (!(await AsyncStorage.getItem(OFFER_PENDING_KEY)) || (await AsyncStorage.getItem(OFFER_SHOWN_KEY))) return;
     await AsyncStorage.setItem(OFFER_SHOWN_KEY, new Date().toISOString());
+    await AsyncStorage.removeItem(OFFER_PENDING_KEY);
   } catch {
     return;
   }
-  // Let the post-purchase navigation settle before the sheet rises.
-  setTimeout(openWidgetOffer, 700);
+  queuedThisSession = false;
+  setTimeout(openWidgetOffer, afterWorkout ? 1400 : 900);
 }
 
 const eyebrowByLanguage = { tr: 'GÜNÜN SÖZÜ', en: 'TODAY’S FUEL', de: 'IMPULS DES TAGES', fr: 'L’ÉLAN DU JOUR', es: 'IMPULSO DEL DÍA' } as const;

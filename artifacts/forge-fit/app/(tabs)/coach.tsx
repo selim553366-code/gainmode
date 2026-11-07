@@ -28,6 +28,9 @@ import { classifyWeather, type WeatherKind } from '@/lib/weatherBackground';
 import { fetchCurrentWeather } from '@/lib/weatherService';
 import { getWeatherLabel } from '@/lib/weatherLabels';
 import { WeatherIntroSheet } from '@/components/WeatherIntroSheet';
+import { coachKickoffText } from '@/lib/coachKickoff';
+import { takeCoachKickoff } from '@/lib/coachKickoffStore';
+import { getWeekdayKey } from '@/lib/workoutPlan';
 
 const WEATHER_ENABLED_KEY = 'gainmode-coach-weather-enabled-v1';
 const WEATHER_REFRESH_MS = 30 * 60_000;
@@ -388,6 +391,10 @@ export default function CoachScreen() {
   // Keep the restored first-reply rating flow separate from the previous
   // latest-message flow, so an old rating cannot hide the restored prompt.
   const coachMessagesStorageKey = getCoachMessagesStorageKey(accountId);
+  // Today's workout, read when the kickoff message is written; a ref keeps the hydration effect from re-running.
+  const todayWorkout = workouts.find((item) => item.day === getWeekdayKey());
+  const kickoffRef = useRef({ username, todayWorkout });
+  kickoffRef.current = { username, todayWorkout };
   const ratingStorageKey = `forge-fit-coach-rating-v2-${accountId}-${ratingDateKey}`;
   React.useEffect(() => {
     const prompts = [t('coachPromptWeight'), t('coachPromptCalories')];
@@ -463,6 +470,14 @@ export default function CoachScreen() {
           const welcomeIndex = initialMessages.findIndex((message) => message.id === 'coach-welcome' || (message.from === 'coach' && !message.variant && !message.media));
           if (welcomeIndex >= 0 && !initialMessages.some((message) => message.media === 'welcomeGif')) {
             initialMessages[welcomeIndex] = { ...initialMessages[welcomeIndex], media: 'welcomeGif' };
+          }
+          // Right after a purchase FitBud opens with a personal kickoff: the name, today's workout and two first steps.
+          if (await takeCoachKickoff()) {
+            const { username: name, todayWorkout: workout } = kickoffRef.current;
+            const kickoffWorkout = workout && !workout.completed
+              ? { name: translate(language, workout.name as TranslationKey) || workout.name, minutes: workout.duration, exercises: workout.exercises.length }
+              : null;
+            initialMessages.push({ id: `coach-kickoff-${Date.now()}`, from: 'coach', variant: 'kickoff', text: coachKickoffText(language, name, kickoffWorkout) });
           }
           setMessages(initialMessages);
         }
@@ -699,7 +714,16 @@ export default function CoachScreen() {
          >
             {item.from === 'coach' ? <View style={styles.messageAvatarShell}><Image accessibilityLabel={t('coachTitle')} source={require('@/assets/images/coach-tab-custom.jpeg')} resizeMode="cover" style={styles.messageAvatar} /></View> : null}
            <View style={styles.messageContent}>
-                  {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : <><View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text> : null}</View>{item.id === 'coach-welcome' || item.media === 'welcomeGif' ? <Pressable accessibilityRole="button" onPress={() => setAppTourVisible(true)} style={({ pressed }) => [styles.appTourButton, { backgroundColor: `${colors.primary}14`, borderColor: `${colors.primary}48`, opacity: pressed ? 0.68 : 1 }]}><Ionicons name="compass-outline" size={16} color={colors.primary} /><Text style={[styles.appTourButtonText, { color: colors.primary }]}>{t('appTourButton')}</Text><Ionicons name="arrow-forward" size={15} color={colors.primary} /></Pressable> : null}{item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: colors.card }]}><Image accessibilityLabel={t('coachWelcomeGifLabel')} source={colors.colorScheme === 'dark' ? require('@/assets/images/coach-welcome-dark.gif') : require('@/assets/images/coach-welcome-light.gif')} resizeMode="cover" style={styles.welcomeGif} /></View> : null}</>}
+                  {item.variant === 'weeklyAnalysis' ? <View style={[styles.weeklyMessageCard, { backgroundColor: colors.card, borderColor: colors.border }]}><View style={[styles.weeklyMessageIcon, { backgroundColor: `${colors.primary}22` }]}><Ionicons name="analytics-outline" size={16} color={colors.primary} /></View><View style={{ flex: 1 }}><Text style={[styles.weeklyMessageLabel, { color: colors.primary }]}>{item.text}</Text><Text style={[styles.weeklyMessageHint, { color: colors.mutedForeground }]}>{t('weeklyAnalysisReading')}</Text></View><Ionicons name="checkmark-circle" size={17} color={colors.success} /></View> : <><View style={[styles.bubble, item.from === 'user' ? [styles.userBubble, { backgroundColor: colors.primary }] : [styles.coachBubble, { backgroundColor: colors.card }]]}>{item.text ? <Text style={[styles.bubbleText, { color: item.from === 'user' ? colors.primaryForeground : colors.foreground }]}>{item.text}</Text> : null}</View>{item.id === 'coach-welcome' || item.media === 'welcomeGif' ? <Pressable accessibilityRole="button" onPress={() => setAppTourVisible(true)} style={({ pressed }) => [styles.appTourButton, { backgroundColor: `${colors.primary}14`, borderColor: `${colors.primary}48`, opacity: pressed ? 0.68 : 1 }]}><Ionicons name="compass-outline" size={16} color={colors.primary} /><Text style={[styles.appTourButtonText, { color: colors.primary }]}>{t('appTourButton')}</Text><Ionicons name="arrow-forward" size={15} color={colors.primary} /></Pressable> : null}{item.variant === 'kickoff' ? <View style={styles.kickoffActions}>
+                    {todayWorkout && !todayWorkout.completed ? <Pressable testID="coach-kickoff-workout" accessibilityRole="button" onPress={() => router.push({ pathname: '/workout-session', params: { workoutId: todayWorkout.id } })} scaleTo={0.96} style={[styles.kickoffButton, { backgroundColor: colors.accent }]}>
+                      <Ionicons name="barbell-outline" size={15} color="#FFFFFF" />
+                      <Text style={[styles.kickoffButtonText, { color: '#FFFFFF' }]}>{t('startWorkout')}</Text>
+                    </Pressable> : null}
+                    <Pressable testID="coach-kickoff-meal" accessibilityRole="button" onPress={() => router.push('/(tabs)/nutrition')} scaleTo={0.96} style={[styles.kickoffButton, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
+                      <Ionicons name="camera-outline" size={15} color={colors.foreground} />
+                      <Text style={[styles.kickoffButtonText, { color: colors.foreground }]}>{t('scanMeal')}</Text>
+                    </Pressable>
+                  </View> : null}{item.media === 'welcomeGif' ? <View style={[styles.welcomeGifCard, { backgroundColor: colors.card }]}><Image accessibilityLabel={t('coachWelcomeGifLabel')} source={colors.colorScheme === 'dark' ? require('@/assets/images/coach-welcome-dark.gif') : require('@/assets/images/coach-welcome-light.gif')} resizeMode="cover" style={styles.welcomeGif} /></View> : null}</>}
                  {item.actions?.length ? <View style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.actionTitle, { color: colors.foreground }]}>{t('coachConfirmQuestion')}</Text>{item.actions.map((action, index) => <Text key={`${item.id}-action-${index}`} style={[styles.actionLine, { color: colors.foreground }]}>• {actionLabel(action)}</Text>)}{item.actionStatus === 'pending' ? <View style={styles.actionButtons}><Pressable onPress={() => applyActions(item.id, item.actions ?? [])} style={[styles.actionButton, { backgroundColor: colors.primary }]}><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('coachConfirm')}</Text></Pressable><Pressable onPress={() => rejectActions(item.id)} style={[styles.actionButton, { borderColor: colors.border, borderWidth: 1 }]}><Text style={[styles.actionButtonText, { color: colors.foreground }]}>{t('coachReject')}</Text></Pressable></View> : <View><Text style={[styles.actionStatus, { color: item.actionStatus === 'applied' ? colors.success : colors.mutedForeground }]}>{item.actionStatus === 'applied' ? t('coachChangeApplied') : t('coachChangeRejected')}</Text>{item.actionStatus === 'applied' ? <Pressable accessibilityRole="button" onPress={() => router.replace('/(tabs)')} style={[styles.refreshButton, { backgroundColor: colors.success }]}><Ionicons name="arrow-forward" size={15} color={colors.primaryForeground} /><Text style={[styles.actionButtonText, { color: colors.primaryForeground }]}>{t('refreshPages')}</Text></Pressable> : null}</View>}</View> : null}
                 {ratingLoaded && ratingTarget?.id === item.id && dailyRating === null ? <View style={[styles.ratingCard, { backgroundColor: colors.card, borderColor: colors.border }]}><Text style={[styles.ratingPrompt, { color: colors.foreground }]}>{t('coachRatingPrompt')}</Text><View style={styles.ratingStars}>{[1, 2, 3, 4, 5].map((value) => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`${value} ${t('coachRatingStars')}`} disabled={ratingSending !== null} onPress={() => void rateCoachMessage(item, value)} style={({ pressed }) => [styles.ratingStar, { opacity: ratingSending !== null && ratingSending !== value ? 0.4 : pressed ? 0.65 : 1 }]}><Ionicons name="star" size={24} color={colors.orange} /></Pressable>)}</View>{ratingSending !== null ? <Text style={[styles.ratingStatus, { color: colors.mutedForeground }]}>{t('coachRatingSending')}</Text> : null}</View> : null}
                 {ratedMessageId === item.id ? <Text style={[styles.ratingThanks, { color: colors.success }]}>{t('coachRatingThanks')}</Text> : null}
@@ -777,7 +801,10 @@ const styles = StyleSheet.create({
   ratingStatus: { fontFamily: 'Inter_400Regular', fontSize: 10, marginTop: 5 },
   ratingThanks: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 8 },
   messageImage: { width: 190, height: 145, borderRadius: 12, marginBottom: 7 },
-   welcomeGifCard: { width: 238, borderRadius: 19, overflow: 'hidden', marginTop: 2 },
+   kickoffActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  kickoffButton: { flexDirection: 'row', alignItems: 'center', gap: 7, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10 },
+  kickoffButtonText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
+  welcomeGifCard: { width: 238, borderRadius: 19, overflow: 'hidden', marginTop: 2 },
   welcomeGif: { width: 238, height: 178, borderRadius: 19 },
   bubbleText: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22 },
   typingBubble: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderRadius: 24, borderTopLeftRadius: 8, paddingHorizontal: 18, paddingVertical: 14, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },

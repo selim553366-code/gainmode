@@ -1,4 +1,5 @@
 import React from 'react';
+import { offerQueuedWidget } from '@/components/WidgetOffer';
 import { Animated, Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PressableScale as Pressable } from '@/components/Motion';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -409,7 +410,7 @@ export default function WorkoutSessionScreen() {
       </View>}
     </ScrollView>
     <ExerciseFormGuide visible={Boolean(guideExercise)} exerciseName={guideExercise ?? 'exercisePlank'} language={language} onClose={() => setGuideExercise(null)} />
-    <CelebrationBurst visible={celebrating} title={t('workoutCompleteTitle')} subtitle={t('workoutCompleteSubtitle')} onDone={() => setCelebrating(false)} />
+    <CelebrationBurst visible={celebrating} title={t('workoutCompleteTitle')} subtitle={t('workoutCompleteSubtitle')} onDone={() => { setCelebrating(false); void offerQueuedWidget({ afterWorkout: true }); }} />
   </View>;
 }
 

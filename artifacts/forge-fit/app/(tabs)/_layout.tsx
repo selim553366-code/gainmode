@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { dailyMoodPromptWindow, shouldShowDailyMoodPrompt } from '@/lib/dailyMood';
 import { PREMIUM_ENTITLEMENT_IDENTIFIER } from '@/lib/premiumAccess';
 import { localDateKey } from '@/lib/nutritionDates';
+import { offerQueuedWidget } from '@/components/WidgetOffer';
 
 const tabOrder = ['index', 'nutrition', 'coach', 'plan', 'progress'];
 
@@ -229,6 +230,8 @@ export default function TabLayout() {
   React.useEffect(() => {
     if (!isPremium && SUBSCRIPTION_PURCHASE_ENABLED) router.replace('/');
   }, [isPremium]);
+  // A widget offer queued by a purchase in an earlier session shows once the app opens again.
+  React.useEffect(() => { if (isPremium) void offerQueuedWidget(); }, [isPremium]);
   if (!isPremium && SUBSCRIPTION_PURCHASE_ENABLED) return null;
   return (
     <View style={{ flex: 1 }}>
