@@ -6,9 +6,6 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
-  cancelAnimation,
-  interpolate,
-  interpolateColor,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -26,6 +23,8 @@ import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/s
 import { legalDocumentUrl } from '@/lib/legalDocuments';
 import { Ionicons } from '@/components/AppIcon';
 import { EASE_OUT, PressableScale as Pressable } from '@/components/Motion';
+import { GainModeWordmark } from '@/components/FitUI';
+import { SkyBackdrop } from '@/components/SkyBackdrop';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type Plan = 'monthly' | 'annual';
@@ -49,31 +48,40 @@ function useEntrance(delay: number, distance = 14) {
   }));
 }
 
-function GlassChip({ icon, label, delay, style }: { icon: IconName; label: string; delay: number; style: object | object[] }) {
-  const entrance = useEntrance(delay, 10);
-  return <Animated.View style={[styles.chip, style, entrance]}>
-    <View style={styles.chipTint} />
-    <Ionicons name={icon} size={13} color="#FFFFFF" />
-    <Text style={styles.chipText}>{label}</Text>
+/** The PRO medal drifts a few pixels up and down so the page feels alive; still under reduced motion. */
+function FloatingMedal({ size }: { size: number }) {
+  const reduced = useReducedMotion();
+  const drift = useSharedValue(0);
+  React.useEffect(() => {
+    if (reduced) return;
+    drift.set(withRepeat(withSequence(withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.sin) }), withTiming(0, { duration: 2200, easing: Easing.inOut(Easing.sin) })), -1));
+  }, [drift, reduced]);
+  const style = useAnimatedStyle(() => ({ transform: [{ translateY: -6 * drift.get() }, { rotate: `${-4 + drift.get() * 4}deg` }] }));
+  return <Animated.View style={style}>
+    <Image source={require('@/assets/images/medals/pro.png')} resizeMode="contain" style={{ width: size, height: size }} />
   </Animated.View>;
 }
 
-/** One benefit as a compact tile: icon and title, with the longer line kept for screen readers. */
-function FeatureTile({ icon, title, body, delay }: { icon: IconName; title: string; body: string; delay: number }) {
+/** One benefit: a gradient tile with the icon, the title and its line. */
+function FeatureRow({ icon, title, body, delay, last }: { icon: IconName; title: string; body: string; delay: number; last: boolean }) {
   const colors = useColors();
   const entrance = useEntrance(delay, 8);
-  return <Animated.View accessible accessibilityLabel={`${title}. ${body}`} style={[styles.feature, { backgroundColor: colors.card, borderColor: colors.border }, entrance]}>
-    <View style={[styles.featureIcon, { backgroundColor: colors.secondary }]}><Ionicons name={icon} size={15} color={colors.foreground} /></View>
-    <Text numberOfLines={2} style={[styles.featureTitle, { color: colors.foreground }]}>{title}</Text>
+  return <Animated.View accessible accessibilityLabel={`${title}. ${body}`} style={[styles.feature, !last ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border } : null, entrance]}>
+    <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.featureIcon}>
+      <Ionicons name={icon} size={17} color="#FFFFFF" />
+    </LinearGradient>
+    <View style={{ flex: 1, minWidth: 0 }}>
+      <Text numberOfLines={1} style={[styles.featureTitle, { color: colors.foreground }]}>{title}</Text>
+      <Text numberOfLines={2} style={[styles.featureBody, { color: colors.mutedForeground }]}>{body}</Text>
+    </View>
   </Animated.View>;
 }
 
 /**
- * Plan card. Selecting it floods the whole card with its frosted aurora (420ms ease-out) while the
- * border and radio settle (220ms). The chosen card then gets a light sheen that sweeps across every
- * few seconds, like light catching glass; it stops as soon as the card is deselected or motion is reduced.
+ * Plan card. The chosen one fills with the brand gradient and its text turns white; the other stays a plain card.
+ * A square check in the corner confirms the choice.
  */
-function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadge, strike, glow, testID }: {
+function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadge, strike, testID }: {
   selected: boolean;
   onPress: () => void;
   title: string;
@@ -83,86 +91,31 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadg
   badge?: string;
   saveBadge?: string | null;
   strike?: string | null;
-  /** Two colors for the frosted aurora; a hint of it shows at rest, the selected card is filled. */
-  glow: [string, string];
   testID: string;
 }) {
   const colors = useColors();
-  const dark = colors.colorScheme === 'dark';
-  const reduced = useReducedMotion();
-  const [width, setWidth] = React.useState(0);
-  const progress = useSharedValue(selected ? 1 : 0);
-  const fill = useSharedValue(selected ? 1 : 0);
-  const sheen = useSharedValue(0);
-
-  React.useEffect(() => {
-    progress.set(withTiming(selected ? 1 : 0, { duration: 220, easing: EASE_OUT }));
-    fill.set(withTiming(selected ? 1 : 0, { duration: selected ? 420 : 260, easing: EASE_OUT }));
-    cancelAnimation(sheen);
-    sheen.set(0);
-    if (selected && !reduced && width) {
-      sheen.set(withDelay(450, withRepeat(withSequence(
-        withTiming(1, { duration: 1700, easing: Easing.bezier(0.45, 0, 0.25, 1) }),
-        withDelay(2300, withTiming(0, { duration: 0 })),
-      ), -1)));
-    }
-    return () => cancelAnimation(sheen);
-  }, [fill, progress, reduced, selected, sheen, width]);
-
-  const cardStyle = useAnimatedStyle(() => ({
-    borderColor: interpolateColor(progress.get(), [0, 1], [colors.border, colors.primary]),
-  }));
-  const dotStyle = useAnimatedStyle(() => ({ opacity: progress.get(), transform: [{ scale: interpolate(progress.get(), [0, 1], [0.4, 1]) }] }));
-  const ringStyle = useAnimatedStyle(() => ({ borderColor: interpolateColor(progress.get(), [0, 1], [colors.border, colors.primary]) }));
-  const floodStyle = useAnimatedStyle(() => ({ opacity: fill.get() }));
-  const restMaskStyle = useAnimatedStyle(() => ({ opacity: 1 - fill.get() }));
-  const sheenStyle = useAnimatedStyle(() => ({
-    opacity: sheen.get() > 0 && sheen.get() < 1 ? 1 : 0,
-    transform: [{ translateX: -150 + sheen.get() * (width + 200) }, { rotate: '18deg' }],
-  }));
-
-  const strong = dark ? '8C' : '66';
-  return <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} scaleTo={0.98}>
-    <Animated.View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={[styles.plan, { backgroundColor: colors.card }, cardStyle]}>
-      <View pointerEvents="none" style={styles.glowLayer}>
-        <Animated.View style={[StyleSheet.absoluteFill, floodStyle]}>
-          <LinearGradient colors={[`${glow[0]}${strong}`, `${glow[1]}${strong}`]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-          <View style={[styles.glowBlobLeft, { backgroundColor: `${glow[1]}${dark ? '80' : '59'}` }]} />
-        </Animated.View>
-        <LinearGradient
-          colors={[`${glow[0]}00`, `${glow[0]}${dark ? '47' : '33'}`, `${glow[1]}${dark ? '73' : '59'}`]}
-          locations={[0.22, 0.6, 1]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={[styles.glowBlobA, { backgroundColor: `${glow[0]}${dark ? '80' : '66'}` }]} />
-        <View style={[styles.glowBlobB, { backgroundColor: `${glow[1]}${dark ? '99' : '73'}` }]} />
-        <BlurView intensity={dark ? 50 : 60} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />
-        <Animated.View style={[StyleSheet.absoluteFill, restMaskStyle]}>
-          <LinearGradient colors={[colors.card, `${colors.card}00`]} locations={[0.18, 0.42]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
-        </Animated.View>
-        <Animated.View style={[styles.sheen, sheenStyle]}>
-          <LinearGradient colors={['rgba(255,255,255,0)', dark ? 'rgba(255,255,255,0.34)' : 'rgba(255,255,255,0.75)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
-        </Animated.View>
+  const ink = selected ? '#FFFFFF' : colors.foreground;
+  const muted = selected ? 'rgba(255,255,255,0.74)' : colors.mutedForeground;
+  const inner = <>
+    <View style={styles.planHead}>
+      <Text numberOfLines={1} style={[styles.planTitle, { color: ink }]}>{title}</Text>
+      <View style={[styles.check, selected ? { backgroundColor: '#FFFFFF', borderColor: '#FFFFFF' } : { borderColor: colors.border }]}>
+        {selected ? <Ionicons name="checkmark" size={14} color={colors.accent} /> : null}
       </View>
-      {badge ? <View style={[styles.planBadge, { backgroundColor: colors.primary }]}><Text style={[styles.planBadgeText, { color: colors.primaryForeground }]}>{badge}</Text></View> : null}
-      <Animated.View style={[styles.radio, ringStyle]}>
-        <Animated.View style={[styles.radioDot, { backgroundColor: colors.primary }, dotStyle]} />
-      </Animated.View>
-      <View style={styles.planCopy}>
-        <View style={styles.planTitleRow}>
-          <Text style={[styles.planTitle, { color: colors.foreground }]}>{title}</Text>
-          {saveBadge ? <View style={[styles.saveBadge, { backgroundColor: colors.success }]}><Text style={[styles.saveBadgeText, { color: colors.primaryForeground }]}>{saveBadge}</Text></View> : null}
-        </View>
-        <Text style={[styles.planNote, { color: colors.mutedForeground }]}>{note}</Text>
-      </View>
-      <View style={styles.planPriceColumn}>
-        {strike ? <Text style={[styles.planStrike, { color: colors.mutedForeground }]}>{strike}</Text> : null}
-        <Text style={[styles.planPrice, { color: colors.foreground }]}>{price}</Text>
-        <Text style={[styles.planUnit, { color: colors.mutedForeground }]}>{unit}</Text>
-      </View>
-    </Animated.View>
+    </View>
+    {strike ? <Text style={[styles.planStrike, { color: muted }]}>{strike}</Text> : <View style={styles.strikeSpace} />}
+    <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[styles.planPrice, { color: ink }]}>{price}</Text>
+    <Text style={[styles.planUnit, { color: muted }]}>{unit}</Text>
+    <View style={styles.planFoot}>
+      {saveBadge ? <View style={[styles.saveBadge, { backgroundColor: selected ? '#FFFFFF' : `${colors.success}1F` }]}><Text style={[styles.saveBadgeText, { color: selected ? colors.accent : colors.success }]}>{saveBadge}</Text></View> : null}
+      <Text numberOfLines={2} style={[styles.planNote, { color: muted }]}>{note}</Text>
+    </View>
+  </>;
+  return <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} scaleTo={0.97} style={styles.planWrap}>
+    {selected
+      ? <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.plan, styles.planSelected]}>{inner}</LinearGradient>
+      : <View style={[styles.plan, { backgroundColor: colors.card, borderColor: colors.border }]}>{inner}</View>}
+    {badge ? <View style={[styles.planBadge, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
   </Pressable>;
 }
 
@@ -262,33 +215,29 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
     : t('premiumTrust');
 
   return <View style={[styles.root, { backgroundColor: colors.background }]}>
-    <ScrollView contentContainerStyle={{ paddingBottom: 230 + insets.bottom }} showsVerticalScrollIndicator={false} bounces={false}>
-      <Animated.View style={heroEntrance}>
-        <LinearGradient colors={[colors.heroBackgroundStart, colors.heroBackgroundEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, compact ? styles.heroCompact : null, { paddingTop: insets.top + 18 }]}>
-          <View style={styles.heroRingLarge} />
-          <View style={styles.heroRingSmall} />
-          <Image source={require('@/assets/images/coach-wave-transparent.png')} resizeMode="contain" style={[styles.mascot, compact ? styles.mascotCompact : null]} />
-          <GlassChip icon="chatbubble-ellipses-outline" label={t('paywallChipCoach')} delay={260} style={[styles.chipLeft, compact ? { top: 86 } : null]} />
-          <GlassChip icon="camera-outline" label={t('paywallChipPhoto')} delay={340} style={[styles.chipRight, compact ? { top: 52 } : null]} />
-          <GlassChip icon="analytics-outline" label={t('paywallChipWeekly')} delay={420} style={[styles.chipBottom, compact ? { top: 112 } : null]} />
-          <LinearGradient colors={[`${colors.background}00`, colors.background]} style={styles.heroFade} />
-        </LinearGradient>
+    <SkyBackdrop />
+    <ScrollView contentContainerStyle={{ paddingTop: insets.top + 14, paddingBottom: 230 + insets.bottom }} showsVerticalScrollIndicator={false} bounces={false}>
+      <View style={styles.topBar}>
+        <View style={styles.brandRow}>
+          <GainModeWordmark color={colors.foreground} width={128} height={17} />
+          <LinearGradient colors={['#F5C542', '#E39A1F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proPill}><Text style={styles.proText}>PRO</Text></LinearGradient>
+        </View>
+        {onClose ? <Pressable accessibilityLabel={t('close')} onPress={onClose} hitSlop={10} style={[styles.close, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Ionicons name="close" size={18} color={colors.foreground} />
+        </Pressable> : null}
+      </View>
+
+      <Animated.View style={[styles.hero, heroEntrance]}>
+        <FloatingMedal size={compact ? 116 : 150} />
       </Animated.View>
-      {onClose ? <Pressable accessibilityLabel={t('close')} onPress={onClose} hitSlop={10} style={[styles.close, { top: insets.top + 12 }]}>
-        <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
-        <Ionicons name="close" size={18} color="#FFFFFF" />
-      </Pressable> : null}
 
       <View style={styles.content}>
-        <Animated.View style={titleEntrance}>
-          <Text style={[styles.eyebrow, { color: colors.mutedForeground }]}>{t('paywallEyebrow')}</Text>
+        <Animated.View style={[styles.heading, titleEntrance]}>
           <Text style={[styles.title, { color: colors.foreground }]}>{t('paywallTitle')}</Text>
-          {compact ? null : <Text numberOfLines={2} style={[styles.body, { color: colors.mutedForeground }]}>{t('paywallBody')}</Text>}
+          {compact ? null : <Text numberOfLines={3} style={[styles.body, { color: colors.mutedForeground }]}>{t('paywallBody')}</Text>}
         </Animated.View>
 
-
         <Animated.View style={plansEntrance}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallChoosePlan')}</Text>
           <View style={styles.plans}>
             {annual ? <PlanCard
               testID="paywall-annual-plan"
@@ -301,7 +250,6 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               badge={t('paywallBestValue')}
               saveBadge={savings !== null ? t('paywallSave').replace('{percent}', String(savings)) : null}
               strike={yearOfMonthly}
-              glow={['#FF3B5C', '#FF8A3D']}
             /> : null}
             {monthly ? <PlanCard
               testID="paywall-monthly-plan"
@@ -311,15 +259,16 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               price={monthly.priceString}
               unit={t('premiumPerMonth')}
               note={t('paywallMonthlyNote')}
-              glow={['#2563EB', '#38BDF8']}
             /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
           </View>
-          <View style={styles.features}>
-            <FeatureTile icon="coach-outline" title={t('paywallFeature1Title')} body={t('paywallFeature1Body')} delay={520} />
-            <FeatureTile icon="camera-outline" title={t('paywallFeature2Title')} body={t('paywallFeature2Body')} delay={570} />
-            <FeatureTile icon="barbell-outline" title={t('paywallFeature3Title')} body={t('paywallFeature3Body')} delay={620} />
-            <FeatureTile icon="analytics-outline" title={t('paywallFeature4Title')} body={t('paywallFeature4Body')} delay={670} />
+
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallFeaturesTitle')}</Text>
+          <View style={[styles.features, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <FeatureRow icon="coach-outline" title={t('paywallFeature1Title')} body={t('paywallFeature1Body')} delay={420} last={false} />
+            <FeatureRow icon="camera-outline" title={t('paywallFeature2Title')} body={t('paywallFeature2Body')} delay={470} last={false} />
+            <FeatureRow icon="barbell-outline" title={t('paywallFeature3Title')} body={t('paywallFeature3Body')} delay={520} last={false} />
+            <FeatureRow icon="analytics-outline" title={t('paywallFeature4Title')} body={t('paywallFeature4Body')} delay={570} last />
           </View>
           <Text style={[styles.disclosure, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
         </Animated.View>
@@ -336,11 +285,13 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
         accessibilityState={{ disabled: busy || checking, busy }}
         disabled={busy || checking}
         onPress={() => { void handlePurchase(); }}
-        style={[styles.cta, { backgroundColor: colors.primary }]}
+        scaleTo={0.97}
+        style={styles.ctaWrap}
       >
-        {busy ? <ActivityIndicator color={colors.primaryForeground} /> : null}
-        <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>{busy ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('paywallCta')}</Text>
-        {!busy ? <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} /> : null}
+        <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cta}>
+          <Text style={styles.ctaText}>{busy ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('paywallCta')}</Text>
+          <View style={styles.ctaArrow}>{busy ? <ActivityIndicator color={colors.accent} /> : <Ionicons name="arrow-forward" size={18} color={colors.accent} />}</View>
+        </LinearGradient>
       </Pressable>
       <Text style={[styles.renew, { color: colors.mutedForeground }]}>{renewNote}</Text>
       <View style={styles.links}>
@@ -360,56 +311,47 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  hero: { height: 236, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  heroRingLarge: { position: 'absolute', width: 250, height: 250, borderRadius: 125, borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', top: 10 },
-  heroRingSmall: { position: 'absolute', width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(255,255,255,0.08)', top: 50 },
-  mascot: { width: 140, height: 152, marginTop: 34 },
-  heroCompact: { height: 176 },
-  mascotCompact: { width: 104, height: 112, marginTop: 20 },
-  heroFade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 70 },
-  chip: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
-  chipTint: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(255,255,255,0.14)' },
-  chipText: { fontFamily: 'Inter_600SemiBold', fontSize: 12, color: '#FFFFFF' },
-  chipLeft: { left: 16, top: 112 },
-  chipRight: { right: 16, top: 70 },
-  chipBottom: { right: 22, top: 150 },
-  close: { position: 'absolute', right: 16, width: 36, height: 36, borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)' },
-  content: { paddingHorizontal: 20, marginTop: -18 },
-  eyebrow: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 1.4 },
-  title: { fontFamily: 'Inter_700Bold', fontSize: 30, lineHeight: 34, letterSpacing: -1.2, marginTop: 6 },
-  body: { fontFamily: 'Inter_400Regular', fontSize: 14, lineHeight: 20, marginTop: 6 },
-  features: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
-  feature: { flexGrow: 1, flexBasis: '46%', flexDirection: 'row', alignItems: 'center', gap: 9, borderRadius: 16, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 10 },
-  featureIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  featureTitle: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12.5, lineHeight: 16, letterSpacing: -0.1 },
-  sectionTitle: { fontFamily: 'Inter_700Bold', fontSize: 17, letterSpacing: -0.4, marginTop: 18, marginBottom: 14 },
-  plans: { gap: 12 },
-  plan: { borderRadius: 22, borderWidth: 2, paddingHorizontal: 16, paddingVertical: 15, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  glowLayer: { ...StyleSheet.absoluteFill, borderRadius: 20, overflow: 'hidden' },
-  glowBlobA: { position: 'absolute', width: 150, height: 150, borderRadius: 75, right: 70, top: -40 },
-  glowBlobB: { position: 'absolute', width: 170, height: 170, borderRadius: 85, right: -40, bottom: -70 },
-  glowBlobLeft: { position: 'absolute', width: 160, height: 160, borderRadius: 80, left: -50, top: -60 },
-  sheen: { position: 'absolute', top: -30, bottom: -30, left: 0, width: 120 },
-  planBadge: { position: 'absolute', top: -11, left: 18, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  planBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.8 },
-  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  radioDot: { width: 12, height: 12, borderRadius: 6 },
-  planCopy: { flex: 1, minWidth: 0 },
-  planTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  planTitle: { fontFamily: 'Inter_700Bold', fontSize: 16, letterSpacing: -0.2 },
-  saveBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  saveBadgeText: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 0.4 },
-  planNote: { fontFamily: 'Inter_500Medium', fontSize: 13, marginTop: 4 },
-  planPriceColumn: { alignItems: 'flex-end' },
-  planStrike: { fontFamily: 'Inter_500Medium', fontSize: 12, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'] },
-  planPrice: { fontFamily: 'Inter_700Bold', fontSize: 20, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
-  planUnit: { fontFamily: 'Inter_500Medium', fontSize: 11, marginTop: 1 },
-  plansLoading: { borderRadius: 22, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, minHeight: 40 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  proPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
+  proText: { fontFamily: 'Inter_800ExtraBold', fontSize: 11, letterSpacing: 1, color: '#3A2600' },
+  close: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  hero: { alignItems: 'center', marginTop: 14 },
+  content: { paddingHorizontal: 20 },
+  heading: { alignItems: 'center', marginTop: 14 },
+  title: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 38, letterSpacing: -1.6, textAlign: 'center' },
+  body: { fontFamily: 'Inter_400Regular', fontSize: 14.5, lineHeight: 21, marginTop: 8, textAlign: 'center', maxWidth: 330 },
+  plans: { flexDirection: 'row', gap: 10, marginTop: 26 },
+  planWrap: { flex: 1 },
+  plan: { flex: 1, borderRadius: 26, borderWidth: 1.5, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 16, minHeight: 186 },
+  planSelected: { borderColor: 'transparent' },
+  planHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  planTitle: { flex: 1, fontFamily: 'Inter_800ExtraBold', fontSize: 15, letterSpacing: -0.3 },
+  check: { width: 22, height: 22, borderRadius: 7, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  planStrike: { fontFamily: 'Inter_500Medium', fontSize: 12, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'], marginTop: 16 },
+  strikeSpace: { height: 15, marginTop: 16 },
+  planPrice: { fontFamily: 'Inter_800ExtraBold', fontSize: 25, letterSpacing: -1, fontVariant: ['tabular-nums'], marginTop: 2 },
+  planUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  planFoot: { marginTop: 'auto', paddingTop: 12, gap: 6 },
+  planNote: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 16 },
+  planBadge: { position: 'absolute', top: -11, alignSelf: 'center', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  planBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 9.5, letterSpacing: 0.9 },
+  saveBadge: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  saveBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 0.4 },
+  plansLoading: { flex: 1, borderRadius: 26, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8 },
+  sectionTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 20, letterSpacing: -0.7, marginTop: 26, marginBottom: 10, paddingHorizontal: 2 },
+  features: { borderRadius: 26, borderWidth: 1, paddingHorizontal: 16 },
+  feature: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 14 },
+  featureIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  featureTitle: { fontFamily: 'Inter_700Bold', fontSize: 14.5, letterSpacing: -0.2 },
+  featureBody: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 16.5, marginTop: 2 },
   disclosure: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: 14, textAlign: 'center' },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   error: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, textAlign: 'center', marginBottom: 10 },
-  cta: { height: 58, borderRadius: 29, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  ctaText: { fontFamily: 'Inter_700Bold', fontSize: 16, letterSpacing: -0.2 },
+  ctaWrap: { borderRadius: 31 },
+  cta: { height: 62, borderRadius: 31, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 26, paddingRight: 8 },
+  ctaText: { fontFamily: 'Inter_800ExtraBold', fontSize: 17, letterSpacing: -0.2, color: '#FFFFFF' },
+  ctaArrow: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   renew: { fontFamily: 'Inter_500Medium', fontSize: 12, textAlign: 'center', marginTop: 10, fontVariant: ['tabular-nums'] },
   links: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', columnGap: 14, rowGap: 8, marginTop: 10, paddingHorizontal: 8 },
   link: { flexShrink: 1, textAlign: 'center', fontFamily: 'Inter_600SemiBold', fontSize: 11, lineHeight: 16 },
