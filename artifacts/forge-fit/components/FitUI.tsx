@@ -1,7 +1,8 @@
 import React, { ReactNode } from 'react';
 import { ActivityIndicator, Alert, Animated, Image, Linking, Modal, Platform, ScrollView, StyleProp, StyleSheet, Text, TextInput, TextStyle, View, ViewStyle } from 'react-native';
 import { AnimatedFill, PressableScale as Pressable, Reveal } from '@/components/Motion';
-import { offerWidgetAfterFirstPurchase } from '@/components/WidgetOffer';
+import { queueWidgetOffer } from '@/components/WidgetOffer';
+import { queueCoachKickoff } from '@/lib/coachKickoffStore';
 import { Paywall } from '@/components/Paywall';
 import { PremiumSuccessCelebration } from '@/components/WelcomeCelebration';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -247,7 +248,7 @@ export function PremiumOfferModal({ visible, onClose }: { visible: boolean; onCl
         }}
       />
     </Modal>
-    <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onClose(); if (purchasedRef.current) void offerWidgetAfterFirstPurchase(); }} />
+    <PremiumSuccessCelebration visible={purchaseCelebration} onDone={() => { setPurchaseCelebration(false); onClose(); if (purchasedRef.current) { queueCoachKickoff(); void queueWidgetOffer(); } }} />
   </>;
 }
 
