@@ -48,7 +48,7 @@ function useEntrance(delay: number, distance = 14) {
   }));
 }
 
-/** The PRO medal drifts a few pixels up and down so the page feels alive; still under reduced motion. */
+/** The GainMode Access medal drifts a few pixels up and down so the page feels alive; still under reduced motion. */
 function FloatingMedal({ size }: { size: number }) {
   const reduced = useReducedMotion();
   const drift = useSharedValue(0);
@@ -58,7 +58,7 @@ function FloatingMedal({ size }: { size: number }) {
   }, [drift, reduced]);
   const style = useAnimatedStyle(() => ({ transform: [{ translateY: -6 * drift.get() }, { rotate: `${-4 + drift.get() * 4}deg` }] }));
   return <Animated.View style={style}>
-    <Image source={require('@/assets/images/medals/pro.png')} resizeMode="contain" style={{ width: size, height: size }} />
+    <Image source={require('@/assets/images/medals/access.png')} resizeMode="contain" style={{ width: size, height: size }} />
   </Animated.View>;
 }
 
@@ -220,7 +220,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
       <View style={styles.topBar}>
         <View style={styles.brandRow}>
           <GainModeWordmark color={colors.foreground} width={128} height={17} />
-          <LinearGradient colors={['#F5C542', '#E39A1F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proPill}><Text style={styles.proText}>PRO</Text></LinearGradient>
+          <LinearGradient colors={['#F5C542', '#E39A1F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proPill}><Text style={styles.proText}>ACCESS</Text></LinearGradient>
         </View>
         {onClose ? <Pressable accessibilityLabel={t('close')} onPress={onClose} hitSlop={10} style={[styles.close, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name="close" size={18} color={colors.foreground} />
