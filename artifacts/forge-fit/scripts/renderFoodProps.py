@@ -1,5 +1,5 @@
 """Renders matte 3D props: the Nutrition page apple (assets/images/food/apple.png) and the Plan page dumbbell
-(assets/images/props/dumbbell.png).
+(assets/images/props/dumbbell.png, PROP=dumbbell) and kettlebell (assets/images/props/kettlebell.png, PROP=kettlebell).
 
 Run with Blender's Python module (pip install bpy):
   python scripts/renderFoodProps.py -- <out_dir> [size=640] [samples=128]
@@ -89,7 +89,39 @@ def dumbbell():
         cyl(0.082, 0.07, sign * 0.72, steel, 0.008)
     return parts
 
-if os.environ.get('PROP') == 'dumbbell':
+def kettlebell():
+    body_m = mat('#2F6BFF', 0.55, 0.3, 0.02)
+    handle_m = mat('#26304A', 0.45, 0.35, 0.02)
+    # a ball with a flat foot: from the foot rim up and over to the crown
+    pts = [(0.0, -0.42), (0.3, -0.42)]
+    start = math.asin(-0.40 / 0.48)
+    for i in range(1, 41):
+        theta = start + (i / 40) * (math.pi / 2 - start)
+        pts.append((max(0.0, 0.5 * math.cos(theta)), 0.48 * math.sin(theta)))
+    pts[-1] = (0.0, 0.48)
+    body = lathe('kb', pts, body_m)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.3, minor_radius=0.075, major_segments=96, minor_segments=32, location=(0, 0, 0.6), rotation=(math.radians(90), 0, 0))
+    handle = bpy.context.active_object; handle.scale = (1.0, 0.92, 1.0); handle.data.materials.append(handle_m); bpy.ops.object.shade_smooth()
+    return [body, handle]
+
+PROP = os.environ.get('PROP')
+if PROP == 'kettlebell':
+    sc = scene(); parts = kettlebell()
+    holder = bpy.data.objects.new('h', None); bpy.context.collection.objects.link(holder)
+    for p in parts: p.parent = holder
+    holder.rotation_euler = Euler((math.radians(8), 0, math.radians(-14)), 'XYZ')
+    cam = bpy.data.cameras.new('c'); cam.type = 'ORTHO'; cam.ortho_scale = 2.05
+    co = bpy.data.objects.new('cam', cam); bpy.context.collection.objects.link(co); sc.camera = co
+    co.location = (0, -4, 0.22); co.rotation_euler = (math.radians(90), 0, 0)
+    def area3(name, loc, energy, sz, color=(1, 1, 1)):
+        l = bpy.data.lights.new(name, 'AREA'); l.energy = energy; l.size = sz; l.color = color
+        o = bpy.data.objects.new(name, l); bpy.context.collection.objects.link(o); o.location = loc
+        o.rotation_euler = (Vector((0, 0, 0)) - Vector(loc)).to_track_quat('-Z', 'Y').to_euler()
+    area3('key', (-2.2, -2.6, 2.6), 650, 2.6); area3('fill', (2.6, -2.2, 1.2), 200, 3.0, (0.88, 0.92, 1.0)); area3('rim', (1.8, 2.2, 2.0), 260, 1.4)
+    sc.render.filepath = os.path.join(out_dir, 'kettlebell.png')
+    bpy.ops.render.render(write_still=True); print('rendered kettlebell'); sys.exit(0)
+
+if PROP == 'dumbbell':
     sc = scene(); parts = dumbbell()
     holder = bpy.data.objects.new('h', None); bpy.context.collection.objects.link(holder)
     for p in parts: p.parent = holder
