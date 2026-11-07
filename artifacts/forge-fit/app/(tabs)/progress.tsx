@@ -11,7 +11,7 @@ import { getWeeklySummary, type WeightOutcome } from '@/lib/weeklyAnalysis';
 import { daysUntilWeeklyAnalysis, isWeeklyAnalysisUnlocked } from '@/lib/weeklyEligibility';
 import { Header, Screen } from '@/components/FitUI';
 import { TodayWeightBar } from '@/components/TodayWeightBar';
-import { ProgressChartsButton } from '@/components/ProgressChartsSection';
+import { ChartStrip, WeekReport } from '@/components/ProgressReport';
 
 function formatChange(value: number | null) {
   if (value === null) return '—';
@@ -28,7 +28,7 @@ function outcomeCopy(outcome: WeightOutcome, t: (key: Parameters<typeof translat
 
 export default function ProgressScreen() {
   const colors = useColors();
-  const { language, weight, goalWeight, weightLogs, addWeight, profile, calorieGoal, meals, workouts, dumbbellWeightHistory, registeredAt } = useFit();
+  const { language, weight, goalWeight, weightLogs, addWeight, profile, calorieGoal, meals, workouts, dumbbellWeightHistory, registeredAt, activityLog } = useFit();
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const [launching, setLaunching] = React.useState(false);
   const launchProgress = React.useRef(new Animated.Value(0)).current;
@@ -50,26 +50,22 @@ export default function ProgressScreen() {
   return <Screen sky>
      <Header eyebrow={t('weeklyAiEyebrow')} title={t('weeklyAiTitle')} subtitle={t('weeklyAiSubtitle')} action={weeklyAnalysisUnlocked ? 'analytics-outline' : 'badge-lock'} actionDisabled={!weeklyAnalysisUnlocked || launching} onAction={requestAnalysis} />
     <Animated.View style={{ opacity: launchProgress.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.94, 0.55] }), transform: [{ translateY: launchProgress.interpolate({ inputRange: [0, 1], outputRange: [0, -18] }) }, { scale: launchProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0.94] }) }] }}>
-      <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroCard}>
-        <View style={styles.heroHeader}>
-          <View style={styles.heroEyebrowRow}><View style={[styles.liveDot, { backgroundColor: colors.success }]} /><Text style={[styles.heroEyebrow, { color: `${'#FFFFFF'}B8` }]}>{t('weeklyAiLive')}</Text></View>
-           <View style={[styles.weekPill, { backgroundColor: `${'#FFFFFF'}18`, borderColor: `${'#FFFFFF'}26` }]}><Ionicons name="analytics-outline" size={13} color={'#FFFFFF'} /><Text style={[styles.weekPillText, { color: '#FFFFFF' }]}>{t('weeklyAiLastSeven')}</Text></View>
-        </View>
-        <Text style={[styles.heroTitle, { color: '#FFFFFF' }]}>{t('weeklyAiCardTitle')}</Text>
-        <Text style={[styles.heroSubtitle, { color: `${'#FFFFFF'}B8` }]}>{t('weeklyAiCardSubtitle')}</Text>
-        {tracksWeight ? <View style={styles.heroWeightRow}>
-          <View style={{ flex: 1 }}><Text style={[styles.heroLabel, { color: `${'#FFFFFF'}A8` }]}>{t('weeklyWeightChange')}</Text><Text style={[styles.heroWeight, { color: '#FFFFFF' }]}>{formatChange(summary.weightChangeKg)}</Text><Text style={[styles.heroOutcome, { color: '#FFFFFF' }]}>{outcomeCopy(summary.weightOutcome, t)}</Text></View>
-          <View style={[styles.heroBadge, { backgroundColor: `${'#FFFFFF'}18`, borderColor: `${'#FFFFFF'}2C` }]}><Ionicons name={summary.weightOutcome === 'gained' ? 'trending-up-outline' : summary.weightOutcome === 'lost' ? 'trending-down' : 'analytics-outline'} size={28} color={'#FFFFFF'} /><Text style={[styles.heroBadgeText, { color: `${'#FFFFFF'}C2` }]}>{summary.currentWeightKg ? `${summary.currentWeightKg.toFixed(1)} kg` : '—'}</Text></View>
-        </View> : <View style={styles.muscleFocus}><View style={[styles.muscleFocusIcon, { backgroundColor: `${'#FFFFFF'}18` }]}><Ionicons name="barbell-outline" size={26} color={'#FFFFFF'} /></View><View style={{ flex: 1 }}><Text style={[styles.heroLabel, { color: `${'#FFFFFF'}A8` }]}>{t('weeklyMuscleFocus')}</Text><Text style={[styles.muscleFocusText, { color: '#FFFFFF' }]}>{t('weeklyMuscleSubtitle')}</Text></View></View>}
-        <Pressable testID="get-weekly-ai-analysis" accessibilityRole="button" accessibilityState={{ disabled: !weeklyAnalysisUnlocked || launching }} accessibilityLabel={t('weeklyAnalysisCta')} disabled={!weeklyAnalysisUnlocked || launching} onPress={requestAnalysis} style={({ pressed }) => [styles.analysisButton, { backgroundColor: '#FFFFFF', opacity: !weeklyAnalysisUnlocked ? 0.62 : pressed || launching ? 0.8 : 1 }]}>
-           <View style={[styles.analysisButtonIcon, { backgroundColor: `${'#123A8F'}14` }]}><Ionicons name={launching ? 'arrow-up' : weeklyAnalysisUnlocked ? 'trending-up-outline' : 'badge-lock'} size={17} color={'#123A8F'} /></View>
-          <Text style={[styles.analysisButtonText, { color: '#123A8F' }]}>{launching ? t('weeklyAnalysisSending') : weeklyAnalysisUnlocked ? t('weeklyAnalysisCta') : t('weeklyAnalysisUnlockIn').replace('{days}', String(weeklyAnalysisDays))}</Text>
-          {!launching ? <Ionicons name={weeklyAnalysisUnlocked ? 'arrow-forward' : 'badge-lock'} size={17} color={'#123A8F'} /> : <Ionicons name="ellipsis-horizontal" size={17} color={'#123A8F'} />}
-        </Pressable>
-      </LinearGradient>
+      <WeekReport
+        language={language}
+        summary={summary}
+        weightLogs={weightLogs}
+        startWeight={profile?.weight ?? weight ?? null}
+        registeredAt={registeredAt}
+        activityLog={activityLog}
+        tracksWeight={tracksWeight}
+        unlocked={weeklyAnalysisUnlocked}
+        daysLeft={weeklyAnalysisDays}
+        launching={launching}
+        onRequest={requestAnalysis}
+      />
     </Animated.View>
 
-    <ProgressChartsButton />
+    <ChartStrip language={language} weightLogs={weightLogs} startWeight={profile?.weight ?? weight ?? null} registeredAt={registeredAt} activityLog={activityLog} meals={meals} calorieGoal={calorieGoal} />
 
      <TodayWeightBar language={language} tracksWeight={tracksWeight} onSave={addWeight} logs={weightLogs} fallbackWeight={weight} goalWeight={goalWeight} testID="progress-add-today-weight" />
   </Screen>;
