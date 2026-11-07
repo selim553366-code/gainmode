@@ -159,7 +159,6 @@ export default function PlanScreen() {
     triggerHaptic();
     router.push({ pathname: '/workout-session', params: { workoutId: active.id } });
   };
-  const ratio = active && active.exercises.length ? completedCount / active.exercises.length : 0;
   const preview = active?.exercises.slice(0, 4) ?? [];
   const hidden = (active?.exercises.length ?? 0) - preview.length;
 
@@ -177,42 +176,53 @@ export default function PlanScreen() {
       </View>
 
       {active ? <>
-        <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 0.9, y: 1 }} style={styles.session}>
-          <View style={styles.sessionTop}>
+        {/* The session as a ticket: a date stub torn off by a perforated edge, the admission on the right. */}
+        <View style={[styles.session, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.ticketHead}>
+            <View style={styles.stub}>
+              <Text style={[styles.stubDay, { color: colors.accent }]}>{(isToday ? copy.today : t(dayLabels[activeDay])).toLocaleUpperCase(language)}</Text>
+              <Text style={[styles.stubDate, { color: colors.foreground }]}>{weekDates()[weekDays.indexOf(activeDay)]}</Text>
+            </View>
+            <View style={styles.perfV}>
+              {Array.from({ length: 9 }, (_, i) => <View key={i} style={[styles.perfDash, { backgroundColor: colors.border }]} />)}
+            </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={[styles.sessionEyebrow, { color: `${'#FFFFFF'}99` }]}>{isToday ? copy.today.toLocaleUpperCase(language) : t(dayLabels[activeDay]).toLocaleUpperCase(language)}</Text>
-              <Text style={[styles.sessionTitle, { color: '#FFFFFF' }]}>{label(active.name)}</Text>
+              <Text numberOfLines={2} style={[styles.sessionTitle, { color: colors.foreground }]}>{label(active.name)}</Text>
               <View style={styles.metaRow}>
-                <View style={[styles.meta, { backgroundColor: `${'#FFFFFF'}14` }]}><Clock size={12} color={'#FFFFFF'} strokeWidth={2.2} /><Text style={[styles.metaText, { color: '#FFFFFF' }]}>{active.duration} {t('minutesShort')}</Text></View>
-                <View style={[styles.meta, { backgroundColor: `${'#FFFFFF'}14` }]}><Dumbbell size={12} color={'#FFFFFF'} strokeWidth={2.2} /><Text style={[styles.metaText, { color: '#FFFFFF' }]}>{active.exercises.length} {t('exercises')}</Text></View>
+                <View style={[styles.meta, { backgroundColor: `${colors.accent}12` }]}><Clock size={12} color={colors.accent} strokeWidth={2.2} /><Text style={[styles.metaText, { color: colors.foreground }]}>{active.duration} {t('minutesShort')}</Text></View>
+                <View style={[styles.meta, { backgroundColor: `${colors.accent}12` }]}><Dumbbell size={12} color={colors.accent} strokeWidth={2.2} /><Text style={[styles.metaText, { color: colors.foreground }]}>{active.exercises.length} {t('exercises')}</Text></View>
               </View>
             </View>
-            <ProgressRing value={ratio} size={78} stroke={7} color="#FFFFFF" gradientTo="#A7F0C8" track={`${'#FFFFFF'}1A`}>
-              <Text style={[styles.ringValue, { color: '#FFFFFF' }]}>{completedCount}</Text>
-              <Text style={[styles.ringTotal, { color: `${'#FFFFFF'}99` }]}>/ {active.exercises.length}</Text>
-            </ProgressRing>
           </View>
 
-          {active.focusAreas?.length ? <View style={styles.focusRow}>
-            {active.focusAreas.map((group) => <View key={group} style={[styles.focusChip, { borderColor: `${'#FFFFFF'}2E` }]}><Text style={[styles.focusChipText, { color: `${'#FFFFFF'}CC` }]}>{t(muscleGroupLabels[group])}</Text></View>)}
-          </View> : null}
+          <View style={styles.tearRow}>
+            <View style={[styles.notch, styles.notchLeft, { backgroundColor: `${colors.accent}14` }]} />
+            <View style={styles.tearLine}>{Array.from({ length: 22 }, (_, i) => <View key={i} style={[styles.tearDash, { backgroundColor: colors.border }]} />)}</View>
+            <View style={[styles.notch, styles.notchRight, { backgroundColor: `${colors.accent}14` }]} />
+          </View>
 
-          <View style={[styles.list, { borderTopColor: `${'#FFFFFF'}14` }]}>
+          <View style={styles.setsHead}>
+            {active.focusAreas?.length ? <Text numberOfLines={1} style={[styles.focusLine, { color: colors.mutedForeground }]}>{active.focusAreas.map((group) => t(muscleGroupLabels[group])).join(' · ')}</Text> : <View style={{ flex: 1 }} />}
+            <Text style={[styles.setsCount, { color: colors.foreground }]}>{completedCount}<Text style={{ color: colors.mutedForeground }}>/{active.exercises.length}</Text></Text>
+          </View>
+          <View style={styles.segments}>
+            {active.exercises.map((exercise) => <View key={exercise.id} style={[styles.segment, { backgroundColor: exercise.completed ? colors.success : `${colors.foreground}14` }]} />)}
+          </View>
+
+          <View style={styles.list}>
             {preview.map((exercise, index) => <View key={exercise.id} style={styles.listRow}>
-              <View style={[styles.listIndex, { backgroundColor: exercise.completed ? colors.success : `${'#FFFFFF'}14` }]}>
-                {exercise.completed ? <Check size={12} color="#FFFFFF" strokeWidth={3} /> : <Text style={[styles.listIndexText, { color: '#FFFFFF' }]}>{index + 1}</Text>}
-              </View>
-              <Text numberOfLines={1} style={[styles.listName, { color: '#FFFFFF', opacity: exercise.completed ? 0.55 : 1 }]}>{label(exercise.name)}</Text>
-              <Text style={[styles.listSets, { color: `${'#FFFFFF'}99` }]}>{exercise.sets} × {exercise.reps}</Text>
+              <Text style={[styles.listIndexText, { color: exercise.completed ? colors.success : colors.mutedForeground }]}>{exercise.completed ? '✓' : String(index + 1).padStart(2, '0')}</Text>
+              <Text numberOfLines={1} style={[styles.listName, { color: colors.foreground, opacity: exercise.completed ? 0.5 : 1, textDecorationLine: exercise.completed ? 'line-through' : 'none' }]}>{label(exercise.name)}</Text>
+              <Text style={[styles.listSets, { color: colors.mutedForeground }]}>{exercise.sets} × {exercise.reps}</Text>
             </View>)}
-            {hidden > 0 ? <Text style={[styles.more, { color: `${'#FFFFFF'}80` }]}>{copy.more.replace('{n}', String(hidden))}</Text> : null}
+            {hidden > 0 ? <Text style={[styles.more, { color: colors.mutedForeground }]}>{copy.more.replace('{n}', String(hidden))}</Text> : null}
           </View>
 
-          <Pressable testID="start-planned-workout" accessibilityRole="button" accessibilityLabel={t('startWorkout')} onPress={startWorkout} scaleTo={0.97} style={[styles.cta, { backgroundColor: '#FFFFFF' }]}>
-            <Text style={[styles.ctaText, { color: '#123A8F' }]}>{active.completed ? copy.done : completedCount > 0 ? copy.resume : t('startWorkout')}</Text>
+          <Pressable testID="start-planned-workout" accessibilityRole="button" accessibilityLabel={t('startWorkout')} onPress={startWorkout} scaleTo={0.97} style={[styles.cta, { backgroundColor: colors.foreground }]}>
+            <Text style={[styles.ctaText, { color: colors.background }]}>{active.completed ? copy.done : completedCount > 0 ? copy.resume : t('startWorkout')}</Text>
             <View style={[styles.ctaArrow, { backgroundColor: colors.accent }]}>{active.completed ? <Check size={17} color="#FFFFFF" strokeWidth={3} /> : <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.4} />}</View>
           </Pressable>
-        </LinearGradient>
+        </View>
 
         <View testID="live-form-analysis-bar" style={[styles.live, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.liveTop}>
@@ -271,25 +281,34 @@ const styles = StyleSheet.create({
   stopDay: { fontFamily: 'Inter_600SemiBold', fontSize: 10 },
   stopDate: { fontFamily: 'Inter_700Bold', fontSize: 13, marginTop: 1 },
   todayDot: { width: 4, height: 4, borderRadius: 2, marginTop: 4 },
-  session: { borderRadius: 34, padding: 22, overflow: 'hidden', marginBottom: 14 },
-  sessionTop: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  sessionEyebrow: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.4 },
-  sessionTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, letterSpacing: -1.6, marginTop: 6 },
-  metaRow: { flexDirection: 'row', gap: 6, marginTop: 12 },
+  session: { borderRadius: 30, borderWidth: 1, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 18, marginBottom: 14 },
+  ticketHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  stub: { width: 58, alignItems: 'center' },
+  stubDay: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 1.2 },
+  stubDate: { fontFamily: 'Inter_800ExtraBold', fontSize: 40, letterSpacing: -2, lineHeight: 44, marginTop: 2 },
+  perfV: { alignSelf: 'stretch', justifyContent: 'space-between', paddingVertical: 2 },
+  perfDash: { width: 2, height: 6, borderRadius: 1 },
+  sessionTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 26, letterSpacing: -1.1, lineHeight: 29 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   metaText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  ringValue: { fontFamily: 'Inter_800ExtraBold', fontSize: 22, letterSpacing: -0.8 },
-  ringTotal: { fontFamily: 'Inter_500Medium', fontSize: 10, marginTop: -2 },
-  focusRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 16 },
-  focusChip: { borderRadius: 999, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 5 },
-  focusChipText: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  list: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 18, paddingTop: 14, gap: 11 },
-  listRow: { flexDirection: 'row', alignItems: 'center', gap: 11 },
-  listIndex: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  listIndexText: { fontFamily: 'Inter_700Bold', fontSize: 11 },
+  tearRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: -18, marginVertical: 16 },
+  notch: { width: 11, height: 22 },
+  notchLeft: { borderTopRightRadius: 11, borderBottomRightRadius: 11 },
+  notchRight: { borderTopLeftRadius: 11, borderBottomLeftRadius: 11 },
+  tearLine: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 8 },
+  tearDash: { width: 6, height: 2, borderRadius: 1 },
+  setsHead: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
+  focusLine: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  setsCount: { fontFamily: 'Inter_800ExtraBold', fontSize: 15, letterSpacing: -0.4 },
+  segments: { flexDirection: 'row', gap: 4, marginTop: 8 },
+  segment: { flex: 1, height: 6, borderRadius: 3 },
+  list: { marginTop: 16, gap: 12 },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  listIndexText: { width: 20, fontFamily: 'Inter_700Bold', fontSize: 12, fontVariant: ['tabular-nums'] },
   listName: { flex: 1, fontFamily: 'Inter_600SemiBold', fontSize: 14 },
   listSets: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
-  more: { fontFamily: 'Inter_500Medium', fontSize: 12, marginLeft: 35 },
+  more: { fontFamily: 'Inter_500Medium', fontSize: 12, marginLeft: 32 },
   cta: { height: 62, borderRadius: 31, marginTop: 20, flexDirection: 'row', alignItems: 'center', paddingLeft: 26, paddingRight: 8 },
   ctaText: { flex: 1, fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2, color: '#123A8F' },
   ctaArrow: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
