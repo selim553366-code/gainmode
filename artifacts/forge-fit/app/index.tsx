@@ -939,19 +939,22 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
   const sway = useSharedValue(0);
   const rise = useSharedValue(reduced ? 1 : 0);
   const hello = useSharedValue(reduced ? 1 : 0);
+  const sheet = useSharedValue(reduced ? 1 : 0);
   const leave = useSharedValue(0);
   const [leaving, setLeaving] = React.useState(false);
   const [stage, setStage] = React.useState({ width: 0, height: 0 });
   React.useEffect(() => {
     if (reduced) return;
     rise.set(withDelay(120, withSpring(1, { damping: 15, stiffness: 120 })));
+    sheet.set(withDelay(60, withSpring(1, { damping: 18, stiffness: 130 })));
     hello.set(withDelay(900, withSpring(1, { damping: 11, stiffness: 200 })));
     sway.set(withDelay(900, withRepeat(withTiming(1, { duration: 2600, easing: ReEasing.inOut(ReEasing.sin) }), -1, true)));
-  }, [hello, reduced, rise, sway]);
+  }, [hello, reduced, rise, sheet, sway]);
   const mascotStyle = useAnimatedStyle(() => ({
     opacity: Math.min(1, rise.get() * 1.5),
     transform: [{ translateY: (1 - rise.get()) * 70 - sway.get() * 5 }, { rotate: `${-1.5 + sway.get() * 3}deg` }],
   }));
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - sheet.get()) * 160 }] }));
   const helloStyle = useAnimatedStyle(() => ({ opacity: hello.get(), transform: [{ scale: 0.6 + hello.get() * 0.4 }, { rotate: '-6deg' }] }));
   const pageStyle = useAnimatedStyle(() => ({ opacity: 1 - leave.get() * 0.4, transform: [{ translateX: -leave.get() * width * 0.35 }, { scale: 1 - leave.get() * 0.04 }] }));
   const start = () => {
@@ -989,11 +992,24 @@ function WelcomeScreen({ onStart }: { onStart: () => void }) {
           </ReAnimated.View>
         </> : null}
       </View>
-      <View style={[ui.welcomeSheet, { backgroundColor: dark ? colors.card : '#FFFFFF', borderColor: dark ? colors.border : 'transparent' }]}>
-        {words.map((line, index) => <Rise key={line} delay={300 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.accent : colors.foreground }]}>{line}</Text></Rise>)}
-        <Rise delay={470}><Text style={[ui.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeHeroSubtitle')}</Text></Rise>
-        <Rise delay={560}><OnboardingCTA testID="onboarding-start" label={t('welcomeHeroStart')} onPress={start} disabled={leaving} /></Rise>
-      </View>
+      <ReAnimated.View style={[ui.welcomeSheet, { backgroundColor: dark ? colors.card : '#FFFFFF', borderColor: dark ? colors.border : 'transparent', paddingBottom: insets.bottom + 14 }, sheetStyle]}>
+        <View style={[ui.sheetHandle, { backgroundColor: `${colors.foreground}22` }]} />
+        <Rise delay={260}><View style={ui.readyRow}>
+          <View style={ui.plateStack}>
+            {(['red', 'blue', 'yellow'] as const).map((tone, index) => <Image key={tone} source={BUMPER_PLATES[tone]} resizeMode="contain" style={[ui.plateStackItem, { marginLeft: index === 0 ? 0 : -9, zIndex: 3 - index }]} />)}
+          </View>
+          <Text numberOfLines={1} style={[ui.readyText, { color: colors.mutedForeground }]}>{t('welcomeReady')}</Text>
+        </View></Rise>
+        {words.map((line, index) => <Rise key={line} delay={320 + index * 90}><Text style={[ui.welcomeTitle, { color: index === words.length - 1 ? colors.accent : colors.foreground }]}>{line}</Text></Rise>)}
+        <Rise delay={490}><Text style={[ui.welcomeSubtitle, { color: colors.mutedForeground }]}>{t('welcomeHeroSubtitle')}</Text></Rise>
+        <Rise delay={570}>
+          <Pressable testID="onboarding-start" accessibilityRole="button" disabled={leaving} onPress={() => { triggerHaptic(); start(); }} scaleTo={0.98} style={[ui.startButton, { backgroundColor: colors.accent, opacity: leaving ? 0.7 : 1 }]}>
+            <Text style={[ui.startText, { color: colors.accentForeground }]}>{t('welcomeHeroStart')}</Text>
+            <View style={[ui.startArrow, { backgroundColor: colors.accentForeground }]}><Ionicons name="arrow-forward" size={19} color={colors.accent} /></View>
+          </Pressable>
+        </Rise>
+        <Rise delay={640}><Text numberOfLines={1} adjustsFontSizeToFit style={[ui.featureLine, { color: colors.mutedForeground }]}>{t('welcomeFeatureLine')}</Text></Rise>
+      </ReAnimated.View>
     </ReAnimated.View>
   </View>;
 }
@@ -1783,9 +1799,18 @@ const ui = StyleSheet.create({
   helloBubble: { position: 'absolute', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
   helloText: { fontFamily: 'Inter_800ExtraBold', fontSize: 14, letterSpacing: -0.2 },
   helloTail: { position: 'absolute', left: 14, bottom: -5, width: 12, height: 12, borderRadius: 2, transform: [{ rotate: '45deg' }] },
-  welcomeSheet: { borderTopLeftRadius: 34, borderTopRightRadius: 34, borderWidth: 1, borderBottomWidth: 0, paddingTop: 26, shadowColor: '#0B2A66', shadowOpacity: 0.12, shadowRadius: 24, shadowOffset: { width: 0, height: -8 }, elevation: 12 },
-  welcomeTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 38, letterSpacing: -1.5, textAlign: 'center', paddingHorizontal: 24 },
-  welcomeSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 10, marginBottom: 6, paddingHorizontal: 32 },
+  welcomeSheet: { borderTopLeftRadius: 34, borderTopRightRadius: 34, borderWidth: 1, borderBottomWidth: 0, paddingTop: 10, paddingHorizontal: 20, shadowColor: '#0B2A66', shadowOpacity: 0.12, shadowRadius: 24, shadowOffset: { width: 0, height: -8 }, elevation: 12 },
+  sheetHandle: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, marginBottom: 16 },
+  readyRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 14 },
+  plateStack: { flexDirection: 'row', alignItems: 'center' },
+  plateStackItem: { width: 26, height: 26 },
+  readyText: { flexShrink: 1, fontFamily: 'Inter_600SemiBold', fontSize: 13 },
+  startButton: { height: 60, borderRadius: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 26, paddingRight: 7, marginTop: 18 },
+  startText: { fontFamily: 'Inter_800ExtraBold', fontSize: 17, letterSpacing: -0.2 },
+  startArrow: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  featureLine: { fontFamily: 'Inter_500Medium', fontSize: 12, textAlign: 'center', marginTop: 12 },
+  welcomeTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 38, letterSpacing: -1.5, textAlign: 'center', paddingHorizontal: 4 },
+  welcomeSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 10, paddingHorizontal: 12 },
   modeBody: { flex: 1, paddingHorizontal: 24, paddingTop: 28 },
   modeHero: { borderRadius: 28, padding: 20 },
   modeHeroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
