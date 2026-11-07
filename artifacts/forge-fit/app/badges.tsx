@@ -1,7 +1,6 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { Ionicons } from '@/components/AppIcon';
 import { Header, Screen } from '@/components/FitUI';
@@ -25,40 +24,49 @@ export default function BadgesScreen() {
   const upcoming = nextBadge(metrics, unlockedBadgeIds);
   const filters: Filter[] = ['all', 'training', 'consistency', 'nutrition', 'progress'];
   const visible = badges.filter((badge) => filter === 'all' || badge.category === filter);
+  const SHELF = 5;
+  const shelfEarned = earned.slice(-SHELF).map((badge) => ({ badge, locked: false }));
+  const shelf = [...shelfEarned, ...badges.filter((badge) => !unlockedBadgeIds.includes(badge.id)).slice(0, SHELF - shelfEarned.length).map((badge) => ({ badge, locked: true }))];
 
   return <>
     <Screen sky bottomPadding={90}>
       <Header eyebrow={ui('eyebrow')} title={ui('title')} subtitle={ui('subtitle')} action="close-outline" onAction={() => router.back()} />
 
       <Pressable testID="open-badge-wall" accessibilityRole="button" onPress={() => router.push('/badge-wall')} scaleTo={0.985}>
-        <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+        {/* The collection as a trophy shelf: the latest medals stand on a ledge, empty spots wait as locked ones. */}
+        <View style={[styles.hero, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.heroTop}>
             <View>
-              <Text style={[styles.heroLabel, { color: `${'#FFFFFF'}A8` }]}>{ui('collection').toUpperCase()}</Text>
-              <Text style={[styles.heroValue, { color: '#FFFFFF' }]}>{earned.length}<Text style={[styles.heroTotal, { color: `${'#FFFFFF'}80` }]}> / {badges.length}</Text></Text>
+              <Text style={[styles.heroLabel, { color: colors.mutedForeground }]}>{ui('collection').toUpperCase()}</Text>
+              <Text style={[styles.heroValue, { color: colors.foreground }]}>{earned.length}<Text style={[styles.heroTotal, { color: colors.mutedForeground }]}> / {badges.length}</Text></Text>
             </View>
-            <View style={styles.heroMedals}>
-              {earned.slice(-3).map((badge, index) => <View key={badge.id} style={{ marginLeft: index ? -22 : 0, zIndex: 3 - index }}><BadgeMedal badge={badge} size={60} /></View>)}
+            <View style={[styles.wallLink, { backgroundColor: `${colors.foreground}0D` }]}>
+              <Ionicons name="badge-collection" size={14} color={colors.foreground} />
+              <Text style={[styles.wallLinkText, { color: colors.foreground }]}>{ui('wall')}</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.mutedForeground} />
             </View>
+          </View>
+          <View style={styles.shelf}>
+            {shelf.map(({ badge, locked }) => <View key={badge.id} style={styles.shelfSlot}>
+              <View style={{ opacity: locked ? 0.45 : 1 }}><BadgeMedal badge={badge} size={54} locked={locked} /></View>
+            </View>)}
+          </View>
+          <View style={[styles.ledge, { backgroundColor: colors.colorScheme === 'dark' ? '#2A3550' : '#DCE6F5' }]}>
+            <View style={[styles.ledgeEdge, { backgroundColor: colors.colorScheme === 'dark' ? '#1B2338' : '#C3D2EA' }]} />
           </View>
           <View style={styles.tierRow}>
             {BADGE_TIERS.map((tier) => {
               const total = badges.filter((badge) => badge.tier === tier).length;
               const got = earned.filter((badge) => badge.tier === tier).length;
               return <View key={tier} style={styles.tierStat}>
-                <View style={[styles.tierBar, { backgroundColor: `${'#FFFFFF'}1F` }]}>
+                <View style={[styles.tierBar, { backgroundColor: `${colors.foreground}12` }]}>
                   <View style={[styles.tierBarFill, { width: `${(got / total) * 100}%`, backgroundColor: tierAccent[tier] }]} />
                 </View>
-                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[styles.tierStatText, { color: `${'#FFFFFF'}C2` }]}>{badgeText(badgeUi[tier], language)} {got}/{total}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[styles.tierStatText, { color: colors.mutedForeground }]}>{badgeText(badgeUi[tier], language)} {got}/{total}</Text>
               </View>;
             })}
           </View>
-          <View style={[styles.wallLink, { borderTopColor: `${'#FFFFFF'}1F` }]}>
-            <Ionicons name="badge-collection" size={16} color={'#FFFFFF'} />
-            <Text style={[styles.wallLinkText, { color: '#FFFFFF' }]}>{ui('wall')}</Text>
-            <Ionicons name="chevron-forward" size={16} color={`${'#FFFFFF'}A8`} />
-          </View>
-        </LinearGradient>
+        </View>
       </Pressable>
 
       {upcoming ? <Pressable testID="next-badge" accessibilityRole="button" onPress={() => setSelected(upcoming)} scaleTo={0.985} style={[styles.next, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -97,19 +105,22 @@ export default function BadgesScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { borderRadius: 34, padding: 22, marginBottom: 14, overflow: 'hidden' },
-  heroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  hero: { borderRadius: 30, borderWidth: 1, paddingTop: 18, paddingHorizontal: 18, paddingBottom: 16, marginBottom: 14, overflow: 'hidden' },
+  heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   heroLabel: { fontFamily: 'Inter_700Bold', fontSize: 10, letterSpacing: 1.2 },
-  heroValue: { fontFamily: 'Inter_800ExtraBold', fontSize: 52, letterSpacing: -2.6, marginTop: 2 },
-  heroTotal: { fontSize: 20, letterSpacing: -0.4 },
-  heroMedals: { flexDirection: 'row' },
+  heroValue: { fontFamily: 'Inter_800ExtraBold', fontSize: 46, letterSpacing: -2.2, marginTop: 2 },
+  heroTotal: { fontSize: 18, letterSpacing: -0.4 },
+  shelf: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', marginTop: 8, paddingHorizontal: 4 },
+  shelfSlot: { alignItems: 'center', marginBottom: -3 },
+  ledge: { height: 10, borderRadius: 5, marginHorizontal: -6, overflow: 'hidden', justifyContent: 'flex-end' },
+  ledgeEdge: { height: 4 },
   tierRow: { flexDirection: 'row', gap: 6, marginTop: 16 },
   tierStat: { flex: 1 },
   tierBar: { height: 4, borderRadius: 2, overflow: 'hidden' },
   tierBarFill: { height: '100%', borderRadius: 2 },
   tierStatText: { fontFamily: 'Inter_600SemiBold', fontSize: 9, marginTop: 6 },
-  wallLink: { flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 16, paddingTop: 14 },
-  wallLinkText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 13 },
+  wallLink: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 7, marginTop: 2 },
+  wallLinkText: { fontFamily: 'Inter_700Bold', fontSize: 12 },
   next: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 30, borderWidth: 1, padding: 14, marginBottom: 18, overflow: 'hidden' },
   nextPedestal: { width: 92, height: 92, borderRadius: 46, alignItems: 'center', justifyContent: 'center' },
   nextBody: { flex: 1, minWidth: 0 },
