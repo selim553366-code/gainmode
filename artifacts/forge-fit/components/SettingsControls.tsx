@@ -114,8 +114,10 @@ export function SettingsGroup({ title, children, footer }: { title?: string; chi
 }
 
 /** One-line settings row: icon chip, title, optional detail and value, and a chevron when it navigates. */
-export function SettingsRow({ icon, title, detail, value, accessory, onPress, destructive = false, chevron = Boolean(onPress), testID, children }: {
+export function SettingsRow({ icon, title, detail, value, accessory, onPress, destructive = false, chevron = Boolean(onPress), testID, children, tone }: {
   icon: IconName;
+  /** Colour of the row's icon tile; defaults to the app accent. */
+  tone?: string;
   title: string;
   detail?: string;
   value?: string;
@@ -129,9 +131,10 @@ export function SettingsRow({ icon, title, detail, value, accessory, onPress, de
 }) {
   const colors = useColors();
   const tint = destructive ? colors.destructive : colors.foreground;
+  const iconTone = destructive ? colors.destructive : tone ?? colors.accent;
   const content = <>
     <View style={styles.row}>
-      <View style={[styles.rowIcon, { backgroundColor: destructive ? `${colors.destructive}18` : colors.secondary }]}><Ionicons name={icon} size={17} color={tint} /></View>
+      <View style={[styles.rowIcon, { backgroundColor: `${iconTone}1C` }]}><Ionicons name={icon} size={17} color={iconTone} /></View>
       <View style={styles.rowCopy}>
         <Text style={[styles.rowTitle, { color: tint }]}>{title}</Text>
         {detail ? <Text style={[styles.rowDetail, { color: colors.mutedForeground }]}>{detail}</Text> : null}
@@ -180,16 +183,16 @@ const TRACK_PADDING = 4;
 
 const styles = StyleSheet.create({
   group: { marginBottom: 24 },
-  groupTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 11, letterSpacing: 1.2, marginBottom: 8, marginLeft: 4 },
-  groupCard: { borderRadius: 20, borderWidth: 1, overflow: 'hidden' },
+  groupTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 11, letterSpacing: 1.3, marginBottom: 10, marginLeft: 6 },
+  groupCard: { borderRadius: 26, borderWidth: 1, overflow: 'hidden' },
   // The hairline starts under the row titles, not under the icons, as in iOS lists.
-  groupDivider: { height: StyleSheet.hairlineWidth, marginLeft: 60 },
+  groupDivider: { height: StyleSheet.hairlineWidth, marginLeft: 66 },
   groupFooter: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 8, marginHorizontal: 4 },
-  rowWrap: { paddingHorizontal: 14, paddingVertical: 12 },
+  rowWrap: { paddingHorizontal: 16, paddingVertical: 13 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 34 },
-  rowIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   rowCopy: { flex: 1, minWidth: 0 },
-  rowTitle: { fontFamily: 'Inter_600SemiBold', fontSize: 15, letterSpacing: -0.2 },
+  rowTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, letterSpacing: -0.25 },
   rowDetail: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 17, marginTop: 2 },
   rowValue: { fontFamily: 'Inter_500Medium', fontSize: 14 },
   confirmRoot: { flex: 1, justifyContent: 'flex-end', padding: 12, backgroundColor: '#000000A6' },
