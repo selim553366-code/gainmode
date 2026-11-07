@@ -428,14 +428,27 @@ export default function NutritionScreen() {
 
     <View style={styles.actions}>
       <Pressable testID="camera-scan" accessibilityRole="button" onPress={openMealCamera} scaleTo={0.97} style={styles.cameraAction}>
-        <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.cameraActionFill}>
-          <Image source={require('@/assets/images/food/apple.png')} resizeMode="contain" style={styles.cameraApple} />
-          <View style={styles.cameraIcon}><Camera size={22} color="#FFFFFF" strokeWidth={2.2} /></View>
-          <View style={{ minWidth: 0 }}>
-            <Text style={styles.cameraTitle}>{t('scanMeal')}</Text>
-            <Text numberOfLines={3} style={styles.cameraHint}>{t('mealCaptureHint')}</Text>
+        <View style={[styles.cameraActionFill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          {/* Viewfinder: corner brackets frame the 3D apple like a camera locking focus. */}
+          {(['tl', 'tr', 'bl', 'br'] as const).map((corner) => (
+            <View key={corner} pointerEvents="none" style={[styles.finderCorner, styles[`finder_${corner}`], { borderColor: colors.accent }]} />
+          ))}
+          <View style={styles.finderTop}>
+            <View style={[styles.finderChip, { backgroundColor: `${colors.accent}14` }]}>
+              <View style={[styles.finderDot, { backgroundColor: colors.accent }]} />
+              <Text style={[styles.finderChipText, { color: colors.accent }]}>AI</Text>
+            </View>
           </View>
-        </LinearGradient>
+          <Image source={require('@/assets/images/food/apple.png')} resizeMode="contain" style={styles.cameraApple} />
+          <View style={[styles.finderLine, { backgroundColor: colors.accent }]} pointerEvents="none" />
+          <View style={styles.finderBottom}>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text numberOfLines={1} style={[styles.cameraTitle, { color: colors.foreground }]}>{t('scanMeal')}</Text>
+              <Text numberOfLines={2} style={[styles.cameraHint, { color: colors.mutedForeground }]}>{t('mealCaptureHint')}</Text>
+            </View>
+            <View style={[styles.cameraIcon, { backgroundColor: colors.foreground }]}><Camera size={19} color={colors.background} strokeWidth={2.3} /></View>
+          </View>
+        </View>
       </Pressable>
       <View style={styles.sideActions}>
         <Pressable testID="barcode-scan" accessibilityRole="button" onPress={openBarcodeScanner} style={[styles.sideAction, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -546,11 +559,22 @@ const styles = StyleSheet.create({
   macros: { flexDirection: 'row' },
   actions: { flexDirection: 'row', gap: 10, marginBottom: 18 },
   cameraAction: { flex: 1.35 },
-  cameraActionFill: { flex: 1, minHeight: 150, borderRadius: 32, padding: 18, justifyContent: 'space-between', overflow: 'hidden' },
-  cameraApple: { position: 'absolute', right: 6, top: 8, width: 74, height: 74, transform: [{ rotate: '10deg' }] },
-  cameraIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  cameraTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 19, letterSpacing: -0.6, color: '#FFFFFF', marginTop: 10 },
-  cameraHint: { fontFamily: 'Inter_400Regular', fontSize: 10.5, lineHeight: 14, color: 'rgba(255,255,255,0.78)', marginTop: 3 },
+  cameraActionFill: { flex: 1, minHeight: 168, borderRadius: 30, borderWidth: 1, padding: 16, justifyContent: 'space-between', overflow: 'hidden' },
+  finderCorner: { position: 'absolute', width: 20, height: 20 },
+  finder_tl: { top: 10, left: 10, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: 12 },
+  finder_tr: { top: 10, right: 10, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: 12 },
+  finder_bl: { bottom: 10, left: 10, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: 12 },
+  finder_br: { bottom: 10, right: 10, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: 12 },
+  finderTop: { flexDirection: 'row', justifyContent: 'flex-start', paddingLeft: 8, paddingTop: 4 },
+  finderChip: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  finderDot: { width: 6, height: 6, borderRadius: 3 },
+  finderChipText: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 0.6 },
+  finderLine: { position: 'absolute', left: 26, right: 26, top: 62, height: 1.5, borderRadius: 1, opacity: 0.35 },
+  finderBottom: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingHorizontal: 4, paddingBottom: 2 },
+  cameraApple: { position: 'absolute', right: 26, top: 20, width: 58, height: 58, transform: [{ rotate: '8deg' }] },
+  cameraIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  cameraTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 18, letterSpacing: -0.6 },
+  cameraHint: { fontFamily: 'Inter_500Medium', fontSize: 10.5, lineHeight: 13.5, marginTop: 2 },
   sideActions: { flex: 1, gap: 10 },
   sideAction: { flex: 1, borderRadius: 28, borderWidth: 1, paddingLeft: 9, paddingRight: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   sideIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
