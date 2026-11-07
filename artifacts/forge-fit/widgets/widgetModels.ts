@@ -3,23 +3,23 @@ import { getCurrentStreak, getStreakCalendar } from '@/lib/streak';
 import { badgeProgress, badges, countOnTargetDays, nextBadge, type BadgeMetrics } from '@/lib/badges';
 import { quoteOfTheDay } from '@/lib/widgetQuotes';
 import { widgetFirstName } from './widgetSchedule';
+import { fireTier } from '@/lib/streakFire';
+import { mealDateKey } from '@/lib/nutritionDates';
 
+// The home-screen set, in picker order. Earlier widget names that stayed keep working for anyone who placed them.
 export const GAINMODE_WIDGETS = [
-  'TodayProgress',
-  'Breathe',
-  'Streak',
+  'Calories',
   'StartWorkout',
+  'Streak',
   'WeeklyConsistency',
-  'Motivation',
   'NextGoal',
-  'Performance',
-  'GoodNight',
-  'Daily',
+  'Motivation',
 ] as const;
 
 export type GainModeWidgetName = (typeof GAINMODE_WIDGETS)[number];
 
 type WidgetWorkout = {
+  id?: string;
   day?: string;
   name?: string;
   duration?: number;
@@ -35,8 +35,11 @@ export type WidgetSnapshot = {
   streakDates: string[];
   achievementStats: { workouts: number; minutes: number; exercises: number; meals: number; weightLogs: number };
   unlockedBadgeIds: string[];
-  meals: { calories: number; date?: string }[];
+  meals: { calories: number; protein?: number; carbs?: number; fat?: number; date?: string }[];
   calorieGoal: number | null;
+  proteinGoal: number | null;
+  carbsGoal: number | null;
+  fatGoal: number | null;
 };
 
 const languages: Language[] = ['tr', 'en', 'de', 'fr', 'es'];
@@ -65,6 +68,9 @@ export function parseWidgetSnapshot(value: string | null): WidgetSnapshot {
     unlockedBadgeIds: Array.isArray(raw.unlockedBadgeIds) ? raw.unlockedBadgeIds : [],
     meals: Array.isArray(raw.meals) ? raw.meals : [],
     calorieGoal: Number.isFinite(raw.calorieGoal) ? Number(raw.calorieGoal) : null,
+    proteinGoal: Number.isFinite(raw.proteinGoal) ? Number(raw.proteinGoal) : null,
+    carbsGoal: Number.isFinite(raw.carbsGoal) ? Number(raw.carbsGoal) : null,
+    fatGoal: Number.isFinite(raw.fatGoal) ? Number(raw.fatGoal) : null,
   };
 }
 
@@ -73,6 +79,15 @@ function dateKey(date: Date) {
 }
 
 const weekdayKeys = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+// Monday-first short day names for the week widget; Intl is not reliable in the Android widget task.
+const shortDays: Record<Language, string[]> = {
+  tr: ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'],
+  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  de: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'],
+  fr: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
+  es: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+};
+const tierKeys = { spark: 'streakTierSpark', blaze: 'streakTierBlaze', inferno: 'streakTierInferno', legend: 'streakTierLegend' } as const;
 
 export function createWidgetModel(snapshot: WidgetSnapshot, now = new Date()) {
   const today = dateKey(now);
@@ -126,8 +141,46 @@ export function createWidgetModel(snapshot: WidgetSnapshot, now = new Date()) {
     ? Math.round(((currentWeekMinutes - previousWeekMinutes) / previousWeekMinutes) * 100)
     : null;
 
+  // Today's food against the targets, for the calories widget.
+  const todayMeals = snapshot.meals.filter((meal) => mealDateKey(meal.date, now) === today);
+  const eaten = (key: 'calories' | 'protein' | 'carbs' | 'fat') => Math.round(todayMeals.reduce((sum, meal) => sum + (Number(meal[key]) || 0), 0));
+  const caloriesEaten = eaten('calories');
+  const calorieGoal = snapshot.calorieGoal && snapshot.calorieGoal > 0 ? Math.round(snapshot.calorieGoal) : null;
+  const macros = ([
+    ['protein', snapshot.proteinGoal],
+    ['carbs', snapshot.carbsGoal],
+    ['fat', snapshot.fatGoal],
+  ] as const).map(([key, goal]) => ({ key, eaten: eaten(key), goal: goal && goal > 0 ? Math.round(goal) : null }));
+
+  // This Monday-to-Sunday week as the plan sees it: which days train, which are done, which is today.
+  const mondayOffset = (now.getDay() + 6) % 7;
+  const planWeek = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayOffset + index, 12);
+    const workout = snapshot.workouts.find((item) => item.day === weekdayKeys[date.getDay()]);
+    return {
+      label: shortDays[snapshot.language][index],
+      dayNumber: date.getDate(),
+      isToday: index === mondayOffset,
+      hasWorkout: Boolean(workout),
+      done: Boolean(workout?.completed),
+    };
+  });
+  const tier = fireTier(currentStreak);
+
   return {
     language: snapshot.language,
+    caloriesEaten,
+    calorieGoal,
+    caloriesLeft: calorieGoal === null ? null : Math.max(0, calorieGoal - caloriesEaten),
+    calorieProgress: calorieGoal ? Math.min(1, caloriesEaten / calorieGoal) : 0,
+    macros,
+    planWeek,
+    workoutsDoneThisWeek: planWeek.filter((day) => day.done).length,
+    workoutsThisWeek: planWeek.filter((day) => day.hasWorkout).length,
+    streakTier: tier,
+    streakTierLabel: tier === 'none' ? '' : translate(snapshot.language, tierKeys[tier]),
+    nextBadgeId: next?.id ?? null,
+    nextBadgeTier: next?.tier ?? null,
     firstName: widgetFirstName(snapshot.username),
     todayWorkout,
     nextWorkout,

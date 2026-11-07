@@ -1,10 +1,20 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Appearance } from 'react-native';
 import { FlexWidget, TextWidget, requestWidgetUpdate } from 'react-native-android-widget';
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
 import { GAINMODE_WIDGETS, parseWidgetSnapshot, type GainModeWidgetName, createWidgetModel } from './widgetModels';
 import { WidgetCard } from './WidgetCards';
 import { widgetCopy } from './widgetCopy';
+
+// Widgets from the previous set that someone may still have on the home screen, mapped to their closest new card.
+const LEGACY_WIDGETS: Record<string, GainModeWidgetName> = {
+  Daily: 'StartWorkout',
+  TodayProgress: 'StartWorkout',
+  Breathe: 'Motivation',
+  Performance: 'WeeklyConsistency',
+  GoodNight: 'Streak',
+};
 
 // Android invokes this handler on add, resize, periodic refresh, and requested updates.
 export async function widgetTaskHandler({ widgetAction, widgetInfo, renderWidget }: WidgetTaskHandlerProps) {
@@ -15,8 +25,8 @@ export async function widgetTaskHandler({ widgetAction, widgetInfo, renderWidget
     refreshHint = widgetCopy[snapshot.language].refreshHint;
     const name = GAINMODE_WIDGETS.includes(widgetInfo.widgetName as GainModeWidgetName)
       ? widgetInfo.widgetName as GainModeWidgetName
-      : 'Motivation';
-    renderWidget(<WidgetCard name={name} model={createWidgetModel(snapshot)} size={{ width: widgetInfo.width, height: widgetInfo.height }} />);
+      : LEGACY_WIDGETS[widgetInfo.widgetName] ?? 'Motivation';
+    renderWidget(<WidgetCard name={name} model={createWidgetModel(snapshot)} size={{ width: widgetInfo.width, height: widgetInfo.height }} darkMode={Appearance.getColorScheme() === 'dark'} />);
   } catch (error) {
     console.error('[GainMode] Android widget render failed', error);
     renderWidget(
@@ -36,8 +46,9 @@ export async function widgetTaskHandler({ widgetAction, widgetInfo, renderWidget
 export async function refreshGainModeWidgets() {
   const snapshot = parseWidgetSnapshot(await AsyncStorage.getItem('forge-fit-state'));
   const model = createWidgetModel(snapshot);
+  const darkMode = Appearance.getColorScheme() === 'dark';
   await Promise.all(GAINMODE_WIDGETS.map((widgetName) => requestWidgetUpdate({
     widgetName,
-    renderWidget: (info) => <WidgetCard name={widgetName} model={model} size={{ width: info.width, height: info.height }} />,
+    renderWidget: (info) => <WidgetCard name={widgetName} model={model} size={{ width: info.width, height: info.height }} darkMode={darkMode} />,
   })));
 }

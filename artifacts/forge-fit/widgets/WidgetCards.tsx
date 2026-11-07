@@ -3,19 +3,46 @@
 import React from 'react';
 import { FlexWidget, ImageWidget, OverlapWidget, SvgWidget, TextWidget } from 'react-native-android-widget';
 import type { ColorProp } from 'react-native-android-widget';
+import type { Language } from '@/lib/i18n';
+import { badgeMedalImages } from '@/lib/badgeMedalImages';
 import type { GainModeWidgetName, WidgetModel } from './widgetModels';
-import { widgetCopy } from './widgetCopy';
-import { dailyWidgetCard, performancePaths } from './widgetSchedule';
 
-const mascot = require('../assets/images/coach-thumbs-up-no-bg.png');
-const blue = '#2563EB';
-const ink = '#102C59';
+// Artwork shared with the app: the Blender kettlebell, FitBud, and the streak campfire.
+const kettlebell = require('../assets/images/widgets/v2/kettlebell.png');
+const fitbud = require('../assets/images/widgets/v2/fitbud.png');
+const fire = require('../assets/images/widgets/v2/fire.png');
 
-function Label({ text, size = 12, color = ink as ColorProp, bold = false }: { text: string; size?: number; color?: ColorProp; bold?: boolean }) {
-  return <TextWidget text={text} style={{ fontSize: size, fontWeight: bold ? '700' : '500', color }} />;
+// Inter ships with the widget (react-native-android-widget `fonts`), so numbers match the app.
+const HEAVY = 'Inter_800ExtraBold';
+const SEMI = 'Inter_600SemiBold';
+
+type Palette = { card: ColorProp; ink: ColorProp; muted: ColorProp; accent: ColorProp; track: ColorProp; success: ColorProp; button: ColorProp; buttonText: ColorProp; buttonKey: ColorProp; buttonArrow: ColorProp };
+const light: Palette = { card: '#FFFFFF', ink: '#0B1530', muted: '#5B6B88', accent: '#2563EB', track: '#E6EDF8', success: '#22C55E', button: '#0B1530', buttonText: '#FFFFFF', buttonKey: '#FFFFFF', buttonArrow: '#0B1530' };
+const dark: Palette = { card: '#141619', ink: '#FFFFFF', muted: '#9AA4B8', accent: '#3B82F6', track: '#2A2F3A', success: '#22C55E', button: '#FFFFFF', buttonText: '#0B1530', buttonKey: '#2563EB', buttonArrow: '#FFFFFF' };
+
+const copy: Record<Language, {
+  calories: string; kcalLeft: string; kcalOver: string; setGoal: string; protein: string; carbs: string; fat: string;
+  todaysWorkout: string; start: string; done: string; rest: string; next: string; min: string; exercises: string;
+  streak: string; days: string; startStreak: string; week: string; nextBadge: string; toGo: string; allBadges: string;
+}> = {
+  tr: { calories: 'KALORİ', kcalLeft: 'kcal kaldı', kcalOver: 'kcal fazla', setGoal: 'Hedefini belirle', protein: 'Protein', carbs: 'Karb.', fat: 'Yağ', todaysWorkout: 'BUGÜNÜN ANTRENMANI', start: 'Başla', done: 'Tamamlandı', rest: 'Dinlenme günü', next: 'Sıradaki', min: 'dk', exercises: 'hareket', streak: 'SERİ', days: 'gün', startStreak: 'Bugün başla', week: 'BU HAFTA', nextBadge: 'SIRADAKİ ROZET', toGo: 'kaldı', allBadges: 'Tüm rozetler senin' },
+  en: { calories: 'CALORIES', kcalLeft: 'kcal left', kcalOver: 'kcal over', setGoal: 'Set your goal', protein: 'Protein', carbs: 'Carbs', fat: 'Fat', todaysWorkout: 'TODAY’S WORKOUT', start: 'Start', done: 'Done', rest: 'Rest day', next: 'Next', min: 'min', exercises: 'exercises', streak: 'STREAK', days: 'days', startStreak: 'Start today', week: 'THIS WEEK', nextBadge: 'NEXT BADGE', toGo: 'to go', allBadges: 'Every badge is yours' },
+  de: { calories: 'KALORIEN', kcalLeft: 'kcal übrig', kcalOver: 'kcal drüber', setGoal: 'Ziel festlegen', protein: 'Protein', carbs: 'Kohlenh.', fat: 'Fett', todaysWorkout: 'HEUTIGES TRAINING', start: 'Start', done: 'Erledigt', rest: 'Ruhetag', next: 'Nächstes', min: 'Min.', exercises: 'Übungen', streak: 'SERIE', days: 'Tage', startStreak: 'Heute starten', week: 'DIESE WOCHE', nextBadge: 'NÄCHSTES ABZEICHEN', toGo: 'übrig', allBadges: 'Alle Abzeichen gehören dir' },
+  fr: { calories: 'CALORIES', kcalLeft: 'kcal restantes', kcalOver: 'kcal en trop', setGoal: 'Fixe ton objectif', protein: 'Protéines', carbs: 'Glucides', fat: 'Lipides', todaysWorkout: 'SÉANCE DU JOUR', start: 'Go', done: 'Terminé', rest: 'Jour de repos', next: 'Prochaine', min: 'min', exercises: 'exercices', streak: 'SÉRIE', days: 'jours', startStreak: 'Commence aujourd’hui', week: 'CETTE SEMAINE', nextBadge: 'PROCHAIN BADGE', toGo: 'restants', allBadges: 'Tous les badges sont à toi' },
+  es: { calories: 'CALORÍAS', kcalLeft: 'kcal restantes', kcalOver: 'kcal de más', setGoal: 'Fija tu objetivo', protein: 'Proteína', carbs: 'Carbos', fat: 'Grasa', todaysWorkout: 'ENTRENO DE HOY', start: 'Empezar', done: 'Hecho', rest: 'Día de descanso', next: 'Siguiente', min: 'min', exercises: 'ejercicios', streak: 'RACHA', days: 'días', startStreak: 'Empieza hoy', week: 'ESTA SEMANA', nextBadge: 'PRÓXIMA INSIGNIA', toGo: 'restantes', allBadges: 'Todas las insignias son tuyas' },
+};
+type Copy = (typeof copy)['en'];
+type Size = { width: number; height: number };
+
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, Math.round(value)));
+const tierColor: Record<string, string> = { bronze: '#C98C54', silver: '#9AA4B8', gold: '#E8B23A', platinum: '#7FA6CC', legendary: '#9B6BF0' };
+
+function Text({ text, size, color, heavy = false, lines = 1, align }: { text: string; size: number; color: ColorProp; heavy?: boolean; lines?: number; align?: 'left' | 'center' | 'right' }) {
+  return <TextWidget text={text} maxLines={lines} truncate="END" style={{ fontSize: size, fontFamily: heavy ? HEAVY : SEMI, color, textAlign: align, letterSpacing: heavy ? -0.02 : 0 }} />;
 }
 
-function Base({ children, route, dark = false }: { children: React.ReactNode; route: string; dark?: boolean }) {
+/** The widget surface: rounded card, tap target, and an optional gradient instead of the plain card colour. */
+function Shell({ route, background, gradient, children, padding = 14 }: { route: string; background: ColorProp; gradient?: { from: ColorProp; to: ColorProp }; children: React.ReactNode; padding?: number }) {
   return (
     <FlexWidget
       clickAction="OPEN_URI"
@@ -23,11 +50,11 @@ function Base({ children, route, dark = false }: { children: React.ReactNode; ro
       style={{
         width: 'match_parent',
         height: 'match_parent',
-        padding: 16,
-        borderRadius: 24,
+        padding,
+        borderRadius: 26,
         flexDirection: 'column',
         justifyContent: 'space-between',
-        backgroundColor: dark ? blue : '#EEF6FF',
+        ...(gradient ? { backgroundGradient: { from: gradient.from, to: gradient.to, orientation: 'TL_BR' } } : { backgroundColor: background }),
       }}
     >
       {children}
@@ -35,236 +62,238 @@ function Base({ children, route, dark = false }: { children: React.ReactNode; ro
   );
 }
 
-function MascotRow({ title, value, dark = false }: { title: string; value: string; dark?: boolean }) {
+function Bar({ width, height = 6, progress, color, track }: { width: number; height?: number; progress: number; color: ColorProp; track: ColorProp }) {
+  const fill = Math.round(width * Math.max(0, Math.min(1, progress)));
   return (
-    <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-      <FlexWidget style={{ flexDirection: 'column' }}>
-        <Label text={title} size={12} color={dark ? '#DCEAFF' : '#456284'} bold />
-        <Label text={value} size={22} color={dark ? '#FFFFFF' : ink} bold />
-      </FlexWidget>
-      <ImageWidget image={mascot} imageWidth={68} imageHeight={68} resizeMode="contain" style={{ width: 68, height: 68 }} />
+    <FlexWidget style={{ width, height, borderRadius: height / 2, backgroundColor: track, flexDirection: 'row' }}>
+      {fill > 0 ? <FlexWidget style={{ width: Math.max(height, fill), height, borderRadius: height / 2, backgroundColor: color }} /> : null}
     </FlexWidget>
   );
 }
 
-type Size = { width: number; height: number };
-type Copy = (typeof widgetCopy)['en'];
-
-/**
- * Background artwork for the picture cards: pixel size and the colours along its top and bottom edges.
- * A widget wider than the artwork crops its top and bottom; a narrower one shows it whole, with bands
- * painted in those edge colours above and below so nothing important is cut off.
- */
-const art = {
-  night: { image: require('../assets/images/widgets/widget-night.jpg'), w: 842, h: 512, top: ['#BFD3FA', '#C3D5FB', '#D8E4FE', '#E1E9FC', '#D7E3FA'], bottom: ['#BACDF2', '#B6C8EE', '#CDDBF6', '#CAD9F8', '#D0DEF8'] },
-  goal: { image: require('../assets/images/widgets/widget-goal.jpg'), w: 1208, h: 484, top: ['#022A7A', '#05266D', '#133785', '#234292', '#304B9A'], bottom: ['#022A79', '#0E388C', '#3E7CD7', '#2D5CB7', '#4C9BFD'] },
-  performance: { image: require('../assets/images/widgets/widget-performance.jpg'), w: 424, h: 516, top: ['#D4E3FB', '#DCE7FD', '#DEE9FD', '#DCE7FB', '#CEE1FA'], bottom: ['#C2D4F7', '#CBDBFA', '#CDDCFA', '#CEDDFB', '#CFDFF9'] },
-  stronger: { image: require('../assets/images/widgets/widget-stronger.jpg'), w: 946, h: 320, top: ['#BFD7FB', '#D0E0FC', '#E3EBFE', '#D5E2FC', '#DEE9FC'], bottom: ['#C4DBFB', '#6E8FCB', '#C8D8F8', '#DEE7FD', '#D7E2FD'] },
-  start: { image: require('../assets/images/widgets/widget-start.jpg'), w: 792, h: 288, top: ['#EEF5FC', '#E2EAFD', '#DFEAFE', '#E2EAFD', '#D8E5FA'], bottom: ['#DDE8FB', '#D3E1FB', '#D3E1FC', '#D8E4FE', '#D5E3F9'] },
-} as const;
-type Art = (typeof art)[keyof typeof art];
-
-/** Where the artwork lands inside the widget, so text can sit beside the mascot at any size. */
-function placeArt(item: Art, size: Size) {
-  const wider = size.width / size.height >= item.w / item.h;
-  const mode: 'cover' | 'contain' = wider ? 'cover' : 'contain';
-  const scale = mode === 'cover' ? Math.max(size.width / item.w, size.height / item.h) : Math.min(size.width / item.w, size.height / item.h);
-  const offsetX = (size.width - item.w * scale) / 2;
-  const offsetY = (size.height - item.h * scale) / 2;
-  return { mode, x: (px: number) => Math.round(px * scale + offsetX), y: (py: number) => Math.round(py * scale + offsetY) };
+/** A progress ring drawn as SVG: the calorie share of today's goal. */
+function ringSvg(size: number, stroke: number, progress: number, color: string, track: string) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const dash = Math.max(0, Math.min(1, progress)) * c;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${track}" stroke-width="${stroke}"/><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${size / 2} ${size / 2})"/></svg>`;
 }
 
-const fill = (template: string, values: Record<string, string | number>) =>
-  template.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key] ?? ''));
-
-const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, Math.round(value)));
-
-function edgeBands(item: Art, size: Size) {
-  const stops = (colors: readonly string[]) => colors.map((color, index) => `<stop offset="${index / (colors.length - 1)}" stop-color="${color}"/>`).join('');
-  const half = size.height / 2;
-  const id = `e${item.w}`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size.width}" height="${size.height}" viewBox="0 0 ${size.width} ${size.height}"><defs><linearGradient id="${id}t" x1="0" y1="0" x2="1" y2="0">${stops(item.top)}</linearGradient><linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="0">${stops(item.bottom)}</linearGradient></defs><rect width="${size.width}" height="${half + 1}" fill="url(#${id}t)"/><rect y="${half}" width="${size.width}" height="${half}" fill="url(#${id}b)"/></svg>`;
-}
-
-/** A picture card: the artwork edge to edge, with live text laid over it. */
-function ArtCard({ item, size, route, children }: { item: Art; size: Size; route: string; children: React.ReactNode }) {
-  const placed = placeArt(item, size);
+function CaloriesCard({ model, t, p, size }: { model: WidgetModel; t: Copy; p: Palette; size: Size }) {
+  const inner = size.width - 28;
+  const wide = size.width >= 230;
+  const ring = clamp(Math.min(size.height * 0.36, inner * 0.36), 40, 76);
+  const over = model.calorieGoal !== null && model.caloriesEaten > model.calorieGoal;
+  const big = model.calorieGoal === null ? '—' : String(over ? model.caloriesEaten - model.calorieGoal : model.caloriesLeft ?? 0);
+  const bigSize = clamp(Math.min(size.height * 0.24, (inner - ring) * 0.3), 22, 40);
+  const barWidth = Math.max(40, Math.round(wide ? inner * 0.5 : inner - 52));
+  const colors: Record<string, ColorProp> = { protein: p.accent, carbs: p.success, fat: '#FF6A2B' };
   return (
-    <OverlapWidget
-      clickAction="OPEN_URI"
-      clickActionData={{ uri: `forge-fit://${route}` }}
-      style={{ width: 'match_parent', height: 'match_parent', borderRadius: 24, overflow: 'hidden' }}
-    >
-      {placed.mode === 'contain' ? <SvgWidget svg={edgeBands(item, size)} style={{ width: size.width, height: size.height }} /> : null}
-      <ImageWidget
-        image={item.image}
-        imageWidth={size.width}
-        imageHeight={size.height}
-        resizeMode={placed.mode}
-        radius={24}
-        style={{ width: 'match_parent', height: 'match_parent' }}
-      />
-      {children}
-    </OverlapWidget>
-  );
-}
-
-/** A column of text placed in a box of the widget (left/top/right/bottom in dp). */
-function TextBox({ box, children, justify = 'center' }: { box: { left: number; top: number; right: number; bottom: number }; children: React.ReactNode; justify?: 'center' | 'flex-start' | 'flex-end' | 'space-between' }) {
-  return (
-    <FlexWidget style={{ width: 'match_parent', height: 'match_parent', paddingLeft: Math.max(0, box.left), paddingTop: Math.max(0, box.top), paddingRight: Math.max(0, box.right), paddingBottom: Math.max(0, box.bottom), flexDirection: 'column', justifyContent: justify }}>
-      {children}
-    </FlexWidget>
-  );
-}
-
-function Line({ text, size, color, bold = false, lines = 1 }: { text: string; size: number; color: ColorProp; bold?: boolean; lines?: number }) {
-  return <TextWidget text={text} maxLines={lines} truncate="END" style={{ fontSize: size, fontWeight: bold ? '800' : '600', color }} />;
-}
-
-function GoodNightCard({ model, t, size }: { model: WidgetModel; t: Copy; size: Size }) {
-  const placed = placeArt(art.night, size);
-  const left = placed.x(492);
-  const width = size.width - left - 14;
-  const headline = model.isNight
-    ? (model.firstName ? fill(t.goodNightName, { name: model.firstName }) : t.goodNight)
-    : t.recovery;
-  const today = model.activeMinutes > 0
-    ? `${t.today}: ${model.activeMinutes} ${t.minutes} · ${model.activeCalories} ${t.calories}`
-    : model.currentStreak > 0 ? fill(t.streakDays, { count: model.currentStreak }) : t.recovery;
-  const tomorrow = `${t.tomorrow}: ${model.tomorrowWorkoutName || t.restShort}`;
-  const big = clamp(Math.min(size.height * 0.13, width * 0.11), 13, 22);
-  return (
-    <ArtCard item={art.night} size={size} route="breathe">
-      <TextBox box={{ left, top: Math.max(placed.y(150), 12), right: 14, bottom: 12 }}>
-        <Line text={headline} size={big} color={ink} bold lines={2} />
-        <Line text={today} size={clamp(big * 0.58, 10, 13)} color="#365A8C" />
-        <Line text={tomorrow} size={clamp(big * 0.58, 10, 13)} color={blue} bold />
-      </TextBox>
-    </ArtCard>
-  );
-}
-
-function NextGoalCard({ model, t, size }: { model: WidgetModel; t: Copy; size: Size }) {
-  const placed = placeArt(art.goal, size);
-  const right = Math.max(size.width - placed.x(600), size.width * 0.42);
-  const width = size.width - right - 16;
-  const unitKey = model.nextBadgeMetric === 'streak' || model.nextBadgeMetric === 'activeDays' || model.nextBadgeMetric === 'onTargetDays'
-    ? 'days'
-    : model.nextBadgeMetric ?? 'workouts';
-  const big = clamp(Math.min(size.height * 0.17, width * 0.13), 14, 28);
-  const progress = Math.max(0.04, Math.min(1, model.nextBadgeProgress));
-  return (
-    <ArtCard item={art.goal} size={size} route="badge-wall">
-      <TextBox box={{ left: 16, top: 14, right, bottom: 14 }} justify="space-between">
-        <Line text={t.yourNextGoal} size={clamp(big * 0.45, 10, 13)} color="#BFD5FF" bold />
-        {model.nextBadge ? (
-          <FlexWidget style={{ flexDirection: 'column' }}>
-            <Line text={fill(t.remaining, { count: model.nextBadgeRemaining, unit: t.units[unitKey] })} size={big} color="#FFFFFF" bold lines={2} />
-            <Line text={fill(t.toUnlock, { badge: model.nextBadgeTitle })} size={clamp(big * 0.5, 10, 14)} color="#DCE8FF" lines={2} />
-          </FlexWidget>
-        ) : (
-          <Line text={t.allBadges} size={big} color="#FFFFFF" bold lines={2} />
-        )}
-        <FlexWidget style={{ width: Math.max(40, Math.round(width)), height: 6, borderRadius: 3, backgroundColor: 'rgba(255, 255, 255, 0.22)', flexDirection: 'row' }}>
-          <FlexWidget style={{ width: Math.max(6, Math.round(width * progress)), height: 6, borderRadius: 3, backgroundColor: '#FBBF24' }} />
-        </FlexWidget>
-      </TextBox>
-    </ArtCard>
-  );
-}
-
-function PerformanceCard({ model, t, size }: { model: WidgetModel; t: Copy; size: Size }) {
-  const placed = placeArt(art.performance, size);
-  const chartWidth = Math.max(60, size.width - 28);
-  const chartHeight = Math.max(28, Math.round(size.height * 0.3));
-  const { line, area, last } = performancePaths(model.performanceBars, chartWidth, chartHeight, 5);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${chartWidth}" height="${chartHeight}" viewBox="0 0 ${chartWidth} ${chartHeight}"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3B82F6" stop-opacity="0.28"/><stop offset="1" stop-color="#3B82F6" stop-opacity="0"/></linearGradient></defs><path d="${area}" fill="url(#g)"/><path d="${line}" fill="none" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${last.x.toFixed(1)}" cy="${last.y.toFixed(1)}" r="4" fill="#FFFFFF" stroke="#2563EB" stroke-width="2.5"/></svg>`;
-  const change = model.performanceChange;
-  const headline = change === null ? `${model.currentWeekMinutes} ${t.minutes}` : `${change > 0 ? '+' : ''}${change}%`;
-  const caption = change === null ? t.firstWeek : `${t.vsLastWeek} · ${model.currentWeekMinutes} ${t.minutes}`;
-  const big = clamp(Math.min(size.height * 0.2, size.width * 0.2), 18, 34);
-  return (
-    <ArtCard item={art.performance} size={size} route="progress-charts">
-      <TextBox box={{ left: 14, top: Math.max(placed.y(150), 40), right: 14, bottom: 12 }} justify="space-between">
+    <Shell route="nutrition" background={p.card}>
+      <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <FlexWidget style={{ flexDirection: 'column' }}>
-          <Line text={headline} size={big} color={change !== null && change < 0 ? '#B45309' : ink} bold />
-          <Line text={caption} size={clamp(big * 0.36, 9, 12)} color="#456284" lines={2} />
+          <Text text={t.calories} size={10} color={p.muted} heavy />
+          <Text text={big} size={bigSize} color={over ? '#FF6A2B' : p.ink} heavy />
+          <Text text={model.calorieGoal === null ? t.setGoal : over ? t.kcalOver : t.kcalLeft} size={11} color={p.muted} />
         </FlexWidget>
-        <SvgWidget svg={svg} style={{ width: chartWidth, height: chartHeight }} />
-      </TextBox>
-    </ArtCard>
+        <OverlapWidget style={{ width: ring, height: ring }}>
+          <SvgWidget svg={ringSvg(ring, Math.max(5, Math.round(ring * 0.13)), model.calorieProgress, String(over ? '#FF6A2B' : p.accent), String(p.track))} style={{ width: ring, height: ring }} />
+          <FlexWidget style={{ width: ring, height: ring, alignItems: 'center', justifyContent: 'center' }}>
+            <Text text={`${Math.round(model.calorieProgress * 100)}%`} size={clamp(ring * 0.24, 10, 16)} color={p.ink} heavy />
+          </FlexWidget>
+        </OverlapWidget>
+      </FlexWidget>
+      <FlexWidget style={{ width: 'match_parent', flexDirection: 'column' }}>
+        {model.macros.map((macro) => (
+          <FlexWidget key={macro.key} style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
+            <Text text={t[macro.key]} size={10} color={p.muted} />
+            <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Bar width={barWidth} height={5} progress={macro.goal ? macro.eaten / macro.goal : 0} color={colors[macro.key]} track={p.track} />
+              {wide ? <FlexWidget style={{ marginLeft: 8 }}><Text text={macro.goal ? `${macro.eaten}/${macro.goal} g` : `${macro.eaten} g`} size={10} color={p.ink} /></FlexWidget> : null}
+            </FlexWidget>
+          </FlexWidget>
+        ))}
+      </FlexWidget>
+    </Shell>
   );
 }
 
-function StrongerCard({ model, t, size }: { model: WidgetModel; t: Copy; size: Size }) {
-  const placed = placeArt(art.stronger, size);
-  const left = Math.max(placed.x(548), 0);
-  const width = size.width - left - 14;
-  const headline = model.activeToday
-    ? (model.firstName ? fill(t.strongerName, { name: model.firstName }) : t.stronger)
-    : (model.firstName ? fill(t.keepStreakName, { name: model.firstName }) : t.keepStreak);
-  const streak = model.currentStreak > 0 ? fill(t.streakDays, { count: model.currentStreak }) : t.startStreak;
-  const big = clamp(Math.min(size.height * 0.16, width * 0.1), 12, 21);
-  return (
-    <ArtCard item={art.stronger} size={size} route="streak">
-      <TextBox box={{ left, top: 10, right: 14, bottom: 10 }}>
-        <Line text={headline} size={big} color={ink} bold lines={2} />
-        <Line text={width > 190 ? `🔥 ${streak} · ${model.totalWorkouts} ${t.units.workouts}` : `🔥 ${streak}`} size={clamp(big * 0.62, 10, 13)} color={blue} bold />
-      </TextBox>
-    </ArtCard>
-  );
-}
-
-function StartWorkoutCard({ model, t, size }: { model: WidgetModel; t: Copy; size: Size }) {
-  const placed = placeArt(art.start, size);
-  const left = placed.x(300);
-  const right = Math.max(size.width - placed.x(624), 12);
-  const width = size.width - left - right;
+function StartWorkoutCard({ model, t, p, size }: { model: WidgetModel; t: Copy; p: Palette; size: Size }) {
   const workout = model.todayWorkout;
-  const title = workout ? model.todayWorkoutName : t.restShort;
-  const detail = !workout
-    ? `${t.next}: ${model.nextWorkoutName || t.restShort}`
-    : workout.completed
-      ? `✓ ${t.doneToday}`
-      : `${model.todayWorkoutDuration} ${t.minutes} · ${model.completedExercises}/${model.exerciseCount} ${t.units.exercises}`;
-  const big = clamp(Math.min(size.height * 0.2, width * 0.11), 12, 20);
+  const pending = Boolean(workout && !workout.completed);
+  const art = clamp(Math.min(size.height * 0.78, size.width * 0.3), 52, 120);
+  const inner = size.width - 28 - art - 8;
+  const titleSize = clamp(Math.min(size.height * 0.15, inner * 0.11), 15, 24);
+  const route = pending && workout?.id ? `workout-session?workoutId=${encodeURIComponent(workout.id)}` : 'plan';
+  const title = workout ? model.todayWorkoutName : t.rest;
+  const meta = !workout
+    ? `${t.next}: ${model.nextWorkoutName || t.rest}`
+    : `${model.todayWorkoutDuration} ${t.min} · ${model.exerciseCount} ${t.exercises}`;
+  const segments = Math.max(1, Math.min(12, model.exerciseCount));
+  const segGap = 3;
+  const segWidth = Math.max(4, Math.floor((inner - 34 - segGap * (segments - 1)) / segments));
   return (
-    <ArtCard item={art.start} size={size} route="plan">
-      <TextBox box={{ left, top: 8, right, bottom: 8 }}>
-        <Line text={workout && !workout.completed ? t.start : t.today} size={clamp(big * 0.6, 9, 12)} color={blue} bold />
-        <Line text={title} size={big} color={ink} bold lines={2} />
-        <Line text={detail} size={clamp(big * 0.62, 9, 12)} color="#456284" />
-      </TextBox>
-    </ArtCard>
+    <Shell route={route} background={p.card}>
+      <FlexWidget style={{ width: 'match_parent', height: 'match_parent', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <FlexWidget style={{ width: inner, height: 'match_parent', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <FlexWidget style={{ flexDirection: 'column' }}>
+            <Text text={t.todaysWorkout} size={10} color={p.accent} heavy />
+            <Text text={title} size={titleSize} color={p.ink} heavy lines={1} />
+            <Text text={meta} size={11} color={p.muted} />
+          </FlexWidget>
+          {workout ? (
+            <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center' }}>
+              {Array.from({ length: segments }, (_, index) => (
+                <FlexWidget key={index} style={{ width: segWidth, height: 6, borderRadius: 3, marginRight: index < segments - 1 ? segGap : 0, backgroundColor: index < Math.round((model.completedExercises / Math.max(1, model.exerciseCount)) * segments) ? p.success : p.track }} />
+              ))}
+              <FlexWidget style={{ marginLeft: 8 }}><Text text={`${model.completedExercises}/${model.exerciseCount}`} size={11} color={p.ink} heavy /></FlexWidget>
+            </FlexWidget>
+          ) : null}
+          {pending && size.height >= 130 ? (
+            <FlexWidget style={{ height: 36, borderRadius: 18, backgroundColor: p.button, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 4 }}>
+              <Text text={t.start} size={13} color={p.buttonText} heavy />
+              <FlexWidget style={{ width: 28, height: 28, borderRadius: 10, marginLeft: 12, backgroundColor: p.buttonKey, alignItems: 'center', justifyContent: 'center' }}>
+                <Text text="→" size={14} color={p.buttonArrow} heavy />
+              </FlexWidget>
+            </FlexWidget>
+          ) : workout?.completed ? <Text text={`✓ ${t.done}`} size={12} color={p.success} heavy /> : null}
+        </FlexWidget>
+        <ImageWidget image={kettlebell} imageWidth={Math.round(art * 0.74)} imageHeight={art} resizeMode="contain" style={{ width: Math.round(art * 0.74), height: art }} />
+      </FlexWidget>
+    </Shell>
+  );
+}
+
+function StreakCard({ model, t, size }: { model: WidgetModel; t: Copy; size: Size }) {
+  const art = clamp(Math.min(size.height * 0.62, size.width * 0.45), 48, 110);
+  const big = clamp(Math.min(size.height * 0.32, size.width * 0.3), 30, 56);
+  return (
+    <Shell route="streak" background="#0B1022" gradient={{ from: '#121A3A', to: '#3A1A10' }}>
+      <Text text={t.streak} size={10} color="#FFB547" heavy />
+      <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <FlexWidget style={{ flexDirection: 'column' }}>
+          <Text text={model.currentStreak > 0 ? String(model.currentStreak) : '0'} size={big} color="#FFFFFF" heavy />
+          <Text text={model.currentStreak > 0 ? t.days : t.startStreak} size={12} color="#C9CFDD" />
+          {model.streakTierLabel ? (
+            <FlexWidget style={{ marginTop: 6, borderRadius: 999, paddingLeft: 9, paddingRight: 9, paddingTop: 3, paddingBottom: 3, backgroundGradient: { from: '#FF7A2F', to: '#FFB547', orientation: 'LEFT_RIGHT' } }}>
+              <Text text={model.streakTierLabel.toLocaleUpperCase(model.language)} size={10} color="#3A1600" heavy />
+            </FlexWidget>
+          ) : null}
+        </FlexWidget>
+        <ImageWidget image={fire} imageWidth={Math.round(art * 0.8)} imageHeight={art} resizeMode="contain" style={{ width: Math.round(art * 0.8), height: art }} />
+      </FlexWidget>
+    </Shell>
+  );
+}
+
+function WeekCard({ model, t, p, size }: { model: WidgetModel; t: Copy; p: Palette; size: Size }) {
+  const gap = 6;
+  const capsuleWidth = Math.max(22, Math.floor((size.width - 28 - gap * 6) / 7));
+  const capsuleHeight = clamp(size.height - 28 - 26, 44, 120);
+  const labelSize = clamp(capsuleWidth * 0.28, 8, 11);
+  const numberSize = clamp(capsuleWidth * 0.42, 11, 18);
+  return (
+    <Shell route="plan" background={p.card}>
+      <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Text text={t.week} size={10} color={p.accent} heavy />
+        <Text text={`${model.workoutsDoneThisWeek}/${model.workoutsThisWeek}`} size={12} color={p.ink} heavy />
+      </FlexWidget>
+      <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', justifyContent: 'space-between' }}>
+        {model.planWeek.map((day, index) => {
+          const filled = day.done;
+          const border = day.isToday ? p.ink : p.track;
+          return (
+            <FlexWidget
+              key={index}
+              style={{
+                width: capsuleWidth,
+                height: capsuleHeight,
+                borderRadius: Math.round(capsuleWidth / 2),
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingTop: 6,
+                paddingBottom: 6,
+                ...(filled ? { backgroundColor: p.accent } : { borderWidth: day.isToday ? 2 : 1, borderColor: border, borderStyle: day.hasWorkout || day.isToday ? 'solid' : 'dashed' }),
+              }}
+            >
+              <Text text={day.label} size={labelSize} color={filled ? '#FFFFFF' : p.muted} align="center" />
+              <Text text={String(day.dayNumber)} size={numberSize} color={filled ? '#FFFFFF' : p.ink} heavy align="center" />
+              <Text text={filled ? '✓' : day.hasWorkout ? '•' : '☾'} size={labelSize + 1} color={filled ? '#FFFFFF' : day.hasWorkout ? p.accent : p.muted} heavy align="center" />
+            </FlexWidget>
+          );
+        })}
+      </FlexWidget>
+    </Shell>
+  );
+}
+
+function NextBadgeCard({ model, t, p, size }: { model: WidgetModel; t: Copy; p: Palette; size: Size }) {
+  const medal = model.nextBadgeId ? badgeMedalImages[model.nextBadgeId] : undefined;
+  const wide = size.width >= 230;
+  const art = clamp(Math.min(size.height * (wide ? 0.62 : 0.42), size.width * 0.4), 40, 96);
+  const inner = wide ? size.width - 28 - art - 12 : size.width - 28;
+  const color = (tierColor[model.nextBadgeTier ?? 'gold'] ?? p.accent) as ColorProp;
+  const details = model.nextBadge ? (
+    <FlexWidget style={{ flexDirection: 'column', width: inner }}>
+      <Text text={model.nextBadgeTitle} size={clamp(inner * 0.11, 12, 17)} color={p.ink} heavy lines={2} />
+      <FlexWidget style={{ marginTop: 6 }}><Bar width={inner} height={6} progress={model.nextBadgeProgress} color={color} track={p.track} /></FlexWidget>
+      <FlexWidget style={{ marginTop: 4 }}><Text text={`${model.nextBadgeRemaining} ${t.toGo}`} size={11} color={p.muted} /></FlexWidget>
+    </FlexWidget>
+  ) : <Text text={t.allBadges} size={14} color={p.ink} heavy lines={2} />;
+  return (
+    <Shell route="badge-wall" background={p.card}>
+      <Text text={t.nextBadge} size={10} color={p.accent} heavy />
+      {wide ? (
+        <FlexWidget style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center' }}>
+          {medal ? <ImageWidget image={medal} imageWidth={art} imageHeight={art} resizeMode="contain" style={{ width: art, height: art, marginRight: 12 }} /> : null}
+          {details}
+        </FlexWidget>
+      ) : (
+        <>
+          {medal ? <ImageWidget image={medal} imageWidth={art} imageHeight={art} resizeMode="contain" style={{ width: art, height: art }} /> : null}
+          {details}
+        </>
+      )}
+    </Shell>
+  );
+}
+
+function FitBudCard({ model, p, size }: { model: WidgetModel; p: Palette; size: Size }) {
+  const art = clamp(Math.min(size.height * 0.92, size.width * 0.34), 56, 140);
+  const inner = size.width - 28 - Math.round(art * 0.7) - 10;
+  const quoteSize = clamp(Math.min(size.height * 0.13, inner * 0.085), 12, 20);
+  return (
+    <Shell route="coach" background={p.card} padding={12}>
+      <FlexWidget style={{ width: 'match_parent', height: 'match_parent', flexDirection: 'row', alignItems: 'center' }}>
+        <ImageWidget image={fitbud} imageWidth={Math.round(art * 0.7)} imageHeight={art} resizeMode="contain" style={{ width: Math.round(art * 0.7), height: art, marginRight: 10 }} />
+        <FlexWidget style={{ width: inner, flexDirection: 'column' }}>
+          <Text text={`“${model.quote}”`} size={quoteSize} color={p.ink} heavy lines={4} />
+          <FlexWidget style={{ marginTop: 6 }}><Text text="— FitBud" size={11} color={p.accent} /></FlexWidget>
+        </FlexWidget>
+      </FlexWidget>
+    </Shell>
   );
 }
 
 const defaultSize: Size = { width: 320, height: 160 };
 
-export function WidgetCard({ name, model, size = defaultSize }: { name: GainModeWidgetName; model: WidgetModel; size?: Size }) {
-  const t = widgetCopy[model.language];
-  const area: Size = { width: Math.max(110, size.width || defaultSize.width), height: Math.max(60, size.height || defaultSize.height) };
+export function WidgetCard({ name, model, size = defaultSize, darkMode = false }: { name: GainModeWidgetName; model: WidgetModel; size?: Size; darkMode?: boolean }) {
+  const t = copy[model.language] ?? copy.en;
+  const p = darkMode ? dark : light;
+  const area: Size = { width: Math.max(110, size.width || defaultSize.width), height: Math.max(80, size.height || defaultSize.height) };
   switch (name) {
-    case 'TodayProgress':
-      return <Base route="progress-charts"><Label text={t.progress} bold /><MascotRow title={t.workout} value={model.todayWorkout ? `${model.completedExercises}/${model.exerciseCount}` : t.restDay} /><FlexWidget style={{ width: 'match_parent', height: 7, flexDirection: 'row', backgroundColor: '#D6E4F7', borderRadius: 5 }}>{model.todayWorkout && <FlexWidget style={{ width: Math.max(0, Math.round(model.workoutProgress * 132)), height: 7, borderRadius: 5, backgroundColor: blue }} />}</FlexWidget><Label text={`${model.activeCalories} ${t.calories} · ${model.activeMinutes} ${t.minutes}`} /><Label text={t.open} size={9} color="#64748B" /></Base>;
-    case 'Breathe':
-      return <Base route="breathe"><MascotRow title={t.breathe} value="4 · 4 · 6" /><Label text={t.breatheHint} /><Label text={t.open} size={9} color="#64748B" /></Base>;
-    case 'Streak':
-      return <StrongerCard model={model} t={t} size={area} />;
+    case 'Calories':
+      return <CaloriesCard model={model} t={t} p={p} size={area} />;
     case 'StartWorkout':
-      return <StartWorkoutCard model={model} t={t} size={area} />;
+      return <StartWorkoutCard model={model} t={t} p={p} size={area} />;
+    case 'Streak':
+      return <StreakCard model={model} t={t} size={area} />;
     case 'WeeklyConsistency':
-      return <Base route="streak"><Label text={t.week} bold /><FlexWidget style={{ width: 'match_parent', flexDirection: 'row', justifyContent: 'space-between' }}>{model.streakWeek.map((day, index) => <Label key={`${day.date}-${index}`} text={day.isCompleted ? '●' : '○'} size={18} color={day.isCompleted ? blue : '#9AAEC9'} bold />)}</FlexWidget><Label text={`${model.currentStreak} ${t.days}`} size={14} bold /></Base>;
-    case 'Motivation':
-      return <Base route="coach" dark><Label text={t.quote} size={10} color="#DBEAFE" bold /><TextWidget text={model.quote} maxLines={3} truncate="END" style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }} /><Label text={t.open} size={9} color="#DBEAFE" /></Base>;
+      return <WeekCard model={model} t={t} p={p} size={area} />;
     case 'NextGoal':
-      return <NextGoalCard model={model} t={t} size={area} />;
-    case 'Performance':
-      return <PerformanceCard model={model} t={t} size={area} />;
-    case 'GoodNight':
-      return <GoodNightCard model={model} t={t} size={area} />;
-    case 'Daily':
-      return <WidgetCard name={dailyWidgetCard({ workoutPending: model.workoutPending, hasNextGoal: Boolean(model.nextBadge) }, model.hour)} model={model} size={area} />;
+      return <NextBadgeCard model={model} t={t} p={p} size={area} />;
+    case 'Motivation':
+      return <FitBudCard model={model} p={p} size={area} />;
   }
 }
