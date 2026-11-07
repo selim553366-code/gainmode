@@ -89,8 +89,8 @@ export function Header({ eyebrow, title, subtitle, action, actionLogo = false, o
   return <View style={styles.header}>
     {showText ? <View style={[styles.headerText, centered ? styles.headerTextCentered : null]}>
       {eyebrow ? <Text style={[styles.eyebrow, { color: lightBackground ? colors.primaryForeground : colors.mutedForeground }]}>{eyebrow.toUpperCase()}</Text> : null}
-      <Text style={[styles.title, { color: headingColor }]}>{title}</Text>
-      {subtitle ? <Text style={[styles.subtitle, { color: supportingColor }]}>{subtitle}</Text> : null}
+      <Text style={[styles.title, { color: headingColor }, centered ? styles.centeredText : null]}>{title}</Text>
+      {subtitle ? <Text style={[styles.subtitle, { color: supportingColor }, centered ? styles.centeredText : null]}>{subtitle}</Text> : null}
     </View> : null}
     {brandMark ? <View accessibilityLabel="GainMode" style={styles.headerBrand}><GainModeWordmark color={colors.foreground} /></View> : null}
     <View style={[styles.headerActions, centered ? styles.headerActionsCentered : null]}>
@@ -257,7 +257,8 @@ export const styles = StyleSheet.create({
   screen: { paddingHorizontal: 20, minHeight: '100%' },
   header: { position: 'relative', flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 26 },
   headerText: { flex: 1 },
-  headerTextCentered: { position: 'absolute', left: 0, right: 0, alignItems: 'center', zIndex: 0 },
+  headerTextCentered: { alignItems: 'center', paddingHorizontal: 52 },
+  centeredText: { textAlign: 'center' },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerActionsCentered: { position: 'absolute', right: 0, top: 0, zIndex: 2 },
   headerBrand: { width: 138, height: 44, alignItems: 'flex-start', justifyContent: 'center', zIndex: 1, transform: [{ translateY: 4 }] },
