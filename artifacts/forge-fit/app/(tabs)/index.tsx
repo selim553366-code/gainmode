@@ -67,10 +67,10 @@ export default function TodayScreen() {
             accessibilityRole="button"
             accessibilityLabel={`${streak} ${t('streak')}`}
             onPress={() => { triggerHaptic(); router.push('/streak'); }}
-            style={[styles.streakChip, { backgroundColor: colors.card, borderColor: colors.border }]}
+            style={[styles.streakChip, { backgroundColor: colors.orange }]}
           >
-            <Ionicons name="flame" size={16} color={colors.orange} />
-            <Text style={[styles.streakValue, { color: colors.foreground }]}>{streak}</Text>
+            <Ionicons name="flame" size={16} color="#FFFFFF" />
+            <Text style={[styles.streakValue, { color: '#FFFFFF' }]}>{streak}</Text>
           </Pressable>
           <Pressable
             testID="header-action"
@@ -166,7 +166,7 @@ export default function TodayScreen() {
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  streakChip: { height: 42, borderRadius: 21, borderWidth: 1, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  streakChip: { height: 42, borderRadius: 21, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 6 },
   streakValue: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.3 },
   avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: 'Inter_800ExtraBold', fontSize: 16 },
