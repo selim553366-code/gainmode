@@ -18,6 +18,11 @@ type HeightRulerProps = {
   unitText: string;
   /** The same height in the other unit, shown as a small pill. */
   altText: string;
+  /**
+   * Called with true when a finger touches the ruler and false when it lifts. The page around it should stop
+   * scrolling meanwhile: on Android an outer vertical scroll view otherwise takes the drag and the ruler never moves.
+   */
+  onTouchingChange?: (touching: boolean) => void;
 };
 
 const STEP = 14; // pixels per centimetre
@@ -58,7 +63,7 @@ function Mark({ index, cm, scrollY }: { index: number; cm: number; scrollY: Shar
  * Wall-chart style height picker: a vertical ruler on the right with the tallest height at the top. Scroll it and the
  * centimetre under the fixed marker is the answer. Snaps to whole centimetres with a tick of haptic feedback.
  */
-export function HeightRuler({ value, min, max, onChange, valueText, unitText, altText }: HeightRulerProps) {
+export function HeightRuler({ value, min, max, onChange, valueText, unitText, altText, onTouchingChange }: HeightRulerProps) {
   const colors = useColors();
   const scrollRef = React.useRef<Animated.ScrollView>(null);
   const emitted = React.useRef(value);
@@ -127,6 +132,9 @@ export function HeightRuler({ value, min, max, onChange, valueText, unitText, al
         accessibilityValue={{ text: `${value} cm` }}
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={(event) => nudge(event.nativeEvent.actionName === 'increment' ? 1 : -1)}
+        onTouchStart={() => onTouchingChange?.(true)}
+        onTouchEnd={() => onTouchingChange?.(false)}
+        onTouchCancel={() => onTouchingChange?.(false)}
       >
         <Animated.ScrollView
           ref={scrollRef}

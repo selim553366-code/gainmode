@@ -374,6 +374,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
     const [questionViewportHeight, setQuestionViewportHeight] = React.useState(0);
     const [questionAnswerBottom, setQuestionAnswerBottom] = React.useState(0);
     const [questionScrollOffset, setQuestionScrollOffset] = React.useState(0);
+    const [rulerTouching, setRulerTouching] = React.useState(false);
   const slide = React.useRef(new Animated.Value(1)).current;
   const targetStep = 15;
   const hasTargetWeightStep = goal === 'weightGain' || goal === 'weightLoss';
@@ -598,6 +599,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
    React.useEffect(() => {
      setQuestionScrollOffset(0);
      setQuestionAnswerBottom(0);
+     setRulerTouching(false);
      setQuestionViewportHeight(0);
    }, [activeStep]);
   const titleKeys = ['nameFirstQuestion', 'equipmentQuestion', 'heightQuestion', 'weightQuestion', 'ageQuestion', 'goalQuestion', 'sexQuestion', 'activityQuestion', 'trainingDaysQuestion', 'durationQuestion', 'speedQuestion', 'dietQuestion', 'proteinQuestion', 'experienceQuestion', 'preferredDaysQuestion'] as const;
@@ -611,7 +613,7 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
        if (activeStep === 1) return <><View style={styles.choiceList}><ChoiceButton label={t('bodyweight')} selected={equipment === 'bodyweight'} onPress={() => setEquipment('bodyweight')} icon="body-outline" /><ChoiceButton label={t('homeEquipment')} selected={equipment === 'home'} onPress={() => setEquipment('home')} icon="home-outline" /><ChoiceButton label={t('gymEquipment')} selected={equipment === 'gym'} onPress={() => setEquipment('gym')} icon="barbell-outline" /></View>{equipment === 'home' ? <View style={styles.homeEquipmentDetails}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('homeEquipmentDetailsHint')}</Text><TextInput value={equipmentDetails} onChangeText={setEquipmentDetails} multiline numberOfLines={3} placeholder={t('homeEquipmentDetailsPlaceholder')} placeholderTextColor={colors.mutedForeground} style={[styles.equipmentDetailsInput, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]} /></View> : null}{equipment === 'gym' ? <View style={styles.gymLevels}><Text style={[styles.subLabel, { color: colors.mutedForeground }]}>{t('gymLevelQuestion')}</Text><View style={styles.choiceList}><ChoiceButton label={t('gymBasic')} selected={gymLevel === 'basic'} onPress={() => setGymLevel('basic')} /><ChoiceButton label={t('gymIntermediate')} selected={gymLevel === 'intermediate'} onPress={() => setGymLevel('intermediate')} /><ChoiceButton label={t('gymFull')} selected={gymLevel === 'full'} onPress={() => setGymLevel('full')} /></View></View> : null}</>;
       if (activeStep === 2) return <View style={styles.measurementSection}>
        <UnitToggle unit={measurementUnit} onChange={changeMeasurementUnit} metricLabel={t('measurementMetric')} imperialLabel={t('measurementImperial')} />
-       <HeightRuler value={height} min={130} max={220} onChange={updateHeightFromCm} valueText={measurementUnit === 'metric' ? String(height) : formatImperialHeightLabel(height)} unitText={measurementUnit === 'metric' ? 'cm' : ''} altText={measurementUnit === 'metric' ? formatImperialHeightLabel(height) : `${height} cm`} />
+       <HeightRuler onTouchingChange={setRulerTouching} value={height} min={130} max={220} onChange={updateHeightFromCm} valueText={measurementUnit === 'metric' ? String(height) : formatImperialHeightLabel(height)} unitText={measurementUnit === 'metric' ? 'cm' : ''} altText={measurementUnit === 'metric' ? formatImperialHeightLabel(height) : `${height} cm`} />
        {measurementUnit === 'metric' ? <View style={styles.measurementInputRow}><TextInput value={heightText} onChangeText={updateMetricHeightText} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>cm</Text></View> : <View style={styles.measurementInputRow}><TextInput value={heightFeetText} onChangeText={(text) => updateImperialHeightText('feet', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>{t('heightFeet')}</Text><TextInput value={heightInchesText} onChangeText={(text) => updateImperialHeightText('inches', text)} keyboardType="number-pad" selectTextOnFocus style={[styles.measurementInput, styles.measurementSmallInput, { backgroundColor: colors.card, borderColor: colors.border, color: colors.foreground }]} /><Text style={[styles.measurementInputUnit, { color: colors.primary }]}>{t('heightInches')}</Text></View>}
        <Text style={[styles.centerHint, { color: colors.mutedForeground }]}>{t('heightRulerHint')}</Text>
      </View>;
@@ -658,6 +660,8 @@ function OnboardingQuestions({ editMode = false, selectedFields = [] }: { editMo
           bottomOffset={72}
           onScroll={({ nativeEvent }) => setQuestionScrollOffset(nativeEvent.contentOffset.y)}
           scrollEventThrottle={16}
+          // While a finger is on the height ruler the page must not take the vertical drag.
+          scrollEnabled={!rulerTouching}
         >
           {editMode ? <View style={[styles.profileEditInfoBar, { backgroundColor: `${colors.blue}16`, borderColor: `${colors.blue}55` }]}><Ionicons name="information-circle-outline" size={18} color={colors.blue} /><Text style={[styles.profileEditInfoText, { color: colors.foreground }]}>{t('profileEditLimitBar')}</Text></View> : null}
           <View onLayout={({ nativeEvent }) => setQuestionAnswerBottom(nativeEvent.layout.y + nativeEvent.layout.height)}>
