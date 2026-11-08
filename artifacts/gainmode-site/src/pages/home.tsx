@@ -5,32 +5,17 @@ import { ArrowRight, ArrowUpRight, Code2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { CONTACT_EMAIL, products } from '@/lib/products';
 import { LogoMark } from '@/components/site/brand';
+import { PixelGlobe } from '@/components/site/pixel-globe';
 import { EASE, Kicker, Reveal, SplitTitle } from '@/components/site/motion';
 import { Phone } from '@/components/site/phone';
 
-/** The hero mark: the logo with two orbits and moons turning around it. */
+/** The hero mark: the logo as a globe of tiles that folds out of a flat grid. */
 function HeroGlobe() {
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[520px]">
-      <div className="aurora left-[12%] top-[12%] h-[76%] w-[76%] bg-royal-500/40" />
-      {[0, 1].map((ring) => (
-        <motion.div
-          key={ring}
-          className="absolute inset-0"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1, rotate: ring ? -360 : 360 }}
-          transition={{ opacity: { duration: 1, delay: 0.6 + ring * 0.2 }, scale: { duration: 1.2, delay: 0.6, ease: EASE }, rotate: { duration: ring ? 46 : 32, repeat: Infinity, ease: 'linear' } }}
-        >
-          <svg viewBox="0 0 400 400" className="h-full w-full overflow-visible">
-            <ellipse cx="200" cy="200" rx={ring ? 196 : 176} ry={ring ? 74 : 196} transform={`rotate(${ring ? -18 : 24} 200 200)`} fill="none" stroke="rgba(183,200,255,.22)" strokeWidth="1" strokeDasharray={ring ? '2 7' : undefined} />
-            <circle cx={ring ? 380 : 200} cy={ring ? 160 : 6} r={ring ? 5 : 7} fill={ring ? '#FFFFFF' : '#5B83FF'} />
-          </svg>
-        </motion.div>
-      ))}
-      <motion.div className="absolute inset-[17%]" animate={{ y: [0, -12, 0] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}>
-        <LogoMark size={1000} animate className="h-full w-full drop-shadow-[0_30px_80px_rgba(47,91,255,.55)]" />
-      </motion.div>
-    </div>
+    <motion.div className="relative mx-auto aspect-square w-full max-w-[520px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.2 }}>
+      <div className="aurora left-[18%] top-[18%] h-[64%] w-[64%] bg-royal-500/35" />
+      <PixelGlobe className="relative h-full w-full" />
+    </motion.div>
   );
 }
 
