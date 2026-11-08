@@ -132,6 +132,8 @@ export function HeightRuler({ value, min, max, onChange, valueText, unitText, al
           ref={scrollRef}
           onScroll={onScroll}
           scrollEventThrottle={16}
+          // The ruler sits inside the vertically scrolling question page; on Android the inner list only gets the drag with this set.
+          nestedScrollEnabled
           showsVerticalScrollIndicator={false}
           snapToInterval={STEP}
           snapToAlignment="start"
