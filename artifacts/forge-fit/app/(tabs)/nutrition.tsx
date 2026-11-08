@@ -1,9 +1,8 @@
 import React from 'react';
-import { ActivityIndicator, Alert, Animated, Easing, Image, Linking, Modal, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Linking, Modal, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PressableScale as Pressable } from '@/components/Motion';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@/components/AppIcon';
 import { searchFood, type FoodSearchItem } from '@workspace/api-client-react';
@@ -11,7 +10,7 @@ import { useFit, Meal } from '@/context/FitContext';
 import { translate } from '@/lib/i18n';
 import { apiUrl } from '@/lib/api';
 import { useColors } from '@/hooks/useColors';
-import { Card, ForgeFitMark, Header, InlineStatus, Screen } from '@/components/FitUI';
+import { Card, Header, InlineStatus, Screen } from '@/components/FitUI';
 import { HOURLY_PHOTO_ANALYSIS_LIMIT } from '@/lib/usageLimits';
 import { getMealsForRange } from '@/lib/nutritionDates';
 import { AiAccessError, getAiAccessToken, getAiClientId } from '@/lib/aiUsage';
@@ -21,58 +20,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Apple, Bookmark, Camera, ImagePlus, Moon, Plus, ScanBarcode, Search, Sun, Sunrise, Trash2, Utensils, X } from 'lucide-react-native';
 import { WeekCalories } from '@/components/NutritionVisuals';
 import { ScanFrame } from '@/components/ScanFrame';
+import { MealReceipt } from '@/components/MealReceipt';
+import { prepareFoodPhoto } from '@/lib/foodPhoto';
 import { calorieAdherence } from '@/lib/progressCharts';
 
 const formatNutrition = (value: number) => Number.isInteger(value) ? String(value) : value.toFixed(1);
 
 type CaptureMode = 'meal' | 'barcode';
 type CapturedPhoto = { uri: string; base64?: string };
-type AnalysisPhase = 'idle' | 'flying' | 'analyzing';
-
-function PhotoAnalysisTransfer({ uri, phase, sendingLabel, aiBoxLabel, analyzingLabel }: { uri: string; phase: AnalysisPhase; sendingLabel: string; aiBoxLabel: string; analyzingLabel: string }) {
-  const colors = useColors();
-  const progress = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    if (phase === 'flying') {
-      progress.setValue(0);
-      Animated.timing(progress, { toValue: 1, duration: 1050, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-      return;
-    }
-    if (phase === 'analyzing') {
-      Animated.timing(progress, { toValue: 1, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-      return;
-    }
-    progress.setValue(0);
-  }, [phase, progress]);
-
-  if (phase === 'idle') return null;
-  const photoTranslateX = progress.interpolate({ inputRange: [0, 1], outputRange: [0, 124] });
-  const photoScale = progress.interpolate({ inputRange: [0, 0.72, 1], outputRange: [1, 0.78, 0.42] });
-  const photoOpacity = progress.interpolate({ inputRange: [0, 0.82, 1], outputRange: [1, 0.96, 0.12] });
-  const boxOpacity = progress.interpolate({ inputRange: [0, 0.52, 0.82, 1], outputRange: [0.45, 0.72, 1, 1] });
-  const boxScale = progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0.86, 0.96, 1] });
-
-  return <View style={styles.analysisStage}>
-    <View style={styles.analysisStageHeader}>
-      <View style={[styles.analysisStageDot, { backgroundColor: colors.primary }]} />
-      <Text style={[styles.analysisStageLabel, { color: colors.foreground }]}>{phase === 'flying' ? sendingLabel : analyzingLabel}</Text>
-    </View>
-    <View style={styles.analysisTrack}>
-      <View style={[styles.analysisTrackLine, { backgroundColor: `${colors.primary}32` }]} />
-      <Animated.View style={[styles.analysisPhoto, { borderColor: colors.primary, opacity: photoOpacity, transform: [{ translateX: photoTranslateX }, { scale: photoScale }] }]}>
-        <Image source={{ uri }} style={styles.analysisPhotoImage} />
-      </Animated.View>
-      <Animated.View style={[styles.analysisAiBox, { opacity: boxOpacity, transform: [{ scale: boxScale }] }]}>
-        <LinearGradient colors={[colors.accent, colors.inkCardEnd]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={styles.analysisAiGradient}>
-          <ForgeFitMark size={26} />
-          <Text style={[styles.analysisAiText, { color: colors.inkCardForeground }]}>{aiBoxLabel}</Text>
-          {phase === 'analyzing' ? <ActivityIndicator size="small" color={colors.inkCardForeground} /> : <Ionicons name="arrow-forward" size={14} color={colors.inkCardForeground} />}
-        </LinearGradient>
-      </Animated.View>
-    </View>
-  </View>;
-}
+type AnalysisPhase = 'idle' | 'analyzing';
 
 function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, hint, healthySlogan, permissionText, captureErrorText, allowCameraLabel, settingsLabel, closeLabel, captureLabel, flipLabel, sendPhotoLabel, retakeLabel, photoGuidance }: { visible: boolean; onClose: () => void; onScanned?: (data: string) => void; onPhoto?: (photo: CapturedPhoto) => void; mode: CaptureMode; title: string; hint: string; healthySlogan: string; permissionText: string; captureErrorText: string; allowCameraLabel: string; settingsLabel: string; closeLabel: string; captureLabel: string; flipLabel: string; sendPhotoLabel: string; retakeLabel: string; photoGuidance: string }) {
   const colors = useColors();
@@ -101,8 +57,10 @@ function NeonCaptureCamera({ visible, onClose, onScanned, onPhoto, mode, title, 
     if (!cameraRef.current || capturing || !onPhoto) return;
     setCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.45, base64: true });
-      if (photo?.uri) setCapturedPhoto({ uri: photo.uri, base64: photo.base64 });
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.8, base64: Platform.OS === 'web', shutterSound: false });
+      if (!photo?.uri) return;
+      const prepared = Platform.OS === 'web' ? { uri: photo.uri, base64: photo.base64 } : await prepareFoodPhoto(photo.uri, photo.width, photo.height);
+      setCapturedPhoto(prepared);
     } catch {
       Alert.alert(title, captureErrorText);
     } finally {
@@ -203,6 +161,8 @@ export default function NutritionScreen() {
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = React.useState<Meal | null>(null);
+  // The analysed meal is added when its receipt is torn off.
+  const [mealTorn, setMealTorn] = React.useState(false);
   const [analysisDetailsVisible, setAnalysisDetailsVisible] = React.useState(false);
   const [analyzing, setAnalyzing] = React.useState(false);
   const [analysisPhase, setAnalysisPhase] = React.useState<AnalysisPhase>('idle');
@@ -265,13 +225,12 @@ export default function NutritionScreen() {
   const analyzeFoodPhoto = async (uri: string, base64?: string) => {
     setPhotoUri(uri);
     setAnalysisResult(null);
+    setMealTorn(false);
     setAnalysisDetailsVisible(false);
     if (!base64) { Alert.alert(t('analyzePhoto'), t('photoAnalysisError')); return; }
-    setAnalysisPhase('flying');
+    setAnalysisPhase('analyzing');
     setAnalyzing(true);
     try {
-      await new Promise<void>((resolve) => setTimeout(resolve, 1050));
-      setAnalysisPhase('analyzing');
        const clientId = await getAiClientId();
        const accessToken = await getAiAccessToken();
       const imageData = base64.startsWith('data:') ? base64 : `data:image/jpeg;base64,${base64}`;
@@ -287,7 +246,6 @@ export default function NutritionScreen() {
          throw new AiAccessError(message, response.status);
        }
       const analyzed = await response.json() as Meal;
-      addMeal({ name: analyzed.name, type: 'snack', calories: analyzed.calories, protein: analyzed.protein, carbs: analyzed.carbs, fat: analyzed.fat, imageUri: uri });
       setAnalysisResult(analyzed);
       incrementPhotoUsage();
     } catch (error) {
@@ -307,10 +265,18 @@ export default function NutritionScreen() {
 
   const pickPhoto = async () => {
     if (photoAnalysesUsed >= HOURLY_PHOTO_ANALYSIS_LIMIT) { Alert.alert(t('premiumOnly'), t('photoLimitReached')); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.45, base64: true });
+    const result = await ImagePicker.launchImageLibraryAsync({ quality: 0.8, base64: Platform.OS === 'web' });
     const asset = result.canceled ? undefined : result.assets?.[0];
     if (!asset) return;
-    await analyzeFoodPhoto(asset.uri, asset.base64 ?? undefined);
+    if (Platform.OS === 'web') { await analyzeFoodPhoto(asset.uri, asset.base64 ?? undefined); return; }
+    let prepared: CapturedPhoto;
+    try {
+      prepared = await prepareFoodPhoto(asset.uri, asset.width, asset.height);
+    } catch {
+      Alert.alert(t('analyzePhoto'), t('photoAnalysisError'));
+      return;
+    }
+    await analyzeFoodPhoto(prepared.uri, prepared.base64);
   };
 
   const addFood = (food: FoodSearchItem) => {
@@ -379,6 +345,11 @@ export default function NutritionScreen() {
     && meal.carbs === analysisResult.carbs
     && meal.fat === analysisResult.fat
   )));
+  const addAnalyzedMeal = () => {
+    if (!analysisResult || mealTorn) return;
+    setMealTorn(true);
+    addMeal({ name: analysisResult.name, type: 'snack', calories: analysisResult.calories, protein: analysisResult.protein, carbs: analysisResult.carbs, fat: analysisResult.fat, imageUri: photoUri ?? undefined });
+  };
   const saveAnalysisMeal = () => {
     if (!analysisResult || isAnalysisSaved) return;
     addSavedMeal({ name: analysisResult.name, type: 'snack', calories: analysisResult.calories, protein: analysisResult.protein, carbs: analysisResult.carbs, fat: analysisResult.fat, imageUri: photoUri ?? undefined });
@@ -464,13 +435,12 @@ export default function NutritionScreen() {
 
     {photoUri ? <Card style={styles.analysisCard}>
       <Image source={{ uri: photoUri }} style={styles.analysisImage} />
-      <PhotoAnalysisTransfer uri={photoUri} phase={analysisPhase} sendingLabel={t('photoSendingToAi')} aiBoxLabel={t('photoAiBox')} analyzingLabel={t('photoAnalyzingStep')} />
-      {analyzing ? <Text style={[styles.analysisStatus, { color: colors.foreground }]}>{t('analyzing')}</Text> : null}
-      {analysisResult && !analyzing ? <Pressable accessibilityRole="button" accessibilityLabel={t('viewMacroDetails')} onPress={() => setAnalysisDetailsVisible(true)} style={[styles.analysisResultCard, { backgroundColor: `${colors.primary}0D`, borderColor: colors.border }]}>
+      {analysisPhase !== 'idle' || analysisResult ? <MealReceipt key={photoUri} result={analysisResult} language={language} onTear={addAnalyzedMeal} labels={{ calories: t('calories'), protein: t('protein'), carbs: t('carbs'), fat: t('fat'), kcal: t('caloriesShort') }} /> : null}
+      {analysisResult && mealTorn ? <Pressable accessibilityRole="button" accessibilityLabel={t('viewMacroDetails')} onPress={() => setAnalysisDetailsVisible(true)} style={[styles.analysisResultCard, { backgroundColor: `${colors.primary}0D`, borderColor: colors.border }]}>
         <View style={styles.analysisResultCopy}><Text style={[styles.analysisResultName, { color: colors.foreground }]} numberOfLines={1}>{analysisResult.name}</Text><Text style={[styles.analysisResultHint, { color: colors.mutedForeground }]}>{t('photoAnalysisReady')} · {t('viewMacroDetails')}</Text></View>
         <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
       </Pressable> : null}
-      {analysisResult && !analyzing ? <Pressable testID="save-analyzed-meal" accessibilityRole="button" accessibilityLabel={isAnalysisSaved ? t('mealSaved') : t('saveMeal')} onPress={saveAnalysisMeal} disabled={isAnalysisSaved} style={[styles.saveMealButton, { borderColor: colors.border, backgroundColor: isAnalysisSaved ? `${colors.success}16` : 'transparent' }]}>
+      {analysisResult && mealTorn ? <Pressable testID="save-analyzed-meal" accessibilityRole="button" accessibilityLabel={isAnalysisSaved ? t('mealSaved') : t('saveMeal')} onPress={saveAnalysisMeal} disabled={isAnalysisSaved} style={[styles.saveMealButton, { borderColor: colors.border, backgroundColor: isAnalysisSaved ? `${colors.success}16` : 'transparent' }]}>
         <Bookmark size={16} color={isAnalysisSaved ? colors.success : colors.foreground} strokeWidth={2} />
         <Text style={[styles.saveMealButtonText, { color: isAnalysisSaved ? colors.success : colors.foreground }]}>{isAnalysisSaved ? t('mealSaved') : t('saveMeal')}</Text>
       </Pressable> : null}
@@ -581,7 +551,6 @@ const styles = StyleSheet.create({
   sideActionText: { flex: 1, fontFamily: 'Inter_700Bold', fontSize: 12.5, lineHeight: 15 },
   analysisCard: { padding: 12, marginBottom: 18 },
   analysisImage: { width: '100%', height: 170, borderRadius: 18 },
-  analysisStatus: { fontFamily: 'Inter_600SemiBold', fontSize: 13, marginTop: 10, paddingHorizontal: 4 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 58, borderRadius: 29, borderWidth: 1, paddingHorizontal: 20 },
   results: { borderRadius: 28, borderWidth: 1, marginTop: 10, overflow: 'hidden' },
   addBubble: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
@@ -656,17 +625,6 @@ const styles = StyleSheet.create({
   resultServing: { fontFamily: 'Inter_400Regular', fontSize: 11, marginTop: 4 },
   nutritionLine: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 8 },
   nutritionValue: { fontFamily: 'Inter_500Medium', fontSize: 10 },
-  analysisStage: { marginTop: 13, paddingHorizontal: 4, paddingVertical: 12, borderRadius: 18, backgroundColor: 'rgba(103,199,255,0.07)' },
-  analysisStageHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 },
-  analysisStageDot: { width: 7, height: 7, borderRadius: 4 },
-  analysisStageLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  analysisTrack: { height: 78, position: 'relative', justifyContent: 'center', overflow: 'hidden' },
-  analysisTrackLine: { position: 'absolute', left: 38, right: 38, top: 38, height: 1, borderRadius: 1 },
-  analysisPhoto: { position: 'absolute', left: 8, top: 4, width: 70, height: 70, borderRadius: 17, overflow: 'hidden', borderWidth: 2, zIndex: 2 },
-  analysisPhotoImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  analysisAiBox: { position: 'absolute', right: 8, top: 3, width: 111, height: 72, borderRadius: 18, overflow: 'hidden', zIndex: 1 },
-  analysisAiGradient: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 9 },
-  analysisAiText: { fontFamily: 'Inter_700Bold', fontSize: 11, flexShrink: 1 },
   analysisModalBackdrop: { flex: 1, backgroundColor: 'rgba(3, 12, 27, 0.72)', justifyContent: 'flex-end' },
   analysisDetailsSheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, borderWidth: 1, padding: 20, paddingBottom: 30 },
   analysisDetailsHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
