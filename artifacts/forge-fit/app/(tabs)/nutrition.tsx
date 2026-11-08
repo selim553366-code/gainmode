@@ -161,6 +161,8 @@ export default function NutritionScreen() {
   const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const [photoUri, setPhotoUri] = React.useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = React.useState<Meal | null>(null);
+  // The analysed meal is added when its receipt is torn off.
+  const [mealTorn, setMealTorn] = React.useState(false);
   const [analysisDetailsVisible, setAnalysisDetailsVisible] = React.useState(false);
   const [analyzing, setAnalyzing] = React.useState(false);
   const [analysisPhase, setAnalysisPhase] = React.useState<AnalysisPhase>('idle');
@@ -223,6 +225,7 @@ export default function NutritionScreen() {
   const analyzeFoodPhoto = async (uri: string, base64?: string) => {
     setPhotoUri(uri);
     setAnalysisResult(null);
+    setMealTorn(false);
     setAnalysisDetailsVisible(false);
     if (!base64) { Alert.alert(t('analyzePhoto'), t('photoAnalysisError')); return; }
     setAnalysisPhase('analyzing');
@@ -243,7 +246,6 @@ export default function NutritionScreen() {
          throw new AiAccessError(message, response.status);
        }
       const analyzed = await response.json() as Meal;
-      addMeal({ name: analyzed.name, type: 'snack', calories: analyzed.calories, protein: analyzed.protein, carbs: analyzed.carbs, fat: analyzed.fat, imageUri: uri });
       setAnalysisResult(analyzed);
       incrementPhotoUsage();
     } catch (error) {
@@ -343,6 +345,11 @@ export default function NutritionScreen() {
     && meal.carbs === analysisResult.carbs
     && meal.fat === analysisResult.fat
   )));
+  const addAnalyzedMeal = () => {
+    if (!analysisResult || mealTorn) return;
+    setMealTorn(true);
+    addMeal({ name: analysisResult.name, type: 'snack', calories: analysisResult.calories, protein: analysisResult.protein, carbs: analysisResult.carbs, fat: analysisResult.fat, imageUri: photoUri ?? undefined });
+  };
   const saveAnalysisMeal = () => {
     if (!analysisResult || isAnalysisSaved) return;
     addSavedMeal({ name: analysisResult.name, type: 'snack', calories: analysisResult.calories, protein: analysisResult.protein, carbs: analysisResult.carbs, fat: analysisResult.fat, imageUri: photoUri ?? undefined });
@@ -428,12 +435,12 @@ export default function NutritionScreen() {
 
     {photoUri ? <Card style={styles.analysisCard}>
       <Image source={{ uri: photoUri }} style={styles.analysisImage} />
-      {analysisPhase !== 'idle' || analysisResult ? <MealReceipt result={analysisResult} locale={language} labels={{ analyzing: t('photoAnalyzingStep'), calories: t('calories'), protein: t('protein'), carbs: t('carbs'), fat: t('fat'), kcal: t('caloriesShort') }} /> : null}
-      {analysisResult && !analyzing ? <Pressable accessibilityRole="button" accessibilityLabel={t('viewMacroDetails')} onPress={() => setAnalysisDetailsVisible(true)} style={[styles.analysisResultCard, { backgroundColor: `${colors.primary}0D`, borderColor: colors.border }]}>
+      {analysisPhase !== 'idle' || analysisResult ? <MealReceipt key={photoUri} result={analysisResult} language={language} onTear={addAnalyzedMeal} labels={{ calories: t('calories'), protein: t('protein'), carbs: t('carbs'), fat: t('fat'), kcal: t('caloriesShort') }} /> : null}
+      {analysisResult && mealTorn ? <Pressable accessibilityRole="button" accessibilityLabel={t('viewMacroDetails')} onPress={() => setAnalysisDetailsVisible(true)} style={[styles.analysisResultCard, { backgroundColor: `${colors.primary}0D`, borderColor: colors.border }]}>
         <View style={styles.analysisResultCopy}><Text style={[styles.analysisResultName, { color: colors.foreground }]} numberOfLines={1}>{analysisResult.name}</Text><Text style={[styles.analysisResultHint, { color: colors.mutedForeground }]}>{t('photoAnalysisReady')} · {t('viewMacroDetails')}</Text></View>
         <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
       </Pressable> : null}
-      {analysisResult && !analyzing ? <Pressable testID="save-analyzed-meal" accessibilityRole="button" accessibilityLabel={isAnalysisSaved ? t('mealSaved') : t('saveMeal')} onPress={saveAnalysisMeal} disabled={isAnalysisSaved} style={[styles.saveMealButton, { borderColor: colors.border, backgroundColor: isAnalysisSaved ? `${colors.success}16` : 'transparent' }]}>
+      {analysisResult && mealTorn ? <Pressable testID="save-analyzed-meal" accessibilityRole="button" accessibilityLabel={isAnalysisSaved ? t('mealSaved') : t('saveMeal')} onPress={saveAnalysisMeal} disabled={isAnalysisSaved} style={[styles.saveMealButton, { borderColor: colors.border, backgroundColor: isAnalysisSaved ? `${colors.success}16` : 'transparent' }]}>
         <Bookmark size={16} color={isAnalysisSaved ? colors.success : colors.foreground} strokeWidth={2} />
         <Text style={[styles.saveMealButtonText, { color: isAnalysisSaved ? colors.success : colors.foreground }]}>{isAnalysisSaved ? t('mealSaved') : t('saveMeal')}</Text>
       </Pressable> : null}
