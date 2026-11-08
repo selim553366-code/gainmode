@@ -86,7 +86,7 @@ function CaloriesCard({ model, t, p, size }: { model: WidgetModel; t: Copy; p: P
   const over = model.calorieGoal !== null && model.caloriesEaten > model.calorieGoal;
   const big = model.calorieGoal === null ? '—' : String(over ? model.caloriesEaten - model.calorieGoal : model.caloriesLeft ?? 0);
   const bigSize = clamp(Math.min(size.height * 0.24, (inner - ring) * 0.3), 22, 40);
-  const barWidth = Math.max(40, Math.round(wide ? inner * 0.5 : inner - 52));
+  const barWidth = Math.max(40, Math.round(wide ? inner - 58 - 74 : inner - 44));
   const colors: Record<string, ColorProp> = { protein: p.accent, carbs: p.success, fat: '#FF6A2B' };
   return (
     <Shell route="nutrition" background={p.card}>
@@ -106,10 +106,10 @@ function CaloriesCard({ model, t, p, size }: { model: WidgetModel; t: Copy; p: P
       <FlexWidget style={{ width: 'match_parent', flexDirection: 'column' }}>
         {model.macros.map((macro) => (
           <FlexWidget key={macro.key} style={{ width: 'match_parent', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-            <Text text={t[macro.key]} size={10} color={p.muted} />
-            <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <FlexWidget style={{ width: wide ? 58 : 44 }}><Text text={t[macro.key]} size={10} color={p.muted} /></FlexWidget>
+            <FlexWidget style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
               <Bar width={barWidth} height={5} progress={macro.goal ? macro.eaten / macro.goal : 0} color={colors[macro.key]} track={p.track} />
-              {wide ? <FlexWidget style={{ marginLeft: 8 }}><Text text={macro.goal ? `${macro.eaten}/${macro.goal} g` : `${macro.eaten} g`} size={10} color={p.ink} /></FlexWidget> : null}
+              {wide ? <FlexWidget style={{ width: 66, marginLeft: 8 }}><Text align="right" text={macro.goal ? `${macro.eaten}/${macro.goal} g` : `${macro.eaten} g`} size={10} color={p.ink} /></FlexWidget> : null}
             </FlexWidget>
           </FlexWidget>
         ))}
@@ -231,12 +231,12 @@ function WeekCard({ model, t, p, size }: { model: WidgetModel; t: Copy; p: Palet
 function NextBadgeCard({ model, t, p, size }: { model: WidgetModel; t: Copy; p: Palette; size: Size }) {
   const medal = model.nextBadgeId ? badgeMedalImages[model.nextBadgeId] : undefined;
   const wide = size.width >= 230;
-  const art = clamp(Math.min(size.height * (wide ? 0.62 : 0.42), size.width * 0.4), 40, 96);
+  const art = clamp(Math.min(size.height * (wide ? 0.62 : 0.3), size.width * 0.4), 36, 96);
   const inner = wide ? size.width - 28 - art - 12 : size.width - 28;
   const color = (tierColor[model.nextBadgeTier ?? 'gold'] ?? p.accent) as ColorProp;
   const details = model.nextBadge ? (
     <FlexWidget style={{ flexDirection: 'column', width: inner }}>
-      <Text text={model.nextBadgeTitle} size={clamp(inner * 0.11, 12, 17)} color={p.ink} heavy lines={2} />
+      <Text text={model.nextBadgeTitle} size={clamp(inner * 0.1, 12, 17)} color={p.ink} heavy lines={wide ? 2 : 1} />
       <FlexWidget style={{ marginTop: 6 }}><Bar width={inner} height={6} progress={model.nextBadgeProgress} color={color} track={p.track} /></FlexWidget>
       <FlexWidget style={{ marginTop: 4 }}><Text text={`${model.nextBadgeRemaining} ${t.toGo}`} size={11} color={p.muted} /></FlexWidget>
     </FlexWidget>
