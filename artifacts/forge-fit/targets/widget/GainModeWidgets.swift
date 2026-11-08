@@ -479,28 +479,49 @@ private struct GainModeWidgetView: View {
   }
 }
 
-private struct GainModeStaticWidget: Widget {
-  let kind: String
-  let families: [WidgetFamily]
-
-  var body: some WidgetConfiguration {
-    StaticConfiguration(kind: kind, provider: GainModeProvider(kind: kind)) { entry in
-      GainModeWidgetView(entry: entry)
-    }
-    .configurationDisplayName(Text(WidgetWords.forLanguage(QuoteBook.language).title(for: kind)))
-    .description(Text("GainMode"))
-    .supportedFamilies(families)
+/// Builds the configuration shared by every GainMode widget kind.
+private func gainModeConfiguration(kind: String, families: [WidgetFamily]) -> some WidgetConfiguration {
+  StaticConfiguration(kind: kind, provider: GainModeProvider(kind: kind)) { entry in
+    GainModeWidgetView(entry: entry)
   }
+  .configurationDisplayName(Text(WidgetWords.forLanguage(QuoteBook.language).title(for: kind)))
+  .description(Text("GainMode"))
+  .supportedFamilies(families)
+}
+
+// WidgetKit creates each widget with init(), so every kind is its own type.
+private struct CaloriesWidget: Widget {
+  var body: some WidgetConfiguration { gainModeConfiguration(kind: "Calories", families: [.systemSmall, .systemMedium, .accessoryRectangular]) }
+}
+
+private struct StartWorkoutWidget: Widget {
+  var body: some WidgetConfiguration { gainModeConfiguration(kind: "StartWorkout", families: [.systemMedium, .accessoryRectangular]) }
+}
+
+private struct StreakWidget: Widget {
+  var body: some WidgetConfiguration { gainModeConfiguration(kind: "Streak", families: [.systemSmall, .systemMedium, .accessoryRectangular]) }
+}
+
+private struct WeeklyConsistencyWidget: Widget {
+  var body: some WidgetConfiguration { gainModeConfiguration(kind: "WeeklyConsistency", families: [.systemMedium]) }
+}
+
+private struct NextGoalWidget: Widget {
+  var body: some WidgetConfiguration { gainModeConfiguration(kind: "NextGoal", families: [.systemSmall, .systemMedium, .accessoryRectangular]) }
+}
+
+private struct GainModeMotivationWidget: Widget {
+  var body: some WidgetConfiguration { gainModeConfiguration(kind: "Motivation", families: [.systemMedium, .accessoryRectangular]) }
 }
 
 @main
 struct GainModeWidgetBundle: WidgetBundle {
   var body: some Widget {
-    GainModeStaticWidget(kind: "Calories", families: [.systemSmall, .systemMedium, .accessoryRectangular])
-    GainModeStaticWidget(kind: "StartWorkout", families: [.systemMedium, .accessoryRectangular])
-    GainModeStaticWidget(kind: "Streak", families: [.systemSmall, .systemMedium, .accessoryRectangular])
-    GainModeStaticWidget(kind: "WeeklyConsistency", families: [.systemMedium])
-    GainModeStaticWidget(kind: "NextGoal", families: [.systemSmall, .systemMedium, .accessoryRectangular])
-    GainModeStaticWidget(kind: "Motivation", families: [.systemMedium, .accessoryRectangular])
+    CaloriesWidget()
+    StartWorkoutWidget()
+    StreakWidget()
+    WeeklyConsistencyWidget()
+    NextGoalWidget()
+    GainModeMotivationWidget()
   }
 }
