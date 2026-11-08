@@ -70,7 +70,7 @@
         "expo-build-properties",
         {
           "android": {
-            "extraProguardRules": "-keep class * extends androidx.room.RoomDatabase { <init>(); }\n-keep class * extends androidx.work.InputMerger { <init>(); }\n# MediaPipe (live form analysis) looks these classes up by name from native code; keep them in release builds.\n-keep class com.google.mediapipe.** { *; }\n-dontwarn com.google.mediapipe.**\n-keep class com.google.protobuf.** { *; }\n-dontwarn com.google.protobuf.**\n-keepclasseswithmembernames class * { native <methods>; }"
+            "extraProguardRules": "-keep class * extends androidx.room.RoomDatabase { <init>(); }\n-keep class * extends androidx.work.InputMerger { <init>(); }\n# MediaPipe (live form analysis) looks these classes up by name from native code; keep them in release builds.\n-keep class com.google.mediapipe.** { *; }\n-dontwarn com.google.mediapipe.**\n-keep class com.google.protobuf.** { *; }\n-dontwarn com.google.protobuf.**\n-keepclasseswithmembernames class * { native <methods>; }\n# MediaPipe logs through Flogger, which finds its caller by class name on the stack; obfuscating it crashes Graph init with \"no caller found on the stack\".\n-keep class com.google.common.flogger.** { *; }\n-dontwarn com.google.common.flogger.**\n-keep class com.google.android.odml.** { *; }\n-dontwarn com.google.android.odml.**"
           }
         }
       ],
