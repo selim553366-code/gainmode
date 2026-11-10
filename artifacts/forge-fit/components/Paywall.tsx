@@ -12,8 +12,10 @@ import Animated, {
   withDelay,
   withRepeat,
   withSequence,
+  withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { getPremiumPreviewProduct, translate, type Language, type TranslationKey } from '@/lib/i18n';
@@ -33,19 +35,119 @@ type Plan = 'monthly' | 'annual';
 type DisplayProduct = { price: number; currencyCode: string; priceString: string };
 const ANNUAL_TONES: [string, string] = ['#E8364F', '#FF8A3D'];
 const MONTHLY_TONES: [string, string] = ['#2563EB', '#38BDF8'];
-const TRIAL_BADGE_TONES: [string, string] = ['#16A34A', '#22C55E'];
 /** The free trial shown on the monthly plan in the web preview, where there is no store. */
 const PREVIEW_TRIAL_DAYS = 3;
 
 /** Free-trial copy for the monthly plan. {days} and {price} are filled in. */
-const TRIAL_COPY: Record<Language, { badge: string; note: string; cta: string; sub: string; renew: string }> = {
-  tr: { badge: '{days} GÜN ÜCRETSİZ', note: '{days} gün ücretsiz, sonra {price}/ay', cta: '{days} gün ücretsiz başla', sub: 'Sonra {price}/ay · İstediğin zaman iptal et', renew: 'Deneme bitmeden iptal edersen ücret alınmaz. Sonra {price}/ay, iptal edilmedikçe yenilenir.' },
-  en: { badge: '{days} DAYS FREE', note: '{days} days free, then {price}/mo', cta: 'Start {days}-day free trial', sub: 'Then {price}/mo · Cancel anytime', renew: 'Cancel before the trial ends and you won’t be charged. Then {price}/month, renews unless canceled.' },
-  de: { badge: '{days} TAGE GRATIS', note: '{days} Tage gratis, dann {price}/Monat', cta: '{days} Tage gratis testen', sub: 'Dann {price}/Monat · Jederzeit kündbar', renew: 'Kündige vor Ende des Tests und es fallen keine Kosten an. Danach {price}/Monat, verlängert sich bis zur Kündigung.' },
-  fr: { badge: '{days} JOURS OFFERTS', note: '{days} jours offerts, puis {price}/mois', cta: 'Essai gratuit de {days} jours', sub: 'Puis {price}/mois · Annulable à tout moment', renew: 'Annule avant la fin de l’essai et rien ne te sera facturé. Ensuite {price}/mois, renouvelé sauf résiliation.' },
-  es: { badge: '{days} DÍAS GRATIS', note: '{days} días gratis, luego {price}/mes', cta: 'Empieza {days} días gratis', sub: 'Luego {price}/mes · Cancela cuando quieras', renew: 'Cancela antes de que acabe la prueba y no se te cobrará. Luego {price}/mes, se renueva salvo que lo canceles.' },
+type TrialCopy = { ticketTop: string; ticketBottom: string; free: string; note: string; cta: string; sub: string; renew: string; today: string; day: string; charge: string; headline: string };
+const TRIAL_COPY: Record<Language, TrialCopy> = {
+  tr: { ticketTop: '{days} GÜN', ticketBottom: 'ÜCRETSİZ', free: 'Ücretsiz', today: 'Bugün', day: '{n}. gün', charge: '{price}/ay', headline: 'Bugün tüm özellikler açılır. {days} gün boyunca ücret yok.', note: '{days} gün ücretsiz, sonra {price}/ay', cta: '{days} gün ücretsiz başla', sub: 'Sonra {price}/ay · İstediğin zaman iptal et', renew: 'Deneme bitmeden iptal edersen ücret alınmaz. Sonra {price}/ay, iptal edilmedikçe yenilenir.' },
+  en: { ticketTop: '{days} DAYS', ticketBottom: 'FREE', free: 'Free', today: 'Today', day: 'Day {n}', charge: '{price}/mo', headline: 'Everything unlocks today. No charge for {days} days.', note: '{days} days free, then {price}/mo', cta: 'Start {days}-day free trial', sub: 'Then {price}/mo · Cancel anytime', renew: 'Cancel before the trial ends and you won’t be charged. Then {price}/month, renews unless canceled.' },
+  de: { ticketTop: '{days} TAGE', ticketBottom: 'GRATIS', free: 'Gratis', today: 'Heute', day: 'Tag {n}', charge: '{price}/Monat', headline: 'Heute wird alles freigeschaltet. {days} Tage ohne Kosten.', note: '{days} Tage gratis, dann {price}/Monat', cta: '{days} Tage gratis testen', sub: 'Dann {price}/Monat · Jederzeit kündbar', renew: 'Kündige vor Ende des Tests und es fallen keine Kosten an. Danach {price}/Monat, verlängert sich bis zur Kündigung.' },
+  fr: { ticketTop: '{days} JOURS', ticketBottom: 'OFFERTS', free: 'Offert', today: 'Aujourd’hui', day: 'Jour {n}', charge: '{price}/mois', headline: 'Tout se débloque aujourd’hui. Rien à payer pendant {days} jours.', note: '{days} jours offerts, puis {price}/mois', cta: 'Essai gratuit de {days} jours', sub: 'Puis {price}/mois · Annulable à tout moment', renew: 'Annule avant la fin de l’essai et rien ne te sera facturé. Ensuite {price}/mois, renouvelé sauf résiliation.' },
+  es: { ticketTop: '{days} DÍAS', ticketBottom: 'GRATIS', free: 'Gratis', today: 'Hoy', day: 'Día {n}', charge: '{price}/mes', headline: 'Hoy se desbloquea todo. Sin cargo durante {days} días.', note: '{days} días gratis, luego {price}/mes', cta: 'Empieza {days} días gratis', sub: 'Luego {price}/mes · Cancela cuando quieras', renew: 'Cancela antes de que acabe la prueba y no se te cobrará. Luego {price}/mes, se renueva salvo que lo canceles.' },
 };
 const fillTrial = (text: string, days: number, price: string) => text.replace('{days}', String(days)).replace('{price}', price);
+
+const TICKET_W = 96;
+const TICKET_H = 50;
+const TICKET_TEETH = 6;
+
+/** A ticket outline whose left edge is torn into teeth, like the receipt stub elsewhere in the app. */
+function ticketPath(w: number, h: number) {
+  const tooth = h / TICKET_TEETH;
+  let d = `M ${w - 8} 0 Q ${w} 0 ${w} 8 V ${h - 8} Q ${w} ${h} ${w - 8} ${h} H 6`;
+  for (let i = TICKET_TEETH; i > 0; i--) d += ` L 0 ${(i - 0.5) * tooth} L 6 ${(i - 1) * tooth}`;
+  return `${d} Z`;
+}
+
+/**
+ * The free trial as a little paper ticket pinned to the corner of the monthly plan. It drops in
+ * with a tilt and settles, then gives a small swing every few seconds so the eye finds it.
+ */
+function TrialTicket({ top, bottom }: { top: string; bottom: string }) {
+  const reduced = useReducedMotion();
+  const drop = useSharedValue(reduced ? 1 : 0);
+  const swing = useSharedValue(0);
+  React.useEffect(() => {
+    if (reduced) return;
+    drop.set(withDelay(520, withSpring(1, { damping: 9, stiffness: 160 })));
+    swing.set(withDelay(2200, withRepeat(withSequence(
+      withTiming(1, { duration: 140 }), withTiming(-1, { duration: 180 }), withTiming(0.5, { duration: 160 }), withTiming(0, { duration: 160 }),
+      withDelay(3600, withTiming(0, { duration: 0 })),
+    ), -1)));
+  }, [drop, reduced, swing]);
+  const style = useAnimatedStyle(() => ({
+    opacity: Math.min(1, drop.get() * 1.4),
+    transform: [{ translateY: (1 - drop.get()) * -22 }, { rotate: `${-7 + (1 - drop.get()) * -14 + swing.get() * 5}deg` }, { scale: 0.85 + drop.get() * 0.15 }],
+  }));
+  return <Animated.View pointerEvents="none" style={[styles.ticket, style]}>
+    <Svg width={TICKET_W} height={TICKET_H} style={StyleSheet.absoluteFill}>
+      <Defs>
+        <SvgGradient id="ticketFill" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#34D399" />
+          <Stop offset="1" stopColor="#059669" />
+        </SvgGradient>
+      </Defs>
+      <Path d={ticketPath(TICKET_W, TICKET_H)} fill="url(#ticketFill)" />
+      <Path d={`M 20 7 V ${TICKET_H - 7}`} stroke="rgba(255,255,255,0.55)" strokeWidth={1.5} strokeDasharray="3 3" />
+    </Svg>
+    <View style={styles.ticketIcon}><Ionicons name="gift-outline" size={13} color="#FFFFFF" /></View>
+    <View style={styles.ticketCopy}>
+      <Text style={styles.ticketTop}>{top}</Text>
+      <Text style={styles.ticketBottom}>{bottom}</Text>
+    </View>
+  </Animated.View>;
+}
+
+/**
+ * What the trial means, day by day: the free days fill in green one after another, then the day
+ * the subscription starts sits in plain ink with its price. Shown under the plans while the
+ * monthly plan with a trial is selected.
+ */
+function TrialTimeline({ days, copy, price }: { days: number; copy: TrialCopy; price: string }) {
+  const colors = useColors();
+  const reduced = useReducedMotion();
+  const fill = useSharedValue(reduced ? 1 : 0);
+  React.useEffect(() => {
+    if (reduced) return;
+    fill.set(0);
+    fill.set(withDelay(150, withTiming(1, { duration: 1100, easing: EASE_OUT })));
+  }, [fill, reduced]);
+  // Long trials keep three free stops: today, day 2 and the last free day.
+  const free = days <= 3
+    ? Array.from({ length: days }, (_, i) => (i === 0 ? copy.today : copy.day.replace('{n}', String(i + 1))))
+    : [copy.today, copy.day.replace('{n}', '2'), copy.day.replace('{n}', String(days))];
+  const chargeDay = copy.day.replace('{n}', String(days + 1));
+  return <View style={[styles.timeline, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Text style={[styles.timelineHeadline, { color: colors.foreground }]}>{copy.headline.replace('{days}', String(days))}</Text>
+    <View style={styles.timelineRow}>
+      {free.map((label, index) => <TimelineStep key={label} label={label} freeLabel={copy.free} index={index} count={free.length} fill={fill} />)}
+      <View style={styles.timelineStep}>
+        <View style={[styles.timelineBar, { backgroundColor: colors.border }]} />
+        <Text numberOfLines={1} style={[styles.timelineLabel, { color: colors.mutedForeground }]}>{chargeDay}</Text>
+        <Text numberOfLines={1} style={[styles.timelinePrice, { color: colors.foreground }]}>{copy.charge.replace('{price}', price)}</Text>
+      </View>
+    </View>
+  </View>;
+}
+
+function TimelineStep({ label, freeLabel, index, count, fill }: { label: string; freeLabel: string; index: number; count: number; fill: ReturnType<typeof useSharedValue<number>> }) {
+  const colors = useColors();
+  const barStyle = useAnimatedStyle(() => {
+    const local = Math.max(0, Math.min(1, fill.get() * count - index));
+    return { width: `${local * 100}%` };
+  });
+  return <View style={styles.timelineStep}>
+    <View style={[styles.timelineBar, { backgroundColor: colors.border }]}>
+      <Animated.View style={[styles.timelineBarFill, barStyle]}>
+        <LinearGradient colors={['#34D399', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+      </Animated.View>
+    </View>
+    <Text numberOfLines={1} style={[styles.timelineLabel, { color: index === 0 ? '#059669' : colors.mutedForeground }]}>{label}</Text>
+    <Text numberOfLines={1} style={[styles.timelinePrice, { color: '#059669' }]}>{freeLabel}</Text>
+  </View>;
+}
 
 function formatPrice(value: number, currencyCode: string) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode }).format(value);
@@ -98,7 +200,7 @@ function FeatureRow({ icon, title, body, delay, last }: { icon: IconName; title:
  * Plan bar. Its colour always flows slowly; at rest it only tints the price side of the bar, and when chosen it
  * floods the whole bar (420ms) and the text turns white.
  */
-function PlanCard({ selected, onPress, title, price, unit, note, badge, badgeTones, saveBadge, strike, tones, testID }: {
+function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, saveBadge, strike, tones, testID }: {
   selected: boolean;
   onPress: () => void;
   title: string;
@@ -106,8 +208,8 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, badgeTon
   unit: string;
   note: string;
   badge?: string;
-  /** Gradient for the badge instead of the default ink pill, e.g. green for a free trial. */
-  badgeTones?: [string, string];
+  /** A free-trial ticket pinned to the card's corner. */
+  ticket?: { top: string; bottom: string };
   saveBadge?: string | null;
   strike?: string | null;
   tones: [string, string];
@@ -149,10 +251,8 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, badgeTon
         <Text style={[styles.planUnit, { color: selected || dark ? 'rgba(255,255,255,0.8)' : colors.mutedForeground }]}>{unit}</Text>
       </View>
     </View>
-    {badge && badgeTones ? <LinearGradient colors={badgeTones} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.planBadge, styles.trialBadge]}>
-      <Ionicons name="gift-outline" size={12} color="#FFFFFF" />
-      <Text style={[styles.planBadgeText, { color: '#FFFFFF' }]}>{badge}</Text>
-    </LinearGradient> : badge ? <View style={[styles.planBadge, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
+    {ticket ? <TrialTicket top={ticket.top} bottom={ticket.bottom} /> : null}
+    {badge ? <View style={[styles.planBadge, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
   </Pressable>;
 }
 
@@ -313,10 +413,10 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               price={monthly.priceString}
               unit={t('premiumPerMonth')}
               note={trialDays !== null ? fillTrial(trialCopy.note, trialDays, monthly.priceString) : t('paywallMonthlyNote')}
-              badge={trialDays !== null ? fillTrial(trialCopy.badge, trialDays, monthly.priceString) : undefined}
-              badgeTones={trialDays !== null ? TRIAL_BADGE_TONES : undefined}
+              ticket={trialDays !== null ? { top: fillTrial(trialCopy.ticketTop, trialDays, monthly.priceString), bottom: trialCopy.ticketBottom } : undefined}
               tones={MONTHLY_TONES}
             /> : null}
+            {monthlyTrial !== null && monthly ? <TrialTimeline days={monthlyTrial} copy={trialCopy} price={monthly.priceString} /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
           </View>
 
@@ -389,7 +489,19 @@ const styles = StyleSheet.create({
   planUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 1 },
   planBadge: { position: 'absolute', top: -10, left: 18, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   planBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 9.5, letterSpacing: 0.9 },
-  trialBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, overflow: 'hidden' },
+  ticket: { position: 'absolute', top: -20, right: 96, width: TICKET_W, height: TICKET_H, shadowColor: '#065F46', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
+  ticketIcon: { position: 'absolute', left: 4, top: (TICKET_H - 13) / 2 },
+  ticketCopy: { position: 'absolute', left: 24, right: 6, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
+  ticketTop: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2, color: '#FFFFFF' },
+  ticketBottom: { fontFamily: 'Inter_800ExtraBold', fontSize: 9, letterSpacing: 1.6, color: 'rgba(255,255,255,0.9)', marginTop: 1 },
+  timeline: { borderRadius: 22, borderWidth: 1, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
+  timelineHeadline: { fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18, marginBottom: 12 },
+  timelineRow: { flexDirection: 'row', gap: 6 },
+  timelineStep: { flex: 1, minWidth: 0 },
+  timelineBar: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  timelineBarFill: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  timelineLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 7 },
+  timelinePrice: { fontFamily: 'Inter_800ExtraBold', fontSize: 12, marginTop: 1 },
   saveBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   saveBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 0.4 },
   plansLoading: { flex: 1, borderRadius: 26, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8 },
