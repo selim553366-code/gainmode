@@ -16,7 +16,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
-import { getPremiumPreviewProduct, translate, type TranslationKey } from '@/lib/i18n';
+import { getPremiumPreviewProduct, translate, type Language, type TranslationKey } from '@/lib/i18n';
+import { freeTrialDays } from '@/lib/premiumTrial';
 import { useSubscription } from '@/lib/revenuecat';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
@@ -32,6 +33,19 @@ type Plan = 'monthly' | 'annual';
 type DisplayProduct = { price: number; currencyCode: string; priceString: string };
 const ANNUAL_TONES: [string, string] = ['#E8364F', '#FF8A3D'];
 const MONTHLY_TONES: [string, string] = ['#2563EB', '#38BDF8'];
+const TRIAL_BADGE_TONES: [string, string] = ['#16A34A', '#22C55E'];
+/** The free trial shown on the monthly plan in the web preview, where there is no store. */
+const PREVIEW_TRIAL_DAYS = 3;
+
+/** Free-trial copy for the monthly plan. {days} and {price} are filled in. */
+const TRIAL_COPY: Record<Language, { badge: string; note: string; cta: string; sub: string; renew: string }> = {
+  tr: { badge: '{days} GÜN ÜCRETSİZ', note: '{days} gün ücretsiz, sonra {price}/ay', cta: '{days} gün ücretsiz başla', sub: 'Sonra {price}/ay · İstediğin zaman iptal et', renew: 'Deneme bitmeden iptal edersen ücret alınmaz. Sonra {price}/ay, iptal edilmedikçe yenilenir.' },
+  en: { badge: '{days} DAYS FREE', note: '{days} days free, then {price}/mo', cta: 'Start {days}-day free trial', sub: 'Then {price}/mo · Cancel anytime', renew: 'Cancel before the trial ends and you won’t be charged. Then {price}/month, renews unless canceled.' },
+  de: { badge: '{days} TAGE GRATIS', note: '{days} Tage gratis, dann {price}/Monat', cta: '{days} Tage gratis testen', sub: 'Dann {price}/Monat · Jederzeit kündbar', renew: 'Kündige vor Ende des Tests und es fallen keine Kosten an. Danach {price}/Monat, verlängert sich bis zur Kündigung.' },
+  fr: { badge: '{days} JOURS OFFERTS', note: '{days} jours offerts, puis {price}/mois', cta: 'Essai gratuit de {days} jours', sub: 'Puis {price}/mois · Annulable à tout moment', renew: 'Annule avant la fin de l’essai et rien ne te sera facturé. Ensuite {price}/mois, renouvelé sauf résiliation.' },
+  es: { badge: '{days} DÍAS GRATIS', note: '{days} días gratis, luego {price}/mes', cta: 'Empieza {days} días gratis', sub: 'Luego {price}/mes · Cancela cuando quieras', renew: 'Cancela antes de que acabe la prueba y no se te cobrará. Luego {price}/mes, se renueva salvo que lo canceles.' },
+};
+const fillTrial = (text: string, days: number, price: string) => text.replace('{days}', String(days)).replace('{price}', price);
 
 function formatPrice(value: number, currencyCode: string) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode }).format(value);
@@ -84,7 +98,7 @@ function FeatureRow({ icon, title, body, delay, last }: { icon: IconName; title:
  * Plan bar. Its colour always flows slowly; at rest it only tints the price side of the bar, and when chosen it
  * floods the whole bar (420ms) and the text turns white.
  */
-function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadge, strike, tones, testID }: {
+function PlanCard({ selected, onPress, title, price, unit, note, badge, badgeTones, saveBadge, strike, tones, testID }: {
   selected: boolean;
   onPress: () => void;
   title: string;
@@ -92,6 +106,8 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadg
   unit: string;
   note: string;
   badge?: string;
+  /** Gradient for the badge instead of the default ink pill, e.g. green for a free trial. */
+  badgeTones?: [string, string];
   saveBadge?: string | null;
   strike?: string | null;
   tones: [string, string];
@@ -133,7 +149,10 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, saveBadg
         <Text style={[styles.planUnit, { color: selected || dark ? 'rgba(255,255,255,0.8)' : colors.mutedForeground }]}>{unit}</Text>
       </View>
     </View>
-    {badge ? <View style={[styles.planBadge, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
+    {badge && badgeTones ? <LinearGradient colors={badgeTones} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.planBadge, styles.trialBadge]}>
+      <Ionicons name="gift-outline" size={12} color="#FFFFFF" />
+      <Text style={[styles.planBadgeText, { color: '#FFFFFF' }]}>{badge}</Text>
+    </LinearGradient> : badge ? <View style={[styles.planBadge, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
   </Pressable>;
 }
 
@@ -164,6 +183,15 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const annualPerMonth = formatAnnualMonthlyPrice(annual);
   const yearOfMonthly = monthly && annual && monthly.currencyCode === annual.currencyCode ? formatPrice(monthly.price * 12, monthly.currencyCode) : null;
   const selectedProduct = plan === 'annual' ? annual : monthly;
+  // Only promise a free trial the store actually offers on the monthly product.
+  const trialDays = monthlyPackage ? freeTrialDays(monthlyPackage.product) : usePreviewPrices ? PREVIEW_TRIAL_DAYS : null;
+  const trialCopy = TRIAL_COPY[language] ?? TRIAL_COPY.en;
+  const monthlyTrial = plan === 'monthly' && trialDays !== null && monthly ? trialDays : null;
+  // With a free trial on offer, the monthly plan is selected first, until the person picks a plan.
+  const pickedPlan = React.useRef(false);
+  React.useEffect(() => {
+    if (trialDays !== null && !pickedPlan.current) setPlan('monthly');
+  }, [trialDays]);
   const busy = isPurchasing || previewBusy;
   const checking = !previewMode && isAvailable && (isLoading || isSubscribed === undefined);
 
@@ -228,9 +256,15 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
     Linking.openURL(legalDocumentUrl(document, language)).catch(() => Alert.alert(t('legalLinkErrorTitle'), t('legalLinkErrorBody')));
   };
 
-  const renewNote = selectedProduct
-    ? t(plan === 'annual' ? 'paywallRenewsYearly' : 'paywallRenewsMonthly').replace('{price}', selectedProduct.priceString)
-    : t('premiumTrust');
+  const renewNote = monthlyTrial !== null && monthly
+    ? fillTrial(trialCopy.renew, monthlyTrial, monthly.priceString)
+    : selectedProduct
+      ? t(plan === 'annual' ? 'paywallRenewsYearly' : 'paywallRenewsMonthly').replace('{price}', selectedProduct.priceString)
+      : t('premiumTrust');
+  const ctaLabel = monthlyTrial !== null ? fillTrial(trialCopy.cta, monthlyTrial, monthly?.priceString ?? '') : t('paywallCta');
+  const ctaSub = monthlyTrial !== null && monthly
+    ? fillTrial(trialCopy.sub, monthlyTrial, monthly.priceString)
+    : selectedProduct ? `${plan === 'annual' ? t('premiumAnnualPlan') : t('premiumMonthlyPlan')} · ${selectedProduct.priceString}` : t('premiumTrust');
 
   return <View style={[styles.root, { backgroundColor: colors.background }]}>
     <SkyBackdrop />
@@ -261,7 +295,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
             {annual ? <PlanCard
               testID="paywall-annual-plan"
               selected={plan === 'annual'}
-              onPress={() => { if (plan !== 'annual') { Haptics.selectionAsync().catch(() => undefined); setPlan('annual'); } }}
+              onPress={() => { pickedPlan.current = true; if (plan !== 'annual') { Haptics.selectionAsync().catch(() => undefined); setPlan('annual'); } }}
               title={t('premiumAnnualPlan')}
               price={annual.priceString}
               unit={t('premiumPerYear')}
@@ -274,11 +308,13 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
             {monthly ? <PlanCard
               testID="paywall-monthly-plan"
               selected={plan === 'monthly'}
-              onPress={() => { if (plan !== 'monthly') { Haptics.selectionAsync().catch(() => undefined); setPlan('monthly'); } }}
+              onPress={() => { pickedPlan.current = true; if (plan !== 'monthly') { Haptics.selectionAsync().catch(() => undefined); setPlan('monthly'); } }}
               title={t('premiumMonthlyPlan')}
               price={monthly.priceString}
               unit={t('premiumPerMonth')}
-              note={t('paywallMonthlyNote')}
+              note={trialDays !== null ? fillTrial(trialCopy.note, trialDays, monthly.priceString) : t('paywallMonthlyNote')}
+              badge={trialDays !== null ? fillTrial(trialCopy.badge, trialDays, monthly.priceString) : undefined}
+              badgeTones={trialDays !== null ? TRIAL_BADGE_TONES : undefined}
               tones={MONTHLY_TONES}
             /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
@@ -302,8 +338,8 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
       {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       <ChargeButton
         testID="paywall-subscribe"
-        label={busy ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : t('paywallCta')}
-        sub={selectedProduct ? `${plan === 'annual' ? t('premiumAnnualPlan') : t('premiumMonthlyPlan')} · ${selectedProduct.priceString}` : t('premiumTrust')}
+        label={busy ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : ctaLabel}
+        sub={ctaSub}
         tones={plan === 'annual' ? ANNUAL_TONES : MONTHLY_TONES}
         busy={busy}
         disabled={busy || checking}
@@ -353,6 +389,7 @@ const styles = StyleSheet.create({
   planUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 1 },
   planBadge: { position: 'absolute', top: -10, left: 18, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   planBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 9.5, letterSpacing: 0.9 },
+  trialBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, overflow: 'hidden' },
   saveBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   saveBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 0.4 },
   plansLoading: { flex: 1, borderRadius: 26, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8 },
