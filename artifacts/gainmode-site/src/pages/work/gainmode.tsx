@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { AnimatePresence, motion, useInView, useScroll, useTransform } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, Mail, Smartphone } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Gift, Mail, Smartphone } from 'lucide-react';
 import { countries, flag, guessCountry, toE164 } from '@/lib/countries';
 import { useI18n } from '@/lib/i18n';
 import { products } from '@/lib/products';
@@ -26,20 +26,93 @@ const product = products.find((item) => item.slug === 'gainmode')!;
 const featureScreens = [[onboarding, aiPlan], [scan, barcode], [live], [nutrition], [plan], [charts], [streak, badges]];
 const gallery = [home, onboarding, aiPlan, nutrition, scan, barcode, plan, live, charts, streak, badges];
 
-function StoreButton({ store, size = 'md' }: { store: 'appStore' | 'playStore'; size?: 'md' | 'lg' }) {
+const APPLE_PATH = 'M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.9-4.2zM13.9 5.3c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z';
+
+function StoreButton({ store, size = 'md', wide = false }: { store: 'appStore' | 'playStore'; size?: 'md' | 'lg'; wide?: boolean }) {
   const { t } = useI18n();
   const url = product.links[store];
   const label = store === 'appStore' ? t.gm.appStore : t.gm.playStore;
   const icon = store === 'appStore'
-    ? <svg viewBox="0 0 24 24" className={size === 'lg' ? 'h-9 w-9 shrink-0' : 'h-6 w-6'} fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.9-4.2zM13.9 5.3c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z" /></svg>
+    ? <svg viewBox="0 0 24 24" className={size === 'lg' ? 'h-9 w-9 shrink-0' : 'h-6 w-6'} fill="currentColor" aria-hidden="true"><path d={APPLE_PATH} /></svg>
     : <svg viewBox="0 0 24 24" className={size === 'lg' ? 'h-9 w-9 shrink-0' : 'h-6 w-6'} aria-hidden="true"><path fill="#00D7FE" d="M3.6 2.3 13.3 12l-9.7 9.7c-.4-.2-.6-.7-.6-1.2V3.5c0-.5.2-1 .6-1.2z" /><path fill="#FFCE00" d="m16.6 15.3-3.3-3.3 3.3-3.3 3.8 2.2c1 .6 1 1.6 0 2.2z" /><path fill="#FF3A44" d="M16.6 15.3 13.3 12l-9.7 9.7c.4.2.9.2 1.4-.1z" /><path fill="#00F076" d="M16.6 8.7 5 2.4c-.5-.3-1-.3-1.4-.1l9.7 9.7z" /></svg>;
   const lg = size === 'lg';
   const kicker = url ? (store === 'appStore' ? 'Download on the' : t.gm.getOn) : t.gm.storeSoon;
   const body = <>{icon}<span className="text-left leading-tight"><span className={`block font-medium uppercase text-white/60 ${lg ? 'text-xs tracking-[0.16em]' : 'text-[10px] tracking-[0.14em]'}`}>{kicker}</span><span className={`block font-semibold ${lg ? 'text-2xl tracking-[-0.02em] sm:text-[28px]' : 'text-base'}`}>{label}</span></span></>;
-  const shape = lg ? 'h-20 w-full justify-center gap-4 rounded-2xl px-7 sm:h-[88px] sm:w-[320px]' : 'h-14 gap-3 rounded-lg px-5';
+  const shape = lg ? `h-20 w-full justify-center gap-4 rounded-2xl px-7 sm:h-[88px] ${wide ? '' : 'sm:w-[320px]'}` : 'h-14 gap-3 rounded-lg px-5';
   return url
     ? <a href={url} target="_blank" rel="noreferrer" className={`group relative flex items-center border border-white/25 bg-black transition-all hover:border-white/60 ${lg ? 'shadow-[0_18px_50px_-12px_rgba(47,91,255,.75)] hover:-translate-y-0.5' : ''} ${shape}`}>{body}</a>
     : <span aria-disabled="true" className={`relative flex cursor-default items-center border border-white/10 bg-white/[0.04] text-white/70 ${shape}`}>{body}</span>;
+}
+
+/** A ticket outline whose left edge is torn into teeth, like the receipt in the app. */
+function ticketPath(w: number, h: number, teeth = 6) {
+  const tooth = h / teeth;
+  let d = `M ${w - 10} 0 Q ${w} 0 ${w} 10 V ${h - 10} Q ${w} ${h} ${w - 10} ${h} H 7`;
+  for (let i = teeth; i > 0; i--) d += ` L 0 ${(i - 0.5) * tooth} L 7 ${(i - 1) * tooth}`;
+  return `${d} Z`;
+}
+
+/**
+ * The free trial as a green paper ticket pinned to the Google Play button, the same ticket the
+ * app's paywall shows. It drops in and settles, then gives a small swing every few seconds.
+ */
+function TrialTicket() {
+  const { t } = useI18n();
+  const W = 132;
+  const H = 66;
+  return (
+    <motion.div
+      aria-label={`${t.gm.trialTop} ${t.gm.trialBottom}`}
+      className="pointer-events-none absolute -right-2 -top-12 z-10 sm:-right-8 sm:-top-9"
+      style={{ width: W, height: H, transformOrigin: '20% 50%', zoom: typeof window !== 'undefined' && window.innerWidth < 640 ? 0.82 : 1 }}
+      initial={{ opacity: 0, y: -30, rotate: -24, scale: 0.8 }}
+      whileInView={{ opacity: 1, y: 0, rotate: [-24, 14, 4, 9, 8], scale: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 1.1, delay: 0.4, ease: 'easeOut' }}
+    >
+      <motion.div className="relative h-full w-full drop-shadow-[0_14px_22px_rgba(6,95,70,.55)]" animate={{ rotate: [0, 6, -4, 2, 0] }} transition={{ duration: 0.9, delay: 3, repeat: Infinity, repeatDelay: 3.2 }}>
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="absolute inset-0" aria-hidden="true">
+          <defs>
+            <linearGradient id="trialTicket" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#34D399" /><stop offset="1" stopColor="#059669" /></linearGradient>
+          </defs>
+          <path d={ticketPath(W, H)} fill="url(#trialTicket)" />
+          <path d={`M 30 9 V ${H - 9}`} stroke="rgba(255,255,255,0.55)" strokeWidth="2" strokeDasharray="4 4" />
+        </svg>
+        <Gift size={17} className="absolute left-[8px] top-1/2 -translate-y-1/2 text-white" aria-hidden="true" />
+        <span className="absolute inset-y-0 left-[34px] right-2 flex flex-col items-center justify-center leading-none text-white">
+          <span className="text-[22px] font-extrabold tracking-[-0.02em]">{t.gm.trialTop}</span>
+          <span className="mt-1 text-[10px] font-extrabold tracking-[0.18em] text-white/90">{t.gm.trialBottom}</span>
+        </span>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/**
+ * The App Store button and the countdown list as one card: the top reads like the store button,
+ * with a live "coming soon" badge, and a torn ticket line leads into the signup form below.
+ */
+function AppStoreCountdownCard() {
+  const { t } = useI18n();
+  return (
+    <div className="relative w-full overflow-hidden rounded-[28px] border border-white/15 bg-black/45 text-left shadow-[0_24px_60px_-24px_rgba(47,91,255,.55)] backdrop-blur">
+      <div aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-royal-300/80 to-transparent" />
+      <motion.div aria-hidden="true" className="absolute -top-px h-px w-1/3 bg-gradient-to-r from-transparent via-white to-transparent" animate={{ left: ['-35%', '105%'] }} transition={{ duration: 3.2, repeat: Infinity, repeatDelay: 1.6, ease: 'easeInOut' }} />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 pt-6 sm:px-7">
+        <svg viewBox="0 0 24 24" className="h-10 w-10 shrink-0 text-white" fill="currentColor" aria-hidden="true"><path d={APPLE_PATH} /></svg>
+        <span className="leading-tight">
+          <span className="block text-xs font-medium uppercase tracking-[0.16em] text-white/60">{t.gm.storeSoon}</span>
+          <span className="block text-2xl font-semibold tracking-[-0.02em] sm:text-[28px]">{t.gm.appStore}</span>
+        </span>
+        <span className="ml-auto inline-flex items-center gap-2 rounded-full border border-royal-300/30 bg-royal-500/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-royal-100">
+          <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-royal-300 opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-royal-300" /></span>
+          {t.gm.countdownBadge}
+        </span>
+      </div>
+      <div aria-hidden="true" className="mx-6 my-5 border-t-2 border-dashed border-white/12 sm:mx-7" />
+      <div className="px-6 pb-6 sm:px-7"><CountdownForm embedded /></div>
+    </div>
+  );
 }
 
 /** The download block: the two store buttons, large and centred, with the App Store countdown list under them. */
@@ -64,11 +137,13 @@ function DownloadSection() {
         <div className="aurora left-1/2 top-0 h-72 w-[520px] -translate-x-1/2 bg-royal-500/30" />
         <p className="relative text-xs font-semibold uppercase tracking-[0.22em] text-royal-200">{t.gm.downloadKicker}</p>
         <h2 className="relative mx-auto mt-4 max-w-2xl text-3xl font-bold leading-[1.05] tracking-[-0.04em] sm:text-4xl md:text-5xl">{t.gm.downloadTitle}</h2>
-        <div className="relative mx-auto mt-9 flex max-w-[680px] flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center">
-          <StoreButton store="playStore" size="lg" />
-          <StoreButton store="appStore" size="lg" />
+        <p className="relative mx-auto mt-4 max-w-md text-base text-white/70 sm:text-lg">
+          <span className="font-semibold text-emerald-300">{t.gm.trialLine}</span> {t.gm.trialFine}
+        </p>
+        <div className="relative mx-auto mt-12 flex max-w-[640px] flex-col gap-5">
+          <div className="relative"><StoreButton store="playStore" size="lg" wide /><TrialTicket /></div>
+          <AppStoreCountdownCard />
         </div>
-        <div className="relative mx-auto mt-10 max-w-md rounded-[28px] border border-white/10 bg-black/30 p-5 text-left sm:p-6"><CountdownForm /></div>
       </Reveal>
     </section>
   );
@@ -78,7 +153,7 @@ function DownloadSection() {
  * The App Store countdown list: an email, or a phone number with its country. It posts to the
  * API's early list, which stores the entry so everyone can be told the day the iPhone app lands.
  */
-function CountdownForm({ center = false }: { center?: boolean }) {
+function CountdownForm({ center = false, embedded = false }: { center?: boolean; embedded?: boolean }) {
   const { t, lang } = useI18n();
   const [mode, setMode] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
@@ -109,8 +184,11 @@ function CountdownForm({ center = false }: { center?: boolean }) {
     </button>
   );
   return (
-    <form onSubmit={submit} className={`w-full max-w-md ${center ? 'mx-auto text-left' : ''}`}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+    <form onSubmit={submit} className={`w-full ${embedded ? '' : 'max-w-md'} ${center ? 'mx-auto text-left' : ''}`}>
+      {embedded ? <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-white/65">{t.gm.countdownBody}</p>
+        {state === 'done' ? null : <div className="flex rounded-full border border-white/15 bg-white/[0.04] p-1">{tab('email', t.gm.countdownEmail, Mail)}{tab('phone', t.gm.countdownPhone, Smartphone)}</div>}
+      </div> : <><div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-royal-100">
           <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-royal-300 opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-royal-300" /></span>
           {t.gm.countdownBadge}
@@ -118,7 +196,7 @@ function CountdownForm({ center = false }: { center?: boolean }) {
         {state === 'done' ? null : <div className="flex rounded-full border border-white/15 bg-white/[0.04] p-1">{tab('email', t.gm.countdownEmail, Mail)}{tab('phone', t.gm.countdownPhone, Smartphone)}</div>}
       </div>
       <p className="text-lg font-semibold leading-snug">{t.gm.countdownTitle}</p>
-      <p className="mb-4 mt-1 text-sm text-white/60">{t.gm.countdownBody}</p>
+      <p className="mb-4 mt-1 text-sm text-white/60">{t.gm.countdownBody}</p></>}
       <AnimatePresence mode="wait">
         {state === 'done' ? (
           <motion.p key="done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start gap-2 rounded-2xl bg-emerald-400/10 px-5 py-4 text-sm font-medium text-emerald-300"><Check size={18} className="mt-0.5 shrink-0" />{t.gm.countdownDone}</motion.p>
