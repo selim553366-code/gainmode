@@ -35,7 +35,12 @@ type SubscriptionContextValue = {
   isAvailable: boolean;
   isLoading: boolean;
   isSubscribed: boolean | undefined;
-  purchase: (packageToPurchase: PurchasesPackage) => Promise<CustomerInfo>;
+  /**
+   * Buys a package. With `withoutTrial` on Google Play it buys the plain base plan, skipping any
+   * free-trial offer (used once the paywall's trial offer has run out). The App Store applies an
+   * introductory offer on its own, so there the flag has no effect.
+   */
+  purchase: (packageToPurchase: PurchasesPackage, options?: { withoutTrial?: boolean }) => Promise<CustomerInfo>;
   /** Fetch the store offerings again, e.g. when they were not loaded yet at purchase time. */
   refreshPackages: () => Promise<{ monthly?: PurchasesPackage; annual?: PurchasesPackage }>;
   restore: () => Promise<CustomerInfo>;
@@ -77,8 +82,11 @@ function useSubscriptionContext(): SubscriptionContextValue {
   }, [isAvailable, queryClient]);
 
   const purchaseMutation = useMutation({
-    mutationFn: async (packageToPurchase: PurchasesPackage) => {
-      const result = await Purchases.purchasePackage(packageToPurchase);
+    mutationFn: async ({ pkg, withoutTrial }: { pkg: PurchasesPackage; withoutTrial: boolean }) => {
+      const basePlan = withoutTrial && Platform.OS === 'android'
+        ? pkg.product.subscriptionOptions?.find((option) => option.isBasePlan)
+        : undefined;
+      const result = basePlan ? await Purchases.purchaseSubscriptionOption(basePlan) : await Purchases.purchasePackage(pkg);
       return result.customerInfo;
     },
     onSuccess: (customerInfo) => {
@@ -106,7 +114,7 @@ function useSubscriptionContext(): SubscriptionContextValue {
         : customerInfoQuery.data
           ? hasActivePremiumEntitlement(customerInfoQuery.data)
           : undefined,
-      purchase: purchaseMutation.mutateAsync,
+      purchase: (pkg: PurchasesPackage, options?: { withoutTrial?: boolean }) => purchaseMutation.mutateAsync({ pkg, withoutTrial: Boolean(options?.withoutTrial) }),
       refreshPackages: async () => {
         if (!isAvailable) return {};
         const result = await offeringsQuery.refetch();

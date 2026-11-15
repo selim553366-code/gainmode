@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isRunningInExpoGo } from 'expo';
 import type * as Notifications from 'expo-notifications';
 import { formatWorkoutReminder, Language, translate } from '@/lib/i18n';
@@ -209,6 +210,8 @@ async function syncFitnessNotificationsNow({
   const Notifications = await loadNotifications();
   if (!Notifications) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
+  // Clearing everything above also clears the trial reminder, so put it back while it is still due.
+  await restoreTrialReminder();
   if (!premiumActive) return;
   if (!(await requestNotificationPermission())) return;
   if (!(await prepareNotifications())) return;
@@ -255,3 +258,56 @@ export function syncFitnessNotifications(args: {
   notificationSync = nextSync.catch(() => undefined);
   return nextSync;
 }
+
+const TRIAL_REMINDER_KEY = 'gainmode-trial-reminder';
+/** A day before the trial converts: the end of day 2 of a 3-day trial. */
+export const TRIAL_REMINDER_AFTER_MS = 2 * 24 * 60 * 60 * 1000;
+
+const TRIAL_REMINDER_COPY: Record<Language, { title: string; body: string }> = {
+  tr: { title: 'Ücretsiz denemen yarın bitiyor', body: 'GainMode Access aboneliğin yarın başlıyor. Devam etmek istemezsen mağaza ayarlarından istediğin zaman iptal edebilirsin.' },
+  en: { title: 'Your free trial ends tomorrow', body: 'Your GainMode Access subscription starts tomorrow. If you do not want to continue, you can cancel anytime in your store settings.' },
+  de: { title: 'Dein Gratis-Test endet morgen', body: 'Dein GainMode Access-Abo beginnt morgen. Wenn du nicht weitermachen willst, kannst du es jederzeit in den Store-Einstellungen kündigen.' },
+  fr: { title: 'Ton essai gratuit se termine demain', body: 'Ton abonnement GainMode Access commence demain. Si tu ne veux pas continuer, tu peux l’annuler à tout moment dans les réglages du store.' },
+  es: { title: 'Tu prueba gratis termina mañana', body: 'Tu suscripción a GainMode Access empieza mañana. Si no quieres continuar, puedes cancelarla cuando quieras en los ajustes de la tienda.' },
+};
+
+async function scheduleTrialReminderAt(language: Language, fireAt: number) {
+  const Notifications = await loadNotifications();
+  if (!Notifications || fireAt <= Date.now()) return;
+  if (!(await prepareNotifications())) return;
+  const copy = TRIAL_REMINDER_COPY[language] ?? TRIAL_REMINDER_COPY.en;
+  await Notifications.scheduleNotificationAsync({
+    content: { title: copy.title, body: copy.body, sound: 'default', data: { source: 'forge-fit-home' } },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, channelId: CHANNEL_ID, date: new Date(fireAt) },
+  });
+}
+
+/**
+ * Reminds the person a day before their free trial turns into a paid subscription, as the
+ * paywall promises. Asks for notification permission if needed; without it nothing is sent.
+ */
+export async function scheduleTrialReminder(language: Language, trialStartedAt = Date.now()) {
+  if (!notificationsSupported) return false;
+  const fireAt = trialStartedAt + TRIAL_REMINDER_AFTER_MS;
+  try {
+    await AsyncStorage.setItem(TRIAL_REMINDER_KEY, JSON.stringify({ fireAt, language }));
+  } catch {
+    // The reminder below still goes out; it just will not survive a later resync.
+  }
+  if (!(await requestNotificationPermission())) return false;
+  await scheduleTrialReminderAt(language, fireAt);
+  return true;
+}
+
+async function restoreTrialReminder() {
+  try {
+    const raw = await AsyncStorage.getItem(TRIAL_REMINDER_KEY);
+    if (!raw) return;
+    const { fireAt, language } = JSON.parse(raw) as { fireAt: number; language: Language };
+    if (fireAt > Date.now()) await scheduleTrialReminderAt(language, fireAt);
+    else await AsyncStorage.removeItem(TRIAL_REMINDER_KEY);
+  } catch {
+    // A broken record should not stop the other reminders.
+  }
+}
+
