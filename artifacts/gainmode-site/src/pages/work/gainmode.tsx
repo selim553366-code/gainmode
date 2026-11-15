@@ -48,6 +48,19 @@ function DownloadSection() {
   return (
     <section id="download" className="relative mx-auto max-w-[1240px] px-5 pb-20 pt-4 md:px-8 md:pb-28">
       <Reveal className="relative overflow-hidden rounded-[36px] border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] px-5 py-12 text-center sm:px-10 md:py-16">
+        {/* App screens drift behind the buttons: tilted phones at the sides on desktop, peeking from the top corners on mobile. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-10 top-10 hidden -rotate-[14deg] opacity-50 lg:block"><Phone src={nutrition} alt="" width={230} /></div>
+          <div className="absolute left-36 top-56 hidden -rotate-[6deg] opacity-35 xl:block"><Phone src={live} alt="" width={190} /></div>
+          <div className="absolute -right-10 top-10 hidden rotate-[14deg] opacity-50 lg:block"><Phone src={streak} alt="" width={230} /></div>
+          <div className="absolute right-36 top-56 hidden rotate-[6deg] opacity-35 xl:block"><Phone src={plan} alt="" width={190} /></div>
+          <div className="absolute -left-14 -top-6 -rotate-[16deg] opacity-55 lg:hidden"><Phone src={home} alt="" width={150} /></div>
+          <div className="absolute -right-14 -top-6 rotate-[16deg] opacity-55 lg:hidden"><Phone src={charts} alt="" width={150} /></div>
+          <div className="absolute -bottom-24 -left-16 rotate-[12deg] opacity-45 lg:hidden"><Phone src={badges} alt="" width={150} /></div>
+          <div className="absolute -bottom-24 -right-16 -rotate-[12deg] opacity-45 lg:hidden"><Phone src={scan} alt="" width={150} /></div>
+          {/* Darken the middle so the heading, buttons and form stay easy to read. */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(5,8,23,0.9)_0%,rgba(5,8,23,0.62)_42%,rgba(5,8,23,0.05)_80%)]" />
+        </div>
         <div className="aurora left-1/2 top-0 h-72 w-[520px] -translate-x-1/2 bg-royal-500/30" />
         <p className="relative text-xs font-semibold uppercase tracking-[0.22em] text-royal-200">{t.gm.downloadKicker}</p>
         <h2 className="relative mx-auto mt-4 max-w-2xl text-3xl font-bold leading-[1.05] tracking-[-0.04em] sm:text-4xl md:text-5xl">{t.gm.downloadTitle}</h2>
