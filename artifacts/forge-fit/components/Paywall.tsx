@@ -1,6 +1,5 @@
 import React from 'react';
 import { ActivityIndicator, Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,7 +31,7 @@ import { Ionicons } from '@/components/AppIcon';
 import { EASE_OUT, PressableScale as Pressable } from '@/components/Motion';
 import { GainModeWordmark } from '@/components/FitUI';
 import { SkyBackdrop } from '@/components/SkyBackdrop';
-import { ChargeButton, WaterFill } from '@/components/ChargeButton';
+import { WaterFill } from '@/components/ChargeButton';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type Plan = 'monthly' | 'annual';
@@ -53,94 +52,50 @@ const TRIAL_COPY: Record<Language, TrialCopy> = {
 };
 const fillTrial = (text: string, days: number, price: string) => text.replace('{days}', String(days)).replace('{price}', price);
 
-const TICKET_W = 96;
-const TICKET_H = 50;
-const TICKET_TEETH = 6;
-
-/** A ticket outline whose left edge is torn into teeth, like the receipt stub elsewhere in the app. */
-function ticketPath(w: number, h: number) {
-  const tooth = h / TICKET_TEETH;
-  let d = `M ${w - 8} 0 Q ${w} 0 ${w} 8 V ${h - 8} Q ${w} ${h} ${w - 8} ${h} H 6`;
-  for (let i = TICKET_TEETH; i > 0; i--) d += ` L 0 ${(i - 0.5) * tooth} L 6 ${(i - 1) * tooth}`;
-  return `${d} Z`;
-}
-
-/**
- * The free trial as a little paper ticket pinned to the corner of the monthly plan. It drops in
- * with a tilt and settles, then gives a small swing every few seconds so the eye finds it.
- */
-function TrialTicket({ top, bottom }: { top: string; bottom: string }) {
-  const reduced = useReducedMotion();
-  const drop = useSharedValue(reduced ? 1 : 0);
-  const swing = useSharedValue(0);
-  React.useEffect(() => {
-    if (reduced) return;
-    drop.set(withDelay(520, withSpring(1, { damping: 9, stiffness: 160 })));
-    swing.set(withDelay(2200, withRepeat(withSequence(
-      withTiming(1, { duration: 140 }), withTiming(-1, { duration: 180 }), withTiming(0.5, { duration: 160 }), withTiming(0, { duration: 160 }),
-      withDelay(3600, withTiming(0, { duration: 0 })),
-    ), -1)));
-  }, [drop, reduced, swing]);
-  const style = useAnimatedStyle(() => ({
-    opacity: Math.min(1, drop.get() * 1.4),
-    transform: [{ translateY: (1 - drop.get()) * -22 }, { rotate: `${-7 + (1 - drop.get()) * -14 + swing.get() * 5}deg` }, { scale: 0.85 + drop.get() * 0.15 }],
-  }));
-  return <Animated.View pointerEvents="none" style={[styles.ticket, style]}>
-    <Svg width={TICKET_W} height={TICKET_H} style={StyleSheet.absoluteFill}>
-      <Defs>
-        <SvgGradient id="ticketFill" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#34D399" />
-          <Stop offset="1" stopColor="#059669" />
-        </SvgGradient>
-      </Defs>
-      <Path d={ticketPath(TICKET_W, TICKET_H)} fill="url(#ticketFill)" />
-      <Path d={`M 20 7 V ${TICKET_H - 7}`} stroke="rgba(255,255,255,0.55)" strokeWidth={1.5} strokeDasharray="3 3" />
-    </Svg>
-    <View style={styles.ticketIcon}><Ionicons name="gift-outline" size={13} color="#FFFFFF" /></View>
-    <View style={styles.ticketCopy}>
-      <Text style={styles.ticketTop}>{top}</Text>
-      <Text style={styles.ticketBottom}>{bottom}</Text>
-    </View>
-  </Animated.View>;
-}
-
 const STEP_ICONS: IconName[] = ['flag', 'notifications-outline', 'star'];
 const STEP_RAIL = 46;
 const STEP_DOT = 36;
 
+type RailItem = { icon: IconName; title: string; body: string };
+
 /**
- * The trial as three stops down a capsule rail: today everything unlocks, a reminder comes a day
- * before the end, and the subscription starts on the last day. The rail fills up to the reminder.
+ * Stops down a capsule rail. The rail fills (on arrival) down to the stop at `filledThrough`;
+ * stops past it stay grey.
  */
-function TrialSteps({ days, copy, price }: { days: number; copy: TrialCopy; price: string }) {
+function StepRail({ items, filledThrough }: { items: RailItem[]; filledThrough: number }) {
   const colors = useColors();
   const dark = colors.colorScheme === 'dark';
   const reduced = useReducedMotion();
-  const [reminderY, setReminderY] = React.useState<number | null>(null);
+  const [targetY, setTargetY] = React.useState<number | null>(filledThrough === 0 ? 0 : null);
   const fill = useSharedValue(reduced ? 1 : 0);
   React.useEffect(() => {
-    if (!reduced && reminderY !== null) fill.set(withDelay(250, withTiming(1, { duration: 1100, easing: EASE_OUT })));
-  }, [fill, reduced, reminderY]);
-  const fillStyle = useAnimatedStyle(() => ({ height: STEP_RAIL + fill.get() * (reminderY ?? 0) }));
-  const fillIn = (text: string) => text.replace('{n}', String(Math.max(1, days - 1))).replace('{days}', String(days)).replace('{price}', price);
+    if (!reduced && targetY !== null) fill.set(withDelay(250, withTiming(1, { duration: 1100, easing: EASE_OUT })));
+  }, [fill, reduced, targetY]);
+  const fillStyle = useAnimatedStyle(() => ({ height: STEP_RAIL + fill.get() * (targetY ?? 0) }));
   return <View style={styles.steps}>
     <View style={[styles.stepsRail, { backgroundColor: dark ? 'rgba(255,255,255,0.1)' : '#FFFFFF' }]}>
       <Animated.View style={[styles.stepsRailFill, fillStyle]}>
         <LinearGradient colors={MONTHLY_TONES} start={{ x: 0, y: 1 }} end={{ x: 0, y: 0 }} style={StyleSheet.absoluteFill} />
       </Animated.View>
     </View>
-    {copy.steps.map(([title, body], index) => <View key={title} style={styles.step} onLayout={index === 1 ? (event) => setReminderY(event.nativeEvent.layout.y) : undefined}>
+    {items.map(({ icon, title, body }, index) => <View key={title} style={styles.step} onLayout={index === filledThrough && index > 0 ? (event) => setTargetY(event.nativeEvent.layout.y) : undefined}>
       <View style={styles.stepDotWrap}>
-        <View style={[styles.stepDot, { backgroundColor: index < 2 ? '#1D4ED8' : dark ? 'rgba(255,255,255,0.22)' : '#CBD5E1' }]}>
-          <Ionicons name={STEP_ICONS[index]} size={16} color="#FFFFFF" />
+        <View style={[styles.stepDot, { backgroundColor: index <= filledThrough ? '#1D4ED8' : dark ? 'rgba(255,255,255,0.22)' : '#CBD5E1' }]}>
+          <Ionicons name={icon} size={16} color="#FFFFFF" />
         </View>
       </View>
       <View style={styles.stepCopy}>
-        <Text style={[styles.stepTitle, { color: colors.foreground }]}>{fillIn(title)}</Text>
-        <Text style={[styles.stepBody, { color: colors.mutedForeground }]}>{fillIn(body)}</Text>
+        <Text style={[styles.stepTitle, { color: colors.foreground }]}>{title}</Text>
+        <Text style={[styles.stepBody, { color: colors.mutedForeground }]}>{body}</Text>
       </View>
     </View>)}
   </View>;
+}
+
+/** The trial as three stops: today everything unlocks, a reminder comes before the end, then the subscription starts. */
+function TrialSteps({ days, copy, price }: { days: number; copy: TrialCopy; price: string }) {
+  const fillIn = (text: string) => text.replace('{n}', String(Math.max(1, days - 1))).replace('{days}', String(days)).replace('{price}', price);
+  return <StepRail filledThrough={1} items={copy.steps.map(([title, body], index) => ({ icon: STEP_ICONS[index], title: fillIn(title), body: fillIn(body) }))} />;
 }
 
 /** Light rays fanning down from above the screen, behind the trial title, fading into the page. */
@@ -273,35 +228,6 @@ function useEntrance(delay: number, distance = 14) {
   }));
 }
 
-/** The GainMode Access medal drifts a few pixels up and down so the page feels alive; still under reduced motion. */
-function FloatingMedal({ size }: { size: number }) {
-  const reduced = useReducedMotion();
-  const drift = useSharedValue(0);
-  React.useEffect(() => {
-    if (reduced) return;
-    drift.set(withRepeat(withSequence(withTiming(1, { duration: 2200, easing: Easing.inOut(Easing.sin) }), withTiming(0, { duration: 2200, easing: Easing.inOut(Easing.sin) })), -1));
-  }, [drift, reduced]);
-  const style = useAnimatedStyle(() => ({ transform: [{ translateY: -6 * drift.get() }, { rotate: `${-4 + drift.get() * 4}deg` }] }));
-  return <Animated.View style={style}>
-    <Image source={require('@/assets/images/medals/access.png')} resizeMode="contain" style={{ width: size, height: size }} />
-  </Animated.View>;
-}
-
-/** One benefit: a gradient tile with the icon, the title and its line. */
-function FeatureRow({ icon, title, body, delay, last }: { icon: IconName; title: string; body: string; delay: number; last: boolean }) {
-  const colors = useColors();
-  const entrance = useEntrance(delay, 8);
-  return <Animated.View accessible accessibilityLabel={`${title}. ${body}`} style={[styles.feature, !last ? { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border } : null, entrance]}>
-    <LinearGradient colors={[colors.accent, '#123A8F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.featureIcon}>
-      <Ionicons name={icon} size={17} color="#FFFFFF" />
-    </LinearGradient>
-    <View style={{ flex: 1, minWidth: 0 }}>
-      <Text numberOfLines={1} style={[styles.featureTitle, { color: colors.foreground }]}>{title}</Text>
-      <Text numberOfLines={2} style={[styles.featureBody, { color: colors.mutedForeground }]}>{body}</Text>
-    </View>
-  </Animated.View>;
-}
-
 /**
  * Plan bar. Its colour always flows slowly; at rest it only tints the price side of the bar, and when chosen it
  * floods the whole bar (420ms) and the text turns white.
@@ -363,8 +289,16 @@ function PlanCard({ selected, onPress, title, price, unit, perMonth, note, badge
         {perMonth ? <Text numberOfLines={1} style={[styles.planPerMonth, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{perMonth}</Text> : null}
       </View>
     </View>
-    {ticket && !compact ? <TrialTicket top={ticket.top} bottom={ticket.bottom} /> : null}
     {badge ? <View style={[styles.planBadge, compact && styles.planBadgeCompact, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
+  </Pressable>;
+}
+
+/** The one action: a solid pill in the page's ink colour. */
+function SubscribeButton({ label, busy, disabled, onPress }: { label: string; busy: boolean; disabled: boolean; onPress: () => void }) {
+  const colors = useColors();
+  return <Pressable testID="paywall-subscribe" accessibilityRole="button" disabled={disabled} onPress={onPress} scaleTo={0.98}
+    style={[styles.subscribe, { backgroundColor: colors.foreground, opacity: disabled && !busy ? 0.6 : 1 }]}>
+    {busy ? <ActivityIndicator color={colors.background} /> : <Text style={[styles.subscribeText, { color: colors.background }]}>{label}</Text>}
   </Pressable>;
 }
 
@@ -393,7 +327,6 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const annual: DisplayProduct | undefined = annualPackage?.product ?? (usePreviewPrices ? getPremiumPreviewProduct(language, 49.99) : undefined);
   const savings = calculateAnnualSavingsPercent(monthly, annual);
   const annualPerMonth = formatAnnualMonthlyPrice(annual);
-  const yearOfMonthly = monthly && annual && monthly.currencyCode === annual.currencyCode ? formatPrice(monthly.price * 12, monthly.currencyCode) : null;
   const selectedProduct = plan === 'annual' ? annual : monthly;
   // Only promise a free trial the store actually offers on the monthly product.
   const storeTrialDays = monthlyPackage ? freeTrialDays(monthlyPackage.product) : usePreviewPrices ? PREVIEW_TRIAL_DAYS : null;
@@ -424,9 +357,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const busy = isPurchasing || previewBusy;
   const checking = !previewMode && isAvailable && (isLoading || isSubscribed === undefined);
 
-  const heroEntrance = useEntrance(0, 18);
   const titleEntrance = useEntrance(120, 12);
-  const plansEntrance = useEntrance(260, 12);
 
   const handlePurchase = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => undefined);
@@ -494,14 +425,10 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
       ? t(plan === 'annual' ? 'paywallRenewsYearly' : 'paywallRenewsMonthly').replace('{price}', selectedProduct.priceString)
       : t('premiumTrust');
   const ctaLabel = monthlyTrial !== null ? fillTrial(trialCopy.cta, monthlyTrial, monthly?.priceString ?? '') : t('paywallCta');
-  const ctaSub = monthlyTrial !== null && monthly
-    ? fillTrial(trialCopy.sub, monthlyTrial, monthly.priceString)
-    : selectedProduct ? `${plan === 'annual' ? t('premiumAnnualPlan') : t('premiumMonthlyPlan')} · ${selectedProduct.priceString}` : t('premiumTrust');
 
   const [footerHeight, setFooterHeight] = React.useState(230 + insets.bottom);
-  const offerMode = trialDays !== null && !!monthly;
   const planCards = (
-          <View style={[styles.plans, offerMode && styles.plansCompact]}>
+          <View style={[styles.plans, styles.plansCompact]}>
             {annual ? <PlanCard
               testID="paywall-annual-plan"
               selected={plan === 'annual'}
@@ -513,9 +440,8 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               note={t('paywallYearlyNote')}
               badge={t('paywallBestValue')}
               saveBadge={savings !== null ? t('paywallSave').replace('{percent}', String(savings)) : null}
-              strike={yearOfMonthly}
               tones={ANNUAL_TONES}
-              compact={offerMode}
+              compact
             /> : null}
             {monthly ? <PlanCard
               testID="paywall-monthly-plan"
@@ -527,7 +453,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               note={trialDays !== null ? fillTrial(trialCopy.note, trialDays, monthly.priceString) : t('paywallMonthlyNote')}
               ticket={trialDays !== null ? { top: fillTrial(trialCopy.ticketTop, trialDays, monthly.priceString), bottom: trialCopy.ticketBottom } : undefined}
               tones={MONTHLY_TONES}
-              compact={offerMode}
+              compact
             /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
           </View>
@@ -535,21 +461,17 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
 
   return <View style={[styles.root, { backgroundColor: colors.background }]}>
     <SkyBackdrop />
-    {offerMode ? <RayHeader height={insets.top + 400} /> : null}
+    <RayHeader height={insets.top + 400} />
     <ScrollView contentContainerStyle={{ paddingTop: insets.top + 14, paddingBottom: footerHeight + 24 }} showsVerticalScrollIndicator={false} bounces={false}>
       <View style={styles.topBar}>
         <View style={styles.brandRow}>
-          <GainModeWordmark color={offerMode ? '#FFFFFF' : colors.foreground} width={128} height={17} />
+          <GainModeWordmark color="#FFFFFF" width={128} height={17} />
           <LinearGradient colors={['#F5C542', '#E39A1F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proPill}><Text style={styles.proText}>ACCESS</Text></LinearGradient>
         </View>
         {onClose ? <Pressable accessibilityLabel={t('close')} onPress={onClose} hitSlop={10} style={[styles.close, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name="close" size={18} color={colors.foreground} />
         </Pressable> : null}
       </View>
-
-      {offerMode ? null : <Animated.View style={[styles.hero, heroEntrance]}>
-        <FloatingMedal size={compact ? 116 : 150} />
-      </Animated.View>}
 
       <View style={styles.content}>
         {trialDays !== null && monthly ? <Animated.View style={titleEntrance}>
@@ -558,38 +480,25 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
           </Text>
           <TrialSteps days={trialDays} copy={trialCopy} price={monthly.priceString} />
           <OfferCountdown remaining={offerRemaining} copy={trialCopy} />
-        </Animated.View> : <Animated.View style={[styles.heading, titleEntrance]}>
-          <Text style={[styles.title, { color: colors.foreground }]}>{t('paywallTitle')}</Text>
-          {compact ? null : <Text numberOfLines={3} style={[styles.body, { color: colors.mutedForeground }]}>{t('paywallBody')}</Text>}
+        </Animated.View> : <Animated.View style={titleEntrance}>
+          <Text style={[styles.title, styles.trialTitle, { color: '#FFFFFF' }]}>{t('paywallTitle')}</Text>
+          <StepRail filledThrough={3} items={[
+            { icon: 'coach-outline', title: t('paywallFeature1Title'), body: t('paywallFeature1Body') },
+            { icon: 'camera-outline', title: t('paywallFeature2Title'), body: t('paywallFeature2Body') },
+            { icon: 'barbell-outline', title: t('paywallFeature3Title'), body: t('paywallFeature3Body') },
+            { icon: 'analytics-outline', title: t('paywallFeature4Title'), body: t('paywallFeature4Body') },
+          ]} />
         </Animated.View>}
 
-        {offerMode ? null : <Animated.View style={plansEntrance}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallChoosePlan')}</Text>
-          {planCards}
-
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallFeaturesTitle')}</Text>
-          <View style={[styles.features, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <FeatureRow icon="coach-outline" title={t('paywallFeature1Title')} body={t('paywallFeature1Body')} delay={420} last={false} />
-            <FeatureRow icon="camera-outline" title={t('paywallFeature2Title')} body={t('paywallFeature2Body')} delay={470} last={false} />
-            <FeatureRow icon="barbell-outline" title={t('paywallFeature3Title')} body={t('paywallFeature3Body')} delay={520} last={false} />
-            <FeatureRow icon="analytics-outline" title={t('paywallFeature4Title')} body={t('paywallFeature4Body')} delay={570} last />
-          </View>
-          <Text style={[styles.disclosure, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
-        </Animated.View>}
       </View>
     </ScrollView>
 
-    <View onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)} style={[styles.footer, offerMode && styles.footerOffer, { paddingBottom: insets.bottom + 12, borderTopColor: colors.border }]}>
-      {/* While the offer runs the plans sit on the page itself, with no bar behind them. */}
-      {offerMode ? null : <BlurView intensity={40} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />}
-      {offerMode ? null : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass }]} />}
-      {offerMode ? <View style={styles.footerPlans}>{planCards}</View> : null}
+    <View onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)} style={[styles.footer, styles.footerOffer, { paddingBottom: insets.bottom + 12, borderTopColor: colors.border }]}>
+      {/* The plans sit on the page itself, with no bar behind them, right above the button. */}
+      <View style={styles.footerPlans}>{planCards}</View>
       {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
-      <ChargeButton
-        testID="paywall-subscribe"
+      <SubscribeButton
         label={busy ? t('premiumLoading') : isSubscribed ? t('premiumAccessActiveContinue') : ctaLabel}
-        sub={ctaSub}
-        tones={plan === 'annual' ? ANNUAL_TONES : MONTHLY_TONES}
         busy={busy}
         disabled={busy || checking}
         onPress={() => { void handlePurchase(); }}
@@ -617,11 +526,8 @@ const styles = StyleSheet.create({
   proPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
   proText: { fontFamily: 'Inter_800ExtraBold', fontSize: 11, letterSpacing: 1, color: '#3A2600' },
   close: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  hero: { alignItems: 'center', marginTop: 14 },
   content: { paddingHorizontal: 20 },
-  heading: { alignItems: 'center', marginTop: 14 },
   title: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 38, letterSpacing: -1.6, textAlign: 'center' },
-  body: { fontFamily: 'Inter_400Regular', fontSize: 14.5, lineHeight: 21, marginTop: 8, textAlign: 'center', maxWidth: 330 },
   plans: { gap: 14, marginTop: 4 },
   planWrap: {},
   plan: { borderRadius: 24, borderWidth: 1.5, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', minHeight: 84 },
@@ -643,11 +549,10 @@ const styles = StyleSheet.create({
   planUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 1 },
   planBadge: { position: 'absolute', top: -10, left: 18, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   planBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 9.5, letterSpacing: 0.9 },
-  ticket: { position: 'absolute', top: -20, right: 96, width: TICKET_W, height: TICKET_H, shadowColor: '#065F46', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
-  ticketIcon: { position: 'absolute', left: 4, top: (TICKET_H - 13) / 2 },
-  ticketCopy: { position: 'absolute', left: 24, right: 6, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
-  ticketTop: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2, color: '#FFFFFF' },
-  ticketBottom: { fontFamily: 'Inter_800ExtraBold', fontSize: 9, letterSpacing: 1.6, color: 'rgba(255,255,255,0.9)', marginTop: 1 },
+  saveBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  saveBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 0.4 },
+  subscribe: { height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  subscribeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2 },
   trialTitle: { textAlign: 'center', marginTop: 22, marginBottom: 20 },
   trialFree: { color: '#1D4ED8', backgroundColor: '#FFFFFF', overflow: 'hidden', borderRadius: 10 },
   steps: { position: 'relative', gap: 18, marginBottom: 20 },
@@ -673,16 +578,7 @@ const styles = StyleSheet.create({
   countColon: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 44, marginHorizontal: 2 },
   noPayment: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   noPaymentText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#10B981' },
-  saveBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  saveBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 0.4 },
   plansLoading: { flex: 1, borderRadius: 26, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8 },
-  sectionTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 20, letterSpacing: -0.7, marginTop: 26, marginBottom: 14, paddingHorizontal: 2 },
-  features: { borderRadius: 26, borderWidth: 1, paddingHorizontal: 16 },
-  feature: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 14 },
-  featureIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  featureTitle: { fontFamily: 'Inter_700Bold', fontSize: 14.5, letterSpacing: -0.2 },
-  featureBody: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 16.5, marginTop: 2 },
-  disclosure: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: 14, textAlign: 'center' },
   footerOffer: { paddingTop: 22, borderTopWidth: 0 },
   footerPlans: { marginBottom: 12 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
