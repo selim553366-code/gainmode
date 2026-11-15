@@ -319,7 +319,18 @@ function initialLang(): Lang {
   } catch {
     // Storage can be unavailable; fall back to the browser language.
   }
-  return typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('tr') ? 'tr' : 'en';
+  return deviceLang();
+}
+
+/** The first of the phone's or browser's preferred languages that the site speaks; English otherwise. */
+function deviceLang(): Lang {
+  if (typeof navigator === 'undefined') return 'en';
+  const preferred = navigator.languages?.length ? navigator.languages : [navigator.language];
+  for (const tag of preferred) {
+    const base = tag?.toLowerCase().split('-')[0];
+    if (base === 'tr' || base === 'en') return base;
+  }
+  return 'en';
 }
 
 const I18nContext = createContext<{ lang: Lang; setLang: (lang: Lang) => void; t: Copy } | null>(null);
