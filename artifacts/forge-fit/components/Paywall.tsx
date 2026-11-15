@@ -41,6 +41,8 @@ const MONTHLY_TONES: [string, string] = ['#2563EB', '#38BDF8'];
 /** The free trial shown on the monthly plan in the web preview, where there is no store. */
 const PREVIEW_TRIAL_DAYS = 3;
 
+const RETRY_COPY: Record<string, string> = { tr: 'Tekrar dene', en: 'Try again', de: 'Erneut versuchen', fr: 'Réessayer', es: 'Reintentar' };
+
 /** Free-trial copy for the monthly plan. {days} and {price} are filled in. */
 type TrialCopy = { titlePre: string; titleFree: string; titlePost: string; steps: [string, string][]; endsIn: string; noPayment: string; units: [string, string, string]; ticketTop: string; ticketBottom: string; free: string; note: string; cta: string; sub: string; renew: string; today: string; day: string; charge: string; headline: string };
 const TRIAL_COPY: Record<Language, TrialCopy> = {
@@ -321,6 +323,12 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const [error, setError] = React.useState<string | null>(null);
   const [previewBusy, setPreviewBusy] = React.useState(false);
 
+  const [reloadingPlans, setReloadingPlans] = React.useState(false);
+  const reloadPlans = async () => {
+    setReloadingPlans(true);
+    await refreshPackages().catch(() => undefined);
+    setReloadingPlans(false);
+  };
   const usePreviewPrices = previewMode || Platform.OS === 'web';
   // Preview prices are illustrative; real purchases always use localized store products.
   const monthly: DisplayProduct | undefined = monthlyPackage?.product ?? (usePreviewPrices ? getPremiumPreviewProduct(language, 6.99) : undefined);
@@ -455,7 +463,18 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               tones={MONTHLY_TONES}
               compact
             /> : null}
-            {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
+            {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}>
+              {isLoading || reloadingPlans ? <>
+                <ActivityIndicator color={colors.mutedForeground} />
+                <Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text>
+              </> : <>
+                {/* The store answered without any plans: say so instead of spinning forever, and let them ask again. */}
+                <Text style={[styles.planNote, styles.plansMissing, { color: colors.mutedForeground }]}>{t('premiumStoreUnavailable')}</Text>
+                <Pressable accessibilityRole="button" onPress={() => { void reloadPlans(); }} hitSlop={8} style={[styles.plansRetry, { borderColor: colors.border }]}>
+                  <Text style={[styles.plansRetryText, { color: colors.foreground }]}>{RETRY_COPY[language] ?? RETRY_COPY.en}</Text>
+                </Pressable>
+              </>}
+            </View> : null}
           </View>
   );
 
@@ -578,6 +597,9 @@ const styles = StyleSheet.create({
   countColon: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 44, marginHorizontal: 2 },
   noPayment: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   noPaymentText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#10B981' },
+  plansMissing: { textAlign: 'center', marginTop: 0 },
+  plansRetry: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 },
+  plansRetryText: { fontFamily: 'Inter_700Bold', fontSize: 13 },
   plansLoading: { flex: 1, borderRadius: 26, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8 },
   footerOffer: { paddingTop: 22, borderTopWidth: 0 },
   footerPlans: { marginBottom: 12 },
