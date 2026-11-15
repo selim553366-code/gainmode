@@ -306,12 +306,14 @@ function FeatureRow({ icon, title, body, delay, last }: { icon: IconName; title:
  * Plan bar. Its colour always flows slowly; at rest it only tints the price side of the bar, and when chosen it
  * floods the whole bar (420ms) and the text turns white.
  */
-function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, saveBadge, strike, tones, testID, compact = false }: {
+function PlanCard({ selected, onPress, title, price, unit, perMonth, note, badge, ticket, saveBadge, strike, tones, testID, compact = false }: {
   selected: boolean;
   onPress: () => void;
   title: string;
   price: string;
   unit: string;
+  /** What the plan works out to per month, shown under the price. */
+  perMonth?: string | null;
   note: string;
   badge?: string;
   /** A free-trial ticket pinned to the card's corner. */
@@ -358,6 +360,7 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, 
         {strike && !compact ? <Text style={[styles.planStrike, { color: selected ? 'rgba(255,255,255,0.7)' : dark ? 'rgba(255,255,255,0.7)' : colors.mutedForeground }]}>{strike}</Text> : null}
         <Text numberOfLines={1} style={[styles.planPrice, compact && styles.planPriceCompact, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{price}</Text>
         <Text style={[styles.planUnit, { color: selected || dark ? 'rgba(255,255,255,0.8)' : colors.mutedForeground }]}>{unit}</Text>
+        {perMonth ? <Text numberOfLines={1} style={[styles.planPerMonth, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{perMonth}</Text> : null}
       </View>
     </View>
     {ticket && !compact ? <TrialTicket top={ticket.top} bottom={ticket.bottom} /> : null}
@@ -506,7 +509,8 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               title={t('premiumAnnualPlan')}
               price={annual.priceString}
               unit={t('premiumPerYear')}
-              note={annualPerMonth ? t('paywallMonthlyEquivalent').replace('{price}', annualPerMonth) : t('paywallYearlyNote')}
+              perMonth={annualPerMonth ? t('paywallMonthlyEquivalent').replace('{price}', annualPerMonth) : null}
+              note={t('paywallYearlyNote')}
               badge={t('paywallBestValue')}
               saveBadge={savings !== null ? t('paywallSave').replace('{percent}', String(savings)) : null}
               strike={yearOfMonthly}
@@ -635,6 +639,7 @@ const styles = StyleSheet.create({
   planPriceColumn: { alignItems: 'flex-end' },
   planStrike: { fontFamily: 'Inter_500Medium', fontSize: 12, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'] },
   planPrice: { fontFamily: 'Inter_800ExtraBold', fontSize: 21, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  planPerMonth: { fontFamily: 'Inter_700Bold', fontSize: 11.5, marginTop: 2, fontVariant: ['tabular-nums'] },
   planUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 1 },
   planBadge: { position: 'absolute', top: -10, left: 18, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   planBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 9.5, letterSpacing: 0.9 },
