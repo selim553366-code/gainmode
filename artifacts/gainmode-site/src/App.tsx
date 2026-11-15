@@ -32,6 +32,8 @@ function Router() {
         <Route path="/apps"><Redirect to="/work" replace /></Route>
         <Route path="/apps/gainmode"><Redirect to="/work/gainmode" replace /></Route>
         <Route path="/gainmode"><Redirect to="/work/gainmode" replace /></Route>
+        <Route path="/download"><Redirect to="/work/gainmode" replace /></Route>
+        <Route path="/indir"><Redirect to="/work/gainmode" replace /></Route>
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>

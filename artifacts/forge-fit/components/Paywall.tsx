@@ -14,6 +14,7 @@ import Animated, {
   withSequence,
   withSpring,
   FadeInDown,
+  FadeOutUp,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
@@ -103,31 +104,37 @@ function TrialTicket({ top, bottom }: { top: string; bottom: string }) {
   </Animated.View>;
 }
 
-const STEP_ICONS: IconName[] = ['flash-outline', 'notifications-outline', 'star'];
+const STEP_ICONS: IconName[] = ['flag', 'notifications-outline', 'star'];
+const STEP_RAIL = 46;
+const STEP_DOT = 36;
 
 /**
- * The trial as three stops down a green rail: today everything unlocks, a reminder comes a day
- * before the end, and the subscription starts on the last day. The rail fills in on arrival.
+ * The trial as three stops down a capsule rail: today everything unlocks, a reminder comes a day
+ * before the end, and the subscription starts on the last day. The rail fills up to the reminder.
  */
 function TrialSteps({ days, copy, price }: { days: number; copy: TrialCopy; price: string }) {
   const colors = useColors();
+  const dark = colors.colorScheme === 'dark';
   const reduced = useReducedMotion();
+  const [reminderY, setReminderY] = React.useState<number | null>(null);
   const fill = useSharedValue(reduced ? 1 : 0);
   React.useEffect(() => {
-    if (!reduced) fill.set(withDelay(250, withTiming(1, { duration: 1200, easing: EASE_OUT })));
-  }, [fill, reduced]);
-  const railStyle = useAnimatedStyle(() => ({ height: `${fill.get() * 100}%` }));
+    if (!reduced && reminderY !== null) fill.set(withDelay(250, withTiming(1, { duration: 1100, easing: EASE_OUT })));
+  }, [fill, reduced, reminderY]);
+  const fillStyle = useAnimatedStyle(() => ({ height: STEP_RAIL + fill.get() * (reminderY ?? 0) }));
   const fillIn = (text: string) => text.replace('{n}', String(Math.max(1, days - 1))).replace('{days}', String(days)).replace('{price}', price);
   return <View style={styles.steps}>
-    <View style={[styles.stepsRail, { backgroundColor: colors.border }]}>
-      <Animated.View style={[styles.stepsRailFill, railStyle]}>
-        <LinearGradient colors={['#34D399', '#059669']} style={StyleSheet.absoluteFill} />
+    <View style={[styles.stepsRail, { backgroundColor: dark ? 'rgba(255,255,255,0.1)' : '#FFFFFF' }]}>
+      <Animated.View style={[styles.stepsRailFill, fillStyle]}>
+        <LinearGradient colors={MONTHLY_TONES} start={{ x: 0, y: 1 }} end={{ x: 0, y: 0 }} style={StyleSheet.absoluteFill} />
       </Animated.View>
     </View>
-    {copy.steps.map(([title, body], index) => <View key={title} style={styles.step}>
-      <LinearGradient colors={index === 2 ? ['#F5C542', '#E39A1F'] : ['#34D399', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.stepIcon}>
-        <Ionicons name={STEP_ICONS[index]} size={17} color="#FFFFFF" />
-      </LinearGradient>
+    {copy.steps.map(([title, body], index) => <View key={title} style={styles.step} onLayout={index === 1 ? (event) => setReminderY(event.nativeEvent.layout.y) : undefined}>
+      <View style={styles.stepDotWrap}>
+        <View style={[styles.stepDot, { backgroundColor: index < 2 ? '#1D4ED8' : dark ? 'rgba(255,255,255,0.22)' : '#CBD5E1' }]}>
+          <Ionicons name={STEP_ICONS[index]} size={16} color="#FFFFFF" />
+        </View>
+      </View>
       <View style={styles.stepCopy}>
         <Text style={[styles.stepTitle, { color: colors.foreground }]}>{fillIn(title)}</Text>
         <Text style={[styles.stepBody, { color: colors.mutedForeground }]}>{fillIn(body)}</Text>
@@ -136,33 +143,113 @@ function TrialSteps({ days, copy, price }: { days: number; copy: TrialCopy; pric
   </View>;
 }
 
-/** One two-digit group of the countdown; the digits drop in as they change. */
+/** Light rays fanning down from above the screen, behind the trial title, fading into the page. */
+function RayHeader({ height }: { height: number }) {
+  const { width } = useWindowDimensions();
+  const cx = width / 2;
+  const cy = -60;
+  const r = Math.hypot(width, height) + 80;
+  const rays = Array.from({ length: 16 }, (_, i) => {
+    const a0 = (i * 22.5) * Math.PI / 180;
+    const a1 = a0 + 10 * Math.PI / 180;
+    return `M${cx} ${cy} L${cx + Math.cos(a0) * r} ${cy + Math.sin(a0) * r} L${cx + Math.cos(a1) * r} ${cy + Math.sin(a1) * r}Z`;
+  }).join(' ');
+  return <View pointerEvents="none" style={[styles.rayHeader, { height }]}>
+    {/* Fades to transparent rather than to a colour, so it melts into whatever backdrop is behind it. */}
+    <LinearGradient colors={['#1E3A8A', '#1D4ED8', '#2563EBE6', '#3B82F6B3', '#3B82F675', '#60A5FA3D', '#60A5FA14', '#60A5FA00']} locations={[0, 0.22, 0.36, 0.5, 0.63, 0.76, 0.89, 1]} style={StyleSheet.absoluteFill} />
+    <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
+      <Defs>
+        <SvgGradient id="rayFade" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.1} />
+          <Stop offset="0.35" stopColor="#FFFFFF" stopOpacity={0.06} />
+          <Stop offset="0.65" stopColor="#FFFFFF" stopOpacity={0.02} />
+          <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
+        </SvgGradient>
+      </Defs>
+      <Path d={rays} fill="url(#rayFade)" />
+    </Svg>
+  </View>;
+}
+
+/** A laurel branch for one side of the countdown, built once from a curved stem with leaves along it. */
+const LAUREL = (() => {
+  const point = (t: number) => {
+    const u = 1 - t;
+    // Quadratic curve from the bottom of the branch up to its tip, bowing outwards.
+    return { x: u * u * 30 + 2 * u * t * 2 + t * t * 20, y: u * u * 66 + 2 * u * t * 38 + t * t * 4 };
+  };
+  const leaf = (t: number, side: 1 | -1, length: number) => {
+    const a = point(t);
+    const b = point(Math.min(1, t + 0.02));
+    const tx = b.x - a.x; const ty = b.y - a.y; const tl = Math.hypot(tx, ty) || 1;
+    // Leaves lean forward along the stem and out to one side.
+    const nx = -ty / tl * side; const ny = tx / tl * side;
+    const dx = (tx / tl) * 0.75 + nx * 0.66; const dy = (ty / tl) * 0.75 + ny * 0.66;
+    const tip = { x: a.x + dx * length, y: a.y + dy * length };
+    const w = length * 0.36;
+    const c1 = { x: a.x + dx * length * 0.5 - dy * w, y: a.y + dy * length * 0.5 + dx * w };
+    const c2 = { x: a.x + dx * length * 0.5 + dy * w, y: a.y + dy * length * 0.5 - dx * w };
+    const f = (n: number) => n.toFixed(1);
+    return `M${f(a.x)} ${f(a.y)} Q${f(c1.x)} ${f(c1.y)} ${f(tip.x)} ${f(tip.y)} Q${f(c2.x)} ${f(c2.y)} ${f(a.x)} ${f(a.y)}Z`;
+  };
+  const leaves: string[] = [];
+  [0.08, 0.26, 0.44, 0.62, 0.8].forEach((t, i) => {
+    leaves.push(leaf(t, -1, 13 - i * 0.8));
+    leaves.push(leaf(t + 0.09, 1, 11 - i * 0.8));
+  });
+  const top = point(1);
+  leaves.push(`M${top.x.toFixed(1)} ${(top.y + 6).toFixed(1)} Q${(top.x - 5).toFixed(1)} ${(top.y - 2).toFixed(1)} ${(top.x + 1).toFixed(1)} ${(top.y - 4).toFixed(1)} Q${(top.x + 4).toFixed(1)} ${(top.y + 2).toFixed(1)} ${top.x.toFixed(1)} ${(top.y + 6).toFixed(1)}Z`);
+  const stem = `M30 66 Q2 38 20 4`;
+  return { stem, leaves: leaves.join(' ') };
+})();
+
+function Laurel({ color, flip = false }: { color: string; flip?: boolean }) {
+  return <Svg width={36} height={70} viewBox="0 0 36 70" style={flip ? { transform: [{ scaleX: -1 }] } : undefined}>
+    <Path d={LAUREL.stem} stroke={color} strokeWidth={1.6} fill="none" strokeLinecap="round" />
+    <Path d={LAUREL.leaves} fill={color} />
+  </Svg>;
+}
+
+/** One digit of the countdown; when it changes the old digit rolls up and away as the new one rises in. */
+function RollingDigit({ digit, color }: { digit: string; color: string }) {
+  return <View style={styles.rollDigit}>
+    <Animated.Text key={digit} entering={FadeInDown.duration(280)} exiting={FadeOutUp.duration(280)} style={[styles.countDigits, styles.rollText, { color }]}>{digit}</Animated.Text>
+  </View>;
+}
+
+/** One two-digit group of the countdown with its unit underneath. */
 function CountdownUnit({ value, label }: { value: number; label: string }) {
   const colors = useColors();
   const text = String(value).padStart(2, '0');
   return <View style={styles.countUnit}>
-    <View style={[styles.countTile, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Animated.Text key={text} entering={FadeInDown.duration(220)} style={[styles.countDigits, { color: colors.foreground }]}>{text}</Animated.Text>
+    <View style={styles.countPair}>
+      <RollingDigit digit={text[0]} color={colors.foreground} />
+      <RollingDigit digit={text[1]} color={colors.foreground} />
     </View>
     <Text style={[styles.countLabel, { color: colors.mutedForeground }]}>{label}</Text>
   </View>;
 }
 
-/** The time left on the free-trial offer, and the reassurance that nothing is paid today. */
+/** The time left on the free-trial offer between two laurels, and the reassurance that nothing is paid today. */
 function OfferCountdown({ remaining, copy }: { remaining: number; copy: TrialCopy }) {
   const colors = useColors();
   const { hours, minutes, seconds } = countdownParts(remaining);
+  const laurel = colors.colorScheme === 'dark' ? 'rgba(255,255,255,0.38)' : 'rgba(15,23,42,0.28)';
   return <View style={styles.countdown}>
     <Text style={[styles.countTitle, { color: colors.foreground }]}>{copy.endsIn}</Text>
-    <View style={styles.countRow}>
-      <CountdownUnit value={hours} label={copy.units[0]} />
-      <Text style={[styles.countColon, { color: colors.mutedForeground }]}>:</Text>
-      <CountdownUnit value={minutes} label={copy.units[1]} />
-      <Text style={[styles.countColon, { color: colors.mutedForeground }]}>:</Text>
-      <CountdownUnit value={seconds} label={copy.units[2]} />
+    <View style={styles.countBand}>
+      <Laurel color={laurel} />
+      <View style={styles.countRow}>
+        <CountdownUnit value={hours} label={copy.units[0]} />
+        <Text style={[styles.countColon, { color: colors.foreground }]}>:</Text>
+        <CountdownUnit value={minutes} label={copy.units[1]} />
+        <Text style={[styles.countColon, { color: colors.foreground }]}>:</Text>
+        <CountdownUnit value={seconds} label={copy.units[2]} />
+      </View>
+      <Laurel color={laurel} flip />
     </View>
     <View style={styles.noPayment}>
-      <Ionicons name="shield-checkmark-outline" size={15} color="#10B981" />
+      <Ionicons name="checkmark-circle" size={16} color="#10B981" />
       <Text style={styles.noPaymentText}>{copy.noPayment}</Text>
     </View>
   </View>;
@@ -219,12 +306,14 @@ function FeatureRow({ icon, title, body, delay, last }: { icon: IconName; title:
  * Plan bar. Its colour always flows slowly; at rest it only tints the price side of the bar, and when chosen it
  * floods the whole bar (420ms) and the text turns white.
  */
-function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, saveBadge, strike, tones, testID }: {
+function PlanCard({ selected, onPress, title, price, unit, perMonth, note, badge, ticket, saveBadge, strike, tones, testID, compact = false }: {
   selected: boolean;
   onPress: () => void;
   title: string;
   price: string;
   unit: string;
+  /** What the plan works out to per month, shown under the price. */
+  perMonth?: string | null;
   note: string;
   badge?: string;
   /** A free-trial ticket pinned to the card's corner. */
@@ -233,6 +322,8 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, 
   strike?: string | null;
   tones: [string, string];
   testID: string;
+  /** A slim bar for the bottom of the trial offer: badges sit inline and the ticket becomes a pill. */
+  compact?: boolean;
 }) {
   const colors = useColors();
   const dark = colors.colorScheme === 'dark';
@@ -246,7 +337,7 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, 
   const ink = selected ? '#FFFFFF' : colors.foreground;
   const muted = selected ? 'rgba(255,255,255,0.8)' : colors.mutedForeground;
   return <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} scaleTo={0.98} style={styles.planWrap}>
-    <View onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))} style={[styles.plan, { backgroundColor: colors.card, borderColor: selected ? (dark ? 'rgba(255,255,255,0.85)' : tones[0]) : colors.border }]}>
+    <View onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))} style={[styles.plan, compact && styles.planCompact, { backgroundColor: colors.card, borderColor: selected ? (dark ? 'rgba(255,255,255,0.85)' : tones[0]) : colors.border }]}>
       <View pointerEvents="none" style={styles.planColor}>
         <Animated.View style={[StyleSheet.absoluteFill, colorStyle]}><WaterFill colors={tones} width={width} /></Animated.View>
         {/* At rest the card colour covers the left so the text stays readable and the colour pools at the price. */}
@@ -260,18 +351,20 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, 
       <View style={styles.planCopy}>
         <View style={styles.planTitleRow}>
           <Text style={[styles.planTitle, { color: ink }]}>{title}</Text>
+          {compact && ticket ? <LinearGradient colors={['#34D399', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.saveBadge}><Text style={[styles.saveBadgeText, { color: '#FFFFFF' }]}>{`${ticket.top} ${ticket.bottom}`}</Text></LinearGradient> : null}
           {saveBadge ? <View style={[styles.saveBadge, { backgroundColor: selected ? 'rgba(255,255,255,0.22)' : `${colors.success}22` }]}><Text style={[styles.saveBadgeText, { color: selected ? '#FFFFFF' : colors.success }]}>{saveBadge}</Text></View> : null}
         </View>
         <Text numberOfLines={1} style={[styles.planNote, { color: muted }]}>{note}</Text>
       </View>
       <View style={styles.planPriceColumn}>
-        {strike ? <Text style={[styles.planStrike, { color: selected ? 'rgba(255,255,255,0.7)' : dark ? 'rgba(255,255,255,0.7)' : colors.mutedForeground }]}>{strike}</Text> : null}
-        <Text numberOfLines={1} style={[styles.planPrice, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{price}</Text>
+        {strike && !compact ? <Text style={[styles.planStrike, { color: selected ? 'rgba(255,255,255,0.7)' : dark ? 'rgba(255,255,255,0.7)' : colors.mutedForeground }]}>{strike}</Text> : null}
+        <Text numberOfLines={1} style={[styles.planPrice, compact && styles.planPriceCompact, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{price}</Text>
         <Text style={[styles.planUnit, { color: selected || dark ? 'rgba(255,255,255,0.8)' : colors.mutedForeground }]}>{unit}</Text>
+        {perMonth ? <Text numberOfLines={1} style={[styles.planPerMonth, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{perMonth}</Text> : null}
       </View>
     </View>
-    {ticket ? <TrialTicket top={ticket.top} bottom={ticket.bottom} /> : null}
-    {badge ? <View style={[styles.planBadge, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
+    {ticket && !compact ? <TrialTicket top={ticket.top} bottom={ticket.bottom} /> : null}
+    {badge ? <View style={[styles.planBadge, compact && styles.planBadgeCompact, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
   </Pressable>;
 }
 
@@ -408,7 +501,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const [footerHeight, setFooterHeight] = React.useState(230 + insets.bottom);
   const offerMode = trialDays !== null && !!monthly;
   const planCards = (
-          <View style={styles.plans}>
+          <View style={[styles.plans, offerMode && styles.plansCompact]}>
             {annual ? <PlanCard
               testID="paywall-annual-plan"
               selected={plan === 'annual'}
@@ -416,11 +509,13 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               title={t('premiumAnnualPlan')}
               price={annual.priceString}
               unit={t('premiumPerYear')}
-              note={annualPerMonth ? t('paywallMonthlyEquivalent').replace('{price}', annualPerMonth) : t('paywallYearlyNote')}
+              perMonth={annualPerMonth ? t('paywallMonthlyEquivalent').replace('{price}', annualPerMonth) : null}
+              note={t('paywallYearlyNote')}
               badge={t('paywallBestValue')}
               saveBadge={savings !== null ? t('paywallSave').replace('{percent}', String(savings)) : null}
               strike={yearOfMonthly}
               tones={ANNUAL_TONES}
+              compact={offerMode}
             /> : null}
             {monthly ? <PlanCard
               testID="paywall-monthly-plan"
@@ -432,6 +527,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               note={trialDays !== null ? fillTrial(trialCopy.note, trialDays, monthly.priceString) : t('paywallMonthlyNote')}
               ticket={trialDays !== null ? { top: fillTrial(trialCopy.ticketTop, trialDays, monthly.priceString), bottom: trialCopy.ticketBottom } : undefined}
               tones={MONTHLY_TONES}
+              compact={offerMode}
             /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
           </View>
@@ -439,10 +535,11 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
 
   return <View style={[styles.root, { backgroundColor: colors.background }]}>
     <SkyBackdrop />
+    {offerMode ? <RayHeader height={insets.top + 400} /> : null}
     <ScrollView contentContainerStyle={{ paddingTop: insets.top + 14, paddingBottom: footerHeight + 24 }} showsVerticalScrollIndicator={false} bounces={false}>
       <View style={styles.topBar}>
         <View style={styles.brandRow}>
-          <GainModeWordmark color={colors.foreground} width={128} height={17} />
+          <GainModeWordmark color={offerMode ? '#FFFFFF' : colors.foreground} width={128} height={17} />
           <LinearGradient colors={['#F5C542', '#E39A1F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proPill}><Text style={styles.proText}>ACCESS</Text></LinearGradient>
         </View>
         {onClose ? <Pressable accessibilityLabel={t('close')} onPress={onClose} hitSlop={10} style={[styles.close, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -450,25 +547,25 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
         </Pressable> : null}
       </View>
 
-      <Animated.View style={[styles.hero, heroEntrance]}>
-        <FloatingMedal size={trialDays !== null ? (compact ? 92 : 118) : compact ? 116 : 150} />
-      </Animated.View>
+      {offerMode ? null : <Animated.View style={[styles.hero, heroEntrance]}>
+        <FloatingMedal size={compact ? 116 : 150} />
+      </Animated.View>}
 
       <View style={styles.content}>
         {trialDays !== null && monthly ? <Animated.View style={titleEntrance}>
-          <Text style={[styles.title, styles.trialTitle, { color: colors.foreground }]}>
+          <Text style={[styles.title, styles.trialTitle, { color: '#FFFFFF' }]}>
             {trialCopy.titlePre}<Text style={styles.trialFree}>{` ${trialCopy.titleFree} `}</Text>{trialCopy.titlePost}
           </Text>
-          <OfferCountdown remaining={offerRemaining} copy={trialCopy} />
           <TrialSteps days={trialDays} copy={trialCopy} price={monthly.priceString} />
+          <OfferCountdown remaining={offerRemaining} copy={trialCopy} />
         </Animated.View> : <Animated.View style={[styles.heading, titleEntrance]}>
           <Text style={[styles.title, { color: colors.foreground }]}>{t('paywallTitle')}</Text>
           {compact ? null : <Text numberOfLines={3} style={[styles.body, { color: colors.mutedForeground }]}>{t('paywallBody')}</Text>}
         </Animated.View>}
 
-        <Animated.View style={plansEntrance}>
-          {offerMode ? null : <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallChoosePlan')}</Text>}
-          {offerMode ? null : planCards}
+        {offerMode ? null : <Animated.View style={plansEntrance}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallChoosePlan')}</Text>
+          {planCards}
 
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallFeaturesTitle')}</Text>
           <View style={[styles.features, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -478,13 +575,14 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
             <FeatureRow icon="analytics-outline" title={t('paywallFeature4Title')} body={t('paywallFeature4Body')} delay={570} last />
           </View>
           <Text style={[styles.disclosure, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
-        </Animated.View>
+        </Animated.View>}
       </View>
     </ScrollView>
 
     <View onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)} style={[styles.footer, offerMode && styles.footerOffer, { paddingBottom: insets.bottom + 12, borderTopColor: colors.border }]}>
-      <BlurView intensity={40} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass }]} />
+      {/* While the offer runs the plans sit on the page itself, with no bar behind them. */}
+      {offerMode ? null : <BlurView intensity={40} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />}
+      {offerMode ? null : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass }]} />}
       {offerMode ? <View style={styles.footerPlans}>{planCards}</View> : null}
       {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       <ChargeButton
@@ -527,6 +625,10 @@ const styles = StyleSheet.create({
   plans: { gap: 14, marginTop: 4 },
   planWrap: {},
   plan: { borderRadius: 24, borderWidth: 1.5, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', minHeight: 84 },
+  planCompact: { minHeight: 0, paddingVertical: 11, borderRadius: 18 },
+  planPriceCompact: { fontSize: 19 },
+  planBadgeCompact: { top: -9, left: 14, paddingVertical: 3 },
+  plansCompact: { gap: 12, marginTop: 0 },
   planColor: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FFFFFF' },
@@ -537,6 +639,7 @@ const styles = StyleSheet.create({
   planPriceColumn: { alignItems: 'flex-end' },
   planStrike: { fontFamily: 'Inter_500Medium', fontSize: 12, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'] },
   planPrice: { fontFamily: 'Inter_800ExtraBold', fontSize: 21, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  planPerMonth: { fontFamily: 'Inter_700Bold', fontSize: 11.5, marginTop: 2, fontVariant: ['tabular-nums'] },
   planUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 1 },
   planBadge: { position: 'absolute', top: -10, left: 18, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   planBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 9.5, letterSpacing: 0.9 },
@@ -545,25 +648,30 @@ const styles = StyleSheet.create({
   ticketCopy: { position: 'absolute', left: 24, right: 6, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
   ticketTop: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2, color: '#FFFFFF' },
   ticketBottom: { fontFamily: 'Inter_800ExtraBold', fontSize: 9, letterSpacing: 1.6, color: 'rgba(255,255,255,0.9)', marginTop: 1 },
-  trialTitle: { textAlign: 'center', marginTop: 4, marginBottom: 18 },
-  trialFree: { color: '#FFFFFF', backgroundColor: '#10B981', overflow: 'hidden', borderRadius: 10 },
-  steps: { position: 'relative', gap: 16, marginBottom: 22, paddingLeft: 2 },
-  stepsRail: { position: 'absolute', left: 19, top: 20, bottom: 20, width: 4, borderRadius: 2, overflow: 'hidden' },
-  stepsRailFill: { width: 4, borderRadius: 2, overflow: 'hidden' },
+  trialTitle: { textAlign: 'center', marginTop: 22, marginBottom: 20 },
+  trialFree: { color: '#1D4ED8', backgroundColor: '#FFFFFF', overflow: 'hidden', borderRadius: 10 },
+  steps: { position: 'relative', gap: 18, marginBottom: 20 },
+  stepsRail: { position: 'absolute', left: 0, top: 0, bottom: 0, width: STEP_RAIL, borderRadius: STEP_RAIL / 2, overflow: 'hidden' },
+  stepsRailFill: { position: 'absolute', left: 0, top: 0, width: STEP_RAIL, borderRadius: STEP_RAIL / 2, overflow: 'hidden' },
   step: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
-  stepIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
-  stepCopy: { flex: 1, paddingTop: 1 },
+  stepDotWrap: { width: STEP_RAIL, height: STEP_RAIL, alignItems: 'center', justifyContent: 'center' },
+  stepDot: { width: STEP_DOT, height: STEP_DOT, borderRadius: STEP_DOT / 2, alignItems: 'center', justifyContent: 'center' },
+  rayHeader: { position: 'absolute', left: 0, right: 0, top: 0, overflow: 'hidden' },
+  stepCopy: { flex: 1, paddingTop: 3 },
   stepTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2 },
   stepBody: { fontFamily: 'Inter_500Medium', fontSize: 13, lineHeight: 18, marginTop: 2 },
   countdown: { alignItems: 'center', marginBottom: 22 },
-  countTitle: { fontFamily: 'Inter_700Bold', fontSize: 14, marginBottom: 10 },
-  countRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  countUnit: { alignItems: 'center', gap: 5 },
-  countTile: { minWidth: 62, borderRadius: 16, borderWidth: 1, paddingVertical: 8, paddingHorizontal: 10, alignItems: 'center', overflow: 'hidden' },
-  countDigits: { fontFamily: 'Inter_800ExtraBold', fontSize: 30, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
-  countLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
-  countColon: { fontFamily: 'Inter_800ExtraBold', fontSize: 26, marginTop: 9 },
-  noPayment: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+  countTitle: { fontFamily: 'Inter_700Bold', fontSize: 15, marginBottom: 4 },
+  countBand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  countRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 4 },
+  countUnit: { alignItems: 'center', gap: 2 },
+  countPair: { flexDirection: 'row' },
+  rollDigit: { width: 27, height: 48, overflow: 'hidden' },
+  rollText: { position: 'absolute', left: 0, right: 0, top: 0, textAlign: 'center' },
+  countDigits: { fontFamily: 'Inter_800ExtraBold', fontSize: 40, lineHeight: 48, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  countLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
+  countColon: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 44, marginHorizontal: 2 },
+  noPayment: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   noPaymentText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#10B981' },
   saveBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   saveBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 0.4 },
@@ -575,7 +683,7 @@ const styles = StyleSheet.create({
   featureTitle: { fontFamily: 'Inter_700Bold', fontSize: 14.5, letterSpacing: -0.2 },
   featureBody: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 16.5, marginTop: 2 },
   disclosure: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: 14, textAlign: 'center' },
-  footerOffer: { paddingTop: 22 },
+  footerOffer: { paddingTop: 22, borderTopWidth: 0 },
   footerPlans: { marginBottom: 12 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   error: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, textAlign: 'center', marginBottom: 10 },

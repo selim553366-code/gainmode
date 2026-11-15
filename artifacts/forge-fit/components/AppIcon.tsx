@@ -104,6 +104,7 @@ import {
   Zap,
   X,
   SquareX,
+  Flag,
 } from 'lucide-react-native';
 
 export type IconName =
@@ -177,6 +178,7 @@ export type IconName =
   | 'map-pin'
   | 'moon-outline'
   | 'star'
+  | 'flag'
   | 'shield-checkmark-outline'
   | 'trash-outline'
   | 'ticket-outline'
@@ -278,6 +280,7 @@ const iconMap: Record<IconName, IconComponent> = {
   'map-pin': MapPin,
   'moon-outline': Moon,
   star: Star,
+  flag: Flag,
   'coach-outline': MessagesSquare,
   'restore-outline': RotateCcw,
   'send-outline': Send,
