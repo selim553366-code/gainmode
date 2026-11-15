@@ -13,6 +13,7 @@ import Animated, {
   withRepeat,
   withSequence,
   withSpring,
+  FadeInDown,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
@@ -20,6 +21,8 @@ import { useColors } from '@/hooks/useColors';
 import { useFit } from '@/context/FitContext';
 import { getPremiumPreviewProduct, translate, type Language, type TranslationKey } from '@/lib/i18n';
 import { freeTrialDays } from '@/lib/premiumTrial';
+import { TRIAL_OFFER_WINDOW_MS, countdownParts, startTrialOfferWindow, trialOfferRemaining } from '@/lib/trialOffer';
+import { scheduleTrialReminder } from '@/lib/notifications';
 import { useSubscription } from '@/lib/revenuecat';
 import { hasActivePremiumEntitlement } from '@/lib/premiumAccess';
 import { calculateAnnualSavingsPercent, formatAnnualMonthlyPrice } from '@/lib/subscriptionPricing';
@@ -39,13 +42,13 @@ const MONTHLY_TONES: [string, string] = ['#2563EB', '#38BDF8'];
 const PREVIEW_TRIAL_DAYS = 3;
 
 /** Free-trial copy for the monthly plan. {days} and {price} are filled in. */
-type TrialCopy = { ticketTop: string; ticketBottom: string; free: string; note: string; cta: string; sub: string; renew: string; today: string; day: string; charge: string; headline: string };
+type TrialCopy = { titlePre: string; titleFree: string; titlePost: string; steps: [string, string][]; endsIn: string; noPayment: string; units: [string, string, string]; ticketTop: string; ticketBottom: string; free: string; note: string; cta: string; sub: string; renew: string; today: string; day: string; charge: string; headline: string };
 const TRIAL_COPY: Record<Language, TrialCopy> = {
-  tr: { ticketTop: '{days} GÜN', ticketBottom: 'ÜCRETSİZ', free: 'Ücretsiz', today: 'Bugün', day: '{n}. gün', charge: '{price}/ay', headline: 'Bugün tüm özellikler açılır. {days} gün boyunca ücret yok.', note: '{days} gün ücretsiz, sonra {price}/ay', cta: '{days} gün ücretsiz başla', sub: 'Sonra {price}/ay · İstediğin zaman iptal et', renew: 'Deneme bitmeden iptal edersen ücret alınmaz. Sonra {price}/ay, iptal edilmedikçe yenilenir.' },
-  en: { ticketTop: '{days} DAYS', ticketBottom: 'FREE', free: 'Free', today: 'Today', day: 'Day {n}', charge: '{price}/mo', headline: 'Everything unlocks today. No charge for {days} days.', note: '{days} days free, then {price}/mo', cta: 'Start {days}-day free trial', sub: 'Then {price}/mo · Cancel anytime', renew: 'Cancel before the trial ends and you won’t be charged. Then {price}/month, renews unless canceled.' },
-  de: { ticketTop: '{days} TAGE', ticketBottom: 'GRATIS', free: 'Gratis', today: 'Heute', day: 'Tag {n}', charge: '{price}/Monat', headline: 'Heute wird alles freigeschaltet. {days} Tage ohne Kosten.', note: '{days} Tage gratis, dann {price}/Monat', cta: '{days} Tage gratis testen', sub: 'Dann {price}/Monat · Jederzeit kündbar', renew: 'Kündige vor Ende des Tests und es fallen keine Kosten an. Danach {price}/Monat, verlängert sich bis zur Kündigung.' },
-  fr: { ticketTop: '{days} JOURS', ticketBottom: 'OFFERTS', free: 'Offert', today: 'Aujourd’hui', day: 'Jour {n}', charge: '{price}/mois', headline: 'Tout se débloque aujourd’hui. Rien à payer pendant {days} jours.', note: '{days} jours offerts, puis {price}/mois', cta: 'Essai gratuit de {days} jours', sub: 'Puis {price}/mois · Annulable à tout moment', renew: 'Annule avant la fin de l’essai et rien ne te sera facturé. Ensuite {price}/mois, renouvelé sauf résiliation.' },
-  es: { ticketTop: '{days} DÍAS', ticketBottom: 'GRATIS', free: 'Gratis', today: 'Hoy', day: 'Día {n}', charge: '{price}/mes', headline: 'Hoy se desbloquea todo. Sin cargo durante {days} días.', note: '{days} días gratis, luego {price}/mes', cta: 'Empieza {days} días gratis', sub: 'Luego {price}/mes · Cancela cuando quieras', renew: 'Cancela antes de que acabe la prueba y no se te cobrará. Luego {price}/mes, se renueva salvo que lo canceles.' },
+  tr: { titlePre: '', titleFree: 'ÜCRETSİZ', titlePost: ' denemen nasıl işler?', steps: [['Bugün', 'GainMode’un tüm özellikleri hemen açılır.'], ['{n} gün sonra', 'Deneme bitmeden bir gün önce sana hatırlatacağız.'], ['{days} gün sonra', 'Aboneliğin {price}/ay ile başlar. Öncesinde istediğin zaman iptal et.']], endsIn: 'Ücretsiz deneme teklifinin bitmesine', noPayment: 'Şimdi ödeme yok', units: ['sa', 'dk', 'sn'], ticketTop: '{days} GÜN', ticketBottom: 'ÜCRETSİZ', free: 'Ücretsiz', today: 'Bugün', day: '{n}. gün', charge: '{price}/ay', headline: 'Bugün tüm özellikler açılır. {days} gün boyunca ücret yok.', note: '{days} gün ücretsiz, sonra {price}/ay', cta: '{days} gün ücretsiz başla', sub: 'Sonra {price}/ay · İstediğin zaman iptal et', renew: 'Deneme bitmeden iptal edersen ücret alınmaz. Sonra {price}/ay, iptal edilmedikçe yenilenir.' },
+  en: { titlePre: 'How your ', titleFree: 'FREE', titlePost: ' trial works', steps: [['Today', 'Unlock every GainMode feature right away.'], ['In {n} days', 'We’ll remind you a day before your trial ends.'], ['In {days} days', 'Your subscription starts at {price}/mo. Cancel anytime before then.']], endsIn: 'Free trial offer ends in', noPayment: 'No payment now', units: ['hrs', 'min', 'sec'], ticketTop: '{days} DAYS', ticketBottom: 'FREE', free: 'Free', today: 'Today', day: 'Day {n}', charge: '{price}/mo', headline: 'Everything unlocks today. No charge for {days} days.', note: '{days} days free, then {price}/mo', cta: 'Start {days}-day free trial', sub: 'Then {price}/mo · Cancel anytime', renew: 'Cancel before the trial ends and you won’t be charged. Then {price}/month, renews unless canceled.' },
+  de: { titlePre: 'So funktioniert dein ', titleFree: 'GRATIS', titlePost: '-Test', steps: [['Heute', 'Alle GainMode-Funktionen sofort freigeschaltet.'], ['In {n} Tagen', 'Wir erinnern dich einen Tag vor Ende des Tests.'], ['In {days} Tagen', 'Dein Abo startet für {price}/Monat. Vorher jederzeit kündbar.']], endsIn: 'Das Gratis-Angebot endet in', noPayment: 'Jetzt keine Zahlung', units: ['Std', 'Min', 'Sek'], ticketTop: '{days} TAGE', ticketBottom: 'GRATIS', free: 'Gratis', today: 'Heute', day: 'Tag {n}', charge: '{price}/Monat', headline: 'Heute wird alles freigeschaltet. {days} Tage ohne Kosten.', note: '{days} Tage gratis, dann {price}/Monat', cta: '{days} Tage gratis testen', sub: 'Dann {price}/Monat · Jederzeit kündbar', renew: 'Kündige vor Ende des Tests und es fallen keine Kosten an. Danach {price}/Monat, verlängert sich bis zur Kündigung.' },
+  fr: { titlePre: 'Comment fonctionne ton essai ', titleFree: 'GRATUIT', titlePost: '', steps: [['Aujourd’hui', 'Toutes les fonctions GainMode se débloquent tout de suite.'], ['Dans {n} jours', 'On te prévient un jour avant la fin de l’essai.'], ['Dans {days} jours', 'Ton abonnement démarre à {price}/mois. Annulable avant à tout moment.']], endsIn: 'L’offre d’essai gratuit se termine dans', noPayment: 'Aucun paiement maintenant', units: ['h', 'min', 's'], ticketTop: '{days} JOURS', ticketBottom: 'OFFERTS', free: 'Offert', today: 'Aujourd’hui', day: 'Jour {n}', charge: '{price}/mois', headline: 'Tout se débloque aujourd’hui. Rien à payer pendant {days} jours.', note: '{days} jours offerts, puis {price}/mois', cta: 'Essai gratuit de {days} jours', sub: 'Puis {price}/mois · Annulable à tout moment', renew: 'Annule avant la fin de l’essai et rien ne te sera facturé. Ensuite {price}/mois, renouvelé sauf résiliation.' },
+  es: { titlePre: 'Cómo funciona tu prueba ', titleFree: 'GRATIS', titlePost: '', steps: [['Hoy', 'Desbloquea todas las funciones de GainMode al instante.'], ['En {n} días', 'Te avisaremos un día antes de que termine la prueba.'], ['En {days} días', 'Tu suscripción empieza a {price}/mes. Cancela antes cuando quieras.']], endsIn: 'La oferta de prueba gratis termina en', noPayment: 'Sin pago ahora', units: ['h', 'min', 's'], ticketTop: '{days} DÍAS', ticketBottom: 'GRATIS', free: 'Gratis', today: 'Hoy', day: 'Día {n}', charge: '{price}/mes', headline: 'Hoy se desbloquea todo. Sin cargo durante {days} días.', note: '{days} días gratis, luego {price}/mes', cta: 'Empieza {days} días gratis', sub: 'Luego {price}/mes · Cancela cuando quieras', renew: 'Cancela antes de que acabe la prueba y no se te cobrará. Luego {price}/mes, se renueva salvo que lo canceles.' },
 };
 const fillTrial = (text: string, days: number, price: string) => text.replace('{days}', String(days)).replace('{price}', price);
 
@@ -100,52 +103,68 @@ function TrialTicket({ top, bottom }: { top: string; bottom: string }) {
   </Animated.View>;
 }
 
+const STEP_ICONS: IconName[] = ['flash-outline', 'notifications-outline', 'star'];
+
 /**
- * What the trial means, day by day: the free days fill in green one after another, then the day
- * the subscription starts sits in plain ink with its price. Shown under the plans while the
- * monthly plan with a trial is selected.
+ * The trial as three stops down a green rail: today everything unlocks, a reminder comes a day
+ * before the end, and the subscription starts on the last day. The rail fills in on arrival.
  */
-function TrialTimeline({ days, copy, price }: { days: number; copy: TrialCopy; price: string }) {
+function TrialSteps({ days, copy, price }: { days: number; copy: TrialCopy; price: string }) {
   const colors = useColors();
   const reduced = useReducedMotion();
   const fill = useSharedValue(reduced ? 1 : 0);
   React.useEffect(() => {
-    if (reduced) return;
-    fill.set(0);
-    fill.set(withDelay(150, withTiming(1, { duration: 1100, easing: EASE_OUT })));
+    if (!reduced) fill.set(withDelay(250, withTiming(1, { duration: 1200, easing: EASE_OUT })));
   }, [fill, reduced]);
-  // Long trials keep three free stops: today, day 2 and the last free day.
-  const free = days <= 3
-    ? Array.from({ length: days }, (_, i) => (i === 0 ? copy.today : copy.day.replace('{n}', String(i + 1))))
-    : [copy.today, copy.day.replace('{n}', '2'), copy.day.replace('{n}', String(days))];
-  const chargeDay = copy.day.replace('{n}', String(days + 1));
-  return <View style={[styles.timeline, { backgroundColor: colors.card, borderColor: colors.border }]}>
-    <Text style={[styles.timelineHeadline, { color: colors.foreground }]}>{copy.headline.replace('{days}', String(days))}</Text>
-    <View style={styles.timelineRow}>
-      {free.map((label, index) => <TimelineStep key={label} label={label} freeLabel={copy.free} index={index} count={free.length} fill={fill} />)}
-      <View style={styles.timelineStep}>
-        <View style={[styles.timelineBar, { backgroundColor: colors.border }]} />
-        <Text numberOfLines={1} style={[styles.timelineLabel, { color: colors.mutedForeground }]}>{chargeDay}</Text>
-        <Text numberOfLines={1} style={[styles.timelinePrice, { color: colors.foreground }]}>{copy.charge.replace('{price}', price)}</Text>
-      </View>
+  const railStyle = useAnimatedStyle(() => ({ height: `${fill.get() * 100}%` }));
+  const fillIn = (text: string) => text.replace('{n}', String(Math.max(1, days - 1))).replace('{days}', String(days)).replace('{price}', price);
+  return <View style={styles.steps}>
+    <View style={[styles.stepsRail, { backgroundColor: colors.border }]}>
+      <Animated.View style={[styles.stepsRailFill, railStyle]}>
+        <LinearGradient colors={['#34D399', '#059669']} style={StyleSheet.absoluteFill} />
+      </Animated.View>
     </View>
+    {copy.steps.map(([title, body], index) => <View key={title} style={styles.step}>
+      <LinearGradient colors={index === 2 ? ['#F5C542', '#E39A1F'] : ['#34D399', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.stepIcon}>
+        <Ionicons name={STEP_ICONS[index]} size={17} color="#FFFFFF" />
+      </LinearGradient>
+      <View style={styles.stepCopy}>
+        <Text style={[styles.stepTitle, { color: colors.foreground }]}>{fillIn(title)}</Text>
+        <Text style={[styles.stepBody, { color: colors.mutedForeground }]}>{fillIn(body)}</Text>
+      </View>
+    </View>)}
   </View>;
 }
 
-function TimelineStep({ label, freeLabel, index, count, fill }: { label: string; freeLabel: string; index: number; count: number; fill: ReturnType<typeof useSharedValue<number>> }) {
+/** One two-digit group of the countdown; the digits drop in as they change. */
+function CountdownUnit({ value, label }: { value: number; label: string }) {
   const colors = useColors();
-  const barStyle = useAnimatedStyle(() => {
-    const local = Math.max(0, Math.min(1, fill.get() * count - index));
-    return { width: `${local * 100}%` };
-  });
-  return <View style={styles.timelineStep}>
-    <View style={[styles.timelineBar, { backgroundColor: colors.border }]}>
-      <Animated.View style={[styles.timelineBarFill, barStyle]}>
-        <LinearGradient colors={['#34D399', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-      </Animated.View>
+  const text = String(value).padStart(2, '0');
+  return <View style={styles.countUnit}>
+    <View style={[styles.countTile, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Animated.Text key={text} entering={FadeInDown.duration(220)} style={[styles.countDigits, { color: colors.foreground }]}>{text}</Animated.Text>
     </View>
-    <Text numberOfLines={1} style={[styles.timelineLabel, { color: index === 0 ? '#059669' : colors.mutedForeground }]}>{label}</Text>
-    <Text numberOfLines={1} style={[styles.timelinePrice, { color: '#059669' }]}>{freeLabel}</Text>
+    <Text style={[styles.countLabel, { color: colors.mutedForeground }]}>{label}</Text>
+  </View>;
+}
+
+/** The time left on the free-trial offer, and the reassurance that nothing is paid today. */
+function OfferCountdown({ remaining, copy }: { remaining: number; copy: TrialCopy }) {
+  const colors = useColors();
+  const { hours, minutes, seconds } = countdownParts(remaining);
+  return <View style={styles.countdown}>
+    <Text style={[styles.countTitle, { color: colors.foreground }]}>{copy.endsIn}</Text>
+    <View style={styles.countRow}>
+      <CountdownUnit value={hours} label={copy.units[0]} />
+      <Text style={[styles.countColon, { color: colors.mutedForeground }]}>:</Text>
+      <CountdownUnit value={minutes} label={copy.units[1]} />
+      <Text style={[styles.countColon, { color: colors.mutedForeground }]}>:</Text>
+      <CountdownUnit value={seconds} label={copy.units[2]} />
+    </View>
+    <View style={styles.noPayment}>
+      <Ionicons name="shield-checkmark-outline" size={15} color="#10B981" />
+      <Text style={styles.noPaymentText}>{copy.noPayment}</Text>
+    </View>
   </View>;
 }
 
@@ -284,7 +303,24 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const yearOfMonthly = monthly && annual && monthly.currencyCode === annual.currencyCode ? formatPrice(monthly.price * 12, monthly.currencyCode) : null;
   const selectedProduct = plan === 'annual' ? annual : monthly;
   // Only promise a free trial the store actually offers on the monthly product.
-  const trialDays = monthlyPackage ? freeTrialDays(monthlyPackage.product) : usePreviewPrices ? PREVIEW_TRIAL_DAYS : null;
+  const storeTrialDays = monthlyPackage ? freeTrialDays(monthlyPackage.product) : usePreviewPrices ? PREVIEW_TRIAL_DAYS : null;
+  // The trial is offered for 15 minutes from the first time this paywall is shown, then it really ends.
+  const [offerStartedAt, setOfferStartedAt] = React.useState<number | null>(null);
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    if (storeTrialDays === null) return;
+    let cancelled = false;
+    void startTrialOfferWindow().then((startedAt) => { if (!cancelled) setOfferStartedAt(startedAt); });
+    return () => { cancelled = true; };
+  }, [storeTrialDays]);
+  const offerRemaining = offerStartedAt === null ? TRIAL_OFFER_WINDOW_MS : trialOfferRemaining(offerStartedAt, now);
+  const offerActive = storeTrialDays !== null && offerRemaining > 0;
+  React.useEffect(() => {
+    if (!offerActive) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [offerActive]);
+  const trialDays = offerActive ? storeTrialDays : null;
   const trialCopy = TRIAL_COPY[language] ?? TRIAL_COPY.en;
   const monthlyTrial = plan === 'monthly' && trialDays !== null && monthly ? trialDays : null;
   // With a free trial on offer, the monthly plan is selected first, until the person picks a plan.
@@ -322,11 +358,14 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
       return;
     }
     try {
-      const customerInfo = await purchase(selectedPackage);
+      const startsTrial = plan === 'monthly' && trialDays !== null;
+      // Once the offer has run out, Google Play is asked for the plan without its free trial.
+      const customerInfo = await purchase(selectedPackage, { withoutTrial: storeTrialDays !== null && !offerActive });
       if (!hasActivePremiumEntitlement(customerInfo)) {
         setError(t('premiumPurchaseError'));
         return;
       }
+      if (startsTrial) void scheduleTrialReminder(language).catch(() => undefined);
       onPurchaseSuccess('purchase');
     } catch {
       setError(t('premiumPurchaseError'));
@@ -366,31 +405,9 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
     ? fillTrial(trialCopy.sub, monthlyTrial, monthly.priceString)
     : selectedProduct ? `${plan === 'annual' ? t('premiumAnnualPlan') : t('premiumMonthlyPlan')} · ${selectedProduct.priceString}` : t('premiumTrust');
 
-  return <View style={[styles.root, { backgroundColor: colors.background }]}>
-    <SkyBackdrop />
-    <ScrollView contentContainerStyle={{ paddingTop: insets.top + 14, paddingBottom: 230 + insets.bottom }} showsVerticalScrollIndicator={false} bounces={false}>
-      <View style={styles.topBar}>
-        <View style={styles.brandRow}>
-          <GainModeWordmark color={colors.foreground} width={128} height={17} />
-          <LinearGradient colors={['#F5C542', '#E39A1F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proPill}><Text style={styles.proText}>ACCESS</Text></LinearGradient>
-        </View>
-        {onClose ? <Pressable accessibilityLabel={t('close')} onPress={onClose} hitSlop={10} style={[styles.close, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Ionicons name="close" size={18} color={colors.foreground} />
-        </Pressable> : null}
-      </View>
-
-      <Animated.View style={[styles.hero, heroEntrance]}>
-        <FloatingMedal size={compact ? 116 : 150} />
-      </Animated.View>
-
-      <View style={styles.content}>
-        <Animated.View style={[styles.heading, titleEntrance]}>
-          <Text style={[styles.title, { color: colors.foreground }]}>{t('paywallTitle')}</Text>
-          {compact ? null : <Text numberOfLines={3} style={[styles.body, { color: colors.mutedForeground }]}>{t('paywallBody')}</Text>}
-        </Animated.View>
-
-        <Animated.View style={plansEntrance}>
-          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallChoosePlan')}</Text>
+  const [footerHeight, setFooterHeight] = React.useState(230 + insets.bottom);
+  const offerMode = trialDays !== null && !!monthly;
+  const planCards = (
           <View style={styles.plans}>
             {annual ? <PlanCard
               testID="paywall-annual-plan"
@@ -416,9 +433,42 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               ticket={trialDays !== null ? { top: fillTrial(trialCopy.ticketTop, trialDays, monthly.priceString), bottom: trialCopy.ticketBottom } : undefined}
               tones={MONTHLY_TONES}
             /> : null}
-            {monthlyTrial !== null && monthly ? <TrialTimeline days={monthlyTrial} copy={trialCopy} price={monthly.priceString} /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
           </View>
+  );
+
+  return <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <SkyBackdrop />
+    <ScrollView contentContainerStyle={{ paddingTop: insets.top + 14, paddingBottom: footerHeight + 24 }} showsVerticalScrollIndicator={false} bounces={false}>
+      <View style={styles.topBar}>
+        <View style={styles.brandRow}>
+          <GainModeWordmark color={colors.foreground} width={128} height={17} />
+          <LinearGradient colors={['#F5C542', '#E39A1F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proPill}><Text style={styles.proText}>ACCESS</Text></LinearGradient>
+        </View>
+        {onClose ? <Pressable accessibilityLabel={t('close')} onPress={onClose} hitSlop={10} style={[styles.close, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Ionicons name="close" size={18} color={colors.foreground} />
+        </Pressable> : null}
+      </View>
+
+      <Animated.View style={[styles.hero, heroEntrance]}>
+        <FloatingMedal size={trialDays !== null ? (compact ? 92 : 118) : compact ? 116 : 150} />
+      </Animated.View>
+
+      <View style={styles.content}>
+        {trialDays !== null && monthly ? <Animated.View style={titleEntrance}>
+          <Text style={[styles.title, styles.trialTitle, { color: colors.foreground }]}>
+            {trialCopy.titlePre}<Text style={styles.trialFree}>{` ${trialCopy.titleFree} `}</Text>{trialCopy.titlePost}
+          </Text>
+          <OfferCountdown remaining={offerRemaining} copy={trialCopy} />
+          <TrialSteps days={trialDays} copy={trialCopy} price={monthly.priceString} />
+        </Animated.View> : <Animated.View style={[styles.heading, titleEntrance]}>
+          <Text style={[styles.title, { color: colors.foreground }]}>{t('paywallTitle')}</Text>
+          {compact ? null : <Text numberOfLines={3} style={[styles.body, { color: colors.mutedForeground }]}>{t('paywallBody')}</Text>}
+        </Animated.View>}
+
+        <Animated.View style={plansEntrance}>
+          {offerMode ? null : <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallChoosePlan')}</Text>}
+          {offerMode ? null : planCards}
 
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallFeaturesTitle')}</Text>
           <View style={[styles.features, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -432,9 +482,10 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
       </View>
     </ScrollView>
 
-    <View style={[styles.footer, { paddingBottom: insets.bottom + 12, borderTopColor: colors.border }]}>
+    <View onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)} style={[styles.footer, offerMode && styles.footerOffer, { paddingBottom: insets.bottom + 12, borderTopColor: colors.border }]}>
       <BlurView intensity={40} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass }]} />
+      {offerMode ? <View style={styles.footerPlans}>{planCards}</View> : null}
       {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       <ChargeButton
         testID="paywall-subscribe"
@@ -494,14 +545,26 @@ const styles = StyleSheet.create({
   ticketCopy: { position: 'absolute', left: 24, right: 6, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
   ticketTop: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2, color: '#FFFFFF' },
   ticketBottom: { fontFamily: 'Inter_800ExtraBold', fontSize: 9, letterSpacing: 1.6, color: 'rgba(255,255,255,0.9)', marginTop: 1 },
-  timeline: { borderRadius: 22, borderWidth: 1, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
-  timelineHeadline: { fontFamily: 'Inter_600SemiBold', fontSize: 13, lineHeight: 18, marginBottom: 12 },
-  timelineRow: { flexDirection: 'row', gap: 6 },
-  timelineStep: { flex: 1, minWidth: 0 },
-  timelineBar: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  timelineBarFill: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  timelineLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 7 },
-  timelinePrice: { fontFamily: 'Inter_800ExtraBold', fontSize: 12, marginTop: 1 },
+  trialTitle: { textAlign: 'center', marginTop: 4, marginBottom: 18 },
+  trialFree: { color: '#FFFFFF', backgroundColor: '#10B981', overflow: 'hidden', borderRadius: 10 },
+  steps: { position: 'relative', gap: 16, marginBottom: 22, paddingLeft: 2 },
+  stepsRail: { position: 'absolute', left: 19, top: 20, bottom: 20, width: 4, borderRadius: 2, overflow: 'hidden' },
+  stepsRailFill: { width: 4, borderRadius: 2, overflow: 'hidden' },
+  step: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+  stepIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  stepCopy: { flex: 1, paddingTop: 1 },
+  stepTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2 },
+  stepBody: { fontFamily: 'Inter_500Medium', fontSize: 13, lineHeight: 18, marginTop: 2 },
+  countdown: { alignItems: 'center', marginBottom: 22 },
+  countTitle: { fontFamily: 'Inter_700Bold', fontSize: 14, marginBottom: 10 },
+  countRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  countUnit: { alignItems: 'center', gap: 5 },
+  countTile: { minWidth: 62, borderRadius: 16, borderWidth: 1, paddingVertical: 8, paddingHorizontal: 10, alignItems: 'center', overflow: 'hidden' },
+  countDigits: { fontFamily: 'Inter_800ExtraBold', fontSize: 30, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
+  countLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 11 },
+  countColon: { fontFamily: 'Inter_800ExtraBold', fontSize: 26, marginTop: 9 },
+  noPayment: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+  noPaymentText: { fontFamily: 'Inter_700Bold', fontSize: 13, color: '#10B981' },
   saveBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   saveBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 0.4 },
   plansLoading: { flex: 1, borderRadius: 26, borderWidth: 1, padding: 20, alignItems: 'center', gap: 8 },
@@ -512,6 +575,8 @@ const styles = StyleSheet.create({
   featureTitle: { fontFamily: 'Inter_700Bold', fontSize: 14.5, letterSpacing: -0.2 },
   featureBody: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 16.5, marginTop: 2 },
   disclosure: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: 14, textAlign: 'center' },
+  footerOffer: { paddingTop: 22 },
+  footerPlans: { marginBottom: 12 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   error: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, textAlign: 'center', marginBottom: 10 },
   renew: { fontFamily: 'Inter_500Medium', fontSize: 12, textAlign: 'center', marginTop: 10, fontVariant: ['tabular-nums'] },

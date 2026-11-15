@@ -63,14 +63,16 @@ function TrialTicket() {
   return (
     <motion.div
       aria-label={`${t.gm.trialTop} ${t.gm.trialBottom}`}
-      className="pointer-events-none absolute -right-2 -top-12 z-10 sm:-right-8 sm:-top-9"
-      style={{ width: W, height: H, transformOrigin: '20% 50%', zoom: typeof window !== 'undefined' && window.innerWidth < 640 ? 0.82 : 1 }}
-      initial={{ opacity: 0, y: -30, rotate: -24, scale: 0.8 }}
-      whileInView={{ opacity: 1, y: 0, rotate: [-24, 14, 4, 9, 8], scale: 1 }}
+      // Pinned across the seam between the Google Play button and the App Store card, so the trial reads as covering both.
+      className="pointer-events-none absolute right-[-8px] top-[57px] z-20 origin-right scale-[0.82] sm:right-[-30px] sm:top-[65px] sm:scale-100"
+      style={{ width: W, height: H }}
+      initial={{ opacity: 0, y: -40 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 1.1, delay: 0.4, ease: 'easeOut' }}
     >
-      <motion.div className="relative h-full w-full drop-shadow-[0_14px_22px_rgba(6,95,70,.55)]" animate={{ rotate: [0, 6, -4, 2, 0] }} transition={{ duration: 0.9, delay: 3, repeat: Infinity, repeatDelay: 3.2 }}>
+      <motion.div className="relative h-full w-full drop-shadow-[0_14px_22px_rgba(6,95,70,.55)]" style={{ transformOrigin: '20% 50%' }} initial={{ rotate: -26 }} whileInView={{ rotate: [-26, 4, -12, -4, -7] }} viewport={{ once: true }} transition={{ duration: 1.1, delay: 0.4, ease: 'easeOut' }}>
+        <motion.div className="relative h-full w-full" animate={{ rotate: [0, 6, -4, 2, 0] }} transition={{ duration: 0.9, delay: 3, repeat: Infinity, repeatDelay: 3.2 }}>
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="absolute inset-0" aria-hidden="true">
           <defs>
             <linearGradient id="trialTicket" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#34D399" /><stop offset="1" stopColor="#059669" /></linearGradient>
@@ -83,6 +85,7 @@ function TrialTicket() {
           <span className="text-[22px] font-extrabold tracking-[-0.02em]">{t.gm.trialTop}</span>
           <span className="mt-1 text-[10px] font-extrabold tracking-[0.18em] text-white/90">{t.gm.trialBottom}</span>
         </span>
+        </motion.div>
       </motion.div>
     </motion.div>
   );
@@ -141,8 +144,9 @@ function DownloadSection() {
           <span className="font-semibold text-emerald-300">{t.gm.trialLine}</span> {t.gm.trialFine}
         </p>
         <div className="relative mx-auto mt-12 flex max-w-[640px] flex-col gap-5">
-          <div className="relative"><StoreButton store="playStore" size="lg" wide /><TrialTicket /></div>
+          <StoreButton store="playStore" size="lg" wide />
           <AppStoreCountdownCard />
+          <TrialTicket />
         </div>
       </Reveal>
     </section>
