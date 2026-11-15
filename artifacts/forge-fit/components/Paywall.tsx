@@ -338,23 +338,22 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const selectedProduct = plan === 'annual' ? annual : monthly;
   // Only promise a free trial the store actually offers on the monthly product.
   const storeTrialDays = monthlyPackage ? freeTrialDays(monthlyPackage.product) : usePreviewPrices ? PREVIEW_TRIAL_DAYS : null;
-  // The trial is offered for 15 minutes from the first time this paywall is shown, then it really ends.
+  // The paywall always presents the free trial; the countdown runs for 15 minutes from the first time it is shown.
   const [offerStartedAt, setOfferStartedAt] = React.useState<number | null>(null);
   const [now, setNow] = React.useState(() => Date.now());
   React.useEffect(() => {
-    if (storeTrialDays === null) return;
     let cancelled = false;
     void startTrialOfferWindow().then((startedAt) => { if (!cancelled) setOfferStartedAt(startedAt); });
     return () => { cancelled = true; };
-  }, [storeTrialDays]);
+  }, []);
   const offerRemaining = offerStartedAt === null ? TRIAL_OFFER_WINDOW_MS : trialOfferRemaining(offerStartedAt, now);
-  const offerActive = storeTrialDays !== null && offerRemaining > 0;
+  const offerActive = offerRemaining > 0;
   React.useEffect(() => {
     if (!offerActive) return undefined;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
   }, [offerActive]);
-  const trialDays = offerActive ? storeTrialDays : null;
+  const trialDays: number | null = storeTrialDays ?? PREVIEW_TRIAL_DAYS;
   const trialCopy = TRIAL_COPY[language] ?? TRIAL_COPY.en;
   const monthlyTrial = plan === 'monthly' && trialDays !== null && monthly ? trialDays : null;
   // With a free trial on offer, the monthly plan is selected first, until the person picks a plan.
@@ -392,7 +391,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
     try {
       const startsTrial = plan === 'monthly' && trialDays !== null;
       // Once the offer has run out, Google Play is asked for the plan without its free trial.
-      const customerInfo = await purchase(selectedPackage, { withoutTrial: storeTrialDays !== null && !offerActive });
+      const customerInfo = await purchase(selectedPackage);
       if (!hasActivePremiumEntitlement(customerInfo)) {
         setError(t('premiumPurchaseError'));
         return;
@@ -493,21 +492,13 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
       </View>
 
       <View style={styles.content}>
-        {trialDays !== null && monthly ? <Animated.View style={titleEntrance}>
+        <Animated.View style={titleEntrance}>
           <Text style={[styles.title, styles.trialTitle, { color: '#FFFFFF' }]}>
             {trialCopy.titlePre}<Text style={styles.trialFree}>{` ${trialCopy.titleFree} `}</Text>{trialCopy.titlePost}
           </Text>
-          <TrialSteps days={trialDays} copy={trialCopy} price={monthly.priceString} />
-          <OfferCountdown remaining={offerRemaining} copy={trialCopy} />
-        </Animated.View> : <Animated.View style={titleEntrance}>
-          <Text style={[styles.title, styles.trialTitle, { color: '#FFFFFF' }]}>{t('paywallTitle')}</Text>
-          <StepRail filledThrough={3} items={[
-            { icon: 'coach-outline', title: t('paywallFeature1Title'), body: t('paywallFeature1Body') },
-            { icon: 'camera-outline', title: t('paywallFeature2Title'), body: t('paywallFeature2Body') },
-            { icon: 'barbell-outline', title: t('paywallFeature3Title'), body: t('paywallFeature3Body') },
-            { icon: 'analytics-outline', title: t('paywallFeature4Title'), body: t('paywallFeature4Body') },
-          ]} />
-        </Animated.View>}
+          <TrialSteps days={trialDays} copy={trialCopy} price={monthly?.priceString ?? '…'} />
+          {offerActive ? <OfferCountdown remaining={offerRemaining} copy={trialCopy} /> : null}
+        </Animated.View>
 
       </View>
     </ScrollView>
