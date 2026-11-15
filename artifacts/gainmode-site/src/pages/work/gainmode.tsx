@@ -1,7 +1,8 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import { AnimatePresence, motion, useInView, useScroll, useTransform } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Mail, Smartphone } from 'lucide-react';
+import { countries, flag, guessCountry, toE164 } from '@/lib/countries';
 import { useI18n } from '@/lib/i18n';
 import { products } from '@/lib/products';
 import { LogoMark } from '@/components/site/brand';
@@ -32,42 +33,83 @@ function StoreButton({ store }: { store: 'appStore' | 'playStore' }) {
   const icon = store === 'appStore'
     ? <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.9-4.2zM13.9 5.3c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z" /></svg>
     : <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true"><path fill="#00D7FE" d="M3.6 2.3 13.3 12l-9.7 9.7c-.4-.2-.6-.7-.6-1.2V3.5c0-.5.2-1 .6-1.2z" /><path fill="#FFCE00" d="m16.6 15.3-3.3-3.3 3.3-3.3 3.8 2.2c1 .6 1 1.6 0 2.2z" /><path fill="#FF3A44" d="M16.6 15.3 13.3 12l-9.7 9.7c.4.2.9.2 1.4-.1z" /><path fill="#00F076" d="M16.6 8.7 5 2.4c-.5-.3-1-.3-1.4-.1l9.7 9.7z" /></svg>;
-  const body = <>{icon}<span className="text-left leading-tight"><span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-white/60">{url ? (store === 'appStore' ? 'Download on the' : 'Get it on') : t.gm.storeSoon}</span><span className="block text-base font-semibold">{label}</span></span></>;
+  const body = <>{icon}<span className="text-left leading-tight"><span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-white/60">{url ? (store === 'appStore' ? 'Download on the' : t.gm.getOn) : t.gm.storeSoon}</span><span className="block text-base font-semibold">{label}</span></span></>;
   return url
     ? <a href={url} target="_blank" rel="noreferrer" className="flex h-14 items-center gap-3 rounded-lg border border-white/20 bg-black px-5 transition-colors hover:border-white/50">{body}</a>
     : <span aria-disabled="true" className="flex h-14 cursor-default items-center gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-5 text-white/70">{body}</span>;
 }
 
-/** Email signup that posts to the API's early list; shows a check once saved. */
-function NotifyForm({ center = false }: { center?: boolean }) {
+/**
+ * The App Store countdown list: an email, or a phone number with its country. It posts to the
+ * API's early list, which stores the entry so everyone can be told the day the iPhone app lands.
+ */
+function CountdownForm({ center = false }: { center?: boolean }) {
   const { t, lang } = useI18n();
+  const [mode, setMode] = useState<'email' | 'phone'>('email');
   const [email, setEmail] = useState('');
+  const [country, setCountry] = useState(() => guessCountry());
+  const [phone, setPhone] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!email.trim() || state === 'sending' || state === 'done') return;
+    if (state === 'sending' || state === 'done') return;
+    const e164 = mode === 'phone' ? toE164(country.dial, phone) : null;
+    if (mode === 'phone' && !e164) { setState('error'); return; }
+    if (mode === 'email' && !email.trim()) return;
     setState('sending');
     try {
-      const response = await fetch('/api/early-list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email.trim(), language: lang }) });
+      const body = mode === 'email'
+        ? { email: email.trim(), language: lang, platform: 'ios' }
+        : { phone: e164, country: country.code, language: lang, platform: 'ios' };
+      const response = await fetch('/api/early-list', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       setState(response.ok ? 'done' : 'error');
     } catch {
       setState('error');
     }
   };
+  const tab = (value: 'email' | 'phone', label: string, Icon: typeof Mail) => (
+    <button type="button" onClick={() => { setMode(value); if (state === 'error') setState('idle'); }} aria-pressed={mode === value}
+      className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${mode === value ? 'bg-white text-ink' : 'text-white/60 hover:text-white'}`}>
+      <Icon size={14} />{label}
+    </button>
+  );
   return (
-    <form onSubmit={submit} className={`w-full max-w-md ${center ? 'mx-auto' : ''}`}>
-      <p className="mb-3 text-sm font-semibold text-white/80">{t.gm.notifyTitle}</p>
+    <form onSubmit={submit} className={`w-full max-w-md ${center ? 'mx-auto text-left' : ''}`}>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-royal-100">
+          <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-royal-300 opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-royal-300" /></span>
+          {t.gm.countdownBadge}
+        </span>
+        {state === 'done' ? null : <div className="flex rounded-full border border-white/15 bg-white/[0.04] p-1">{tab('email', t.gm.countdownEmail, Mail)}{tab('phone', t.gm.countdownPhone, Smartphone)}</div>}
+      </div>
+      <p className="text-lg font-semibold leading-snug">{t.gm.countdownTitle}</p>
+      <p className="mb-4 mt-1 text-sm text-white/60">{t.gm.countdownBody}</p>
       <AnimatePresence mode="wait">
         {state === 'done' ? (
-          <motion.p key="done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2 rounded-2xl bg-emerald-400/10 px-5 py-4 text-sm font-medium text-emerald-300"><Check size={18} />{t.gm.notifyDone}</motion.p>
+          <motion.p key="done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start gap-2 rounded-2xl bg-emerald-400/10 px-5 py-4 text-sm font-medium text-emerald-300"><Check size={18} className="mt-0.5 shrink-0" />{t.gm.countdownDone}</motion.p>
         ) : (
-          <motion.div key="form" exit={{ opacity: 0 }} className="flex gap-2 rounded-2xl border border-white/15 bg-white/[0.04] p-1.5 focus-within:border-royal-400">
-            <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t.gm.notifyPlaceholder} aria-label={t.gm.notifyPlaceholder} className="min-w-0 flex-1 bg-transparent px-4 text-sm text-white outline-none placeholder:text-white/40" />
-            <button type="submit" disabled={state === 'sending'} className="shrink-0 rounded-md bg-royal-500 px-5 py-3 text-sm font-semibold transition-colors hover:bg-royal-400 disabled:opacity-60">{t.gm.notifyButton}</button>
+          <motion.div key={mode} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex gap-2 rounded-2xl border border-white/15 bg-white/[0.04] p-1.5 focus-within:border-royal-400">
+            {mode === 'email' ? (
+              <input type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t.gm.notifyPlaceholder} aria-label={t.gm.notifyPlaceholder} autoComplete="email" className="w-0 min-w-0 flex-1 bg-transparent px-4 text-sm text-white outline-none placeholder:text-white/40" />
+            ) : (
+              <>
+                <label className="relative flex shrink-0 items-center gap-1.5 rounded-xl bg-white/[0.06] pl-3 pr-2 text-sm">
+                  <span aria-hidden="true">{flag(country.code)}</span>
+                  <span className="font-semibold">{country.dial}</span>
+                  <span aria-hidden="true" className="text-white/40">▾</span>
+                  <select aria-label={t.gm.countdownCountry} value={country.code} onChange={(event) => setCountry(countries.find((c) => c.code === event.target.value) ?? countries[0])} className="absolute inset-0 cursor-pointer opacity-0">
+                    {countries.map((c) => <option key={c.code} value={c.code}>{`${flag(c.code)} ${c.name} (${c.dial})`}</option>)}
+                  </select>
+                </label>
+                <input type="tel" required inputMode="tel" autoComplete="tel-national" value={phone} onChange={(event) => { setPhone(event.target.value); if (state === 'error') setState('idle'); }} placeholder={t.gm.countdownPhonePlaceholder} aria-label={t.gm.countdownPhonePlaceholder} className="w-0 min-w-0 flex-1 bg-transparent px-2 text-sm text-white outline-none placeholder:text-white/40" />
+              </>
+            )}
+            <button type="submit" disabled={state === 'sending'} className="shrink-0 rounded-md bg-royal-500 px-4 py-3 text-sm font-semibold transition-colors hover:bg-royal-400 disabled:opacity-60 sm:px-5">{t.gm.countdownButton}</button>
           </motion.div>
         )}
       </AnimatePresence>
-      {state === 'error' ? <p className="mt-2 text-sm text-red-300">{t.gm.notifyError}</p> : null}
+      {state === 'error' ? <p className="mt-2 text-sm text-red-300">{t.gm.countdownError}</p> : null}
+      {state !== 'done' ? <p className="mt-2 text-xs text-white/40">{t.gm.countdownConsent}</p> : null}
     </form>
   );
 }
@@ -206,10 +248,10 @@ export default function GainmodePage() {
             <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.15, ease: EASE }} className="mt-4 text-5xl font-bold leading-[1.02] tracking-[-0.045em] md:text-7xl">{t.gm.title}</motion.h1>
             <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3, ease: EASE }} className="mt-6 max-w-xl text-lg leading-relaxed text-white/65">{t.gm.body}</motion.p>
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45, ease: EASE }} className="mt-8 flex flex-wrap gap-3">
-              <StoreButton store="appStore" />
               <StoreButton store="playStore" />
+              <StoreButton store="appStore" />
             </motion.div>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-8"><NotifyForm /></motion.div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-10"><CountdownForm /></motion.div>
           </div>
           <div className="relative flex h-[560px] items-center justify-center md:h-[680px]">
             <motion.div style={{ y: sideY }} className="absolute left-0 top-24 hidden -rotate-[9deg] sm:block" initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1, delay: 0.4, ease: EASE }}><Phone src={nutrition} alt="" width={210} className="opacity-75" /></motion.div>
@@ -242,8 +284,8 @@ export default function GainmodePage() {
             <img src={product.icon} alt="" className="relative mx-auto h-20 w-20 rounded-[22px] shadow-2xl" />
             <h2 className="relative mx-auto mt-8 max-w-2xl text-4xl font-bold leading-[1.05] tracking-[-0.04em] md:text-6xl">{t.gm.ctaTitle}</h2>
             <p className="relative mx-auto mt-5 max-w-lg text-white/80">{t.gm.ctaBody}</p>
-            <div className="relative mt-9 flex justify-center"><NotifyForm center /></div>
-            <div className="relative mt-8 flex flex-wrap justify-center gap-3"><StoreButton store="appStore" /><StoreButton store="playStore" /></div>
+            <div className="relative mt-9 flex flex-wrap justify-center gap-3"><StoreButton store="playStore" /><StoreButton store="appStore" /></div>
+            <div className="relative mx-auto mt-10 max-w-md rounded-[28px] border border-white/20 bg-black/20 p-6 backdrop-blur"><CountdownForm center /></div>
           </div>
         </Reveal>
         <Reveal className="mt-10 flex flex-wrap items-center justify-between gap-4 text-sm text-white/50">

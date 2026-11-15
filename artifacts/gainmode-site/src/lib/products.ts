@@ -33,14 +33,14 @@ export const products: Product[] = [
     wordmark: gainmodeWordmark,
     screens: [gainmodeHome, gainmodeNutrition, gainmodeLive],
     accent: '#2F5BFF',
-    status: 'soon',
+    status: 'live',
     year: 2026,
     category: { en: 'Fitness · AI · iOS & Android', tr: 'Fitness · Yapay zekâ · iOS ve Android' },
     summary: {
       en: 'An AI fitness coach that writes your plan, counts your reps with the camera and reads your meals from a photo.',
       tr: 'Planını yazan, tekrarlarını kamerayla sayan ve öğününü fotoğraftan okuyan bir yapay zekâ fitness koçu.',
     },
-    links: { appStore: null, playStore: null, web: null },
+    links: { appStore: null, playStore: 'https://play.google.com/store/apps/details?id=com.forgefit2.app', web: null },
   },
 ];
 
