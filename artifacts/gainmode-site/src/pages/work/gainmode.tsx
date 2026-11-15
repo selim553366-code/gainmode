@@ -343,12 +343,41 @@ function Gallery() {
   );
 }
 
+/**
+ * The page opens straight on the store buttons. The layout scrolls to the top on every route change and the
+ * images above can still be loading, so it re-aims a few times until the visitor scrolls on their own.
+ */
+function useOpenAtDownload() {
+  useEffect(() => {
+    let stopped = false;
+    const stop = () => { stopped = true; };
+    const aim = () => {
+      if (stopped) return;
+      const target = document.getElementById('download');
+      if (target) window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - 64, behavior: 'auto' });
+    };
+    const timers = [0, 80, 250, 600, 1200, 2000].map((delay) => window.setTimeout(aim, delay));
+    window.addEventListener('load', aim);
+    window.addEventListener('wheel', stop, { passive: true });
+    window.addEventListener('touchmove', stop, { passive: true });
+    window.addEventListener('keydown', stop);
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      window.removeEventListener('load', aim);
+      window.removeEventListener('wheel', stop);
+      window.removeEventListener('touchmove', stop);
+      window.removeEventListener('keydown', stop);
+    };
+  }, []);
+}
+
 export default function GainmodePage() {
   const { t } = useI18n();
   const heroRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const phoneY = useTransform(scrollYProgress, [0, 1], [0, 160]);
   const sideY = useTransform(scrollYProgress, [0, 1], [0, 60]);
+  useOpenAtDownload();
   return (
     <div className="font-body">
       <section ref={heroRef} className="grain relative overflow-hidden pt-28 md:pt-32">
