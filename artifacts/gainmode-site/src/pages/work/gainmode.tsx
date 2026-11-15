@@ -26,17 +26,39 @@ const product = products.find((item) => item.slug === 'gainmode')!;
 const featureScreens = [[onboarding, aiPlan], [scan, barcode], [live], [nutrition], [plan], [charts], [streak, badges]];
 const gallery = [home, onboarding, aiPlan, nutrition, scan, barcode, plan, live, charts, streak, badges];
 
-function StoreButton({ store }: { store: 'appStore' | 'playStore' }) {
+function StoreButton({ store, size = 'md' }: { store: 'appStore' | 'playStore'; size?: 'md' | 'lg' }) {
   const { t } = useI18n();
   const url = product.links[store];
   const label = store === 'appStore' ? t.gm.appStore : t.gm.playStore;
   const icon = store === 'appStore'
-    ? <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.9-4.2zM13.9 5.3c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z" /></svg>
-    : <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden="true"><path fill="#00D7FE" d="M3.6 2.3 13.3 12l-9.7 9.7c-.4-.2-.6-.7-.6-1.2V3.5c0-.5.2-1 .6-1.2z" /><path fill="#FFCE00" d="m16.6 15.3-3.3-3.3 3.3-3.3 3.8 2.2c1 .6 1 1.6 0 2.2z" /><path fill="#FF3A44" d="M16.6 15.3 13.3 12l-9.7 9.7c.4.2.9.2 1.4-.1z" /><path fill="#00F076" d="M16.6 8.7 5 2.4c-.5-.3-1-.3-1.4-.1l9.7 9.7z" /></svg>;
-  const body = <>{icon}<span className="text-left leading-tight"><span className="block text-[10px] font-medium uppercase tracking-[0.14em] text-white/60">{url ? (store === 'appStore' ? 'Download on the' : t.gm.getOn) : t.gm.storeSoon}</span><span className="block text-base font-semibold">{label}</span></span></>;
+    ? <svg viewBox="0 0 24 24" className={size === 'lg' ? 'h-9 w-9 shrink-0' : 'h-6 w-6'} fill="currentColor" aria-hidden="true"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.2 2.5-1.8 3.1-.5 7.7 1.3 10.2.9 1.2 1.9 2.6 3.2 2.6 1.3-.1 1.8-.8 3.3-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.1-2.5 1-1.4 1.4-2.8 1.4-2.9 0 0-2.7-1-2.9-4.2zM13.9 5.3c.7-.9 1.2-2 1-3.2-1 .1-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.1 1.2.1 2.3-.6 3.1-1.5z" /></svg>
+    : <svg viewBox="0 0 24 24" className={size === 'lg' ? 'h-9 w-9 shrink-0' : 'h-6 w-6'} aria-hidden="true"><path fill="#00D7FE" d="M3.6 2.3 13.3 12l-9.7 9.7c-.4-.2-.6-.7-.6-1.2V3.5c0-.5.2-1 .6-1.2z" /><path fill="#FFCE00" d="m16.6 15.3-3.3-3.3 3.3-3.3 3.8 2.2c1 .6 1 1.6 0 2.2z" /><path fill="#FF3A44" d="M16.6 15.3 13.3 12l-9.7 9.7c.4.2.9.2 1.4-.1z" /><path fill="#00F076" d="M16.6 8.7 5 2.4c-.5-.3-1-.3-1.4-.1l9.7 9.7z" /></svg>;
+  const lg = size === 'lg';
+  const kicker = url ? (store === 'appStore' ? 'Download on the' : t.gm.getOn) : t.gm.storeSoon;
+  const body = <>{icon}<span className="text-left leading-tight"><span className={`block font-medium uppercase text-white/60 ${lg ? 'text-xs tracking-[0.16em]' : 'text-[10px] tracking-[0.14em]'}`}>{kicker}</span><span className={`block font-semibold ${lg ? 'text-2xl tracking-[-0.02em] sm:text-[28px]' : 'text-base'}`}>{label}</span></span></>;
+  const shape = lg ? 'h-20 w-full justify-center gap-4 rounded-2xl px-7 sm:h-[88px] sm:w-[320px]' : 'h-14 gap-3 rounded-lg px-5';
   return url
-    ? <a href={url} target="_blank" rel="noreferrer" className="flex h-14 items-center gap-3 rounded-lg border border-white/20 bg-black px-5 transition-colors hover:border-white/50">{body}</a>
-    : <span aria-disabled="true" className="flex h-14 cursor-default items-center gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-5 text-white/70">{body}</span>;
+    ? <a href={url} target="_blank" rel="noreferrer" className={`group relative flex items-center border border-white/25 bg-black transition-all hover:border-white/60 ${lg ? 'shadow-[0_18px_50px_-12px_rgba(47,91,255,.75)] hover:-translate-y-0.5' : ''} ${shape}`}>{body}</a>
+    : <span aria-disabled="true" className={`relative flex cursor-default items-center border border-white/10 bg-white/[0.04] text-white/70 ${shape}`}>{body}</span>;
+}
+
+/** The download block: the two store buttons, large and centred, with the App Store countdown list under them. */
+function DownloadSection() {
+  const { t } = useI18n();
+  return (
+    <section id="download" className="relative mx-auto max-w-[1240px] px-5 pb-20 pt-4 md:px-8 md:pb-28">
+      <Reveal className="relative overflow-hidden rounded-[36px] border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] px-5 py-12 text-center sm:px-10 md:py-16">
+        <div className="aurora left-1/2 top-0 h-72 w-[520px] -translate-x-1/2 bg-royal-500/30" />
+        <p className="relative text-xs font-semibold uppercase tracking-[0.22em] text-royal-200">{t.gm.downloadKicker}</p>
+        <h2 className="relative mx-auto mt-4 max-w-2xl text-3xl font-bold leading-[1.05] tracking-[-0.04em] sm:text-4xl md:text-5xl">{t.gm.downloadTitle}</h2>
+        <div className="relative mx-auto mt-9 flex max-w-[680px] flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center">
+          <StoreButton store="playStore" size="lg" />
+          <StoreButton store="appStore" size="lg" />
+        </div>
+        <div className="relative mx-auto mt-10 max-w-md rounded-[28px] border border-white/10 bg-black/30 p-5 text-left sm:p-6"><CountdownForm /></div>
+      </Reveal>
+    </section>
+  );
 }
 
 /**
@@ -247,11 +269,7 @@ export default function GainmodePage() {
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-royal-200">{t.gm.kicker}</motion.p>
             <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.15, ease: EASE }} className="mt-4 text-5xl font-bold leading-[1.02] tracking-[-0.045em] md:text-7xl">{t.gm.title}</motion.h1>
             <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3, ease: EASE }} className="mt-6 max-w-xl text-lg leading-relaxed text-white/65">{t.gm.body}</motion.p>
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45, ease: EASE }} className="mt-8 flex flex-wrap gap-3">
-              <StoreButton store="playStore" />
-              <StoreButton store="appStore" />
-            </motion.div>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="mt-10"><CountdownForm /></motion.div>
+            <motion.a href="#download" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45, ease: EASE }} className="mt-8 inline-flex items-center gap-2 rounded-lg bg-royal-500 px-6 py-4 text-sm font-semibold transition-colors hover:bg-royal-400">{t.gm.downloadKicker}<ArrowRight size={16} className="rotate-90" /></motion.a>
           </div>
           <div className="relative flex h-[560px] items-center justify-center md:h-[680px]">
             <motion.div style={{ y: sideY }} className="absolute left-0 top-24 hidden -rotate-[9deg] sm:block" initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1, delay: 0.4, ease: EASE }}><Phone src={nutrition} alt="" width={210} className="opacity-75" /></motion.div>
@@ -261,6 +279,8 @@ export default function GainmodePage() {
           </div>
         </div>
       </section>
+
+      <DownloadSection />
 
       <section className="border-y border-white/[0.07]">
         <div className="mx-auto grid max-w-[1240px] grid-cols-2 gap-px px-5 md:grid-cols-4 md:px-8">
@@ -284,7 +304,7 @@ export default function GainmodePage() {
             <img src={product.icon} alt="" className="relative mx-auto h-20 w-20 rounded-[22px] shadow-2xl" />
             <h2 className="relative mx-auto mt-8 max-w-2xl text-4xl font-bold leading-[1.05] tracking-[-0.04em] md:text-6xl">{t.gm.ctaTitle}</h2>
             <p className="relative mx-auto mt-5 max-w-lg text-white/80">{t.gm.ctaBody}</p>
-            <div className="relative mt-9 flex flex-wrap justify-center gap-3"><StoreButton store="playStore" /><StoreButton store="appStore" /></div>
+            <div className="relative mx-auto mt-9 flex max-w-[680px] flex-col items-stretch justify-center gap-4 sm:flex-row sm:items-center"><StoreButton store="playStore" size="lg" /><StoreButton store="appStore" size="lg" /></div>
             <div className="relative mx-auto mt-10 max-w-md rounded-[28px] border border-white/20 bg-black/20 p-6 backdrop-blur"><CountdownForm center /></div>
           </div>
         </Reveal>
