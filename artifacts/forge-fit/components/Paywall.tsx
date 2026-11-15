@@ -31,10 +31,12 @@ import { Ionicons } from '@/components/AppIcon';
 import { EASE_OUT, PressableScale as Pressable } from '@/components/Motion';
 import { GainModeWordmark } from '@/components/FitUI';
 import { SkyBackdrop } from '@/components/SkyBackdrop';
+import { WaterFill } from '@/components/ChargeButton';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 type Plan = 'monthly' | 'annual';
 type DisplayProduct = { price: number; currencyCode: string; priceString: string };
+const ANNUAL_TONES: [string, string] = ['#E8364F', '#FF8A3D'];
 const MONTHLY_TONES: [string, string] = ['#2563EB', '#38BDF8'];
 /** The free trial shown on the monthly plan in the web preview, where there is no store. */
 const PREVIEW_TRIAL_DAYS = 3;
@@ -227,10 +229,10 @@ function useEntrance(delay: number, distance = 14) {
 }
 
 /**
- * One plan as a plain row: a radio, the plan and a short tag, and the price on the right.
- * The chosen row takes a blue outline and a light blue fill; nothing else moves.
+ * Plan bar. Its colour always flows slowly; at rest it only tints the price side of the bar, and when chosen it
+ * floods the whole bar (420ms) and the text turns white.
  */
-function PlanRow({ selected, onPress, title, price, unit, perMonth, note, tag, tagTone, testID }: {
+function PlanCard({ selected, onPress, title, price, unit, perMonth, note, badge, ticket, saveBadge, strike, tones, testID, compact = false }: {
   selected: boolean;
   onPress: () => void;
   title: string;
@@ -239,32 +241,55 @@ function PlanRow({ selected, onPress, title, price, unit, perMonth, note, tag, t
   /** What the plan works out to per month, shown under the price. */
   perMonth?: string | null;
   note: string;
-  tag?: string | null;
-  tagTone?: 'green' | 'blue';
+  badge?: string;
+  /** A free-trial ticket pinned to the card's corner. */
+  ticket?: { top: string; bottom: string };
+  saveBadge?: string | null;
+  strike?: string | null;
+  tones: [string, string];
   testID: string;
+  /** A slim bar for the bottom of the trial offer: badges sit inline and the ticket becomes a pill. */
+  compact?: boolean;
 }) {
   const colors = useColors();
   const dark = colors.colorScheme === 'dark';
-  const tagColor = tagTone === 'blue' ? '#2563EB' : '#059669';
-  return <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} scaleTo={0.985}
-    style={[styles.planRow, {
-      backgroundColor: selected ? (dark ? 'rgba(59,130,246,0.16)' : '#EFF6FF') : colors.card,
-      borderColor: selected ? '#2563EB' : colors.border,
-    }]}>
-    <View style={[styles.radio, selected ? styles.radioOn : { borderColor: colors.border }]}>
-      {selected ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
-    </View>
-    <View style={styles.planCopy}>
-      <View style={styles.planTitleRow}>
-        <Text style={[styles.planTitle, { color: colors.foreground }]}>{title}</Text>
-        {tag ? <View style={[styles.planTag, { backgroundColor: `${tagColor}${dark ? '33' : '18'}` }]}><Text style={[styles.planTagText, { color: dark ? '#FFFFFF' : tagColor }]}>{tag}</Text></View> : null}
+  const [width, setWidth] = React.useState(0);
+  const fill = useSharedValue(selected ? 1 : 0);
+  React.useEffect(() => {
+    fill.set(withTiming(selected ? 1 : 0, { duration: selected ? 420 : 280, easing: EASE_OUT }));
+  }, [fill, selected]);
+  const maskStyle = useAnimatedStyle(() => ({ opacity: 1 - fill.get() }));
+  const colorStyle = useAnimatedStyle(() => ({ opacity: 0.55 + fill.get() * 0.45 }));
+  const ink = selected ? '#FFFFFF' : colors.foreground;
+  const muted = selected ? 'rgba(255,255,255,0.8)' : colors.mutedForeground;
+  return <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} scaleTo={0.98} style={styles.planWrap}>
+    <View onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))} style={[styles.plan, compact && styles.planCompact, { backgroundColor: colors.card, borderColor: selected ? (dark ? 'rgba(255,255,255,0.85)' : tones[0]) : colors.border }]}>
+      <View pointerEvents="none" style={styles.planColor}>
+        <Animated.View style={[StyleSheet.absoluteFill, colorStyle]}><WaterFill colors={tones} width={width} /></Animated.View>
+        {/* At rest the card colour covers the left so the text stays readable and the colour pools at the price. */}
+        <Animated.View style={[StyleSheet.absoluteFill, maskStyle]}>
+          <LinearGradient colors={[colors.card, colors.card, `${colors.card}00`]} locations={[0, 0.34, 0.86]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
+        </Animated.View>
       </View>
-      <Text numberOfLines={1} style={[styles.planNote, { color: colors.mutedForeground }]}>{note}</Text>
+      <View style={[styles.radio, { borderColor: selected ? '#FFFFFF' : colors.border }]}>
+        {selected ? <View style={styles.radioDot} /> : null}
+      </View>
+      <View style={styles.planCopy}>
+        <View style={styles.planTitleRow}>
+          <Text style={[styles.planTitle, { color: ink }]}>{title}</Text>
+          {compact && ticket ? <LinearGradient colors={['#34D399', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.saveBadge}><Text style={[styles.saveBadgeText, { color: '#FFFFFF' }]}>{`${ticket.top} ${ticket.bottom}`}</Text></LinearGradient> : null}
+          {saveBadge ? <View style={[styles.saveBadge, { backgroundColor: selected ? 'rgba(255,255,255,0.22)' : `${colors.success}22` }]}><Text style={[styles.saveBadgeText, { color: selected ? '#FFFFFF' : colors.success }]}>{saveBadge}</Text></View> : null}
+        </View>
+        <Text numberOfLines={1} style={[styles.planNote, { color: muted }]}>{note}</Text>
+      </View>
+      <View style={styles.planPriceColumn}>
+        {strike && !compact ? <Text style={[styles.planStrike, { color: selected ? 'rgba(255,255,255,0.7)' : dark ? 'rgba(255,255,255,0.7)' : colors.mutedForeground }]}>{strike}</Text> : null}
+        <Text numberOfLines={1} style={[styles.planPrice, compact && styles.planPriceCompact, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{price}</Text>
+        <Text style={[styles.planUnit, { color: selected || dark ? 'rgba(255,255,255,0.8)' : colors.mutedForeground }]}>{unit}</Text>
+        {perMonth ? <Text numberOfLines={1} style={[styles.planPerMonth, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{perMonth}</Text> : null}
+      </View>
     </View>
-    <View style={styles.planPriceColumn}>
-      <Text numberOfLines={1} style={[styles.planPrice, { color: colors.foreground }]}>{price}<Text style={[styles.planUnit, { color: colors.mutedForeground }]}>{` ${unit}`}</Text></Text>
-      {perMonth ? <Text numberOfLines={1} style={[styles.planPerMonth, { color: colors.mutedForeground }]}>{perMonth}</Text> : null}
-    </View>
+    {badge ? <View style={[styles.planBadge, compact && styles.planBadgeCompact, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
   </Pressable>;
 }
 
@@ -403,8 +428,8 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
 
   const [footerHeight, setFooterHeight] = React.useState(230 + insets.bottom);
   const planCards = (
-          <View style={styles.plans}>
-            {annual ? <PlanRow
+          <View style={[styles.plans, styles.plansCompact]}>
+            {annual ? <PlanCard
               testID="paywall-annual-plan"
               selected={plan === 'annual'}
               onPress={() => { pickedPlan.current = true; if (plan !== 'annual') { Haptics.selectionAsync().catch(() => undefined); setPlan('annual'); } }}
@@ -413,10 +438,12 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               unit={t('premiumPerYear')}
               perMonth={annualPerMonth ? t('paywallMonthlyEquivalent').replace('{price}', annualPerMonth) : null}
               note={t('paywallYearlyNote')}
-              tag={savings !== null ? t('paywallSave').replace('{percent}', String(savings)) : t('paywallBestValue')}
-              tagTone="green"
+              badge={t('paywallBestValue')}
+              saveBadge={savings !== null ? t('paywallSave').replace('{percent}', String(savings)) : null}
+              tones={ANNUAL_TONES}
+              compact
             /> : null}
-            {monthly ? <PlanRow
+            {monthly ? <PlanCard
               testID="paywall-monthly-plan"
               selected={plan === 'monthly'}
               onPress={() => { pickedPlan.current = true; if (plan !== 'monthly') { Haptics.selectionAsync().catch(() => undefined); setPlan('monthly'); } }}
@@ -424,8 +451,9 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               price={monthly.priceString}
               unit={t('premiumPerMonth')}
               note={trialDays !== null ? fillTrial(trialCopy.note, trialDays, monthly.priceString) : t('paywallMonthlyNote')}
-              tag={trialDays !== null ? `${fillTrial(trialCopy.ticketTop, trialDays, monthly.priceString)} ${trialCopy.ticketBottom}` : null}
-              tagTone="blue"
+              ticket={trialDays !== null ? { top: fillTrial(trialCopy.ticketTop, trialDays, monthly.priceString), bottom: trialCopy.ticketBottom } : undefined}
+              tones={MONTHLY_TONES}
+              compact
             /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
           </View>
@@ -500,22 +528,31 @@ const styles = StyleSheet.create({
   close: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: 20 },
   title: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 38, letterSpacing: -1.6, textAlign: 'center' },
-  plans: { gap: 10 },
-  planRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 12 },
-  radioOn: { backgroundColor: '#2563EB', borderColor: '#2563EB' },
-  planTag: { borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
-  planTagText: { fontFamily: 'Inter_700Bold', fontSize: 10.5, letterSpacing: 0.2 },
-  subscribe: { height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
-  subscribeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2 },
+  plans: { gap: 14, marginTop: 4 },
+  planWrap: {},
+  plan: { borderRadius: 24, borderWidth: 1.5, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', minHeight: 84 },
+  planCompact: { minHeight: 0, paddingVertical: 11, borderRadius: 18 },
+  planPriceCompact: { fontSize: 19 },
+  planBadgeCompact: { top: -9, left: 14, paddingVertical: 3 },
+  plansCompact: { gap: 12, marginTop: 0 },
+  planColor: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FFFFFF' },
   planCopy: { flex: 1, minWidth: 0 },
   planTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
-  planTitle: { fontFamily: 'Inter_700Bold', fontSize: 16, letterSpacing: -0.3 },
-  planNote: { fontFamily: 'Inter_500Medium', fontSize: 12.5, marginTop: 3 },
+  planTitle: { fontFamily: 'Inter_800ExtraBold', fontSize: 17, letterSpacing: -0.4 },
+  planNote: { fontFamily: 'Inter_500Medium', fontSize: 12.5, marginTop: 4 },
   planPriceColumn: { alignItems: 'flex-end' },
-  planPrice: { fontFamily: 'Inter_800ExtraBold', fontSize: 18, letterSpacing: -0.4, fontVariant: ['tabular-nums'] },
-  planPerMonth: { fontFamily: 'Inter_600SemiBold', fontSize: 12, marginTop: 2, fontVariant: ['tabular-nums'] },
-  planUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 12, letterSpacing: 0 },
+  planStrike: { fontFamily: 'Inter_500Medium', fontSize: 12, textDecorationLine: 'line-through', fontVariant: ['tabular-nums'] },
+  planPrice: { fontFamily: 'Inter_800ExtraBold', fontSize: 21, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  planPerMonth: { fontFamily: 'Inter_700Bold', fontSize: 11.5, marginTop: 2, fontVariant: ['tabular-nums'] },
+  planUnit: { fontFamily: 'Inter_600SemiBold', fontSize: 11, marginTop: 1 },
+  planBadge: { position: 'absolute', top: -10, left: 18, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  planBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 9.5, letterSpacing: 0.9 },
+  saveBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  saveBadgeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 10, letterSpacing: 0.4 },
+  subscribe: { height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  subscribeText: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2 },
   trialTitle: { textAlign: 'center', marginTop: 22, marginBottom: 20 },
   trialFree: { color: '#1D4ED8', backgroundColor: '#FFFFFF', overflow: 'hidden', borderRadius: 10 },
   steps: { position: 'relative', gap: 18, marginBottom: 20 },
