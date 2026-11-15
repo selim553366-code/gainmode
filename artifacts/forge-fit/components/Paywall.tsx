@@ -219,7 +219,7 @@ function FeatureRow({ icon, title, body, delay, last }: { icon: IconName; title:
  * Plan bar. Its colour always flows slowly; at rest it only tints the price side of the bar, and when chosen it
  * floods the whole bar (420ms) and the text turns white.
  */
-function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, saveBadge, strike, tones, testID }: {
+function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, saveBadge, strike, tones, testID, compact = false }: {
   selected: boolean;
   onPress: () => void;
   title: string;
@@ -233,6 +233,8 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, 
   strike?: string | null;
   tones: [string, string];
   testID: string;
+  /** A slim bar for the bottom of the trial offer: badges sit inline and the ticket becomes a pill. */
+  compact?: boolean;
 }) {
   const colors = useColors();
   const dark = colors.colorScheme === 'dark';
@@ -246,7 +248,7 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, 
   const ink = selected ? '#FFFFFF' : colors.foreground;
   const muted = selected ? 'rgba(255,255,255,0.8)' : colors.mutedForeground;
   return <Pressable testID={testID} accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} scaleTo={0.98} style={styles.planWrap}>
-    <View onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))} style={[styles.plan, { backgroundColor: colors.card, borderColor: selected ? (dark ? 'rgba(255,255,255,0.85)' : tones[0]) : colors.border }]}>
+    <View onLayout={(event) => setWidth(Math.round(event.nativeEvent.layout.width))} style={[styles.plan, compact && styles.planCompact, { backgroundColor: colors.card, borderColor: selected ? (dark ? 'rgba(255,255,255,0.85)' : tones[0]) : colors.border }]}>
       <View pointerEvents="none" style={styles.planColor}>
         <Animated.View style={[StyleSheet.absoluteFill, colorStyle]}><WaterFill colors={tones} width={width} /></Animated.View>
         {/* At rest the card colour covers the left so the text stays readable and the colour pools at the price. */}
@@ -260,18 +262,19 @@ function PlanCard({ selected, onPress, title, price, unit, note, badge, ticket, 
       <View style={styles.planCopy}>
         <View style={styles.planTitleRow}>
           <Text style={[styles.planTitle, { color: ink }]}>{title}</Text>
+          {compact && ticket ? <LinearGradient colors={['#34D399', '#059669']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.saveBadge}><Text style={[styles.saveBadgeText, { color: '#FFFFFF' }]}>{`${ticket.top} ${ticket.bottom}`}</Text></LinearGradient> : null}
           {saveBadge ? <View style={[styles.saveBadge, { backgroundColor: selected ? 'rgba(255,255,255,0.22)' : `${colors.success}22` }]}><Text style={[styles.saveBadgeText, { color: selected ? '#FFFFFF' : colors.success }]}>{saveBadge}</Text></View> : null}
         </View>
         <Text numberOfLines={1} style={[styles.planNote, { color: muted }]}>{note}</Text>
       </View>
       <View style={styles.planPriceColumn}>
-        {strike ? <Text style={[styles.planStrike, { color: selected ? 'rgba(255,255,255,0.7)' : dark ? 'rgba(255,255,255,0.7)' : colors.mutedForeground }]}>{strike}</Text> : null}
-        <Text numberOfLines={1} style={[styles.planPrice, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{price}</Text>
+        {strike && !compact ? <Text style={[styles.planStrike, { color: selected ? 'rgba(255,255,255,0.7)' : dark ? 'rgba(255,255,255,0.7)' : colors.mutedForeground }]}>{strike}</Text> : null}
+        <Text numberOfLines={1} style={[styles.planPrice, compact && styles.planPriceCompact, { color: selected || dark ? '#FFFFFF' : colors.foreground }]}>{price}</Text>
         <Text style={[styles.planUnit, { color: selected || dark ? 'rgba(255,255,255,0.8)' : colors.mutedForeground }]}>{unit}</Text>
       </View>
     </View>
-    {ticket ? <TrialTicket top={ticket.top} bottom={ticket.bottom} /> : null}
-    {badge ? <View style={[styles.planBadge, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
+    {ticket && !compact ? <TrialTicket top={ticket.top} bottom={ticket.bottom} /> : null}
+    {badge ? <View style={[styles.planBadge, compact && styles.planBadgeCompact, { backgroundColor: colors.foreground }]}><Text style={[styles.planBadgeText, { color: colors.background }]}>{badge}</Text></View> : null}
   </Pressable>;
 }
 
@@ -408,7 +411,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
   const [footerHeight, setFooterHeight] = React.useState(230 + insets.bottom);
   const offerMode = trialDays !== null && !!monthly;
   const planCards = (
-          <View style={styles.plans}>
+          <View style={[styles.plans, offerMode && styles.plansCompact]}>
             {annual ? <PlanCard
               testID="paywall-annual-plan"
               selected={plan === 'annual'}
@@ -421,6 +424,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               saveBadge={savings !== null ? t('paywallSave').replace('{percent}', String(savings)) : null}
               strike={yearOfMonthly}
               tones={ANNUAL_TONES}
+              compact={offerMode}
             /> : null}
             {monthly ? <PlanCard
               testID="paywall-monthly-plan"
@@ -432,6 +436,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
               note={trialDays !== null ? fillTrial(trialCopy.note, trialDays, monthly.priceString) : t('paywallMonthlyNote')}
               ticket={trialDays !== null ? { top: fillTrial(trialCopy.ticketTop, trialDays, monthly.priceString), bottom: trialCopy.ticketBottom } : undefined}
               tones={MONTHLY_TONES}
+              compact={offerMode}
             /> : null}
             {!annual && !monthly ? <View style={[styles.plansLoading, { borderColor: colors.border }]}><ActivityIndicator color={colors.mutedForeground} /><Text style={[styles.planNote, { color: colors.mutedForeground }]}>{t('premiumLoading')}</Text></View> : null}
           </View>
@@ -450,25 +455,25 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
         </Pressable> : null}
       </View>
 
-      <Animated.View style={[styles.hero, heroEntrance]}>
-        <FloatingMedal size={trialDays !== null ? (compact ? 92 : 118) : compact ? 116 : 150} />
-      </Animated.View>
+      {offerMode ? null : <Animated.View style={[styles.hero, heroEntrance]}>
+        <FloatingMedal size={compact ? 116 : 150} />
+      </Animated.View>}
 
       <View style={styles.content}>
         {trialDays !== null && monthly ? <Animated.View style={titleEntrance}>
           <Text style={[styles.title, styles.trialTitle, { color: colors.foreground }]}>
             {trialCopy.titlePre}<Text style={styles.trialFree}>{` ${trialCopy.titleFree} `}</Text>{trialCopy.titlePost}
           </Text>
-          <OfferCountdown remaining={offerRemaining} copy={trialCopy} />
           <TrialSteps days={trialDays} copy={trialCopy} price={monthly.priceString} />
+          <OfferCountdown remaining={offerRemaining} copy={trialCopy} />
         </Animated.View> : <Animated.View style={[styles.heading, titleEntrance]}>
           <Text style={[styles.title, { color: colors.foreground }]}>{t('paywallTitle')}</Text>
           {compact ? null : <Text numberOfLines={3} style={[styles.body, { color: colors.mutedForeground }]}>{t('paywallBody')}</Text>}
         </Animated.View>}
 
-        <Animated.View style={plansEntrance}>
-          {offerMode ? null : <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallChoosePlan')}</Text>}
-          {offerMode ? null : planCards}
+        {offerMode ? null : <Animated.View style={plansEntrance}>
+          <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallChoosePlan')}</Text>
+          {planCards}
 
           <Text style={[styles.sectionTitle, { color: colors.foreground }]}>{t('paywallFeaturesTitle')}</Text>
           <View style={[styles.features, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -478,7 +483,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
             <FeatureRow icon="analytics-outline" title={t('paywallFeature4Title')} body={t('paywallFeature4Body')} delay={570} last />
           </View>
           <Text style={[styles.disclosure, { color: colors.mutedForeground }]}>{t('premiumTrialBody')}</Text>
-        </Animated.View>
+        </Animated.View>}
       </View>
     </ScrollView>
 
@@ -527,6 +532,10 @@ const styles = StyleSheet.create({
   plans: { gap: 14, marginTop: 4 },
   planWrap: {},
   plan: { borderRadius: 24, borderWidth: 1.5, paddingHorizontal: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', minHeight: 84 },
+  planCompact: { minHeight: 0, paddingVertical: 11, borderRadius: 18 },
+  planPriceCompact: { fontSize: 19 },
+  planBadgeCompact: { top: -9, left: 14, paddingVertical: 3 },
+  plansCompact: { gap: 12, marginTop: 0 },
   planColor: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FFFFFF' },
@@ -545,7 +554,7 @@ const styles = StyleSheet.create({
   ticketCopy: { position: 'absolute', left: 24, right: 6, top: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
   ticketTop: { fontFamily: 'Inter_800ExtraBold', fontSize: 16, letterSpacing: -0.2, color: '#FFFFFF' },
   ticketBottom: { fontFamily: 'Inter_800ExtraBold', fontSize: 9, letterSpacing: 1.6, color: 'rgba(255,255,255,0.9)', marginTop: 1 },
-  trialTitle: { textAlign: 'center', marginTop: 4, marginBottom: 18 },
+  trialTitle: { textAlign: 'center', marginTop: 22, marginBottom: 20 },
   trialFree: { color: '#FFFFFF', backgroundColor: '#10B981', overflow: 'hidden', borderRadius: 10 },
   steps: { position: 'relative', gap: 16, marginBottom: 22, paddingLeft: 2 },
   stepsRail: { position: 'absolute', left: 19, top: 20, bottom: 20, width: 4, borderRadius: 2, overflow: 'hidden' },
