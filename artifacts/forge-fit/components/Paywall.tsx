@@ -156,12 +156,13 @@ function RayHeader({ height }: { height: number }) {
   }).join(' ');
   return <View pointerEvents="none" style={[styles.rayHeader, { height }]}>
     {/* Fades to transparent rather than to a colour, so it melts into whatever backdrop is behind it. */}
-    <LinearGradient colors={['#1E3A8A', '#1D4ED8', '#3B82F6CC', '#3B82F600']} locations={[0, 0.45, 0.72, 1]} style={StyleSheet.absoluteFill} />
+    <LinearGradient colors={['#1E3A8A', '#1D4ED8', '#2563EBE6', '#3B82F6B3', '#3B82F675', '#60A5FA3D', '#60A5FA14', '#60A5FA00']} locations={[0, 0.22, 0.36, 0.5, 0.63, 0.76, 0.89, 1]} style={StyleSheet.absoluteFill} />
     <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
       <Defs>
         <SvgGradient id="rayFade" x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor="#FFFFFF" stopOpacity={0.1} />
-          <Stop offset="0.7" stopColor="#FFFFFF" stopOpacity={0.05} />
+          <Stop offset="0.35" stopColor="#FFFFFF" stopOpacity={0.06} />
+          <Stop offset="0.65" stopColor="#FFFFFF" stopOpacity={0.02} />
           <Stop offset="1" stopColor="#FFFFFF" stopOpacity={0} />
         </SvgGradient>
       </Defs>
@@ -530,7 +531,7 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
 
   return <View style={[styles.root, { backgroundColor: colors.background }]}>
     <SkyBackdrop />
-    {offerMode ? <RayHeader height={insets.top + 225} /> : null}
+    {offerMode ? <RayHeader height={insets.top + 400} /> : null}
     <ScrollView contentContainerStyle={{ paddingTop: insets.top + 14, paddingBottom: footerHeight + 24 }} showsVerticalScrollIndicator={false} bounces={false}>
       <View style={styles.topBar}>
         <View style={styles.brandRow}>
@@ -575,8 +576,9 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
     </ScrollView>
 
     <View onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)} style={[styles.footer, offerMode && styles.footerOffer, { paddingBottom: insets.bottom + 12, borderTopColor: colors.border }]}>
-      <BlurView intensity={40} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass }]} />
+      {/* While the offer runs the plans sit on the page itself, with no bar behind them. */}
+      {offerMode ? null : <BlurView intensity={40} tint={colors.colorScheme} style={StyleSheet.absoluteFill} />}
+      {offerMode ? null : <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass }]} />}
       {offerMode ? <View style={styles.footerPlans}>{planCards}</View> : null}
       {error ? <Text style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       <ChargeButton
@@ -676,7 +678,7 @@ const styles = StyleSheet.create({
   featureTitle: { fontFamily: 'Inter_700Bold', fontSize: 14.5, letterSpacing: -0.2 },
   featureBody: { fontFamily: 'Inter_400Regular', fontSize: 12, lineHeight: 16.5, marginTop: 2 },
   disclosure: { fontFamily: 'Inter_400Regular', fontSize: 11, lineHeight: 16, marginTop: 14, textAlign: 'center' },
-  footerOffer: { paddingTop: 22 },
+  footerOffer: { paddingTop: 22, borderTopWidth: 0 },
   footerPlans: { marginBottom: 12 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, overflow: 'hidden' },
   error: { fontFamily: 'Inter_500Medium', fontSize: 12, lineHeight: 17, textAlign: 'center', marginBottom: 10 },
