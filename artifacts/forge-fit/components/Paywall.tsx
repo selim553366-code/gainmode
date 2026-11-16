@@ -486,8 +486,8 @@ export function Paywall({ onUnlock, onPurchaseSuccess, onClose, previewMode = fa
           <GainModeWordmark color="#FFFFFF" width={128} height={17} />
           <LinearGradient colors={['#F5C542', '#E39A1F']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.proPill}><Text style={styles.proText}>ACCESS</Text></LinearGradient>
         </View>
-        {onClose ? <Pressable accessibilityLabel={t('close')} onPress={onClose} hitSlop={10} style={[styles.close, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Ionicons name="close" size={18} color={colors.foreground} />
+        {onClose ? <Pressable accessibilityLabel={t('close')} onPress={onClose} hitSlop={10} style={styles.close}>
+          <Ionicons name="close" size={22} color="#0F172A" />
         </Pressable> : null}
       </View>
 
@@ -535,7 +535,8 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   proPill: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3 },
   proText: { fontFamily: 'Inter_800ExtraBold', fontSize: 11, letterSpacing: 1, color: '#3A2600' },
-  close: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  // A solid white circle so the way out is easy to spot on the blue header.
+  close: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   content: { paddingHorizontal: 20 },
   title: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 38, letterSpacing: -1.6, textAlign: 'center' },
   plans: { gap: 14, marginTop: 4 },

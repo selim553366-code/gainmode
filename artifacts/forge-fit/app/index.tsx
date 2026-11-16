@@ -23,7 +23,7 @@ import {
 } from '@/context/FitContext';
 import { languageLabels, Language, translate } from '@/lib/i18n';
 import { useColors } from '@/hooks/useColors';
-import { ForgeFitMark, GainModeWordmark, PremiumSuccessCelebration, Screen, triggerHaptic } from '@/components/FitUI';
+import { ForgeFitMark, GainModeWordmark, PremiumLock, PremiumSuccessCelebration, Screen, triggerHaptic } from '@/components/FitUI';
 import { KeyboardAwareScrollViewCompat } from '@/components/KeyboardAwareScrollViewCompat';
 import { SUBSCRIPTION_PURCHASE_ENABLED, useSubscription } from '@/lib/revenuecat';
 import { getProfileEditStepIds, parseProfileEditFields, type ProfileEditField } from '@/lib/profileEdit';
@@ -262,6 +262,8 @@ export default function EntryScreen() {
   // True once this run has shown the subscription gate: leaving it means the user just subscribed.
   const passedPaywallRef = React.useRef(false);
   if (entryRoute === 'premium') passedPaywallRef.current = true;
+  // Closing the offer leads to a screen that says plainly a subscription is needed, with a way back to the plans.
+  const [offerClosed, setOfferClosed] = React.useState(false);
   // Set when the purchase celebration closes, so the redirect below cannot send the user to Today instead of FitBud.
   const celebratedRef = React.useRef(false);
   const purchasedRef = React.useRef(false);
@@ -322,7 +324,9 @@ export default function EntryScreen() {
     />;
   }
   if (entryRoute === 'premium') {
+    if (offerClosed) return <PremiumLock />;
     return <PremiumWelcomeOfferScreen
+      onClose={() => setOfferClosed(true)}
       onUnlock={() => router.replace('/(tabs)/coach')}
       onPurchaseSuccess={(kind) => {
         purchasedRef.current = kind === 'purchase';
@@ -1515,8 +1519,8 @@ function AccessExploreScreen({ page, onNext, onBack }: { page: number; onNext: (
   </LinearGradient>;
 }
 
-function PremiumWelcomeOfferScreen({ onUnlock, onPurchaseSuccess }: { onUnlock: () => void; onPurchaseSuccess: (kind: 'purchase' | 'restore') => void }) {
-  return <Paywall onUnlock={onUnlock} onPurchaseSuccess={onPurchaseSuccess} />;
+function PremiumWelcomeOfferScreen({ onClose, onUnlock, onPurchaseSuccess }: { onClose: () => void; onUnlock: () => void; onPurchaseSuccess: (kind: 'purchase' | 'restore') => void }) {
+  return <Paywall onClose={onClose} onUnlock={onUnlock} onPurchaseSuccess={onPurchaseSuccess} />;
 }
 
 const styles = StyleSheet.create({
