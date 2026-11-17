@@ -391,7 +391,7 @@ export default function GainmodePage() {
               <img src={product.wordmark} alt="GainMode" className="h-6 w-auto max-w-full brightness-0 invert sm:h-8 md:h-10" />
             </motion.div>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="mt-6 text-xs font-semibold uppercase tracking-[0.22em] text-royal-200">{t.gm.kicker}</motion.p>
-            <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.15, ease: EASE }} className="mt-4 text-5xl font-bold leading-[1.02] tracking-[-0.045em] md:text-7xl">{t.gm.title}</motion.h1>
+            <motion.h1 initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.15, ease: EASE }} className="mt-4 text-5xl font-bold leading-[1.02] tracking-[-0.045em] md:text-7xl"><span className="sr-only">GainMode: </span>{t.gm.title}</motion.h1>
             <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.3, ease: EASE }} className="mt-6 max-w-xl text-lg leading-relaxed text-white/65">{t.gm.body}</motion.p>
             <motion.a href="#download" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.45, ease: EASE }} className="mt-8 inline-flex items-center gap-2 rounded-lg bg-royal-500 px-6 py-4 text-sm font-semibold transition-colors hover:bg-royal-400">{t.gm.downloadKicker}<ArrowRight size={16} className="rotate-90" /></motion.a>
           </div>
