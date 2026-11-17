@@ -12,8 +12,6 @@ import Animated, {
   withRepeat,
   withSequence,
   withSpring,
-  FadeInDown,
-  FadeOutUp,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient as SvgGradient, Path, Stop } from 'react-native-svg';
@@ -167,10 +165,24 @@ function Laurel({ color, flip = false }: { color: string; flip?: boolean }) {
   </Svg>;
 }
 
-/** One digit of the countdown; when it changes the old digit rolls up and away as the new one rises in. */
+const DIGITS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+const DIGIT_HEIGHT = 48;
+
+/**
+ * One digit of the countdown: a fixed column of 0–9 that slides to the current digit. Nothing mounts or
+ * unmounts as the seconds tick, so there are no per-second layout animations (which can crash on Android).
+ */
 function RollingDigit({ digit, color }: { digit: string; color: string }) {
+  const index = Math.max(0, DIGITS.indexOf(digit));
+  const offset = useSharedValue(-index * DIGIT_HEIGHT);
+  React.useEffect(() => {
+    offset.set(withTiming(-index * DIGIT_HEIGHT, { duration: 280, easing: EASE_OUT }));
+  }, [index, offset]);
+  const columnStyle = useAnimatedStyle(() => ({ transform: [{ translateY: offset.get() }] }));
   return <View style={styles.rollDigit}>
-    <Animated.Text key={digit} entering={FadeInDown.duration(280)} exiting={FadeOutUp.duration(280)} style={[styles.countDigits, styles.rollText, { color }]}>{digit}</Animated.Text>
+    <Animated.View style={columnStyle}>
+      {DIGITS.map((value) => <Text key={value} style={[styles.countDigits, styles.rollText, { color }]}>{value}</Text>)}
+    </Animated.View>
   </View>;
 }
 
@@ -583,7 +595,7 @@ const styles = StyleSheet.create({
   countUnit: { alignItems: 'center', gap: 2 },
   countPair: { flexDirection: 'row' },
   rollDigit: { width: 27, height: 48, overflow: 'hidden' },
-  rollText: { position: 'absolute', left: 0, right: 0, top: 0, textAlign: 'center' },
+  rollText: { height: DIGIT_HEIGHT, textAlign: 'center' },
   countDigits: { fontFamily: 'Inter_800ExtraBold', fontSize: 40, lineHeight: 48, letterSpacing: -0.5, fontVariant: ['tabular-nums'] },
   countLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 12 },
   countColon: { fontFamily: 'Inter_800ExtraBold', fontSize: 34, lineHeight: 44, marginHorizontal: 2 },
