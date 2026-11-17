@@ -50,9 +50,9 @@ function PageMetadata() {
   const { t } = useI18n();
   useEffect(() => {
     const pages: Record<string, [string, string]> = {
-      '/': [`Globe Studios — ${t.home.eyebrow}`, t.home.body],
+      '/': [`Globe Studios — ${t.home.eyebrow} · GainMode`, t.home.body],
       '/work': [`${t.nav.work} — Globe Studios`, t.work.body],
-      '/work/gainmode': [`GainMode — ${t.gm.title}`, t.gm.body],
+      '/work/gainmode': [`GainMode — ${t.gm.title} | Globe Studios`, t.gm.body],
       '/services': [`${t.nav.services} — Globe Studios`, t.home.servicesTitle],
       '/about': [`${t.nav.about} — Globe Studios`, t.about.body[0]],
       '/contact': [`${t.nav.contact} — Globe Studios`, t.contact.body],
@@ -75,7 +75,17 @@ function PageMetadata() {
     setMeta('meta[name="description"]', 'name', 'description', description);
     setMeta('meta[property="og:title"]', 'property', 'og:title', title);
     setMeta('meta[property="og:description"]', 'property', 'og:description', description);
-    setMeta('meta[property="og:url"]', 'property', 'og:url', window.location.href.split(/[?#]/)[0]);
+    const canonicalPath = location === '/gainmode' || location === '/indir' || location === '/download' ? '/work/gainmode' : location;
+    const canonical = `https://globe-studios.com${canonicalPath === '/' ? '/' : canonicalPath}`;
+    setMeta('meta[property="og:url"]', 'property', 'og:url', canonical);
+    setMeta('meta[property="og:image"]', 'property', 'og:image', `https://globe-studios.com/${canonicalPath.includes('gainmode') || canonicalPath === '/support' || canonicalPath === '/delete-account' ? 'og-gainmode.png' : 'og-globe.png'}`);
+    let link = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'canonical';
+      document.head.appendChild(link);
+    }
+    link.href = canonical;
   }, [location, t]);
   return null;
 }

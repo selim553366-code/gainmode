@@ -29,9 +29,10 @@ export function Kicker({ children, className = '' }: { children: ReactNode; clas
 }
 
 /** A section title whose lines slide up from behind a mask one after another. */
-export function SplitTitle({ lines, className = '', delay = 0 }: { lines: string[]; className?: string; delay?: number }) {
+export function SplitTitle({ lines, className = '', delay = 0, srPrefix }: { lines: string[]; className?: string; delay?: number; /** Read by search engines and screen readers only. */ srPrefix?: string }) {
   return (
     <h1 className={className}>
+      {srPrefix ? <span className="sr-only">{srPrefix}</span> : null}
       {lines.map((line, index) => (
         <span key={line} className="block overflow-hidden pb-[0.08em]">
           <motion.span

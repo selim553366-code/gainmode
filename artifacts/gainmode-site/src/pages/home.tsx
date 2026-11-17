@@ -76,7 +76,7 @@ export default function Home() {
         <div className="relative mx-auto grid max-w-[1240px] items-center gap-10 px-5 pb-20 md:px-8 lg:grid-cols-[1.4fr_1fr] lg:pb-28">
           <div className="min-w-0">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}><Kicker>{t.home.eyebrow}</Kicker></motion.div>
-            <SplitTitle lines={t.home.title} delay={0.1} className="mt-6 font-display text-[24px] min-[400px]:text-[28px] font-extrabold uppercase leading-[0.98] tracking-[-0.035em] sm:text-5xl lg:text-[44px] xl:text-[50px]" />
+            <SplitTitle lines={t.home.title} srPrefix="Globe Studios — " delay={0.1} className="mt-6 font-display text-[24px] min-[400px]:text-[28px] font-extrabold uppercase leading-[0.98] tracking-[-0.035em] sm:text-5xl lg:text-[44px] xl:text-[50px]" />
             <motion.p initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.5, ease: EASE }} className="mt-7 max-w-xl text-lg leading-relaxed text-white/65">{t.home.body}</motion.p>
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.65, ease: EASE }} className="mt-9 flex flex-wrap gap-3">
               <Link href="/work" className="inline-flex h-13 items-center gap-2 rounded-lg bg-royal-500 px-7 py-4 text-sm font-semibold transition-colors hover:bg-royal-400">{t.home.primary}<ArrowRight size={16} /></Link>
