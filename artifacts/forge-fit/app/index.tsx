@@ -1,6 +1,6 @@
 import React from 'react';
 import { Animated, Easing, Image, PanResponder, Platform, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
-import ReAnimated, { Easing as ReEasing, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
+import ReAnimated, { Easing as ReEasing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import Svg, { Circle as SvgCircle, Defs, G as SvgG, Line as SvgLine, LinearGradient as SvgLinearGradient, Ellipse as SvgEllipse, Path as SvgPath, RadialGradient, Stop } from 'react-native-svg';
 import { PressableScale as Pressable } from '@/components/Motion';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -120,8 +120,8 @@ function Plate({ index, side, color }: { index: number; side: 'left' | 'right'; 
     slide.set(withSpring(1, { damping: 22, stiffness: 210 }));
   }, [slide]);
   const style = useAnimatedStyle(() => ({ opacity: Math.min(1, slide.get() * 2.5), transform: [{ translateX: from * (1 - slide.get()) }] }));
+  // No exiting layout animation: removing views mid-animation can crash the UI thread on Android.
   return <ReAnimated.View
-    exiting={FadeOut.duration(130)}
     style={[ui.plate, { height, width: PLATE_WIDTH, backgroundColor: color, top: (40 - height) / 2 }, side === 'left' ? { left: offset } : { right: offset }, style]}
   />;
 }
