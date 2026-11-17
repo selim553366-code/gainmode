@@ -281,11 +281,12 @@ export function WeatherBackground({ kind, isDay, reveal, background, dark }: Pro
   const { width, height } = useWindowDimensions();
   const sunPulse = usePulse(3600);
   const sky = SKY[scene.group][isDay ? 'day' : 'night'];
-  const amount = dark ? (isDay ? 0.55 : 0.1) : (isDay ? 0.3 : 0.5);
+  // Keep the sky's own colour: only a touch of the page colour so it sits in the theme without washing out.
+  const amount = dark ? (isDay ? 0.18 : 0.04) : (isDay ? 0.04 : 0.12);
   const top = mix(sky.top, background, amount);
   const bottom = mix(sky.bottom, background, amount);
   const cloudBase = mix(isDay ? '#FFFFFF' : '#C9D3E6', isDay ? '#4A5260' : '#161B26', scene.cloudDarkness);
-  const cloudColor = mix(cloudBase, background, dark ? 0.3 : 0.12);
+  const cloudColor = mix(cloudBase, background, dark ? 0.12 : 0);
   const fogColor = isDay ? (scene.group === 'smog' ? '#B7A27A' : '#F2F5F7') : '#8C97A3';
   const dustColor = isDay ? '#E8C98E' : '#A8885A';
   const windColor = isDay ? '#FFFFFF' : '#C9D6EA';
@@ -312,8 +313,9 @@ export function WeatherBackground({ kind, isDay, reveal, background, dark }: Pro
     </> : null}
     {scene.lightning ? <Lightning width={width} height={height} /> : null}
     <LinearGradient
-      colors={dark ? [`${background}00`, `${background}66`, background] : [`${background}00`, `${background}B3`, background]}
-      locations={[0, 0.45, 0.85]}
+      // The scene fills the screen; it only softens at the very bottom behind the message box and tab bar.
+      colors={dark ? [`${background}00`, `${background}26`, `${background}B3`] : [`${background}00`, `${background}1A`, `${background}99`]}
+      locations={[0, 0.72, 1]}
       style={StyleSheet.absoluteFill}
     />
   </Animated.View>;
