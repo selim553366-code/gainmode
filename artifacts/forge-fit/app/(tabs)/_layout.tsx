@@ -1,7 +1,7 @@
 import React from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { EASE_IN_OUT, EASE_OUT, PressableScale as Pressable } from '@/components/Motion';
-import Reanimated, { FadeInDown, FadeOutUp, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Reanimated, { FadeInDown, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { BlurView } from 'expo-blur';
 import { useColors } from '@/hooks/useColors';
@@ -179,7 +179,6 @@ function FloatingTabBar({ state, descriptors, emitter, navigateToTab }: TabBarPr
 const MOOD_PROMPT_HANDLED_KEY = 'gainmode-mood-prompt-handled-window';
 
 const moodPromptEntering = FadeInDown.duration(320).delay(400).easing(EASE_OUT).reduceMotion(ReduceMotion.System);
-const moodPromptExiting = FadeOutUp.duration(200).easing(EASE_OUT).reduceMotion(ReduceMotion.System);
 
 function DailyMoodPrompt() {
   const colors = useColors();
@@ -212,7 +211,7 @@ function DailyMoodPrompt() {
 
   return (
     <View pointerEvents="box-none" style={[styles.moodPromptOverlay, { top: insets.top + 10 }]}>
-      <Reanimated.View entering={moodPromptEntering} exiting={moodPromptExiting} style={[styles.moodPrompt, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000000' }]}>
+      <Reanimated.View entering={moodPromptEntering} style={[styles.moodPrompt, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: '#000000' }]}>
         <View style={[styles.moodPromptIcon, { backgroundColor: `${colors.primary}1F` }]}><Ionicons name="analytics-outline" size={19} color={colors.primary} /></View>
         <View style={styles.moodPromptCopy}><Text style={[styles.moodPromptTitle, { color: colors.foreground }]}>{t('dailyMoodPromptTitle')}</Text><Text style={[styles.moodPromptBody, { color: colors.mutedForeground }]}>{t('dailyMoodPromptBody')}</Text></View>
         <Pressable accessibilityRole="button" onPress={() => { markHandled(); router.push('/daily-mood'); }} style={({ pressed }) => [styles.moodPromptButton, { backgroundColor: colors.primary, opacity: pressed ? 0.72 : 1 }]}><Text style={[styles.moodPromptButtonText, { color: colors.primaryForeground }]}>{t('dailyMoodOpen')}</Text></Pressable>
