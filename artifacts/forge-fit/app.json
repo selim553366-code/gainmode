@@ -104,6 +104,7 @@
         }
       ],
       "./plugins/withMediaPipePin",
+      "./plugins/withOptionalScreenFeature",
       "expo-asset",
       [
         "expo-audio",
