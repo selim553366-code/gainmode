@@ -119,8 +119,25 @@ function AppStoreCountdownCard() {
 }
 
 /** The download block: the two store buttons, large and centred, with the App Store countdown list under them. */
+type DevicePlatform = 'ios' | 'android' | 'other';
+
+/** Which store fits the visitor's phone: iPhone/iPad (including iPadOS that reports itself as a Mac), Android, or anything else. */
+function detectPlatform(): DevicePlatform {
+  if (typeof navigator === 'undefined') return 'other';
+  const ua = navigator.userAgent || '';
+  if (/android/i.test(ua)) return 'android';
+  if (/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return 'ios';
+  return 'other';
+}
+
 function DownloadSection() {
   const { t } = useI18n();
+  // Phones see only their own store; computers (and anyone who taps "other devices") see both.
+  const [platform, setPlatform] = useState<DevicePlatform>('other');
+  const [showAll, setShowAll] = useState(false);
+  useEffect(() => { setPlatform(detectPlatform()); }, []);
+  const showPlay = showAll || platform !== 'ios';
+  const showApple = showAll || platform !== 'android';
   return (
     <section id="download" className="relative mx-auto max-w-[1240px] px-5 pb-20 pt-4 md:px-8 md:pb-28">
       <Reveal className="relative overflow-hidden rounded-[36px] border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.02] px-5 py-12 text-center sm:px-10 md:py-16">
@@ -144,10 +161,16 @@ function DownloadSection() {
           <span className="font-semibold text-emerald-300">{t.gm.trialLine}</span> {t.gm.trialFine}
         </p>
         <div className="relative mx-auto mt-12 flex max-w-[640px] flex-col gap-5">
-          <StoreButton store="playStore" size="lg" wide />
-          <AppStoreCountdownCard />
-          <TrialTicket />
+          {showPlay ? <StoreButton store="playStore" size="lg" wide /> : null}
+          {showApple ? <AppStoreCountdownCard /> : null}
+          {/* The free-trial ticket belongs to the store that sells the app today. */}
+          {showPlay ? <TrialTicket /> : null}
         </div>
+        {platform !== 'other' && !showAll ? (
+          <button type="button" onClick={() => setShowAll(true)} className={`relative ${showApple ? 'mt-6' : 'mt-14'} text-sm font-medium text-white/55 underline-offset-4 transition-colors hover:text-white hover:underline`}>
+            {t.gm.otherDevices}
+          </button>
+        ) : null}
       </Reveal>
     </section>
   );
