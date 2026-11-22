@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
 import { Header, Screen, triggerHaptic } from '@/components/FitUI';
 import { PressableScale as Pressable } from '@/components/Motion';
@@ -12,10 +11,10 @@ import { countdownParts } from '@/lib/trialCountdown';
 import { GAME_TIMER_PRESETS, GAME_TIMER_STEP_MINUTES, clampGameMinutes, formatGameLength, gameTimeLeft } from '@/lib/gameTimerMath';
 import { GAME_TIMER_TEXT } from '@/lib/gameTimerCopy';
 import { readGameTimer, startGameTimer, stopGameTimer, type GameTimer } from '@/lib/notifications';
+import { GAME_ACCENT, GAME_ACCENT_INK, GameBar } from '@/components/GameTimerCard';
 
 const RING = 248;
 const STROKE = 16;
-const GAME_TONES: [string, string] = ['#7C3AED', '#EC4899'];
 
 /**
  * Gaming-session timer: pick how long you'll play, watch the time count down, and FitBud sends a
@@ -73,12 +72,12 @@ export default function GameTimerScreen() {
         <View style={{ width: RING, height: RING }}>
           <Svg width={RING} height={RING}>
             <Circle cx={RING / 2} cy={RING / 2} r={(RING - STROKE) / 2} stroke={colors.border} strokeWidth={STROKE} fill="none" />
-            <Circle cx={RING / 2} cy={RING / 2} r={(RING - STROKE) / 2} stroke={finished ? '#22C55E' : GAME_TONES[1]} strokeWidth={STROKE} fill="none"
+            <Circle cx={RING / 2} cy={RING / 2} r={(RING - STROKE) / 2} stroke={finished ? '#22C55E' : GAME_ACCENT} strokeWidth={STROKE} fill="none"
               strokeLinecap="round" strokeDasharray={`${circumference} ${circumference}`} strokeDashoffset={circumference * (1 - progress)}
               transform={`rotate(-90 ${RING / 2} ${RING / 2})`} />
           </Svg>
           <View style={styles.ringCopy}>
-            <Ionicons name={finished ? 'barbell-outline' : 'game-controller-outline'} size={30} color={finished ? '#22C55E' : GAME_TONES[1]} />
+            <Ionicons name={finished ? 'barbell-outline' : 'game-controller-outline'} size={30} color={finished ? '#22C55E' : colors.foreground} />
             <Text style={[styles.clock, { color: colors.foreground }]}>{finished ? '00:00' : hours ? `${hours}:${pad(mins)}:${pad(seconds)}` : `${pad(mins)}:${pad(seconds)}`}</Text>
             <Text style={[styles.clockLabel, { color: colors.mutedForeground }]}>{finished ? copy.doneTitle : copy.left}</Text>
           </View>
@@ -87,12 +86,13 @@ export default function GameTimerScreen() {
         {finished ? <>
           <Text style={[styles.doneBody, { color: colors.foreground }]}>{copy.doneBody}</Text>
           <Pressable accessibilityRole="button" onPress={() => { void goTrain(); }} style={styles.primaryWrap}>
-            <LinearGradient colors={['#22C55E', '#16A34A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primary}>
-              <Ionicons name="barbell-outline" size={20} color="#FFFFFF" /><Text style={styles.primaryText}>{copy.startWorkout}</Text>
-            </LinearGradient>
+            <View style={[styles.primary, { backgroundColor: GAME_ACCENT }]}>
+              <Ionicons name="barbell-outline" size={20} color={GAME_ACCENT_INK} /><Text style={[styles.primaryText, { color: GAME_ACCENT_INK }]}>{copy.startWorkout}</Text>
+            </View>
           </Pressable>
           <Pressable accessibilityRole="button" onPress={() => { void stop(); }} hitSlop={8}><Text style={[styles.secondary, { color: colors.mutedForeground }]}>{copy.newSession}</Text></Pressable>
         </> : <>
+          <View style={styles.barWrap}><GameBar fraction={progress} track={colors.border} /></View>
           <Text style={[styles.endsAt, { color: colors.mutedForeground }]}>{copy.endsAt.replace('{time}', endsAt)}</Text>
           <View style={[styles.note, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Text style={[styles.noteText, { color: colors.foreground }]}>{notifies ? copy.coachNote : copy.noNotify}</Text>
@@ -107,8 +107,8 @@ export default function GameTimerScreen() {
           {GAME_TIMER_PRESETS.map((preset) => {
             const active = minutes === preset;
             return <Pressable key={preset} accessibilityRole="button" accessibilityState={{ selected: active }} onPress={() => { triggerHaptic(); setMinutes(preset); }}
-              style={[styles.preset, { backgroundColor: active ? GAME_TONES[0] : colors.card, borderColor: active ? GAME_TONES[0] : colors.border }]}>
-              <Text style={[styles.presetText, { color: active ? '#FFFFFF' : colors.foreground }]}>{formatGameLength(preset, copy.hour, copy.minute)}</Text>
+              style={[styles.preset, { backgroundColor: active ? colors.foreground : colors.card, borderColor: active ? colors.foreground : colors.border }]}>
+              <Text style={[styles.presetText, { color: active ? colors.background : colors.foreground }]}>{formatGameLength(preset, copy.hour, copy.minute)}</Text>
             </Pressable>;
           })}
         </View>
@@ -129,9 +129,9 @@ export default function GameTimerScreen() {
         </View>
 
         <Pressable testID="game-timer-start" accessibilityRole="button" onPress={() => { void start(); }} style={styles.primaryWrap}>
-          <LinearGradient colors={GAME_TONES} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primary}>
-            <Ionicons name="play" size={18} color="#FFFFFF" /><Text style={styles.primaryText}>{copy.start}</Text>
-          </LinearGradient>
+          <View style={[styles.primary, { backgroundColor: colors.foreground }]}>
+            <Ionicons name="play" size={18} color={GAME_ACCENT} /><Text style={[styles.primaryText, { color: colors.background }]}>{copy.start}</Text>
+          </View>
         </Pressable>
       </View>}
     </Screen>
@@ -143,6 +143,7 @@ const styles = StyleSheet.create({
   ringCopy: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
   clock: { fontFamily: 'Inter_800ExtraBold', fontSize: 46, letterSpacing: -1.5, marginTop: 6, fontVariant: ['tabular-nums'] },
   clockLabel: { fontFamily: 'Inter_600SemiBold', fontSize: 13, textAlign: 'center', marginTop: 2 },
+  barWrap: { alignSelf: 'stretch', marginTop: 22 },
   endsAt: { fontFamily: 'Inter_600SemiBold', fontSize: 14, marginTop: 18 },
   doneBody: { fontFamily: 'Inter_600SemiBold', fontSize: 16, lineHeight: 23, textAlign: 'center', marginTop: 20, paddingHorizontal: 12 },
   note: { borderWidth: 1, borderRadius: 18, padding: 16, marginTop: 20, alignSelf: 'stretch' },
@@ -157,7 +158,7 @@ const styles = StyleSheet.create({
   stepValue: { fontFamily: 'Inter_800ExtraBold', fontSize: 26, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
   primaryWrap: { alignSelf: 'stretch', marginTop: 22 },
   primary: { height: 58, borderRadius: 29, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  primaryText: { color: '#FFFFFF', fontFamily: 'Inter_800ExtraBold', fontSize: 16 },
+  primaryText: { fontFamily: 'Inter_800ExtraBold', fontSize: 16 },
   stop: { marginTop: 18, borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   stopText: { fontFamily: 'Inter_700Bold', fontSize: 15 },
   secondary: { fontFamily: 'Inter_700Bold', fontSize: 14, marginTop: 16 },
