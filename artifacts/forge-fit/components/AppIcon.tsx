@@ -105,6 +105,8 @@ import {
   X,
   SquareX,
   Flag,
+  Gamepad2,
+  Play,
 } from 'lucide-react-native';
 
 export type IconName =
@@ -179,6 +181,8 @@ export type IconName =
   | 'moon-outline'
   | 'star'
   | 'flag'
+  | 'game-controller-outline'
+  | 'play'
   | 'shield-checkmark-outline'
   | 'trash-outline'
   | 'ticket-outline'
@@ -281,6 +285,8 @@ const iconMap: Record<IconName, IconComponent> = {
   'moon-outline': Moon,
   star: Star,
   flag: Flag,
+  'game-controller-outline': Gamepad2,
+  play: Play,
   'coach-outline': MessagesSquare,
   'restore-outline': RotateCcw,
   'send-outline': Send,

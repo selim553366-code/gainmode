@@ -16,6 +16,7 @@ import { badges, badgeText, badgeUi } from '@/lib/badges';
 import { BadgeMedal } from '@/components/BadgeMedal';
 import { AnimatedNumber, GainModeWordmark, Screen, triggerHaptic } from '@/components/FitUI';
 import { CalorieArc, MacroCard, TodaySessionCard } from '@/components/HomeToday';
+import { GameTimerCard } from '@/components/GameTimerCard';
 
 const HERO_DEEP = '#123A8F';
 
@@ -158,6 +159,7 @@ export default function TodayScreen() {
             ? router.push({ pathname: '/(tabs)/plan', params: { day: todayWorkout.day } })
             : router.push('/(tabs)/plan'))}
         />
+        <GameTimerCard language={language} />
       </View>
     </Screen>
   );

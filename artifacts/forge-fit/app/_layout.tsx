@@ -57,6 +57,7 @@ function RootLayoutNav() {
         'forge-fit-nutrition',
         'forge-fit-coach',
         'forge-fit-home',
+        'forge-fit-game-timer',
       ];
       if (!supportedSources.includes(String(data?.source))) return;
       handledNotificationResponse.current = response.notification.request.identifier;
@@ -76,6 +77,10 @@ function RootLayoutNav() {
         }
         if (data.source === 'forge-fit-coach') {
           router.push('/(tabs)/coach');
+          return;
+        }
+        if (data.source === 'forge-fit-game-timer') {
+          router.push('/game-timer');
           return;
         }
         if (data.source === 'forge-fit-home') {
@@ -103,6 +108,7 @@ function RootLayoutNav() {
       <Stack.Screen name="update-preferences" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="streak" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="paywall" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="game-timer" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="breathe" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="badges" options={{ headerShown: false, presentation: 'card' }} />
       <Stack.Screen name="badge-wall" options={{ headerShown: false, presentation: 'card' }} />
