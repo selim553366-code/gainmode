@@ -212,6 +212,7 @@ async function syncFitnessNotificationsNow({
   await Notifications.cancelAllScheduledNotificationsAsync();
   // Clearing everything above also clears the trial reminder, so put it back while it is still due.
   await restoreTrialReminder();
+  await restoreGameTimer();
   if (!premiumActive) return;
   if (!(await requestNotificationPermission())) return;
   if (!(await prepareNotifications())) return;
@@ -311,3 +312,72 @@ async function restoreTrialReminder() {
   }
 }
 
+
+/**
+ * Gaming-session timer: the person says how long they will play, and when the time is up FitBud sends a
+ * notification to start the workout. The end time is stored so the timer survives the app closing and the
+ * reminder is put back after the other reminders are rescheduled.
+ */
+const GAME_TIMER_KEY = 'gainmode-game-timer';
+const GAME_TIMER_ID = 'gainmode-game-timer';
+const GAME_TIMER_COPY: Record<Language, { title: string; body: string }> = {
+  tr: { title: '🎮 Oyun bitti, şampiyon!', body: 'FitBud: Süren doldu. Hadi bugünkü antrenmana başlayalım 💪' },
+  en: { title: '🎮 Game over, champ!', body: 'FitBud: Time’s up. Let’s start today’s workout 💪' },
+  de: { title: '🎮 Game over, Champ!', body: 'FitBud: Die Zeit ist um. Lass uns mit dem heutigen Training starten 💪' },
+  fr: { title: '🎮 Partie terminée, champion !', body: 'FitBud : C’est l’heure. On lance l’entraînement du jour 💪' },
+  es: { title: '🎮 ¡Se acabó la partida, campeón!', body: 'FitBud: Se acabó el tiempo. Empecemos el entrenamiento de hoy 💪' },
+};
+
+export type GameTimer = { endsAt: number; minutes: number };
+
+async function scheduleGameTimerAt(language: Language, endsAt: number) {
+  const Notifications = await loadNotifications();
+  if (!Notifications || endsAt <= Date.now()) return;
+  if (!(await prepareNotifications())) return;
+  const copy = GAME_TIMER_COPY[language] ?? GAME_TIMER_COPY.en;
+  await Notifications.cancelScheduledNotificationAsync(GAME_TIMER_ID).catch(() => undefined);
+  await Notifications.scheduleNotificationAsync({
+    identifier: GAME_TIMER_ID,
+    content: { title: copy.title, body: copy.body, sound: 'default', data: { source: 'forge-fit-game-timer' } },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, channelId: CHANNEL_ID, date: new Date(endsAt) },
+  });
+}
+
+/** Starts a gaming session of `minutes`; returns the timer, and whether the reminder could be scheduled. */
+export async function startGameTimer(language: Language, minutes: number, now = Date.now()) {
+  const timer: GameTimer = { endsAt: now + minutes * 60 * 1000, minutes };
+  await AsyncStorage.setItem(GAME_TIMER_KEY, JSON.stringify({ ...timer, language })).catch(() => undefined);
+  const allowed = await requestNotificationPermission();
+  if (allowed) await scheduleGameTimerAt(language, timer.endsAt).catch(() => undefined);
+  return { timer, notifies: allowed };
+}
+
+/** Ends the session early and cancels FitBud's reminder. */
+export async function stopGameTimer() {
+  await AsyncStorage.removeItem(GAME_TIMER_KEY).catch(() => undefined);
+  const Notifications = await loadNotifications();
+  await Notifications?.cancelScheduledNotificationAsync(GAME_TIMER_ID).catch(() => undefined);
+}
+
+/** The running (or just finished) session, if any. */
+export async function readGameTimer(): Promise<GameTimer | null> {
+  try {
+    const raw = await AsyncStorage.getItem(GAME_TIMER_KEY);
+    if (!raw) return null;
+    const { endsAt, minutes } = JSON.parse(raw) as GameTimer;
+    return typeof endsAt === 'number' ? { endsAt, minutes } : null;
+  } catch {
+    return null;
+  }
+}
+
+async function restoreGameTimer() {
+  try {
+    const raw = await AsyncStorage.getItem(GAME_TIMER_KEY);
+    if (!raw) return;
+    const { endsAt, language } = JSON.parse(raw) as { endsAt: number; language: Language };
+    if (endsAt > Date.now()) await scheduleGameTimerAt(language, endsAt);
+  } catch {
+    // A broken record should not stop the other reminders.
+  }
+}
