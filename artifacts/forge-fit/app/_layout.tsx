@@ -28,6 +28,7 @@ import colors from '@/constants/colors';
 import { WidgetOfferHost } from '@/components/WidgetOffer';
 import { BadgeUnlockHost } from '@/components/BadgeUnlock';
 import { clearNotificationResponse, subscribeToNotificationResponses } from '@/lib/notifications';
+import { promptStoreUpdateIfAvailable } from '@/lib/appUpdates';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -44,6 +45,11 @@ function RootLayoutNav() {
   const { resolvedTheme } = useTheme();
   const reducedMotion = useReducedMotion();
   const handledNotificationResponse = useRef<string | null>(null);
+  const { language } = useFit();
+  useEffect(() => {
+    const timer = setTimeout(() => { void promptStoreUpdateIfAvailable(language); }, 2500);
+    return () => clearTimeout(timer);
+  }, [language]);
   useEffect(() => {
     const openNotificationDestination = (response: NotificationResponse) => {
       if (handledNotificationResponse.current === response.notification.request.identifier) return;
